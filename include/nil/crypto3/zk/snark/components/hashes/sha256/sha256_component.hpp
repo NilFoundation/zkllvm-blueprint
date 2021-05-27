@@ -200,6 +200,7 @@ namespace nil {
                         typedef merkle_authentication_path merkle_authentication_path_type;
 
                         std::shared_ptr<sha256_compression_function_component<FieldType>> f;
+                        std::shared_ptr<merkle_damagard_padding<FieldType>> padding;
 
                         sha256_two_to_one_hash_component(blueprint<FieldType> &bp,
                                                          const digest_variable<FieldType> &left,
@@ -221,18 +222,34 @@ namespace nil {
                                                          const block_variable<FieldType> &input_block,
                                                          const digest_variable<FieldType> &output) :
                             component<FieldType>(bp) {
-
-                            assert(block_length == hashes::sha2<256>::block_bits);
+                            const int message_length_bits = 64;
+                            assert(block_length <= hashes::sha2<256>::block_bits - message_length_bits);
                             assert(input_block.bits.size() == block_length);
+                            padding.reset(new merkle_damagard_padding<FieldType>(bp,
+                                block_length,
+                                block_length,
+                                64,
+                                hashes::sha2<256>::block_bits
+                            ));
+                            blueprint_variable_vector<FieldType> bits;
+                            bits.insert(bits.end(), input_block.bits.begin(), input_block.bits.end());
+                            bits.insert(bits.end(), padding->bits.begin(), padding->bits.end());
+                            
                             f.reset(new sha256_compression_function_component<FieldType>(
                                 bp, SHA256_default_IV<FieldType>(bp), input_block.bits, output));
                         }
 
                         void generate_r1cs_constraints(bool ensure_output_bitness = true) {    // TODO: ignored for now
+                            if(padding != nullptr) {
+                                padding->generate_r1cs_constraints();
+                            }
                             f->generate_r1cs_constraints();
                         }
 
                         void generate_r1cs_witness() {
+                            if(padding != nullptr) {
+                                padding->generate_r1cs_witness();
+                            }
                             f->generate_r1cs_witness();
                         }
 

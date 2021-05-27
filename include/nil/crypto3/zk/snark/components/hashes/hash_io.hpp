@@ -122,6 +122,47 @@ namespace nil {
                         }
                     };
 
+                    template<typename FieldType>
+                    class merkle_damagard_padding : public component<FieldType> {
+                    public:
+                        blueprint_variable_vector<FieldType> bits;
+                        blueprint_variable<FieldType> one;
+                        blueprint_variable<FieldType> zero;
+
+                        merkle_damagard_padding(blueprint<FieldType> bp,
+                            size_t partial_block_bits,
+                            size_t message_length,
+                            size_t message_length_bits_length,
+                            size_t total_block_bits
+                        ): component<FieldType>(bp) {
+                            assert(partial_block_bits + message_length_bits_length <= total_block_bits);
+                            one.allocate(bp);
+                            zero.allocate(bp);
+                            size_t padding_length = total_block_bits - partial_block_bits - message_length_bits_length;
+                            bits.resize(padding_length + message_length_bits_length);
+                            if(padding_length > 0) {
+                                bits[0] = one;
+                                for(size_t i = 1; i < padding_length; ++i) {
+                                    bits[i] = zero;
+                                }
+                            }
+                            for(size_t i = 0; i < message_length_bits_length; ++i) {
+                                bits[padding_length + i] = (message_length & 1 ? one : zero);
+                                message_length >> 1;
+                            }
+                            assert(message_length == 0);
+                        }                        
+
+                        void generate_r1cs_constraints() {
+                            this->bp.add_r1cs_constraint(r1cs_constraint<FieldType>(1, one, 1));
+                            this->bp.add_r1cs_constraint(r1cs_constraint<FieldType>(1, zero, 0));
+                        }
+
+                        void generate_r1cs_witness() {
+                            this->bp.val(one) = 1;
+                            this->bp.val(zero) = 0;
+                        }
+                    };
                 }    // namespace components        
             }    // namespace snark
         }        // namespace zk
