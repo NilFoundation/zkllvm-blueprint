@@ -30,8 +30,6 @@
 
 #include <nil/crypto3/math/detail/field_utils.hpp>
 
-#include <nil/marshalling/algorithms/unpack.hpp>
-
 #include <nil/crypto3/zk/snark/relations/plonk/plonk.hpp>
 
 #include <nil/crypto3/zk/components/blueprint.hpp>
