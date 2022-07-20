@@ -36,7 +36,7 @@
 #include <nil/crypto3/multiprecision/integer.hpp>
 #include <nil/crypto3/multiprecision/number.hpp>
 
-#include <nil/crypto3/zk/snark/relations/variable.hpp>
+#include <nil/crypto3/zk/snark/arithmetization/variable.hpp>
 
 namespace nil {
     namespace crypto3 {
