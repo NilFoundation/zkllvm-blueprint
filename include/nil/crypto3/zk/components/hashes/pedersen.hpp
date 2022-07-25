@@ -39,6 +39,25 @@ namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
+                
+                template<typename BasePointGeneratorHash, typename HashParams, typename GroupType>
+                struct pedersen_base_point_generator {
+                    using base_points_type = std::vector<typename GroupType::value_type>;
+                    
+                    static std::vector<typename GroupType::value_type> get_base_points(std::size_t n) {
+                        using group_hash_type = hashes::find_group_hash<HashParams, BasePointGeneratorHash,
+                                                                        GroupType>;
+                        assert(n > 0);
+                        std::vector<typename GroupType::value_type> basepoints;
+                        for (std::uint32_t i = 0; i < n; ++i) {
+                            basepoints.emplace_back(hash<group_hash_type>({
+                                i,
+                            }));
+                        }
+                        return basepoints;
+                    }
+                };
+
                 /**
                  * Windowed hash function using elliptic curves point multiplication
                  *
@@ -49,7 +68,9 @@ namespace nil {
                          typename HashParams = hashes::find_group_hash_default_params>
                 struct pedersen_to_point : public component<typename Curve::base_field_type> {
                     using curve_type = Curve;
-                    using commitment_component = fixed_base_mul_zcash<curve_type>;
+                    using base_point_generator = pedersen_base_point_generator<BasePointGeneratorHash, HashParams, typename curve_type::g1_type<>>;
+                    static_assert(is_base_point_generator<base_point_generator, std::vector<typename curve_type::g1_type<>::value_type>>::value);
+                    using commitment_component = fixed_base_mul_zcash<curve_type, base_point_generator>;
                     using field_type = typename commitment_component::field_type;
                     using element_component = typename commitment_component::twisted_edwards_element_component;
 
@@ -62,24 +83,11 @@ namespace nil {
                     commitment_component m_commitment;
                     result_type result;
 
-                    static std::vector<typename element_component::group_value_type> get_base_points(std::size_t n) {
-                        using group_hash_type = hashes::find_group_hash<HashParams, BasePointGeneratorHash,
-                                                                        typename element_component::group_type>;
-                        assert(n > 0);
-                        std::vector<typename element_component::group_value_type> basepoints;
-                        for (std::uint32_t i = 0; i < n; ++i) {
-                            basepoints.emplace_back(hash<group_hash_type>({
-                                i,
-                            }));
-                        }
-                        return basepoints;
-                    }
-
                     /// Auto allocation of the result.
                     /// Take in_bits as blueprint_variable_vector.
                     pedersen_to_point(blueprint<field_type> &bp, const blueprint_variable_vector<field_type> &in_bits) :
                         component<field_type>(bp),
-                        m_commitment(bp, get_base_points(commitment_component::basepoints_required(in_bits.size())),
+                        m_commitment(bp, base_point_generator::get_base_points(commitment_component::basepoints_required(in_bits.size())),
                                      in_bits),
                         result(m_commitment.result) {
                     }
@@ -138,7 +146,7 @@ namespace nil {
                     pedersen_to_point(blueprint<field_type> &bp, const blueprint_variable_vector<field_type> &in_bits,
                                       const result_type &in_result) :
                         component<field_type>(bp),
-                        m_commitment(bp, get_base_points(commitment_component::basepoints_required(in_bits.size())),
+                        m_commitment(bp, base_point_generator::get_base_points(commitment_component::basepoints_required(in_bits.size())),
                                      in_bits, in_result),
                         result(m_commitment.result) {
                     }

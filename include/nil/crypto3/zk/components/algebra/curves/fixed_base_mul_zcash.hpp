@@ -35,6 +35,7 @@
 #include <cmath>
 
 #include <boost/assert.hpp>
+#include <boost/tti/has_member_function.hpp>
 #include <boost/concept_check.hpp>
 #include <boost/range/concepts.hpp>
 
@@ -55,7 +56,14 @@ namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
-                template<typename Curve>
+                
+                BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION(get_base_points)
+                
+                template<typename BasePointGenerator, typename BasePoints>
+                struct is_base_point_generator :
+                    has_static_member_function_get_base_points<BasePointGenerator, BasePoints (std::size_t)> {};
+
+                template<typename Curve, typename BasePointGenerator>
                 struct fixed_base_mul_zcash : public component<typename Curve::base_field_type> {
                     using curve_type = Curve;
                     using field_type = typename curve_type::base_field_type;
@@ -86,29 +94,39 @@ namespace nil {
                     result_type result;
 
                 private:
-                    template<typename BasePoints,
-                             typename std::enable_if<
-                                 std::is_same<
-                                     typename twisted_edwards_element_component::group_value_type,
-                                     typename std::iterator_traits<typename BasePoints::iterator>::value_type>::value,
-                                 bool>::type = true>
-                    void init(const BasePoints &base_points, const blueprint_variable_vector<field_type> &in_scalar) {
-                        BOOST_RANGE_CONCEPT_ASSERT((boost::RandomAccessRangeConcept<const BasePoints>));
-                        assert(!in_scalar.empty());
-                        assert((in_scalar.size() % lookup_component::chunk_bits) == 0);
-                        assert(basepoints_required(in_scalar.size()) <= base_points.size());
 
-                        const std::size_t window_size_items = 1 << lookup_component::lookup_bits;
-                        const std::size_t n_windows = in_scalar.size() / lookup_component::chunk_bits;
+                    static const std::size_t window_size_items = 1 << lookup_component::lookup_bits;
+                     struct window_lookup {
+                        std::vector<field_value_type> x;
+                        std::vector<field_value_type> y;
+                    };
+                    
+                    static inline std::vector<window_lookup> window_lookups;
 
-                        typename twisted_edwards_element_component::group_value_type start = base_points[0];
-                        // Precompute values for all lookup window tables
-                        for (std::size_t i = 0; i < n_windows; ++i) {
-                            std::vector<field_value_type> lookup_x;
-                            std::vector<field_value_type> lookup_y;
+                    static void generate_lookups(std::size_t bits) {
+                        assert((bits % lookup_component::chunk_bits) == 0);
+                        const std::size_t n_windows = bits / lookup_component::chunk_bits;
+                        if(n_windows <= window_lookups.size()) {
+                            return;
+                        }
 
-                            lookup_x.reserve(window_size_items);
-                            lookup_y.reserve(window_size_items);
+                        typename BasePointGenerator::base_points_type base_points = BasePointGenerator::get_base_points(basepoints_required(bits));
+                        assert(basepoints_required(bits) <= base_points.size());
+
+                        std::size_t cached_lookups = window_lookups.size();
+                        typename twisted_edwards_element_component::group_value_type start = base_points[cached_lookups / chunks_per_base_point];
+
+                        for(std::size_t i = 0; i < cached_lookups % chunks_per_base_point; ++i) {
+                            start = start.doubled().doubled().doubled().doubled();
+                        }
+
+                        window_lookups.reserve(n_windows);
+
+                        for (std::size_t i = cached_lookups; i < n_windows; ++i) {
+                            window_lookup lookup; 
+
+                            lookup.x.reserve(window_size_items);
+                            lookup.y.reserve(window_size_items);
 
                             if (i % chunks_per_base_point == 0) {
                                 start = base_points[i / chunks_per_base_point];
@@ -126,11 +144,37 @@ namespace nil {
                                 }
                                 const typename montgomery_element_component::group_value_type montgomery =
                                     current.to_montgomery();
-                                lookup_x.emplace_back(montgomery.X);
-                                lookup_y.emplace_back(montgomery.Y);
+                                lookup.x.emplace_back(montgomery.X);
+                                lookup.y.emplace_back(montgomery.Y);
 
                                 assert(montgomery.to_twisted_edwards() == current);
                             }
+
+                            // current is at 2^2 * start, for next iteration start needs to be 2^4
+                            start = current.doubled().doubled();
+                            window_lookups.emplace_back(lookup);
+                        }
+                    }
+
+                    template<typename std::enable_if<
+                                 std::is_same<
+                                     typename twisted_edwards_element_component::group_value_type,
+                                     typename std::iterator_traits<typename BasePointGenerator::base_points_type::iterator>::value_type>::value &&
+                                     is_base_point_generator<BasePointGenerator, typename BasePointGenerator::base_points_type>::value,
+                                 bool>::type = true>
+                    void init(const blueprint_variable_vector<field_type> &in_scalar) {
+                        BOOST_RANGE_CONCEPT_ASSERT((boost::RandomAccessRangeConcept<const typename BasePointGenerator::base_points_type>));
+                        assert(!in_scalar.empty());
+                        assert((in_scalar.size() % lookup_component::chunk_bits) == 0);
+
+                        const std::size_t n_windows = in_scalar.size() / lookup_component::chunk_bits;
+
+                        // Precompute values for all lookup window tables
+                        generate_lookups(in_scalar.size());
+                        assert(n_windows <= window_lookups.size());
+                        for (std::size_t i = 0; i < n_windows; ++i) {
+                            std::vector<field_value_type> &lookup_x = window_lookups[i].x;
+                            std::vector<field_value_type> &lookup_y = window_lookups[i].y;
 
                             const auto bits_begin = in_scalar.begin() + (i * lookup_component::chunk_bits);
                             const blueprint_variable_vector<field_type> window_bits_x(
@@ -152,9 +196,6 @@ namespace nil {
                                         this->m_windows_y.back().b0b1,
                                         (lookup_x[3] - lookup_x[2] - lookup_x[1] + lookup_x[0])));
                             this->m_windows_x.emplace_back(x_lc);
-
-                            // current is at 2^2 * start, for next iteration start needs to be 2^4
-                            start = current.doubled().doubled();
                         }
 
                         // Chain adders within one segment together via montgomery adders
@@ -241,7 +282,7 @@ namespace nil {
                                          const bool do_pad_input = true) :
                         component<field_type>(bp),
                         result(bp) {
-                        init(base_points, do_pad_input ? pad_input(bp, in_scalar) : in_scalar);
+                        init(do_pad_input ? pad_input(bp, in_scalar) : in_scalar);
                     }
 
                     /// Manual allocation of the result
@@ -253,7 +294,7 @@ namespace nil {
                                          const bool do_pad_input = true) :
                         component<field_type>(bp),
                         result(in_result) {
-                        init(base_points, do_pad_input ? pad_input(bp, in_scalar) : in_scalar);
+                        init(do_pad_input ? pad_input(bp, in_scalar) : in_scalar);
                     }
 
                     void generate_r1cs_constraints() {
