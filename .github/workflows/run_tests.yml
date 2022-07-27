@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actions
-
 name: Run test
 
 # Controls when the workflow will run
@@ -46,9 +44,3 @@ jobs:
 
       - name: Run tests
         run: make tests
-
-
-
-
-
-
