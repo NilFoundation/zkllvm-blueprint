@@ -168,7 +168,7 @@ namespace nil {
                     void generate_r1cs_constraints() {
                         for (std::size_t i = 0; i < source.size(); ++i) {
                             this->bp.add_r1cs_constraint(
-                                snark::r1cs_constraint<Field>(do_copy, source[i] - target[i], 0));
+                                snark::r1cs_constraint<Field>(do_copy, source[i] - target[i], Field::value_type::zero()));
                         }
                     }
 

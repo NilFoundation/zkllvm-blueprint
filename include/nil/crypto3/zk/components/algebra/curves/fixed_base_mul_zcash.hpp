@@ -189,12 +189,11 @@ namespace nil {
                             blueprint_linear_combination<field_type> x_lc;
                             x_lc.assign(
                                 this->bp,
-                                snark::linear_term<field_type>(blueprint_variable<field_type>(0), lookup_x[0]) +
-                                    snark::linear_term<field_type>(window_bits_x[0], (lookup_x[1] - lookup_x[0])) +
-                                    snark::linear_term<field_type>(window_bits_x[1], (lookup_x[2] - lookup_x[0])) +
-                                    snark::linear_term<field_type>(
-                                        this->m_windows_y.back().b0b1,
-                                        (lookup_x[3] - lookup_x[2] - lookup_x[1] + lookup_x[0])));
+                                    math::linear_combination<math::linear_variable<field_type>>(lookup_x[0]) +
+                                    window_bits_x[0] * (lookup_x[1] - lookup_x[0]) +
+                                    window_bits_x[1] * (lookup_x[2] - lookup_x[0]) +
+                                    this->m_windows_y.back().b0b1 *
+                                        (lookup_x[3] - lookup_x[2] - lookup_x[1] + lookup_x[0]));
                             this->m_windows_x.emplace_back(x_lc);
                         }
 

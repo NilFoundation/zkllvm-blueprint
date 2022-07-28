@@ -36,7 +36,7 @@
 #include <nil/crypto3/multiprecision/integer.hpp>
 #include <nil/crypto3/multiprecision/number.hpp>
 
-#include <nil/crypto3/zk/snark/arithmetization/variable.hpp>
+#include <nil/crypto3/zk/math/linear_variable.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -47,10 +47,10 @@ namespace nil {
                 class blueprint;
 
                 template<typename FieldType>
-                class blueprint_variable : public snark::variable<FieldType> {
+                class blueprint_variable : public math::linear_variable<FieldType> {
                 public:
-                    blueprint_variable(const typename snark::variable<FieldType>::index_type index = 0) :
-                        snark::variable<FieldType>(index) {};
+                    blueprint_variable(const typename math::linear_variable<FieldType>::index_type index = 0) :
+                        math::linear_variable<FieldType>(index) {};
 
                     void allocate(blueprint<FieldType> &bp) {
                         this->index = bp.allocate_var_index();
