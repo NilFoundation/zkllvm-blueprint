@@ -68,8 +68,8 @@ namespace nil {
                          typename HashParams = hashes::find_group_hash_default_params>
                 struct pedersen_to_point : public component<typename Curve::base_field_type> {
                     using curve_type = Curve;
-                    using base_point_generator = pedersen_base_point_generator<BasePointGeneratorHash, HashParams, typename curve_type::g1_type<>>;
-                    static_assert(is_base_point_generator<base_point_generator, std::vector<typename curve_type::g1_type<>::value_type>>::value);
+                    using base_point_generator = pedersen_base_point_generator<BasePointGeneratorHash, HashParams, typename curve_type::template g1_type<>>;
+                    static_assert(is_base_point_generator<base_point_generator, std::vector<typename curve_type::template g1_type<>::value_type>>::value);
                     using commitment_component = fixed_base_mul_zcash<curve_type, base_point_generator>;
                     using field_type = typename commitment_component::field_type;
                     using element_component = typename commitment_component::twisted_edwards_element_component;
