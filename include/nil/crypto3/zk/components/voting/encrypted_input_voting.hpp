@@ -105,7 +105,7 @@ namespace nil {
                         sn_hasher.generate_r1cs_constraints();
                         check_sn.generate_r1cs_constraints(false, false);
 
-                        snark::linear_combination<field_type> sum_m_i;
+                        math::linear_combination<math::linear_variable<field_type>> sum_m_i;
                         for (const auto &m_i : m.bits) {
                             // m_i == 0 or m_i == 1
                             generate_boolean_r1cs_constraint(

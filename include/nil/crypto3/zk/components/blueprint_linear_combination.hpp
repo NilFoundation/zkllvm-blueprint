@@ -31,7 +31,7 @@
 #include <nil/crypto3/multiprecision/integer.hpp>
 #include <nil/crypto3/multiprecision/number.hpp>
 
-#include <nil/crypto3/zk/snark/arithmetization/variable.hpp>
+#include <nil/crypto3/zk/math/linear_combination.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -44,7 +44,7 @@ namespace nil {
                 class blueprint;
 
                 template<typename FieldType>
-                class blueprint_linear_combination : public snark::linear_combination<FieldType> {
+                class blueprint_linear_combination : public math::linear_combination<math::linear_variable<FieldType>> {
                     typedef FieldType field_type;
                     typedef typename field_type::value_type field_value_type;
 
@@ -59,10 +59,10 @@ namespace nil {
                     blueprint_linear_combination(const blueprint_variable<field_type> &var) {
                         this->is_variable = true;
                         this->index = var.index;
-                        this->terms.emplace_back(snark::linear_term<field_type>(var));
+                        this->terms.emplace_back(math::linear_term<math::linear_variable<field_type>>(var));
                     }
 
-                    void assign(blueprint<field_type> &bp, const snark::linear_combination<field_type> &lc) {
+                    void assign(blueprint<field_type> &bp, const math::linear_combination<math::linear_variable<field_type>> &lc) {
                         assert(this->is_variable == false);
                         this->index = bp.allocate_lc_index();
                         this->terms = lc.terms;
@@ -217,10 +217,10 @@ namespace nil {
                 };
 
                 template<typename FieldType>
-                snark::linear_combination<FieldType>
+                math::linear_combination<math::linear_variable<FieldType>>
                     blueprint_sum(const blueprint_linear_combination_vector<FieldType> &v) {
 
-                    snark::linear_combination<FieldType> result;
+                    math::linear_combination<math::linear_variable<FieldType>> result;
                     for (auto &term : v) {
                         result = result + term;
                     }
@@ -229,12 +229,12 @@ namespace nil {
                 }
 
                 template<typename FieldType>
-                snark::linear_combination<FieldType>
+                math::linear_combination<math::linear_variable<FieldType>>
                     blueprint_packing_sum(const blueprint_linear_combination_vector<FieldType> &v) {
 
                     typename FieldType::value_type twoi =
                         FieldType::value_type::one();    // will hold 2^i entering each iteration
-                    std::vector<snark::linear_term<FieldType>> all_terms;
+                    std::vector<math::linear_term<math::linear_variable<FieldType>>> all_terms;
                     for (auto &lc : v) {
                         for (auto &term : lc.terms) {
                             all_terms.emplace_back(twoi * term);
@@ -242,16 +242,16 @@ namespace nil {
                         twoi += twoi;
                     }
 
-                    return snark::linear_combination<FieldType>(all_terms);
+                    return math::linear_combination<math::linear_variable<FieldType>>(all_terms);
                 }
 
                 template<typename FieldType>
-                snark::linear_combination<FieldType>
+                math::linear_combination<math::linear_variable<FieldType>>
                     blueprint_coeff_sum(const blueprint_linear_combination_vector<FieldType> &v,
                                         const std::vector<typename FieldType::value_type> &coeffs) {
 
                     assert(v.size() == coeffs.size());
-                    std::vector<snark::linear_term<FieldType>> all_terms;
+                    std::vector<math::linear_term<math::linear_variable<FieldType>>> all_terms;
 
                     auto coeff_it = coeffs.begin();
                     for (auto &lc : v) {
@@ -261,7 +261,7 @@ namespace nil {
                         ++coeff_it;
                     }
 
-                    return snark::linear_combination<FieldType>(all_terms);
+                    return math::linear_combination<math::linear_variable<FieldType>>(all_terms);
                 }
             }    // namespace components
         }        // namespace zk

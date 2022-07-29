@@ -72,7 +72,7 @@ namespace nil {
 
                     void generate_r1cs_constraints() {
                         this->bp.add_r1cs_constraint(snark::r1cs_constraint<field_type>(
-                            {constants[0] + bit * constants[1] - (bit * constants[0])},
+                            {math::linear_combination<math::linear_variable<field_type>>(constants[0]) + bit * constants[1] - (bit * constants[0])},
                             {field_value_type::one()},
                             result));
                     }
