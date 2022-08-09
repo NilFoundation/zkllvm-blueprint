@@ -11,7 +11,7 @@ on:
 env:
   SUITE_REPO: "NilFoundation/crypto3"
   LIB_NAME: "blueprint"
-  CACHE_NAME: "checkout-job-cache"
+  CACHE_NAME: checkout-job-cache-$GITHUB_RUN_NUMBER
 
 jobs:
   checkout:
