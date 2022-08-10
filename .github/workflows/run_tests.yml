@@ -11,11 +11,15 @@ on:
 env:
   SUITE_REPO: "NilFoundation/crypto3"
   LIB_NAME: "blueprint"
-  CACHE_NAME: checkout-job-cache-$GITHUB_RUN_NUMBER
+  CACHE_NAME: checkout-job-cache
 
 jobs:
   checkout:
     runs-on: [self-hosted, tests-runner]
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+    name: Checkout and build using ${{ matrix.compiler }}
     steps:
       - name: Cleanup # TODO - move to scripts on runner
         run: |
@@ -34,6 +38,18 @@ jobs:
           path: ./libs/${{ env.LIB_NAME }}
           submodules: recursive
 
+      - name: Set additional env
+        run : |
+          echo "BUILD_NAME=${{ env.CACHE_NAME }}-${{ matrix.compiler }}" >> $GITHUB_ENV
+          echo "BUILD_ARCHIVE_NAME=${{ env.CACHE_NAME }}-${{ matrix.compiler }}.tar.gz" >> $GITHUB_ENV
+
+          if [ ${{ matrix.compiler }} == clang ]; then
+            echo "COMPILERS=-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++" >> $GITHUB_ENV
+          fi
+          if [ ${{ matrix.compiler }} == gcc ]; then
+            echo "COMPILERS=-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++" >> $GITHUB_ENV
+          fi
+
       - name: Cmake and build
         env:
           CMAKE_ARGS: "
@@ -44,27 +60,28 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake ${{ env.CMAKE_ARGS }} ..
+          cmake ${{ env.CMAKE_ARGS }} ${{ env.COMPILERS }} ..
 
       - name: Archive build results
         run: |
-          touch ${{ env.CACHE_NAME }}.tar.gz
-          tar -czf ${{ env.CACHE_NAME }}.tar.gz --exclude=${{ env.CACHE_NAME }}.tar.gz .
+          touch ${{ env.BUILD_ARCHIVE_NAME }}
+          tar -czf ${{ env.BUILD_ARCHIVE_NAME }} --exclude=${{ env.BUILD_ARCHIVE_NAME }} .
 
       - name: Cache archived job output
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.CACHE_NAME }}
-          path: ${{ env.CACHE_NAME }}.tar.gz
+          name: ${{ env.BUILD_NAME }}
+          path: ${{ env.BUILD_ARCHIVE_NAME }}
           retention-days: 1
 
 
   run_tests:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, tests-runner]
     needs: [checkout]
     strategy:
       fail-fast: false
       matrix:
+        compiler: [gcc, clang]
         target: [
             blueprint_hashes_plonk_sha256_process_test,
             blueprint_hashes_plonk_sha512_process_test,
@@ -75,6 +92,7 @@ jobs:
             blueprint_non_native_plonk_var_base_mul_per_bit_test,
             blueprint_non_native_plonk_variable_base_multiplication_test,
           ]  # Tests to execute
+    name: Run ${{ matrix.target }} on ${{ matrix.compiler }}
     steps:
       - name: Cleanup # TODO - move to scripts on runner
         run: |
@@ -84,12 +102,13 @@ jobs:
       - name: Upload checkout job cache
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.CACHE_NAME }}
+          name: ${{ env.CACHE_NAME }}-${{ matrix.compiler }}
 
       - name: Extract artifacts
         run: |
-          tar -xf ${{ env.CACHE_NAME }}.tar.gz
-          rm ${{ env.CACHE_NAME }}.tar.gz
+          archive_name=${{ env.CACHE_NAME }}-${{ matrix.compiler }}.tar.gz
+          tar -xf $archive_name
+          rm $archive_name
 
       - name: Build
         working-directory: ./build
