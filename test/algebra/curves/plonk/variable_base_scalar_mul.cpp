@@ -133,7 +133,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul) {
     using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
-    typename BlueprintScalarType::value_type b_scalar = algebra::random_element<BlueprintScalarType>();
+    // typename BlueprintScalarType::value_type b_scalar = algebra::random_element<BlueprintScalarType>();
+	// typename BlueprintScalarType::value_type b_scalar =  1;
+	// typename BlueprintScalarType::value_type b_scalar =  0;
+	 typename BlueprintScalarType::value_type b_scalar = -1;
 
 	typename curve_type::scalar_field_type::value_type shift_base = 2;
 	auto shift = shift_base.pow(255) + 1;
@@ -143,6 +146,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul) {
 
 
     curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type T = algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+	std::cout << "cpp vbsm T: " << T.X.data << " " << T.Y.data << std::endl;
+	std::cout << "multiply by:" << std::endl;
+	std::cout << "(unshifted) " << b_scalar.data << std::endl;
+	std::cout << "(shifted)   " << x_scalar.data << std::endl;
+
 	var scalar_var = {0, 2, false, var::column_type::public_input};
     var T_X_var = {0, 0, false, var::column_type::public_input};
     var T_Y_var = {0, 1, false, var::column_type::public_input};

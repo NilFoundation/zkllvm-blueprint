@@ -46,6 +46,21 @@ namespace nil {
                 // Using results from https://arxiv.org/pdf/math/0208038.pdf
                 // Input: x \in F_p, P \in E(F_p)
                 // Output: y * P, where x = (y - 2^255 - 1) / 2
+
+                // clang-format off
+                // _______________________________________________________________________________________________________________________________________________________                             
+                //|           | W0     | W1     | W2      |  W3     |  W4     |  W5     | W6      |   W7   |   W8   |   W9   |  W10   |  W11   |  W12   |  W13   |  W14   |
+                //|‾row‾0‾‾‾‾‾|‾‾ calculating 2T ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|
+                //| row 1     |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
+                //| row 2     | P[5].X | P[5].Y | bits[0] | bits[1] | bits[2] | bits[3] | bits[4] |   s0   |   s1   |   s2   |  s3    |  s4    |        |        |        | 
+                //| row 3     |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
+                //| row 4     | P[5].X | P[5].Y | bits[5] | bits[6] | bits[7] | bits[8] | bits[9] |   s0   |   s1   |   s2   |  s3    |  s4    |        |        |        |
+                //|           | ...                                                                                                                                       |
+                //| final row |    x   |    y   |   t0    |   t1    |   t2    |  n_next |   T.X   |  T.Y   |   m    |        |        |        |        |        |        |
+                // ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+                             
+                // clang-format on
+
                 template<typename ArithmetizationType, typename CurveType, std::size_t... WireIndexes>
                 class curve_element_variable_base_scalar_mul;
 
@@ -72,6 +87,13 @@ namespace nil {
                     constexpr static const std::size_t rows_amount = add_component::rows_amount + mul_rows_amount + 1;
                     constexpr static const std::size_t gates_amount = 2;
 
+/*
+                    // vesta::
+                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = 0x448d31f81299f237325a61da00000001_cppui255;
+                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero =      0x448d31f81299f237325a61da00000002_cppui255;
+                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_one =       0x448d31f81299f237325a61da00000003_cppui255;
+*/
+                    // pallas
                     constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = 0x224698fc0994a8dd8c46eb2100000000_cppui255;
                     constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero = 0x200000000000000000000000000000003369e57a0e5efd4c526a60b180000001_cppui255;
                     constexpr static const typename ArithmetizationType::field_type::value_type shifted_one = 0x224698fc0994a8dd8c46eb2100000001_cppui255;
@@ -230,7 +252,7 @@ namespace nil {
                         }
 
                         assignment.enable_selector(first_selector_index, start_row_index + add_component::rows_amount,
-                                                   start_row_index + rows_amount - 3, 2);
+                                                   start_row_index + rows_amount - 4, 2);
                         assignment.enable_selector(first_selector_index + 1, start_row_index + rows_amount - 2);
 
                         typename add_component::params_type addition_params = {{params.T.x, params.T.y},

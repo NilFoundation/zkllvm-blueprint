@@ -190,13 +190,13 @@ namespace nil {
                         std::size_t row = start_row_index;
                         typename BlueprintFieldType::value_type base = 2;
                         if (scalar_larger()) {
-                            assignment.constant(0)[row] = -base.pow(255);
-                            row++;
-                            assignment.constant(0)[row] = 1;
-                        } else {
                             assignment.constant(0)[row] = -base.pow(255) - 1;
                             row++;
                             assignment.constant(0)[row] = 1 / base;
+                        } else {
+                            assignment.constant(0)[row] = -base.pow(255);
+                            row++;
+                            assignment.constant(0)[row] = 1;
                         }
                     }
                 };
