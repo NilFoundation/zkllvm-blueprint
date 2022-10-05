@@ -125,10 +125,12 @@ namespace nil {
                     };
 
                     struct result_type {
-                        commitment_type output;
+                        var_ec_point output;
 
                         result_type(std::size_t start_row_index) {
-                            std::size_t row = start_row_index;
+                            assert (msm_size > 1); // output of add_component. For msm_size = 1 change to output of mul_component 
+                            output.X = var(W4, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                            output.Y = var(W5, start_row_index + rows_amount - 1, false, var::column_type::witness);
                         }
                     };
 
@@ -166,8 +168,6 @@ namespace nil {
                             }       
                         }
                         msm_component::generate_circuit(bp, assignment, {scalars, commitments}, row);
-                        return result_type(row);
-
                         return result_type(row);
                     }
 
