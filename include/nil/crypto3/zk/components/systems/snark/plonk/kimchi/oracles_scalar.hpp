@@ -481,7 +481,6 @@ namespace nil {
                                                  assignment, {params.fq_output.joint_combiner}, row)
                                                  .output;
                             row += endo_scalar_component::rows_amount;
-                            std::cout << "joint_combiner: " << assignment.var_value(joint_combiner).data << '\n';
                         }
 
                         var alpha =
@@ -492,7 +491,6 @@ namespace nil {
                         var zeta = endo_scalar_component::generate_assignments(assignment, {params.fq_output.zeta}, row)
                                        .output;
                         row += endo_scalar_component::rows_amount;
-                        std::cout << "zeta: " << assignment.var_value(zeta).data << '\n';
 
                         var zero = var(0, start_row_index + 4, false, var::column_type::constant);
                         var one = var(0, start_row_index + 5, false, var::column_type::constant);
@@ -502,32 +500,25 @@ namespace nil {
                         transcript_type transcript;
                         transcript.init_assignment(assignment, zero, row);
                         row += transcript_type::init_rows;
-                        std::cout << "tr state fq_digest: ";
                         transcript.absorb_assignment(assignment, fq_digest, row);
                         row += transcript_type::absorb_rows;
 
                         var zeta_pow_n = exponentiation_component::generate_assignments(
                             assignment, {zeta, domain_size}, row).output;
                         row += exponentiation_component::rows_amount;
-                        std::cout << "zeta_pow_n: " << assignment.var_value(zeta_pow_n).data << '\n';
 
                         var zeta_omega =
                             mul_component::generate_assignments(assignment, {zeta, params.verifier_index.omega}, row)
                                 .output;
                         row += mul_component::rows_amount;
-                        std::cout << "zeta_omega: " << assignment.var_value(zeta_omega).data << '\n';
 
                         var zeta_omega_pow_n = exponentiation_component::generate_assignments(
                             assignment, {zeta_omega, domain_size}, row).output;
                         row += exponentiation_component::rows_amount;
-                        std::cout << "zeta_omega_pow_n: " << assignment.var_value(zeta_omega_pow_n).data << '\n';
 
                         std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers =
                             alpha_powers_component::generate_assignments(assignment, {alpha, one}, row).output;
                         row += alpha_powers_component::rows_amount;
-                        for (std::size_t i = 0; i < KimchiParamsType::alpha_powers_n; ++i) {
-                            std::cout << "alpha_powers: " << assignment.var_value(alpha_powers[i]).data << '\n';
-                        }
 
                         std::array<var, eval_points_amount> public_eval;
                         for (std::size_t i = 0; i < eval_points_amount; ++i) {
@@ -539,7 +530,6 @@ namespace nil {
                                 {params.verifier_index.omega, one}, row).output;
                             row += pi_powers_component::rows_amount;
                             for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {
-                                std::cout << "omega_powers: " << assignment.var_value(omega_powers[i]).data << '\n';
                             }
 
                             std::array<var, eval_points_amount * KimchiParamsType::public_input_size> lagrange_denominators = 
@@ -547,7 +537,6 @@ namespace nil {
                                         {zeta, zeta_omega, omega_powers, one}, row).output;
                             row += lagrange_denominators_component::rows_amount;
                             for (std::size_t i = 0; i < eval_points_amount * KimchiParamsType::public_input_size; ++i) {
-                                std::cout << "lagrange_denominators: " << assignment.var_value(lagrange_denominators[i]).data << '\n';
                             }
 
                             std::array<var, KimchiParamsType::public_input_size> pi = params.proof.public_input;
@@ -559,35 +548,28 @@ namespace nil {
                                             domain_size, one, zero}, row).output;
                             row += public_eval_component::rows_amount;
                         }
-                        std::cout << "tr state evals: ";
                         transcript.absorb_evaluations_assignment(
                             assignment, public_eval[0], params.proof.proof_evals[0], row);
                         row += transcript_type::absorb_evaluations_rows;
                         
-                        std::cout << "tr state evals: ";
                         transcript.absorb_evaluations_assignment(
                              assignment, public_eval[1], params.proof.proof_evals[1], row);
                         row += transcript_type::absorb_evaluations_rows;
 
-                        std::cout << "tr state abs ft_eval: ";
                         transcript.absorb_assignment(assignment, params.proof.ft_eval, row);
                         row += transcript_type::absorb_rows;
 
                         var v_challenge = transcript.challenge_assignment(assignment, row);
                         row += transcript_type::challenge_rows;
-                        std::cout << "v_challenge: " << assignment.var_value(v_challenge).data << '\n';
                         var v = endo_scalar_component::generate_assignments(assignment,
                             {v_challenge}, row).output;
                         row += endo_scalar_component::rows_amount;
-                        std::cout << "v: " << assignment.var_value(v).data << '\n';
 
                         var u_challenge = transcript.challenge_assignment(assignment, row);
                         row += transcript_type::challenge_rows;
-                        std::cout << "u_challenge: " << assignment.var_value(u_challenge).data << '\n';
                         var u = endo_scalar_component::generate_assignments(assignment,
                             {u_challenge}, row).output;
                         row += endo_scalar_component::rows_amount;
-                        std::cout << "u: " << assignment.var_value(u).data << '\n';
 
                         std::array<var, eval_points_amount> powers_of_eval_points_for_chunks = {
                             exponentiation_component::generate_assignments(assignment, {zeta, max_poly_size}, row)
@@ -597,7 +579,6 @@ namespace nil {
                                 .output};
                         row += 2 * exponentiation_component::rows_amount;
                         for (std::size_t i = 0; i < eval_points_amount; ++i) {
-                            std::cout << "powers_of_eval_points_for_chunks: " << assignment.var_value(powers_of_eval_points_for_chunks[i]).data << '\n';
                         }
 
                         std::vector<prev_chal_output> prev_challenges_evals;
@@ -640,7 +621,6 @@ namespace nil {
                             row
                         ).output;
                         row += ft_eval_component::rows_amount;
-                        std::cout << "ft_eval0: " << assignment.var_value(ft_eval0).data << '\n';
 
                         // cip
                         var cip = cip_component::generate_assignments(assignment,
@@ -650,7 +630,6 @@ namespace nil {
                                                                       row)
                                       .output;
                         row += cip_component::rows_amount;
-                        std::cout << "cip: " << assignment.var_value(cip).data << '\n';
 
                         typename result_type::random_oracles random_oracles = {alpha, zeta,        v,
                                                                                u,     v_challenge, u_challenge};
