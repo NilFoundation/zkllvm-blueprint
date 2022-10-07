@@ -41,8 +41,9 @@ namespace nil {
             namespace components {
 
                 // shift scalars for scalar multiplication input
-                // f(X) = X -> X - 2^255 when the scalar field is larger than the base field and // TODO: "larger scalar field is depricated case"
-                // f(X) = X -> (X - 2^255 - 1) / 2 otherwise
+                // f(X) = X -> (X - 2^255 - 1) / 2
+                // if (X = 1) and  (the scalar field is larger than the base field): f(X) = X -> (X - 2^255)
+                //  // TODO: "larger scalar field is depricated case"
                 // Input: [x_0, ..., x_InputSize]
                 // Output: [f(x_0), ..., f(x_InputSize)]
                 template<typename ArithmetizationType, typename CurveType, std::size_t InputSize,
@@ -95,6 +96,8 @@ namespace nil {
 
                     using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
                     using add_component = zk::components::addition<ArithmetizationType, W0, W1, W2>;
+                    using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
+                    using div_or_zero_component = zk::components::division_or_zero<ArithmetizationType, W0, W1, W2, W3, W4>;
 
                     constexpr static const std::size_t selector_seed = 0x0f2C;
 
@@ -109,7 +112,10 @@ namespace nil {
                     }
 
                 public:
-                    constexpr static const std::size_t rows_amount = InputSize * (add_component::rows_amount + mul_component::rows_amount);
+                    constexpr static const std::size_t rows_amount_if_InputSize_is_1 = add_component::rows_amount * 3 + mul_component::rows_amount * 5  + sub_component::rows_amount * 2 +  div_or_zero_component::rows_amount;
+                    constexpr static const std::size_t rows_amount = InputSize * rows_amount_if_InputSize_is_1;
+
+
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
@@ -118,6 +124,12 @@ namespace nil {
 
                     struct result_type {
                         std::array<var, InputSize> output;
+
+                        result_type (std::size_t row) {
+                            for (std::size_t i = row; i < InputSize; i++) {
+                                output[i] = var(W2, (rows_amount_if_InputSize_is_1 - 1) + i * rows_amount_if_InputSize_is_1);
+                            }
+                        }
                     };
 
                     static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
@@ -127,46 +139,100 @@ namespace nil {
 
                         generate_assignments_constants(bp, assignment, params, start_row_index);
 
-                        var shift = var(0, start_row_index, false, var::column_type::constant);
-                        var coef = var(0, start_row_index + 1, false, var::column_type::constant);
+
+                        var shift_curve_dependent = var(0, start_row_index, false, var::column_type::constant);
+                        var coef_curve_dependent = var(0, start_row_index + 1, false, var::column_type::constant);
+                        var shift_pallas = var(0, start_row_index + 2, false, var::column_type::constant);
+                        var coef_pallas = var(0, start_row_index + 3, false, var::column_type::constant);
+                        var one = var(0, start_row_index + 4, false, var::column_type::constant);
+
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, InputSize> shifted;
-                        result_type result;
-
                         for (std::size_t i = 0; i < InputSize; ++i) {
-                            shifted[i] = zk::components::generate_circuit<add_component>(bp, assignment, {params.scalars[i], shift}, row).output;
+
+                            
+                            var b_shift_curve_dependent_interm = zk::components::generate_circuit<add_component>(bp, assignment, {params.scalars[i], shift_curve_dependent}, row).output;
                             row += add_component::rows_amount;
-                            result.output[i] = zk::components::generate_circuit<mul_component>(bp, assignment, {shifted[i], coef}, row).output;
+                            var b_shift_curve_dependent        = zk::components::generate_circuit<mul_component>(bp, assignment, {b_shift_curve_dependent_interm, coef_curve_dependent}, row).output;
                             row += mul_component::rows_amount;
+
+                            var b_shift_pallas_interm = zk::components::generate_circuit<add_component>(bp, assignment, {params.scalars[i], shift_pallas}, row).output;
+                            row += add_component::rows_amount;
+                            var b_shift_pallas        = zk::components::generate_circuit<mul_component>(bp, assignment, {b_shift_pallas_interm, coef_pallas}, row).output;
+                            row += mul_component::rows_amount;
+
+                            var b_minus_1 = zk::components::generate_circuit<sub_component>(bp, assignment, {params.scalars[i], one}, row).output;
+                            row += sub_component::rows_amount;
+                            var b_minus_1_inversed = zk::components::generate_circuit<div_or_zero_component>(bp, assignment, {one, b_minus_1}, row).output;
+                            row += div_or_zero_component::rows_amount;
+
+                            var true_if_input_not_1 = zk::components::generate_circuit<mul_component>(bp, assignment, {b_minus_1, b_minus_1_inversed}, row).output;
+                            row += mul_component::rows_amount;
+                            var true_if_input_is_1 = zk::components::generate_circuit<sub_component>(bp, assignment, {one, true_if_input_not_1}, row).output;
+                            row += sub_component::rows_amount;
+
+                            var case_of_input_1 = zk::components::generate_circuit<mul_component>(bp, assignment, {true_if_input_is_1, b_shift_curve_dependent}, row).output;
+                            row += mul_component::rows_amount;
+                            var case_of_input_not_1 = zk::components::generate_circuit<mul_component>(bp, assignment, {true_if_input_not_1, b_shift_pallas}, row).output;
+                            row += mul_component::rows_amount;
+
+                            var b_shifted = zk::components::generate_circuit<add_component>(bp, assignment, {case_of_input_1, case_of_input_not_1}, row).output;
+                            row += add_component::rows_amount;
                         }
 
                         generate_copy_constraints(bp, assignment, params, start_row_index);
                         
-                        return result;
+                        return result_type(start_row_index);
                     }
 
                     static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
                                                             const params_type &params,
                                                             const std::size_t start_row_index) {
 
-                        var shift = var(0, start_row_index, false, var::column_type::constant);
-                        var coef = var(0, start_row_index + 1, false, var::column_type::constant);
+                        var shift_curve_dependent = var(0, start_row_index, false, var::column_type::constant);
+                        var coef_curve_dependent = var(0, start_row_index + 1, false, var::column_type::constant);
+                        var shift_pallas = var(0, start_row_index + 2, false, var::column_type::constant);
+                        var coef_pallas = var(0, start_row_index + 3, false, var::column_type::constant);
+                        var one = var(0, start_row_index + 4, false, var::column_type::constant);
+
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, InputSize> shifted;
-                        result_type result;
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
-                            shifted[i] = add_component::generate_assignments(assignment, {params.scalars[i], shift}, row).output;
+
+                            
+                            var b_shift_curve_dependent_interm = add_component::generate_assignments(assignment, {params.scalars[i], shift_curve_dependent}, row).output;
                             row += add_component::rows_amount;
-                            result.output[i] = mul_component::generate_assignments(assignment, {shifted[i], coef}, row).output;
+                            var b_shift_curve_dependent        = mul_component::generate_assignments(assignment, {b_shift_curve_dependent_interm, coef_curve_dependent}, row).output;
                             row += mul_component::rows_amount;
+
+                            var b_shift_pallas_interm = add_component::generate_assignments(assignment, {params.scalars[i], shift_pallas}, row).output;
+                            row += add_component::rows_amount;
+                            var b_shift_pallas        = mul_component::generate_assignments(assignment, {b_shift_pallas_interm, coef_pallas}, row).output;
+                            row += mul_component::rows_amount;
+
+                            var b_minus_1 = sub_component::generate_assignments(assignment, {params.scalars[i], one}, row).output;
+                            row += sub_component::rows_amount;
+                            var b_minus_1_inversed = div_or_zero_component::generate_assignments(assignment, {one, b_minus_1}, row).output;
+                            row += div_or_zero_component::rows_amount;
+
+                            var true_if_input_not_1 = mul_component::generate_assignments(assignment, {b_minus_1, b_minus_1_inversed}, row).output;
+                            row += mul_component::rows_amount;
+                            var true_if_input_is_1 = sub_component::generate_assignments(assignment, {one, true_if_input_not_1}, row).output;
+                            row += sub_component::rows_amount;
+
+                            var case_of_input_1 = mul_component::generate_assignments(assignment, {true_if_input_is_1, b_shift_curve_dependent}, row).output;
+                            row += mul_component::rows_amount;
+                            var case_of_input_not_1 = mul_component::generate_assignments(assignment, {true_if_input_not_1, b_shift_pallas}, row).output;
+                            row += mul_component::rows_amount;
+
+                            var b_shifted = add_component::generate_assignments(assignment, {case_of_input_1, case_of_input_not_1}, row).output;
+                            row += add_component::rows_amount;
                         }
 
-                        return result;
+                        return result_type(start_row_index);
                     }
 
                 private:
@@ -193,11 +259,18 @@ namespace nil {
                             assignment.constant(0)[row] = -base.pow(255) - 1;
                             row++;
                             assignment.constant(0)[row] = 1 / base;
+                            row++;
                         } else {
                             assignment.constant(0)[row] = -base.pow(255);
                             row++;
                             assignment.constant(0)[row] = 1;
+                            row++;
                         }
+                        assignment.constant(0)[row] = -base.pow(255) - 1;
+                        row++;
+                        assignment.constant(0)[row] = 1 / base;
+                        row++;
+                        assignment.constant(0)[row] = 1;
                     }
                 };
             }    // namespace components
