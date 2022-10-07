@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_RECURSION_TEST_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_RECURSION_TEST_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_GENERIC_TEST_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_GENERIC_TEST_HPP
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/rpn_expression.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/index_term_type.hpp>
@@ -36,13 +36,13 @@ namespace nil {
             namespace components {
 
                 // index terms for recursion test
-                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/recursion.rs#L15
+                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/generic.rs#L25
                 template<typename ArithmetizationType>
-                class index_terms_scalars_list_recursion_test;
+                class index_terms_scalars_list_generic_test;
 
                 template<typename BlueprintFieldType, 
                          typename ArithmetizationParams>
-                class index_terms_scalars_list_recursion_test<
+                class index_terms_scalars_list_generic_test<
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
@@ -76,6 +76,7 @@ namespace nil {
 
                     constexpr static const std::size_t lookup_columns = 0;
                     constexpr static const bool lookup_runtime = false;
+                    constexpr static const bool lookup_table_ids = false;
                     constexpr static const bool joint_lookup = false;
 
                     constexpr static const bool poseidon_gate = false;
@@ -204,4 +205,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_RECURSION_TEST_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_GENERIC_TEST_HPP
