@@ -2,6 +2,7 @@
 // Copyright (c) 2021 Mikhail Komarov <nemo@nil.foundation>
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
+// Copyright (c) 2022 Polina Chernyshova <pockvokhbtra@nil.foundation>
 //
 // MIT License
 //
@@ -53,6 +54,8 @@ namespace nil {
                     constexpr static std::size_t permut_size = CircuitDescriptionType::permut_size;
 
                     constexpr static bool use_lookup = CircuitDescriptionType::use_lookup;
+                    constexpr static bool poseidon_gate = CircuitDescriptionType::poseidon_gate;
+                    constexpr static bool generic_gate = CircuitDescriptionType::generic_gate;
 
                     constexpr static std::size_t eval_points_amount = 2;
                     constexpr static std::size_t scalar_challenge_size = 128;

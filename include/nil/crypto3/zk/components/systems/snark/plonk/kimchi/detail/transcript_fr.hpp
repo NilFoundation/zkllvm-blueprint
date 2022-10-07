@@ -138,6 +138,20 @@ namespace nil {
                         auto unpack_res = unpack::generate_circuit(bp, assignment, {elem}, component_start_row);
                         return unpack_res.result;
                     }
+
+                    constexpr static std::size_t absorb_evals_rows() {
+                        std::size_t res = 22 * absorb_rows;
+                        if (KimchiParamsType::public_input_size) {
+                            res += sponge_component::absorb_rows;
+                        }
+                        if (KimchiParamsType::generic_gate) {
+                            res += sponge_component::absorb_rows;
+                        }
+                        if (KimchiParamsType::poseidon_gate) {
+                            res += sponge_component::absorb_rows;
+                        }
+                        return res;
+                    }
                     
                 public:
                     constexpr static const std::size_t rows_amount = 0;
@@ -146,7 +160,8 @@ namespace nil {
                     constexpr static const std::size_t challenge_rows = 
                         sponge_component::squeeze_rows + unpack::rows_amount 
                         + pack::rows_amount;
-                    constexpr static const std::size_t absorb_evaluations_rows = 25 * absorb_rows;
+                    constexpr static const std::size_t absorb_evaluations_rows = absorb_evals_rows();
+                    constexpr static const std::size_t absorb_evaluations_no_public_rows = 24 * absorb_rows;
 
                     constexpr static const std::size_t state_size = sponge_component::state_size;
 
@@ -191,8 +206,25 @@ namespace nil {
                                                        const std::size_t component_start_row) {
                         last_squeezed = {};
                         std::size_t row = component_start_row;
-                        std::vector<var> points = {public_eval, private_eval.z, private_eval.generic_selector, private_eval.poseidon_selector,
-                                                private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
+
+                        if (KimchiParamsType::public_input_size != 0) {
+                            sponge.absorb_assignment(assignment, public_eval, row);
+                            row += sponge_component::absorb_rows;
+                        }
+
+                        sponge.absorb_assignment(assignment, private_eval.z, row);
+                        row += sponge_component::absorb_rows;
+
+                        if (KimchiParamsType::generic_gate) {
+                            sponge.absorb_assignment(assignment, private_eval.generic_selector, row);
+                            row += sponge_component::absorb_rows;
+                        }
+                        if (KimchiParamsType::poseidon_gate) {
+                            sponge.absorb_assignment(assignment, private_eval.poseidon_selector, row);
+                            row += sponge_component::absorb_rows;
+                        }
+
+                        std::vector<var> points = {private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
                                                 private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
                                                 private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
                                                 private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
@@ -210,7 +242,59 @@ namespace nil {
                                                         const std::size_t component_start_row) {
                         last_squeezed = {};
                         std::size_t row = component_start_row;
-                        std::vector<var> points = {public_eval, private_eval.z, private_eval.generic_selector, private_eval.poseidon_selector,
+
+                        if (KimchiParamsType::public_input_size) {
+                            sponge.absorb_circuit(bp, assignment, public_eval, row);
+                            row += sponge_component::absorb_rows;
+                        }
+
+                        sponge.absorb_circuit(bp, assignment, private_eval.z, row);
+                        row += sponge_component::absorb_rows;
+
+                        if (KimchiParamsType::generic_gate) {
+                            sponge.absorb_circuit(bp, assignment, private_eval.generic_selector, row);
+                            row += sponge_component::absorb_rows;
+                        }
+                        if (KimchiParamsType::poseidon_gate) {
+                            sponge.absorb_circuit(bp, assignment, private_eval.poseidon_selector, row);
+                            row += sponge_component::absorb_rows;
+                        }
+                        
+                        std::vector<var> points = {private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
+                                                private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
+                                                private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
+                                                private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
+                        for (auto p : points) {
+                            sponge.absorb_circuit(bp, assignment, p, row);
+                            row += sponge_component::absorb_rows;
+                        }
+                    }
+
+                    void absorb_evaluations_no_public_assignment(blueprint_assignment_table<ArithmetizationType> &assignment,
+                                                       kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>
+                                                           private_eval,
+                                                       const std::size_t component_start_row) {
+                        last_squeezed = {};
+                        std::size_t row = component_start_row;
+                        std::vector<var> points = {private_eval.z, private_eval.generic_selector, private_eval.poseidon_selector,
+                                                private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
+                                                private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
+                                                private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
+                                                private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
+                        for (auto p : points) {
+                            sponge.absorb_assignment(assignment, p, row);
+                            row += sponge_component::absorb_rows;
+                        }
+                    }
+
+                    void absorb_evaluations_no_public_circuit(blueprint<ArithmetizationType> &bp,
+                                                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                                                        kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>
+                                                            private_eval,
+                                                        const std::size_t component_start_row) {
+                        last_squeezed = {};
+                        std::size_t row = component_start_row;
+                        std::vector<var> points = {private_eval.z, private_eval.generic_selector, private_eval.poseidon_selector,
                                                 private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
                                                 private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
                                                 private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
