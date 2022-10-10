@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     constexpr typename BlueprintFieldType::value_type pallas_base_field_modulus = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001_cppui256;
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr std::size_t InputSize = 2;
+    constexpr std::size_t InputSize = 4;
 
     using component_type = zk::components::prepare_scalars<ArithmetizationType, curve_type, 
         InputSize, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -77,6 +77,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     for (int i = 0; i < InputSize; ++i) {
         if (i == 0) {
             scalars.push_back(1);
+        } else if (i == 1) {
+            scalars.push_back(0);
+        } else if (i == 2) {
+            scalars.push_back(-1);
         } else {
             scalars.push_back(algebra::random_element<BlueprintFieldType>());
         }
@@ -106,7 +110,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     std::vector<typename BlueprintFieldType::value_type> expected_res;
     for (int i = 0; i < InputSize; ++i) {
         typename BlueprintFieldType::value_type expected;
-        if (scalars[i].data != 1){
+        if ((scalars[i] != 1) & (scalars[i] != 0) & (scalars[i] != -1)){
             expected = (scalars[i] - base.pow(255) - 1) / 2;
         } else {
             expected = (scalars[i] - shift) / denominator;
