@@ -34,9 +34,7 @@ namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
-                template<typename IndexTermsList,
-                    std::size_t WitnessColumns,
-                    std::size_t PermutSize>
+                template<typename IndexTermsList, std::size_t WitnessColumns, std::size_t PermutSize>
                 struct kimchi_circuit_description {
                     using index_terms_list = IndexTermsList;
 
@@ -57,7 +55,6 @@ namespace nil {
                     static const bool joint_lookup = index_terms_list::joint_lookup;
                     static const std::size_t lookup_columns = index_terms_list::lookup_columns;
                     static const bool lookup_runtime = index_terms_list::lookup_runtime;
-                    static const bool lookup_table_ids = index_terms_list::lookup_table_ids;
                 };
             }    // namespace components
         }        // namespace zk

@@ -146,11 +146,25 @@ namespace nil {
                         typename BlueprintFieldType::integral_type integral_exp =
                             typename BlueprintFieldType::integral_type(exponent.data);
 
-                        std::array<bool, padded_exponent_size> bits;
+                        std::array<bool, padded_exponent_size> bits = {false};
+                        // {
+                        //     nil::marshalling::status_type status;
+                        //     std::array<bool, 255> bits_all = nil::marshalling::pack<nil::marshalling::option::big_endian>(integral_exp, status);
+                        //     std::copy(bits_all.end() - padded_exponent_size, bits_all.end(), bits.begin());
+                        // }
                         {
-                            nil::marshalling::status_type status;
-                            std::array<bool, 255> bits_all = nil::marshalling::pack<nil::marshalling::option::big_endian>(integral_exp, status);
-                            std::copy(bits_all.end() - padded_exponent_size, bits_all.end(), bits.begin());
+                            std::vector<bool> bbb;
+                            auto data = exponent.data;
+                            while (data != 0) {
+                                bbb.push_back((data - (data >> 1 << 1)) != 0);
+                                data = data >> 1;
+                            }
+                            for (int i = 1; i < padded_exponent_size - bbb.size(); ++i) {
+                                bits[i] = false;
+                            }
+                            for (int i = 0; i < bbb.size(); ++i) {
+                                bits[padded_exponent_size - 1 - i] = bbb[i];
+                            }
                         }
 
                         typename ArithmetizationType::field_type::value_type accumulated_n = 0;
@@ -172,7 +186,7 @@ namespace nil {
                                     std::size_t column_idx = W14 - j * (bits_per_intermediate_result)-bit_column;
                                     assignment.witness(column_idx)[row] = bits[current_bit] ? 1 : 0;
                                     // wierd stuff is here for oracles scalar
-                                    std::cout<<"column_idx "<<column_idx<<" row "<<row<<" value "<<bits[current_bit]<<std::endl;
+                                    // std::cout<<"column_idx "<<column_idx<<" row "<<row<<" value "<<bits[current_bit]<<std::endl;
 
                                     intermediate_exponent = 2 * intermediate_exponent + bits[current_bit];
 

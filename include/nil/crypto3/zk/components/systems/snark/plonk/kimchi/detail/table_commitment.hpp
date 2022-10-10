@@ -52,7 +52,7 @@ namespace nil {
                     std::size_t... WireIndexes>
                 class table_commitment;
 
-                template<typename BlueprintFieldType, 
+                template<typename BlueprintFieldType,
                          typename ArithmetizationParams,
                          typename KimchiParamsType,
                          typename CurveType,
@@ -101,8 +101,7 @@ namespace nil {
 
                     constexpr static const std::size_t use_lookup_runtime = KimchiParamsType::circuit_params::lookup_runtime ? 1 : 0; 
 
-                    constexpr static const std::size_t use_table_ids = KimchiParamsType::circuit_params::lookup_table_ids ? 1 : 0; 
-                    constexpr static const std::size_t msm_size = (lookup_columns + use_lookup_runtime + use_table_ids) 
+                    constexpr static const std::size_t msm_size = (lookup_columns + use_lookup_runtime) 
                     * KimchiParamsType::commitment_params_type::shifted_commitment_split; 
 
                     using commitment_type = typename 
@@ -118,10 +117,8 @@ namespace nil {
 
                     struct params_type {
                         std::vector<commitment_type> table;
-                        std::vector<var> joint_combiner;
+                        std::array<var, lookup_columns> joint_combiner;
                         commitment_type runtime;
-                        commitment_type table_id;
-                        var table_id_combiner;
                     };
 
                     struct result_type {
@@ -134,7 +131,8 @@ namespace nil {
                         }
                     };
 
-                    static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
+                    static result_type
+                        generate_circuit(blueprint<ArithmetizationType> &bp,
                                          blueprint_public_assignment_table<ArithmetizationType> &assignment,
                                          const params_type &params,
                                          const std::size_t start_row_index) {
@@ -152,13 +150,6 @@ namespace nil {
                                 scalars[i*comm_size + k] = params.joint_combiner[i];
                                 j++;
                             }
-                        }
-                        if (KimchiParamsType::circuit_params::lookup_table_ids) {
-                            for (std::size_t k = 0; k < comm_size; k++) {
-                                commitments[j] = params.table_id.parts[k];
-                                scalars[j] = params.table_id_combiner;
-                                j++;
-                            }       
                         }
                         if (KimchiParamsType::circuit_params::lookup_runtime) {
                             for (std::size_t k = 0; k < comm_size; k++) {
@@ -187,13 +178,6 @@ namespace nil {
                                 j++;
                             }
                         }
-                        if (KimchiParamsType::circuit_params::lookup_table_ids) {
-                            for (std::size_t k = 0; k < comm_size; k++) {
-                                commitments[j] = params.table_id.parts[k];
-                                scalars[j] = params.table_id_combiner;
-                                j++;
-                            }       
-                        }
                         if (KimchiParamsType::circuit_params::lookup_runtime) {
                             for (std::size_t k = 0; k < comm_size; k++) {
                                 commitments[j] = params.runtime.parts[k];
@@ -210,19 +194,20 @@ namespace nil {
                                                blueprint_public_assignment_table<ArithmetizationType> &assignment,
                                                const params_type &params,
                                                const std::size_t first_selector_index) {
-
                     }
 
-                    static void generate_copy_constraints(blueprint<ArithmetizationType> &bp,
+                    static void
+                        generate_copy_constraints(blueprint<ArithmetizationType> &bp,
                                                   blueprint_public_assignment_table<ArithmetizationType> &assignment,
                                                   const params_type &params,
                                                   const std::size_t start_row_index) {
                     }
 
-                    static void generate_assignments_constants(blueprint<ArithmetizationType> &bp,
-                                                  blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                                  const params_type &params,
-                                                  const std::size_t start_row_index) {
+                    static void generate_assignments_constants(
+                        blueprint<ArithmetizationType> &bp,
+                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                        const params_type &params,
+                        const std::size_t start_row_index) {
                         std::size_t row = start_row_index;
                     }
                 };
