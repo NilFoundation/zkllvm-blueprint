@@ -45,7 +45,8 @@ namespace nil {
 
                 // Using results from https://arxiv.org/pdf/math/0208038.pdf
                 // Input: x \in F_p, P \in E(F_p)
-                // Output: y * P, where x = (y - 2^255 - 1) / 2
+                // Output: y * P, where x = (y - 2^255 - 1) / 2 (if x is not -1, 0, 1)
+                // Output: y * P, where x = (y - 2^255)         (on vesta curve if x is -1, 0, 1)
 
                 // clang-format off
                 // _______________________________________________________________________________________________________________________________________________________                             
@@ -60,6 +61,29 @@ namespace nil {
                 // ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
                              
                 // clang-format on
+
+                ////////////////////////////////
+                template<typename ConstFieldType>
+                struct variable_base_scalar_mul_shifted_consts;
+
+                template<>
+                struct variable_base_scalar_mul_shifted_consts<typename nil::crypto3::algebra::fields::pallas_base_field> {
+                    using FieldType = nil::crypto3::algebra::fields::pallas_base_field;
+
+                    constexpr static const typename FieldType::value_type shifted_minus_one = 0x224698fc0994a8dd8c46eb2100000000_cppui255;
+                    constexpr static const typename FieldType::value_type shifted_zero = 0x200000000000000000000000000000003369e57a0e5efd4c526a60b180000001_cppui255;
+                    constexpr static const typename FieldType::value_type shifted_one = 0x224698fc0994a8dd8c46eb2100000001_cppui255;
+                };
+
+                template<>
+                struct variable_base_scalar_mul_shifted_consts<typename nil::crypto3::algebra::fields::vesta_base_field> {
+                    using FieldType = nil::crypto3::algebra::fields::vesta_base_field;
+
+                    constexpr static const typename FieldType::value_type shifted_minus_one = 0x448d31f81299f237325a61da00000001_cppui255;
+                    constexpr static const typename FieldType::value_type shifted_zero =      0x448d31f81299f237325a61da00000002_cppui255;
+                    constexpr static const typename FieldType::value_type shifted_one =       0x448d31f81299f237325a61da00000003_cppui255;
+                };
+                ////////////////////////////////
 
                 template<typename ArithmetizationType, typename CurveType, std::size_t... WireIndexes>
                 class curve_element_variable_base_scalar_mul;
@@ -87,16 +111,10 @@ namespace nil {
                     constexpr static const std::size_t rows_amount = add_component::rows_amount + mul_rows_amount + 1;
                     constexpr static const std::size_t gates_amount = 2;
 
-/*
-                    // vesta::
-                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = 0x448d31f81299f237325a61da00000001_cppui255;
-                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero =      0x448d31f81299f237325a61da00000002_cppui255;
-                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_one =       0x448d31f81299f237325a61da00000003_cppui255;
-*/
-                    // pallas
-                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = 0x224698fc0994a8dd8c46eb2100000000_cppui255;
-                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero = 0x200000000000000000000000000000003369e57a0e5efd4c526a60b180000001_cppui255;
-                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_one = 0x224698fc0994a8dd8c46eb2100000001_cppui255;
+                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::shifted_minus_one;
+                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::shifted_zero;
+                    constexpr static const typename ArithmetizationType::field_type::value_type shifted_one = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::shifted_one;
+
 
                     struct params_type {
                         struct var_ec_point {
