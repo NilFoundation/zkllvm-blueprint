@@ -101,12 +101,12 @@ namespace nil {
 
                     constexpr static const std::size_t use_lookup_runtime = KimchiParamsType::circuit_params::lookup_runtime ? 1 : 0; 
 
-                    constexpr static const std::size_t msm_size = (lookup_columns + use_lookup_runtime) 
-                    * KimchiParamsType::commitment_params_type::shifted_commitment_split; 
+                    constexpr static const std::size_t split_size = KimchiParamsType::commitment_params_type::shifted_commitment_split;
+
+                    constexpr static const std::size_t msm_size = (lookup_columns + use_lookup_runtime) * split_size; 
 
                     using commitment_type = typename 
-                        zk::components::kimchi_commitment_type<BlueprintFieldType, 
-                            KimchiParamsType::commitment_params_type::shifted_commitment_split>;
+                        zk::components::kimchi_commitment_type<BlueprintFieldType, split_size>;
                     using msm_component = zk::components::element_g1_multi_scalar_mul<ArithmetizationType, CurveType,  
                         msm_size,
                         W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
@@ -143,16 +143,15 @@ namespace nil {
                         std::array<var_ec_point, msm_size> commitments;
                         std::array<var, msm_size> scalars;
                         std::size_t j = 0;
-                        std::size_t comm_size = params.table[0].parts.size();
-                        for(std::size_t i = j; i < commitments.size(); i++) {
-                            for (std::size_t k = 0; k < comm_size; k++) {
-                                commitments[i*comm_size + k] = params.table[i].parts[k];
-                                scalars[i*comm_size + k] = params.joint_combiner[i];
+                        for(std::size_t i = j; i < lookup_columns; i++) {
+                            for (std::size_t k = 0; k < split_size; k++) {
+                                commitments[i*split_size + k] = params.table[i].parts[k];
+                                scalars[i*split_size + k] = params.joint_combiner[i];
                                 j++;
                             }
                         }
                         if (KimchiParamsType::circuit_params::lookup_runtime) {
-                            for (std::size_t k = 0; k < comm_size; k++) {
+                            for (std::size_t k = 0; k < split_size; k++) {
                                 commitments[j] = params.runtime.parts[k];
                                 scalars[j] = params.joint_combiner[1];
                                 j++;
@@ -170,16 +169,15 @@ namespace nil {
                         std::array<var_ec_point, msm_size> commitments;
                         std::array<var, msm_size> scalars;
                         std::size_t j = 0;
-                        std::size_t comm_size = params.table[0].parts.size();
-                        for(std::size_t i = j; i < commitments.size(); i++) {
-                            for (std::size_t k = 0; k < comm_size; k++) {
-                                commitments[i*comm_size + k] = params.table[i].parts[k];
-                                scalars[i*comm_size + k] = params.joint_combiner[i];
+                        for(std::size_t i = j; i < lookup_columns; i++) {
+                            for (std::size_t k = 0; k < split_size; k++) {
+                                commitments[i*split_size + k] = params.table[i].parts[k];
+                                scalars[i*split_size + k] = params.joint_combiner[i];
                                 j++;
                             }
                         }
                         if (KimchiParamsType::circuit_params::lookup_runtime) {
-                            for (std::size_t k = 0; k < comm_size; k++) {
+                            for (std::size_t k = 0; k < split_size; k++) {
                                 commitments[j] = params.runtime.parts[k];
                                 scalars[j] = params.joint_combiner[1];
                                 j++;

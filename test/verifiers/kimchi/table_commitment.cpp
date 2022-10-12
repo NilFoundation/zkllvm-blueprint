@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_table_commitment_test) {
     std::array<var, lookup_columns> lookup_scalars_var;
     commitment_type runtime_var;
     std::size_t j = 0;
-    std::size_t size = KimchiParamsType::commitment_params_type::shifted_commitment_split;
+    std::size_t split_size = KimchiParamsType::commitment_params_type::shifted_commitment_split;
 
     std::array<typename BlueprintFieldType::value_type, lookup_columns> table_x; // commitments from PolyComm::multi_scalar_mul(&commitments, &scalars) https://github.com/NilFoundation/o1-labs-proof-systems/blob/master/kimchi/src/circuits/lookup/tables/mod.rs#L136
     std::array<typename BlueprintFieldType::value_type, lookup_columns> table_y;
@@ -142,25 +142,29 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_table_commitment_test) {
 
     for (std::size_t i = j; i < lookup_columns; i++){
         commitment_type column_var;
-        for (std::size_t k = 0; k < size; k++) {
+        for (std::size_t k = 0; k < split_size; k++) {
             // public_input.push_back(algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>().X);
             // public_input.push_back(algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>().Y);
             public_input.push_back(table_x[i]);
             public_input.push_back(table_y[i]);
             
-            column_var.parts[k] = {var(0, i*2, false, var::column_type::public_input),
-            var(0, i*2 + 1, false, var::column_type::public_input)};
+            column_var.parts[k] = {
+                var(0, j, false, var::column_type::public_input),
+                var(0, j + 1, false, var::column_type::public_input)
+            };
             j+=2;
         }
         lookup_columns_var.push_back(column_var);
     }
 
     if (KimchiParamsType::circuit_params::lookup_runtime){
-        for (std::size_t k = 0; k < size; k++) {
+        for (std::size_t k = 0; k < split_size; k++) {
             public_input.push_back(algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>().X);
             public_input.push_back(algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>().Y);
-            runtime_var.parts[k] = {var(0, j + k*2, false, var::column_type::public_input),
-            var(0, j + k*2 + 1, false, var::column_type::public_input)};
+            runtime_var.parts[k] = {
+                var(0, j, false, var::column_type::public_input),
+                var(0, j + 1, false, var::column_type::public_input)
+            };
             j+=2;
         }
     }
@@ -178,19 +182,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_table_commitment_test) {
     std::size_t s = lookup_columns + j;
     std::size_t lookup_scalars_iter = 0;
     for (std::size_t i = j; i < s; i++){
-        for (std::size_t k = 0; k < size; k++) {
-            public_input.push_back(algebra::random_element<curve_type::base_field_type>());
-            lookup_scalars_var[i - j] = (var(0, i, false, var::column_type::public_input));
-            j++;
-            lookup_scalars_iter++;
-        }
+        // public_input.push_back(algebra::random_element<curve_type::base_field_type>());
+        public_input.push_back(lookup_scalars_data[lookup_scalars_iter]);
+        lookup_scalars_var[lookup_scalars_iter] = (var(0, i, false, var::column_type::public_input));
+        j++;
+        lookup_scalars_iter++;
     }
 
     typename component_type::params_type params = {lookup_columns_var, lookup_scalars_var, runtime_var};
 
     std::array<typename BlueprintFieldType::value_type, 4> expected_result;
-    expected_result[0] = 0x1F74B3087CCB2064D2F9ED4552E7D2A794CA42687528D777F6B18A5D8B63EDC1_cppui256; // rust X
-    expected_result[1] = 0x03FD6EC26748E1B5C7AFBF50C4C250217D2AA2A343F94C174FE0BEF28608277C_cppui256; // rust y
+    expected_result[0] = 0x1F74B3087CCB2064D2F9ED4552E7D2A794CA42687528D777F6B18A5D8B63EDC1_cppui256; // rust X for input 1, j, j^2
+    expected_result[1] = 0x03FD6EC26748E1B5C7AFBF50C4C250217D2AA2A343F94C174FE0BEF28608277C_cppui256; // rust y for input 1, j, j^2
 
     curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type T0;
     T0.X = table_x[0];
@@ -206,10 +209,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_table_commitment_test) {
     expected_result[3] = (unprepared_lookup_scalars_data[0]*T0 + unprepared_lookup_scalars_data[1]*T1 + unprepared_lookup_scalars_data[2]*T2).Y;
 
     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
-        assert(expected_result[0] == expected_result[2]);
-        assert(expected_result[1] == expected_result[3]);
-        assert(expected_result[2] == assignment.var_value(real_res.output.X));
-        assert(expected_result[3] == assignment.var_value(real_res.output.Y));
+        assert(expected_result[0] == expected_result[2]);                      // rust x == expected x
+        assert(expected_result[1] == expected_result[3]);                      // rust y == expected y
+        assert(expected_result[2] == assignment.var_value(real_res.output.X)); // expected x = real x
+        assert(expected_result[3] == assignment.var_value(real_res.output.Y)); // expected x = real x
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
