@@ -234,8 +234,7 @@ namespace nil {
                             row += mul_component::rows_amount;
                             var true_if_neg1 = sub_component::generate_assignments(assignment, {one, true_if_not_neg1}, row).output;
                             row += sub_component::rows_amount;
-                            std::cout << "neg1: " << assignment.var_value(true_if_neg1).data << " " << assignment.var_value(true_if_not_neg1).data << std::endl;
-
+                            
                             var true_if_1_or_0 = add_component::generate_assignments(assignment, {true_if_0, true_if_1}, row).output;
                             row += add_component::rows_amount;
                             var true_if_1_or_0_or_neg1 = add_component::generate_assignments(assignment, {true_if_1_or_0, true_if_neg1}, row).output;

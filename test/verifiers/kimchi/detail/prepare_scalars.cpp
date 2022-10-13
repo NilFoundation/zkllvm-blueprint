@@ -116,8 +116,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
             expected = (scalars[i] - shift) / denominator;
         }
         expected_res.push_back(expected);
-        std::cout << "scalars unprepared[" << i << "] = " << scalars[i].data << std::endl;
-        std::cout << "scalars prepared  [" << i << "] = " << expected.data << std::endl;
+        // std::cout << "scalars unprepared[" << i << "] = " << scalars[i].data << std::endl;
+        // std::cout << "scalars prepared  [" << i << "] = " << expected.data << std::endl;
     }
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
@@ -138,8 +138,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     auto result_check = [&expected_res](AssignmentType &assignment,
         component_type::result_type &real_res) {
         for (int i = 0; i < InputSize; ++i) {
-            std::cout << "assertion[" << i << "]:" << std::endl;
-            std::cout << expected_res[i].data  << " == " << assignment.var_value(real_res.output[i]).data << std::endl;
+            // std::cout << "assertion[" << i << "]:" << std::endl;
+            // std::cout << expected_res[i].data  << " == " << assignment.var_value(real_res.output[i]).data << std::endl;
             assert(expected_res[i] == assignment.var_value(real_res.output[i]));
         }
     };
