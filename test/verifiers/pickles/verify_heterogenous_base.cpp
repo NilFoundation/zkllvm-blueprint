@@ -68,15 +68,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr static std::size_t public_input_size = 3;
-    constexpr static std::size_t max_poly_size = 32;
-    constexpr static std::size_t eval_rounds = 5;
+    constexpr static std::size_t public_input_size = 0;
+    constexpr static std::size_t max_poly_size = 4;
+    constexpr static std::size_t eval_rounds = 2;
 
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
 
-    constexpr static std::size_t srs_len = 10;
-    constexpr static std::size_t batch_size = 2;
+    constexpr static std::size_t srs_len = 2;
+    constexpr static std::size_t batch_size = 1;
 
     constexpr static const std::size_t prev_chal_size = 1;
 

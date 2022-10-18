@@ -38,8 +38,12 @@
 #include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
+
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_base.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/statement.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -74,7 +78,7 @@ namespace nil {
 
                     using batch_verify_component =
                         zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType, KimchiParamsType,
-                                                                W0, W1, W2, W3,
+                                                                BatchSize, W0, W1, W2, W3,
                                                                 W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
                     
                     using kimchi_verify_component = zk::components::base_field<ArithmetizationType,
@@ -82,7 +86,11 @@ namespace nil {
                         W0, W1, W2, W3,
                                 W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
+                    using proof_binding =
+                        typename zk::components::binding<ArithmetizationType, BlueprintFieldType, KimchiParamsType>;
+
                     using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;
+                    using proof_type = kimchi_proof_base<BlueprintFieldType, KimchiParamsType>;
 
                     constexpr static std::size_t rows() {
                         std::size_t row = 0;
@@ -119,12 +127,12 @@ namespace nil {
                                          const std::size_t start_row_index) {
                         std::size_t row = start_row_index;
 
-                        batch_verify_component::generate_circuit(bp, assignmet,
-                            {params.comms, params.verifier_index, params.fr_output}, row);
+                        batch_verify_component::generate_circuit(bp, assignment,
+                            {params.comms, params.verifier_index, params.fr_data}, row);
                         row += batch_verify_component::rows_amount;
 
-                        kimchi_verify_component::generate_circuit(bp, assignmet,
-                            {params.proofs, params.verifier_index, params.ft_data, params.fq_data}, row);
+                        kimchi_verify_component::generate_circuit(bp, assignment,
+                            {params.proofs, params.verifier_index, params.fr_data, params.fq_data}, row);
                         row += kimchi_verify_component::rows_amount;
 
                         return result_type();
@@ -136,12 +144,12 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        batch_verify_component::generate_assignments(assignmet,
-                            {params.comms, params.verifier_index, params.fr_output}, row);
+                        batch_verify_component::generate_assignments(assignment,
+                            {params.comms, params.verifier_index, params.fr_data}, row);
                         row += batch_verify_component::rows_amount;
 
-                        kimchi_verify_component::generate_assignments(assignmet,
-                            {params.proofs, params.verifier_index, params.ft_data, params.fq_data}, row);
+                        kimchi_verify_component::generate_assignments(assignment,
+                            {params.proofs, params.verifier_index, params.fr_data, params.fq_data}, row);
                         row += kimchi_verify_component::rows_amount;
                         
                         return result_type();
