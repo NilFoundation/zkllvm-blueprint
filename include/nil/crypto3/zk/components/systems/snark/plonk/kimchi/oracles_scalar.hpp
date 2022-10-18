@@ -348,7 +348,10 @@ namespace nil {
                             row += lagrange_denominators_component::rows_amount;
 
                             // TODO: check on empty public_input
-                            std::array<var, KimchiParamsType::public_input_size> pi = params.proof.public_input;
+                            std::array<var, KimchiParamsType::public_input_size> pi;
+                            for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {
+                                pi[i] = params.proof.public_input[i];
+                            }
                             public_eval = public_eval_component::generate_circuit(bp,
                                 assignment, {zeta_pow_n, zeta_omega_pow_n, 
                                             pi,
@@ -539,7 +542,11 @@ namespace nil {
                             for (std::size_t i = 0; i < eval_points_amount * KimchiParamsType::public_input_size; ++i) {
                             }
 
-                            std::array<var, KimchiParamsType::public_input_size> pi = params.proof.public_input;
+                            std::array<var, KimchiParamsType::public_input_size> pi;
+                            for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {
+                                pi[i] = params.proof.public_input[i];
+                            }
+
                             public_eval = public_eval_component::generate_assignments(
                                 assignment, {zeta_pow_n, zeta_omega_pow_n, 
                                             pi,
