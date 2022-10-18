@@ -339,7 +339,7 @@ namespace nil {
 
                                     // lookup_sorted
                                     if (token_str.find("LookupSorted") != std::string::npos) {
-                                        std::size_t col_start_pos = token_str.find("LookupSorted", col_pos) + 14;
+                                        std::size_t col_start_pos = token_str.find("LookupSorted", col_pos) + 13;
                                         std::size_t col_end_pos = token_str.find(")", col_start_pos);
                                         std::string col_str =
                                             token_str.substr(col_start_pos, col_end_pos - col_start_pos);
@@ -351,8 +351,7 @@ namespace nil {
                                 token.value.second = row;
                             } else if (token_str.find("Dup") != std::string::npos) {
                                 token.type = token_type::dup;
-                            } else if (token_str.find("Pow") != std::string::npos) {
-                                token.type = token_type::pow;
+                            } else if (token_str.find("Pow") != std::string::npos) {                                token.type = token_type::pow;
 
                                 std::size_t exp_start_pos = token_str.find("Pow") + 4;
                                 std::size_t exp_end_pos = token_str.find(")", exp_start_pos);

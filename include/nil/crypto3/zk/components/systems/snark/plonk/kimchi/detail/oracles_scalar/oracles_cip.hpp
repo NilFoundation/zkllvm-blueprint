@@ -167,7 +167,7 @@ namespace nil {
                             es[i][es_idx] = params.evals[i].z;
                         }
                         es_idx++;
-                        if (KimchiParamsType::circuit_params::ec_arithmetic_gates == true) {
+                        if (KimchiParamsType::circuit_params::generic_gate == true) {
                             for (std::size_t i = 0; i < eval_points_amount; ++i) {
                                 es[i][es_idx] = params.evals[i].generic_selector;
                             }
