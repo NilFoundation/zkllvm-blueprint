@@ -102,8 +102,9 @@ namespace nil {
 
                     struct params_type {
                         std::vector<var_ec_point> comms;
+                        std::vector<var> challenges;
+                        // std::vector<var_ec_point> urs; TODO check if urs is the same as bases
                         verifier_index_type verifier_index;
-                        typename proof_binding::template fr_data<var, BatchSize> fr_output;
                     };
 
                     struct result_type {
@@ -118,6 +119,10 @@ namespace nil {
                         std::size_t row = start_row_index;
                         var zero(0, start_row_index, false, var::column_type::constant);
                         std::array<var_ec_point, final_msm_size> bases;
+                        std::array<var, final_msm_size> scalars;
+                        for (std::size_t i = 0; i < BatchSize; ++i) {
+                            scalars[i] = params.challenges[i];
+                        }
                         std::size_t bases_idx = 0;
 
                         var_ec_point point_at_infinity = {zero, zero};
@@ -138,7 +143,7 @@ namespace nil {
                         // assert(bases_idx == final_msm_size);
 
                         auto res =
-                            msm_component::generate_assignments(assignment, {params.fr_output.scalars, bases}, row)
+                            msm_component::generate_assignments(assignment, {scalars, bases}, row)
                                 .output;
                         row += msm_component::rows_amount;
 
@@ -161,6 +166,10 @@ namespace nil {
                         var_ec_point point_at_infinity = {zero, zero};
 
                         std::array<var_ec_point, final_msm_size> bases;
+                        std::array<var, final_msm_size> scalars;
+                        for (std::size_t i = 0; i < BatchSize; ++i) {
+                            scalars[i] = params.challenges[i];
+                        }
                         std::size_t bases_idx = 0;
 
                         bases[bases_idx++] = params.verifier_index.H;
@@ -178,7 +187,7 @@ namespace nil {
                         // assert(bases_idx == final_msm_size);
 
                         auto res =
-                            msm_component::generate_circuit(bp, assignment, {params.fr_output.scalars, bases}, row)
+                            msm_component::generate_circuit(bp, assignment, {scalars, bases}, row)
                                 .output;
                         row += msm_component::rows_amount;
 

@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_MESSAGES_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_MESSAGES_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_APP_STATE_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_APP_STATE_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -39,23 +39,14 @@ namespace nil {
 
                 // TODO: link
                 template<typename FieldType>
-                struct messages_for_next_step_proof_type {
+                struct app_state_type {
                     using var = snark::plonk_variable<FieldType>;
 
                     
-                };
-
-                // TODO: link
-                template<typename FieldType>
-                struct messages_for_next_wrap_proof_type {
-                    using var = snark::plonk_variable<FieldType>;
-                    using var_ec_point = typename zk::components::var_ec_point<FieldType>;
-
-                    std::vector<var_ec_point> challenge_polynomial_commitment;
                 };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_MESSAGES_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_APP_STATE_HPP

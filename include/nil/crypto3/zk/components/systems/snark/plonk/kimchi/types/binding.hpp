@@ -63,6 +63,8 @@ namespace nil {
                         var zeta_to_domain_size_minus_1;
 
                         std::array<var, lookup_columns> joint_combiner_powers_prepared;
+
+                        std::array<std::vector<VarType>, BatchSize> step_bulletproof_challenges; 
                     };
 
                     template<typename VarType>

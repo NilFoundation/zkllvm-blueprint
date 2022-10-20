@@ -32,6 +32,8 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
+
 namespace nil {
     namespace crypto3 {
         namespace zk {
@@ -42,7 +44,8 @@ namespace nil {
                 struct pickles_proof_state_type {
                     using var = snark::plonk_variable<FieldType>;
 
-                    
+                    messages_for_next_wrap_proof_type<FieldType> messages_for_next_wrap_proof;
+                    messages_for_next_step_proof_type<FieldType> messages_for_next_step_proof;
                 };
             }    // namespace components
         }        // namespace zk

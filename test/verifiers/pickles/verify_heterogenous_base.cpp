@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
     constexpr static std::size_t public_input_size = 0;
     constexpr static std::size_t max_poly_size = 4;
@@ -91,9 +92,205 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
         zk::components::verify_generogenous_base<ArithmetizationType, curve_type, kimchi_params, batch_size, 0,
                                       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
+    using commitment_type =
+        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
+                                                                commitment_params::shifted_commitment_split>;
+
+    using opening_proof_type =
+        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+
+    using verifier_index_type = zk::components::kimchi_verifier_index_base<curve_type, kimchi_params>;
+
+    using proof_type = zk::components::kimchi_proof_base<BlueprintFieldType, kimchi_params>;
+
+    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
+
     std::vector<typename BlueprintFieldType::value_type> public_input = {};
 
     typename component_type::params_type params = {};
+
+    for (std::size_t i = 0; i < batch_size; i++) {
+        // KIMCHI PROOF
+        std::vector<var_ec_point> unshifted_var;
+        for (std::size_t i = 0; i < 14; i++) {
+            curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type unshifted =
+                algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+            public_input.push_back(unshifted.X);
+            public_input.push_back(unshifted.Y);
+
+            unshifted_var.push_back({var(0, public_input.size() - 1, false, var::column_type::public_input),
+                                    var(0, public_input.size() - 1, false, var::column_type::public_input)});
+        }
+        std::array<commitment_type, witness_columns> witness_comm;
+        for (std::size_t i = 0; i < witness_columns; i++) {
+            witness_comm[i] = {{unshifted_var[0]}};
+        }
+
+        std::array<commitment_type, perm_size> sigma_comm;
+        for (std::size_t i = 0; i < perm_size; i++) {
+            sigma_comm[i] = {{unshifted_var[1]}};
+        }
+        std::array<commitment_type, kimchi_params::witness_columns> 
+            coefficient_comm;
+        for (std::size_t i = 0; i < coefficient_comm.size(); i++) {
+            coefficient_comm[i] = {{unshifted_var[2]}};
+        }
+        std::vector<commitment_type> oracles_poly_comm = {
+            {{unshifted_var[3]}}};    // to-do: get in the component from oracles
+        commitment_type lookup_runtime_comm = {{unshifted_var[4]}};
+        commitment_type table_comm = {{unshifted_var[5]}};
+        std::vector<commitment_type> lookup_sorted_comm {{{unshifted_var[6]}}};
+        std::vector<commitment_type> lookup_selectors_comm = {{{unshifted_var[7]}}};
+        std::vector<commitment_type> selectors_comm = {{{unshifted_var[8]}}};
+        commitment_type lookup_agg_comm = {{unshifted_var[9]}};
+        commitment_type z_comm = {{unshifted_var[10]}};
+        commitment_type t_comm = {{unshifted_var[11]}};
+        commitment_type generic_comm = {{unshifted_var[12]}};
+        commitment_type psm_comm = {{unshifted_var[13]}};
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type L =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(L.X);
+        public_input.push_back(L.Y);
+
+        var_ec_point L_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                            var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type R =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(R.X);
+        public_input.push_back(R.Y);
+
+        var_ec_point R_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                            var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type delta =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(delta.X);
+        public_input.push_back(delta.Y);
+
+        var_ec_point delta_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                                var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type G =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(G.X);
+        public_input.push_back(G.Y);
+
+        var_ec_point G_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                            var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        opening_proof_type o_var = {{L_var}, {R_var}, delta_var, G_var};
+
+        std::array<curve_type::base_field_type::value_type, kimchi_constants::f_comm_msm_size> scalars;
+
+        std::array<var, kimchi_constants::f_comm_msm_size> scalars_var;
+
+        for (std::size_t i = 0; i < kimchi_constants::f_comm_msm_size; i++) {
+            scalars[i] = algebra::random_element<curve_type::base_field_type>();
+            public_input.push_back(scalars[i]);
+            scalars_var[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type lagrange_bases =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(lagrange_bases.X);
+        public_input.push_back(lagrange_bases.Y);
+
+        var_ec_point lagrange_bases_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                                        var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type H =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(H.X);
+        public_input.push_back(H.Y);
+
+        var_ec_point H_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                            var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type PI_G =
+            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+        public_input.push_back(PI_G.X);
+        public_input.push_back(PI_G.Y);
+
+        var_ec_point PI_G_var = {var(0, public_input.size() - 1, false, var::column_type::public_input),
+                                var(0, public_input.size() - 1, false, var::column_type::public_input)};
+
+        typename proof_type::commitments_type commitments = {
+            {witness_comm}, lookup_runtime_comm,   table_comm, {lookup_sorted_comm}, lookup_agg_comm, z_comm,
+            t_comm,         {oracles_poly_comm[0]}    // to-do: get in the component from oracles
+        };
+
+        std::array<commitment_type, 4> chacha;
+        std::array<commitment_type, 2> range_check;
+
+        proof_type proof_var = {commitments, o_var, {scalars_var}};
+        verifier_index_type verifier_index;
+        //     H_var,
+        //     {PI_G_var},
+        //     {lagrange_bases_var},
+        //     {{sigma_comm}, {coefficient_comm}, generic_comm, psm_comm, {selectors_comm}, {lookup_selectors_comm},
+        //     psm_comm, // runtime_tables_selector 
+        //     {psm_comm}, // table
+        //     psm_comm, // complete_add
+        //     psm_comm, // var_base_mmul
+        //     psm_comm, // endo_mul
+        //     psm_comm, // endo_mul_scalar
+        //     chacha, // chacha
+        //     range_check // range_check
+        // }};
+
+        params.ts[i].kimchi_proof = proof_var;
+        params.ts[i].verifier_index = verifier_index;
+    }
+
+    // FR_DATA
+
+        constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
+        std::array<curve_type::base_field_type::value_type, bases_size> batch_scalars;
+
+        std::array<var, bases_size> batch_scalars_var;
+
+        for (std::size_t i = 0; i < bases_size; i++) {
+            batch_scalars[i] = algebra::random_element<curve_type::base_field_type>();
+            public_input.push_back(batch_scalars[i]);
+            batch_scalars_var[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+        curve_type::base_field_type::value_type cip = algebra::random_element<curve_type::base_field_type>();
+
+        public_input.push_back(cip);
+
+        var cip_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        typename curve_type::base_field_type::value_type Pub = algebra::random_element<curve_type::base_field_type>();
+        public_input.push_back(Pub);
+        var Pub_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        typename curve_type::base_field_type::value_type zeta_to_srs_len =
+            algebra::random_element<curve_type::base_field_type>();
+        public_input.push_back(zeta_to_srs_len);
+        var zeta_to_srs_len_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        typename curve_type::base_field_type::value_type zeta_to_domain_size_minus_1 =
+            algebra::random_element<curve_type::base_field_type>();
+        public_input.push_back(zeta_to_domain_size_minus_1);
+        var zeta_to_domain_size_minus_1_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        std::array<std::vector<var>, batch_size> step_bulletproof_challenges;
+
+        typename binding::fr_data<var, batch_size> fr_data;
+
+        fr_data.scalars = batch_scalars_var;
+        params.fr_data = fr_data;
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
