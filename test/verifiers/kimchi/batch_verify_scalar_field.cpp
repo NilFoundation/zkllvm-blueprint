@@ -58,7 +58,7 @@ using namespace nil::crypto3;
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_suite)
 
 template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvelRounds>
-void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
+void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
                    zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvelRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
                                                                      13,
                                                                      14>;
 
-    zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+    zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
 
     typename BlueprintFieldType::value_type joint_combiner = 0;
     typename BlueprintFieldType::value_type beta = 0;
