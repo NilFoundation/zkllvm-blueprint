@@ -89,7 +89,8 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::vector<var> output(polynomial_len);
+                        std::vector<var> output;
+                        output.resize(polynomial_len);
                         output[0] = params.one;
                         std::size_t k = 0;
                         std::size_t pow = 1;
@@ -116,7 +117,8 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::vector<var> output(polynomial_len);
+                        std::vector<var> output;
+                        output.resize(polynomial_len);
                         output[0] = params.one;
                         std::size_t k = 0;
                         std::size_t pow = 1;

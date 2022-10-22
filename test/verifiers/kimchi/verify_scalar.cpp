@@ -129,13 +129,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_verify_scalar_field_test_suite) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     constexpr static std::size_t public_input_size = 3;
-    constexpr static std::size_t max_poly_size = 1 << 15;
-    constexpr static std::size_t eval_rounds = 15;
+    constexpr static std::size_t max_poly_size = 32;
+    constexpr static std::size_t eval_rounds = 5;
 
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
 
-    constexpr static std::size_t srs_len = 1 << eval_rounds;
+    constexpr static std::size_t srs_len = 32;
     constexpr static std::size_t batch_size = 1;
 
     constexpr static const std::size_t prev_chal_size = 1;
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_verify_scalar_field_test_suite) {
     zk::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
     typename BlueprintFieldType::value_type omega =
         0x1B1A85952300603BBF8DD3068424B64608658ACBB72CA7D2BB9694ADFA504418_cppui256;
-    std::size_t domain_size = 1 << 15;
+    std::size_t domain_size = 128;
     verifier_index.domain_size = domain_size;
     verifier_index.omega = var(0, 0, false, var::column_type::public_input);
 
