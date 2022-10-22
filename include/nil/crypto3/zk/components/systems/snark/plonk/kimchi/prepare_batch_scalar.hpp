@@ -171,66 +171,66 @@ namespace nil {
 
                         typename oracles_component::params_type oracles_params(params.verifier_index, params.proof,
                                                                                params.fq_output);
-                        auto oracles_output = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
+                        typename oracles_component::result_type oracles_output; // = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
                         row += oracles_component::rows_amount;
 
                         std::array<var, f_comm_msm_size> f_comm_scalars;
                         std::size_t f_comm_idx = 0;
 
-                        var zkp = zkpm_evaluate_component::generate_circuit(bp, assignment,
-                                                                            {params.verifier_index.omega,
-                                                                             params.verifier_index.domain_size,
-                                                                             oracles_output.oracles.zeta},
-                                                                            row)
-                                      .output;
+                        var zkp; //= zkpm_evaluate_component::generate_circuit(bp, assignment,
+                                    //                                         {params.verifier_index.omega,
+                                    //                                          params.verifier_index.domain_size,
+                                    //                                          oracles_output.oracles.zeta},
+                                    //                                         row)
+                                    //   .output;
                         row += zkpm_evaluate_component::rows_amount;
 
-                        std::pair<std::size_t, std::size_t> alpha_idxs =
-                            index_terms_list::alpha_map(argument_type::Permutation);
-                        f_comm_scalars[f_comm_idx] =
-                            perm_scalars_component::generate_circuit(
-                                bp, assignment,
-                                {oracles_output.combined_evals, oracles_output.alpha_powers, alpha_idxs.first,
-                                 params.fq_output.beta, params.fq_output.gamma, zkp},
-                                row)
-                                .output;
-                        f_comm_idx += 1;
-                        row += perm_scalars_component::rows_amount;
+                        // std::pair<std::size_t, std::size_t> alpha_idxs =
+                        //     index_terms_list::alpha_map(argument_type::Permutation);
+                        // f_comm_scalars[f_comm_idx] =
+                        //     perm_scalars_component::generate_circuit(
+                        //         bp, assignment,
+                        //         {oracles_output.combined_evals, oracles_output.alpha_powers, alpha_idxs.first,
+                        //          params.fq_output.beta, params.fq_output.gamma, zkp},
+                        //         row)
+                        //         .output;
+                        // f_comm_idx += 1;
+                        // row += perm_scalars_component::rows_amount;
 
-                        alpha_idxs = index_terms_list::alpha_map(argument_type::Generic);
-                        std::array<var, generic_scalars_component::output_size> generic_scalars =
-                            generic_scalars_component::generate_circuit(
-                                bp, assignment,
-                                {oracles_output.combined_evals, oracles_output.alpha_powers, alpha_idxs.first}, row)
-                                .output;
-                        std::copy(std::begin(generic_scalars), std::end(generic_scalars),
-                                  std::begin(f_comm_scalars) + f_comm_idx);
-                        f_comm_idx += generic_scalars_component::output_size;
-                        row += generic_scalars_component::rows_amount;
+                        // alpha_idxs = index_terms_list::alpha_map(argument_type::Generic);
+                        // std::array<var, generic_scalars_component::output_size> generic_scalars =
+                        //     generic_scalars_component::generate_circuit(
+                        //         bp, assignment,
+                        //         {oracles_output.combined_evals, oracles_output.alpha_powers, alpha_idxs.first}, row)
+                        //         .output;
+                        // std::copy(std::begin(generic_scalars), std::end(generic_scalars),
+                        //           std::begin(f_comm_scalars) + f_comm_idx);
+                        // f_comm_idx += generic_scalars_component::output_size;
+                        // row += generic_scalars_component::rows_amount;
 
-                        // xi^n - 1
-                        var vanishing_eval = zk::components::generate_circuit<sub_component>(
-                                                 bp, assignment, {oracles_output.zeta_pow_n, one}, row)
-                                                 .output;
-                        row += sub_component::rows_amount;
+                        // // xi^n - 1
+                        // var vanishing_eval = zk::components::generate_circuit<sub_component>(
+                        //                          bp, assignment, {oracles_output.zeta_pow_n, one}, row)
+                        //                          .output;
+                        // row += sub_component::rows_amount;
 
-                        auto index_scalars =
-                            index_terms_scalars_component::generate_circuit(
-                                bp, assignment,
-                                {oracles_output.oracles.zeta, oracles_output.oracles.alpha, params.fq_output.beta,
-                                 params.fq_output.gamma, params.fq_output.joint_combiner, oracles_output.combined_evals,
-                                 params.verifier_index.omega, params.verifier_index.domain_size},
-                                row)
-                                .output;
-                        row += index_terms_scalars_component::rows_amount;
+                        // auto index_scalars =
+                        //     index_terms_scalars_component::generate_circuit(
+                        //         bp, assignment,
+                        //         {oracles_output.oracles.zeta, oracles_output.oracles.alpha, params.fq_output.beta,
+                        //          params.fq_output.gamma, params.fq_output.joint_combiner, oracles_output.combined_evals,
+                        //          params.verifier_index.omega, params.verifier_index.domain_size},
+                        //         row)
+                        //         .output;
+                        // row += index_terms_scalars_component::rows_amount;
 
-                        for (std::size_t i = 0; i < index_scalars.size(); i++) {
-                            f_comm_scalars[f_comm_idx++] = index_scalars[i];
-                        }
+                        // for (std::size_t i = 0; i < index_scalars.size(); i++) {
+                        //     f_comm_scalars[f_comm_idx++] = index_scalars[i];
+                        // }
 
                         var zeta_to_srs_len = oracles_output.powers_of_eval_points_for_chunks[0];
 
-                        assert(row == start_row_index + rows_amount);
+                        //assert(row == start_row_index + rows_amount);
 
                         result_type res = {{oracles_output.cip, params.fq_output, oracles_output.eval_points,
                                             oracles_output.oracles.u, oracles_output.oracles.v, params.proof.opening,

@@ -139,7 +139,8 @@ namespace nil {
                         std::size_t row = start_row_index;
                         var two_pow_255(0, start_row_index, false, var::column_type::constant);
                         var zero(0, start_row_index + 1, false, var::column_type::constant);
-                        std::array<var_ec_point, final_msm_size> bases;
+                        std::vector<var_ec_point> bases;
+                        bases.resize(final_msm_size);
                         std::size_t bases_idx = 0;
 
                         var_ec_point point_at_infinity = {zero, zero};
@@ -210,7 +211,8 @@ namespace nil {
 
                         var_ec_point point_at_infinity = {zero, zero};
 
-                        std::array<var_ec_point, final_msm_size> bases;
+                        std::vector<var_ec_point> bases;
+                        bases.resize(final_msm_size);
                         std::size_t bases_idx = 0;
 
                         bases[bases_idx++] = params.verifier_index.H;

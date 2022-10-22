@@ -205,7 +205,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, b_len> b;
+                        std::vector<var> b;
                         std::array<std::array<var, split_poly_eval_size>, eval_points_amount> res;
                         for (std::size_t i = 0; i < eval_points_amount; i++) {
                             var full = b_poly_component::generate_assignments(

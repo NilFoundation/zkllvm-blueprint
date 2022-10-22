@@ -54,7 +54,7 @@ namespace nil {
                         constexpr static const std::size_t lookup_columns = KimchiParamsType::circuit_params::lookup_columns;
 
                     public:
-                        std::array<VarType, kimchi_constants::final_msm_size(BatchSize)> scalars;
+                        std::vector<VarType> scalars;
                         std::array<std::array<VarType, f_comm_msm_size>, BatchSize> f_comm_scalars;
                         std::array<VarType, BatchSize> cip_shifted;
 
@@ -64,7 +64,11 @@ namespace nil {
 
                         std::array<var, lookup_columns> joint_combiner_powers_prepared;
 
-                        std::array<std::vector<VarType>, BatchSize> step_bulletproof_challenges; 
+                        std::array<std::vector<VarType>, BatchSize> step_bulletproof_challenges;
+
+                        fr_data() {
+                            scalars.resize(kimchi_constants::final_msm_size(BatchSize));
+                        }
                     };
 
                     template<typename VarType>

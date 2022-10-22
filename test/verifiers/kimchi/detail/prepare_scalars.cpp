@@ -66,13 +66,14 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr std::size_t InputSize = 5;
+    constexpr std::size_t InputSize = 10;
 
     using component_type = zk::components::prepare_scalars<ArithmetizationType, curve_type, 
         InputSize, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                                                                             11, 12, 13, 14>;
 
     std::vector<typename BlueprintFieldType::value_type> scalars;
+    std::vector<var> scalars_var(InputSize);
     for (int i = 0; i < InputSize; ++i) {
         scalars.push_back(algebra::random_element<BlueprintFieldType>());
     }
@@ -88,14 +89,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     std::vector<typename BlueprintFieldType::value_type> public_input;
     for (int i = 0; i < InputSize; ++i) {
         public_input.push_back(scalars[i]);
-    }
-    for (int i = 0; i < InputSize; ++i) {
-        public_input.push_back(expected_res[i]);
+        scalars_var[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
     }
 
     typename component_type::params_type params = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input), var(0, 2, false, var::column_type::public_input), 
-            var(0, 3, false, var::column_type::public_input), var(0, 4, false, var::column_type::public_input)};
+        scalars_var};
 
     auto result_check = [&expected_res](AssignmentType &assignment,
         component_type::result_type &real_res) {

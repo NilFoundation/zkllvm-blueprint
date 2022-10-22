@@ -78,7 +78,7 @@ namespace nil {
                     };
 
                     struct result_type {
-                        std::array<var, polynomial_len> output;
+                        std::vector<var> output;
                     };
 
                     static result_type
@@ -89,7 +89,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, polynomial_len> output;
+                        std::vector<var> output(polynomial_len);
                         output[0] = params.one;
                         std::size_t k = 0;
                         std::size_t pow = 1;
@@ -116,7 +116,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, polynomial_len> output;
+                        std::vector<var> output(polynomial_len);
                         output[0] = params.one;
                         std::size_t k = 0;
                         std::size_t pow = 1;
