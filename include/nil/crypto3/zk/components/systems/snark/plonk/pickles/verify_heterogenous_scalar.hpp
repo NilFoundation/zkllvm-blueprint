@@ -44,7 +44,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_scalar.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_base.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/evals_of_split_evals.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/derive_plonk.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/prepare_scalars_inversion.hpp>
@@ -109,7 +109,7 @@ namespace nil {
                                                     W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using batch_verify_component =
-                        zk::components::batch_dlog_accumulator_check_scalar<ArithmetizationType, CurveType, KimchiParamsType,
+                        zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType, KimchiParamsType,
                                                                 W0, W1, W2, W3,
                                                                 W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
@@ -217,7 +217,7 @@ namespace nil {
                                          const std::size_t start_row_index) {
                         std::size_t row = start_row_index;
 
-                                                var zero = var(0, start_row_index, false, var::column_type::constant);
+                        var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
                         for(std::size_t i = 0; i < list_size; i++) {
                             auto def_values_xi = endo_scalar_component::generate_circuit(bp, assignment, {params.def_values[i].xi}, row).output;

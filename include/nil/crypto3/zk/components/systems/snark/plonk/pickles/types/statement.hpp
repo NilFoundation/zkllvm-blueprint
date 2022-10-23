@@ -46,7 +46,6 @@ namespace nil {
                     using var = snark::plonk_variable<FieldType>;
                     
                     pickles_proof_state_type<FieldType> proof_state;
-                    var sponge_digest_before_evaluations;
                     messages_for_next_step_proof_type<FieldType> messages_for_next_step_proof;
                 };
             }    // namespace components

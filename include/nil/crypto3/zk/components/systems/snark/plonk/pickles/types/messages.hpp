@@ -42,7 +42,9 @@ namespace nil {
                 struct messages_for_next_step_proof_type {
                     using var = snark::plonk_variable<FieldType>;
 
-                    
+                    app_state_type<FieldType> app_state;
+                    std::vector<var> old_bulletproof_challenges; 
+                    std::vector<var_ec_point>challenge_polynomial_commitments;         
                 };
 
                 // TODO: link

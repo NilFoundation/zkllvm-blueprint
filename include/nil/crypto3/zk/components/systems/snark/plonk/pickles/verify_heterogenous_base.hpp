@@ -40,7 +40,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
 
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_base.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_scalar.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/instance.hpp>
 
 namespace nil {
@@ -75,7 +75,7 @@ namespace nil {
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
                     using batch_verify_component =
-                        zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType, KimchiParamsType,
+                        zk::components::batch_dlog_accumulator_check_scalar<ArithmetizationType, CurveType, KimchiParamsType,
                                                                 BatchSize, W0, W1, W2, W3,
                                                                 W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
                     

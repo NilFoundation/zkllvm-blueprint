@@ -40,8 +40,11 @@ namespace nil {
                 // TODO: link
                 template<typename FieldType>
                 struct app_state_type {
+                    private:
                     using var = snark::plonk_variable<FieldType>;
-
+                    public:
+                    //max_state_size
+                    std::vector<var> Zkapp_state;
                     
                 };
             }    // namespace components

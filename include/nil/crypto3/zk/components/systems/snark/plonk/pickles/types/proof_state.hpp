@@ -43,9 +43,9 @@ namespace nil {
                 template<typename FieldType>
                 struct pickles_proof_state_type {
                     using var = snark::plonk_variable<FieldType>;
-
+                    deferred_values<FieldType> FieldType;
+                    var sponge_digest_before_evaluations;
                     messages_for_next_wrap_proof_type<FieldType> messages_for_next_wrap_proof;
-                    messages_for_next_step_proof_type<FieldType> messages_for_next_step_proof;
                 };
             }    // namespace components
         }        // namespace zk
