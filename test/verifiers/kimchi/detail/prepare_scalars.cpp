@@ -66,14 +66,14 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr std::size_t InputSize = 10;
+    constexpr std::size_t InputSize = 100000;
 
     using component_type = zk::components::prepare_scalars<ArithmetizationType, curve_type, 
         InputSize, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                                                                             11, 12, 13, 14>;
 
     std::vector<typename BlueprintFieldType::value_type> scalars;
-    std::vector<var> scalars_var(InputSize);
+    std::array<var, InputSize> scalars_var;
     for (int i = 0; i < InputSize; ++i) {
         scalars.push_back(algebra::random_element<BlueprintFieldType>());
     }
