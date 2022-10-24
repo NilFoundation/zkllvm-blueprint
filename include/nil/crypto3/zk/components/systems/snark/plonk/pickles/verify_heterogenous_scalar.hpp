@@ -58,18 +58,18 @@ namespace nil {
 
                 // scalar field part of verify_generogenous
                 // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/verify.ml#L30
-                template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType, 
+                template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType, typename KimchiCommitmentParamsType,
                     std::size_t BatchSize, std::size_t list_size, std::size_t evals_size, std::size_t... WireIndexes>
-                class verify_generogenous_scalar;
+                class verify_heterogenous_scalar;
 
-                template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,  
+                template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType, typename KimchiCommitmentParamsType, 
                          std::size_t BatchSize, std::size_t list_size, std::size_t evals_size, std::size_t W0, std::size_t W1,
                          std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7,
                          std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12,
                          std::size_t W13, std::size_t W14>
-                class verify_generogenous_scalar<
+                class verify_heterogenous_scalar<
                     snark::plonk_constraint_system<typename CurveType::scalar_field_type, ArithmetizationParams>,
-                    CurveType, KimchiParamsType, BatchSize, list_size, evals_size,
+                    CurveType, KimchiParamsType, KimchiCommitmentParamsType, BatchSize, list_size, evals_size,
                     W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     using BlueprintFieldType = typename CurveType::scalar_field_type;
@@ -83,6 +83,7 @@ namespace nil {
                     using endo_scalar_component = zk::components::endo_scalar<ArithmetizationType, CurveType, ScalarSize, W0, W1, W2, W3, W4, W5, W6,
                                                                         W7, W8, W9, W10, W11, W12, W13, W14>;
                     using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
+                    using mul_by_constant_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
 
                     using add_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
 
@@ -95,7 +96,7 @@ namespace nil {
                                              W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
 
-                    using combined_evals_component = zk::components::combined_evals<ArithmetizationType, KimchiParamsType, evals_size, W0, W1, W2, W3, W4, W5, W6,
+                    using combined_evals_component = zk::components::combine_proof_evals<ArithmetizationType, KimchiParamsType, evals_size, W0, W1, W2, W3, W4, W5, W6,
                                                                         W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using derive_plonk_component = zk::components::derive_plonk<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6,
@@ -131,8 +132,7 @@ namespace nil {
                             row += endo_scalar_component::rows_amount;
                             row += endo_scalar_component::rows_amount;
                             row += endo_scalar_component::rows_amount;
-                            row += mul_component::rows_amount;
-
+                            std::size_t bulletproofs_size = params.messages_for_next_step_proof[i].old_bulletproof_challenges.size();
                             if (KimchiParamsType::circuit_params::lookup_used) {
                                 row += endo_scalar_component::rows_amount;
                             }
@@ -180,7 +180,7 @@ namespace nil {
                             row += prepare_scalars_inversion_component::rows_amount;
                         }
                         
-                        row += batch_dlog_accumulator_check_scalar::rows_amount;
+                        row += batch_verify_component::rows_amount;
 
                         row += kimchi_verify_component::rows_amount;
 
@@ -192,18 +192,14 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<deferred_values, list_size> def_values;
-                        std::array<deferred_values, list_size> evals;
-                        std::array<deferred_values, list_size> messages_for_next_step_proof;
-                        var domain_generator;
-                        kimchi_verifier_index_scalar<BlueprintFieldType> &verifier_index;
-                        std::array<kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType,
-                                                       KimchiCommitmentParamsType::eval_rounds>,
-                                   BatchSize> &proof;
+                        std::array<pickles_instance_type, BatchSize> ts;
+                        std::vector<var> evals;
+                        std::vector<var> public
 
-                        typename proof_binding::template fr_data<var, BatchSize> fr_data;
-                        typename proof_binding::template fq_data<var> fq_data;
-                        std::array<typename proof_binding::fq_sponge_output, BatchSize> &fq_output;
+                        //typename proof_binding::template fr_data<var, BatchSize> fr_data;
+                        //typename proof_binding::template fq_data<var> fq_data;
+
+                        //std::array<typename proof_binding::fq_sponge_output, BatchSize> &fq_output;
                     };
 
                     struct result_type {
@@ -323,14 +319,14 @@ s
                             bp.add_copy_constraint({shifted_b, b_actual});
                         }
 
-                        batch_dlog_accumulator_check_scalar::generate_circuit(bp, assignment,
+                        batch_verify_component::generate_circuit(bp, assignment,
                             {deferred_values.bulletproof_challenges}, row);
-                        row += batch_dlog_accumulator_check_scalar::rows_amount;
+                        row += batch_verify_component::rows_amount;
 
-                        kimchi_verify_component::generate_circuit(bp, assignment,
-                            {params.fr_data, params.fq_data, verifier_index, params.proof, params.fq_output},
+                        /*kimchi_verify_component::generate_circuit(bp, assignment,
+                            {params.fr_data, params.fq_data, params.ts[0].verifier_index, params.proof, params.fq_output},
                             row);
-                        row += kimchi_verify_component::rows_amount;
+                        row += kimchi_verify_component::rows_amount;*/
 
                         generate_assignments_constant(bp, assignment, params, start_row_index);
 
@@ -345,33 +341,35 @@ s
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
                         for(std::size_t i = 0; i < list_size; i++) {
-                            auto def_values_xi = endo_scalar_component::generate_assignments(assignment, {params.def_values[i].xi}, row).output;
+                            auto def_values_xi = endo_scalar_component::generate_assignments(assignment, {params.ts[i].statement.proof_state.deferred_values.xi}, row).output;
                             row += endo_scalar_component::rows_amount;
-                            auto zeta = endo_scalar_component::generate_assignments(assignment, {params.def_values[i].plonk.zeta}, row).output;
+                            auto zeta = endo_scalar_component::generate_assignments(assignment, {params.ts[i].statement.proof_state.deferred_values.plonk.zeta}, row).output;
                             row += endo_scalar_component::rows_amount;
-                            auto alpha = endo_scalar_component::generate_assignments(assignment, {params.def_values[i].plonk.alpha}, row).output;
+                            auto alpha = endo_scalar_component::generate_assignments(assignment, {params.ts[i].statement.proof_state.deferred_values.plonk.alpha}, row).output;
                             row += endo_scalar_component::rows_amount;
-                            auto zetaw = mul_component::generate_assignments(assignment, {zets, params.domain_generator}, row).output;
+                            auto zetaw = mul_by_constant_component::generate_assignments(assignment, {zeta, params.ts[i].statement.proof_state.deferred_values.branch_data.domain_log2}, row).output;
                             row += mul_component::rows_amount;
                             var min_poly_joint_combiner;
                             if (KimchiParamsType::circuit_params::lookup_used) {
-                                min_poly_joint_combiner = endo_scalar_component::generate_assignments(assignment, {params.def_values[i].plonk.joint_combiner}, row).output;
+                                min_poly_joint_combiner = endo_scalar_component::generate_assignments(assignment, {params.ts[i].statement.proof_state.deferred_values.plonk.joint_combiner}, row).output;
                                 row += endo_scalar_component::rows_amount;
                             }
-                            std::array<var, poly_size> min_poly = {alpha, params.def_values[i].plonk.beta, params.def_values[i].plonk.gamma, zeta, min_poly_joint_combiner};
-                            std::array<var, poly_size> plonk0_poly= {params.def_values[i].plonk.alpha, params.def_values[i].plonk.beta, params.def_values[i].plonk.gamma, params.def_values[i].plonk.zeta, 
-                                params.def_values[i].plonk.joint_combiner};
-                            auto tick_combined_evals = combined_evals_component::generate_assignments(assignment, {params.evals[i], {zeta, zetaw}}, row).output;
+                            std::array<var, poly_size> min_poly = {alpha, params.ts[i].statement.proof_state.deferred_values.plonk.beta,
+                            params.ts[i].statement.proof_state.deferred_values.plonk.gamma, zeta, min_poly_joint_combiner};
+                            std::array<var, poly_size> plonk0_poly= {params.ts[i].statement.proof_state.deferred_values.plonk.alpha,
+                            params.ts[i].statement.proof_state.deferred_values.plonk.beta, params.ts[i].statement.proof_state.deferred_values.plonk.gamma, 
+                            params.ts[i].statement.proof_state.deferred_values.plonk.zeta, 
+                            params.ts[i].statement.proof_state.deferred_values.plonk.joint_combiner};
+                            auto tick_combined_evals = combined_evals_component::generate_assignments(assignment, {params.ts[i].kimchi_proof.proof_evals, {zeta, zetaw}}, row).output;
                             row += combined_evals_component::rows_amount;
                             auto plonk = derive_plonk_component::generate_assignments(assignment, {kimchi_verifier_index_scalar,
-                             params.def_values[i].plonk.alpha, params.def_values[i].plonk.beta, params.def_values[i].plonk.gamma, params.def_values[i].plonk.zeta, 
-                                params.def_values[i].plonk.joint_combiner, tick_combined_evals}, row).output;
+                            plonk0_poly[0], plonk0_poly[1], plonk0_poly[2], plonk0_poly[3], plonk0_poly[4], tick_combined_evals}, row).output;
                             row += derive_plonk_component::rows_amount;
-                            std::size_t bulletproofs_size = params.messages_for_next_step_proof[i].old_bulletproof_challenges.size();
+                            std::size_t bulletproofs_size = params.ts[i].statement.proof_state.deferred_values.bulletproof_challenges.size();
                             std::array<var, bulletproofs_size> old_bulletproof_challenges;
                             for(std::size_t j = 0; j < bulletproofs_size; j++) {
                                 old_bulletproof_challenges[j] = endo_scalar_component::generate_assignments(assignment,
-                                 {params.messages_for_next_step_proof[i].old_bulletproof_challenges[j]}, row).output;
+                                 {params.ts[i].statement.messages_for_next_step_proof.old_bulletproof_challenges[j]}, row).output;
                                 row += endo_scalar_component::rows_amount;
                             }
                             transcript_type bulletproofs_transcript;
@@ -389,14 +387,14 @@ s
                             row += transcript_type::init_rows;
                             transcript.absorb_assignment(assignment, challenges_digest, row);
                             row += transcript_type::absorb_rows;
-                            transcript.absorb_assignment(assignment, params.evals.ft_eval1, row);
+                            transcript.absorb_assignment(assignment, params.ts[i].kimchi_proof.ft_eval1, row);
                             row += transcript_type::absorb_rows;
 
-                            transcript.absorb_evaluations_assignment(assignment, params.evals[i].evals.public_input[0],
-                                                                 evals[i].evals.evals[0], row);
+                            transcript.absorb_evaluations_assignment(assignment, params.ts[i].kimchi_proof.public_input[0],
+                                                                 params.ts[i].kimchi_proof.proof_evals[0], row);
                             row += transcript_type::absorb_evaluations_rows;
-                            transcript.absorb_evaluations_assignment(assignment, params.evals[i].evals.public_input[1],
-                                                                    evals[i].evals.evals[1], row);
+                            transcript.absorb_evaluations_assignment(assignment, params.ts[i].kimchi_proof.public_input[1],
+                                                                    params.ts[i].kimchi_proof.proof_evals[1], row);
                             row += transcript_type::absorb_evaluations_rows;
 
                             var xi_actual_challenge = transcript.challenge_assignment(assignment, row);
@@ -406,8 +404,8 @@ s
                             row += transcript_type::challenge_rows;
 
                             var combined_inner_product_actual = cip_component::generate_assignments(assignment,
-                                                                      {r_actual_challenge, min_poly, params.evals[i].ft_eval1,
-                                                                       evals[i].evals},
+                                                                      {r_actual_challenge, min_poly, params.ts[i].kimchi_proof.ft_eval1,
+                                                                       params.ts[i].kimchi_proof.proof_evals},
                                                                       row)
                                       .output;
                             row += cip_component::rows_amount;
@@ -415,7 +413,7 @@ s
                             std::array<var, bulletproofs_size> bulletproof_challenges;
                             for(std::size_t j = 0; j < bulletproofs_size; j++) {
                                 bulletproof_challenges[j] = endo_scalar_component::generate_assignments(assignment,
-                                {params.def_values[i].bulletproof_challenges[j]}, row).output;
+                                {params.ts[i].statement.proof_state.deferred_values.bulletproof_challenges[j]}, row).output;
                                 row += endo_scalar_component::rows_amount;
                             }
 
@@ -436,22 +434,22 @@ s
                             row += add_component::rows_amount;
 
                             shifted_combined_inner_product = prepare_scalars_inversion_component::generate_assignments(assignment, {
-                                params.def_values[i].combined_inner_product}, row).output;
+                                params.ts[i].statement.proof_state.deferred_values.combined_inner_product}, row).output;
                             row += prepare_scalars_inversion_component::rows_amount;
 
                             shifted_b = prepare_scalars_inversion_component::generate_assignments(assignment, {
-                                params.def_values[i].b}, row).output;
+                                params.ts[i].statement.proof_state.deferred_values.b}, row).output;
                             row += prepare_scalars_inversion_component::rows_amount;
                         }
                         
-                        batch_dlog_accumulator_check_scalar::generate_assignments(assignment,
-                            {deferred_values.bulletproof_challenges}, row);
-                        row += batch_dlog_accumulator_check_scalar::rows_amount;
+                        batch_verify_component::generate_assignments(assignment,
+                            {params.ts[i].statement.proof_state.deferred_values.bulletproof_challenges}, row);
+                        row += batch_verify_component::rows_amount;
 
-                        kimchi_verify_component::generate_assignments(assignment,
+                        /*kimchi_verify_component::generate_assignments(assignment,
                             {params.fr_data, params.fq_data, verifier_index, params.proof, params.fq_output},
                             row);
-                        row += kimchi_verify_component::rows_amount;
+                        row += kimchi_verify_component::rows_amount;*/
                         return result_type();
                     }
 

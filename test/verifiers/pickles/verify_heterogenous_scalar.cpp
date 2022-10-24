@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
         public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::verify_generogenous_scalar<ArithmetizationType, curve_type, kimchi_params, batch_size, 0,
+        zk::components::verify_heterogenous_scalar<ArithmetizationType, curve_type, kimchi_params, batch_size, 0,
                                       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     using commitment_type =
