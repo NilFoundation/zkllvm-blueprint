@@ -44,6 +44,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/zkpm_evaluate.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/perm_scalars.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/generic_scalars.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/index_terms_scalars.hpp>
@@ -308,8 +309,13 @@ namespace nil {
                         for (std::size_t i = 0; i < index_scalars.size(); i++) {
                             f_comm_scalars[f_comm_idx] = index_scalars[i];
                         }
+                        std::cout << "f_comm scalars\n";
+                        for (std::size_t i = 0; i < f_comm_msm_size; ++i) {
+                            std::cout << assignment.var_value(f_comm_scalars[i]).data << '\n';
+                        }
 
                         var zeta_to_srs_len = oracles_output.powers_of_eval_points_for_chunks[0];
+                        std::cout << "zeta to srs len: " << assignment.var_value(zeta_to_srs_len).data << '\n';
 
                         assert(row == start_row_index + rows_amount);
 

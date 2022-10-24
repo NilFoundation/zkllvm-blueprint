@@ -242,7 +242,7 @@ namespace nil {
 
                         // ft_eval0 - p_eval[0]
                         if (KimchiParamsType::public_input_size > 0) {
-                            var ft_eval0 = zk::components::generate_circuit<sub_component>(bp, 
+                            ft_eval0 = zk::components::generate_circuit<sub_component>(bp, 
                                 assignment, {ft_eval0, params.public_eval[0]}, row).output;
                             row += sub_component::rows_amount;
                         }
@@ -463,7 +463,7 @@ namespace nil {
 
                         // ft_eval0 - p_eval[0]
                         if (KimchiParamsType::public_input_size > 0) {
-                            var ft_eval0 = sub_component::generate_assignments(
+                            ft_eval0 = sub_component::generate_assignments(
                                 assignment, {ft_eval0, params.public_eval[0]}, row).output;
                             row += sub_component::rows_amount;
                         }

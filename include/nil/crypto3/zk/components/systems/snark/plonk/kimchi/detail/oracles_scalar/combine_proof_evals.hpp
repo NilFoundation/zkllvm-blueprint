@@ -69,8 +69,12 @@ namespace nil {
 
                     constexpr static const std::size_t selector_seed = 0x0f23;
 
-                    constexpr static const std::size_t lookup_rows() {
+                    constexpr static const std::size_t rows() {
                         std::size_t rows = 0;
+                        rows += KimchiParamsType::witness_columns * mul_component::rows_amount;        // w
+                        rows += mul_component::rows_amount;                                          // z
+                        rows += (KimchiParamsType::permut_size - 1) * mul_component::rows_amount;    // s 
+
                         if (KimchiParamsType::circuit_params::lookup_columns > 0) {
                             rows += KimchiParamsType::circuit_params::lookup_columns * mul_component::rows_amount;
 
@@ -81,16 +85,17 @@ namespace nil {
                             }
                         }
 
+                        if (KimchiParamsType::generic_gate) {
+                            rows += mul_component::rows_amount;
+                        }
+                        if (KimchiParamsType::poseidon_gate) {
+                            rows += mul_component::rows_amount;
+                        }
                         return rows;
                     }
 
                 public:
-                    constexpr static const std::size_t rows_amount =
-                        KimchiParamsType::witness_columns * mul_component::rows_amount        // w
-                        + mul_component::rows_amount                                          // z
-                        + (KimchiParamsType::permut_size - 1) * mul_component::rows_amount    // s
-                        + lookup_rows() + mul_component::rows_amount                          // generic
-                        + mul_component::rows_amount;                                         // poseidon
+                    constexpr static const std::size_t rows_amount = rows();
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
@@ -136,11 +141,15 @@ namespace nil {
                                 }
                             }
                             // generic_selector
-                            output.generic_selector = typename mul_component::result_type(row).output;
-                            row += mul_component::rows_amount;
+                            if (KimchiParamsType::generic_gate) {
+                                output.generic_selector = typename mul_component::result_type(row).output;
+                                row += mul_component::rows_amount;
+                            }
                             // poseidon_selector
-                            output.poseidon_selector = typename mul_component::result_type(row).output;
-                            row += mul_component::rows_amount;
+                            if (KimchiParamsType::poseidon_gate) {
+                                output.poseidon_selector = typename mul_component::result_type(row).output;
+                                row += mul_component::rows_amount;
+                            }
                         }
                     };
 
@@ -191,13 +200,17 @@ namespace nil {
                             }
                         }
                         // generic_selector
-                        zk::components::generate_circuit<mul_component>(bp, assignment,
-                                                                        {params.evals.generic_selector, params.x}, row);
-                        row += mul_component::rows_amount;
+                        if (KimchiParamsType::generic_gate) {
+                            zk::components::generate_circuit<mul_component>(bp, assignment,
+                                                                            {params.evals.generic_selector, params.x}, row);
+                            row += mul_component::rows_amount;
+                        }
                         // poseidon_selector
-                        zk::components::generate_circuit<mul_component>(
-                            bp, assignment, {params.evals.poseidon_selector, params.x}, row);
-                        row += mul_component::rows_amount;
+                        if (KimchiParamsType::poseidon_gate) {
+                            zk::components::generate_circuit<mul_component>(
+                                bp, assignment, {params.evals.poseidon_selector, params.x}, row);
+                            row += mul_component::rows_amount;
+                        }
 
                         assert(row == start_row_index + rows_amount);
 
@@ -245,12 +258,16 @@ namespace nil {
                             }
                         }
                         // generic_selector
-                        mul_component::generate_assignments(assignment, {params.evals.generic_selector, params.x}, row);
-                        row += mul_component::rows_amount;
+                        if (KimchiParamsType::generic_gate) {
+                            mul_component::generate_assignments(assignment, {params.evals.generic_selector, params.x}, row);
+                            row += mul_component::rows_amount;
+                        }
                         // poseidon_selector
-                        mul_component::generate_assignments(assignment, {params.evals.poseidon_selector, params.x},
-                                                            row);
-                        row += mul_component::rows_amount;
+                        if (KimchiParamsType::poseidon_gate) {
+                            mul_component::generate_assignments(assignment, {params.evals.poseidon_selector, params.x},
+                                                                row);
+                            row += mul_component::rows_amount;
+                        }
 
                         assert(row == start_row_index + rows_amount);
 

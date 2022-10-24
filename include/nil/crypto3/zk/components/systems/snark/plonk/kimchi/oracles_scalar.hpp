@@ -39,7 +39,6 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/lagrange_denominators.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/public_evaluations.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/prev_chal_evals.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/combine_proof_evals.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/ft_eval.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/oracles_cip.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
@@ -115,10 +114,6 @@ namespace nil {
                     using prev_chal_evals_component =
                         zk::components::prev_chal_evals<ArithmetizationType, KimchiCommitmentParamsType, W0, W1, W2, W3,
                                                         W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
-
-                    using combined_proof_evals_component =
-                        zk::components::combine_proof_evals<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4,
-                                                            W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using ft_eval_component =
                         zk::components::ft_eval<ArithmetizationType, CurveType, KimchiParamsType, W0, W1, W2, W3, W4,
@@ -200,11 +195,6 @@ namespace nil {
 
                         // prev_challenges_evals
                         row += prev_chal_evals_component::rows_amount * KimchiParamsType::prev_challenges_size;
-
-                        // combined_evals
-                        for (std::size_t i = 0; i < eval_points_amount; i++) {
-                            row += combined_proof_evals_component::rows_amount;
-                        }
 
                         // ft_eval0
                         row += ft_eval_component::rows_amount;
@@ -406,25 +396,12 @@ namespace nil {
                             row += prev_chal_evals_component::rows_amount;
                         }
 
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, eval_points_amount>
-                            combined_evals;
-                        for (std::size_t i = 0; i < eval_points_amount; i++) {
-                            combined_evals[i] =
-                                combined_proof_evals_component::generate_circuit(
-                                    bp, assignment, {params.proof.proof_evals[i], powers_of_eval_points_for_chunks[i]},
-                                    row)
-                                    .output;
-                            row += combined_proof_evals_component::rows_amount;
-                        }
-
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>,
-                            eval_points_amount> evals = params.proof.proof_evals;
                         var ft_eval0 = ft_eval_component::generate_circuit(
                             bp,
                             assignment, 
                             {params.verifier_index,
                             alpha_powers,
-                            combined_evals,
+                            params.proof.proof_evals,
                             gamma,
                             beta,
                             zeta,
@@ -458,7 +435,7 @@ namespace nil {
                                 prev_challenges_evals,
                                 zeta_pow_n,
                                 ft_eval0,
-                                combined_evals,
+                                params.proof.proof_evals,
                                 cip,
                                 {zeta, zeta_omega}};
                     }
@@ -602,23 +579,11 @@ namespace nil {
                             row += prev_chal_evals_component::rows_amount;
                         }
 
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, eval_points_amount>
-                            combined_evals;
-                        for (std::size_t i = 0; i < eval_points_amount; i++) {
-                            combined_evals[i] =
-                                combined_proof_evals_component::generate_assignments(
-                                    assignment, {params.proof.proof_evals[i], powers_of_eval_points_for_chunks[i]}, row)
-                                    .output;
-                            row += combined_proof_evals_component::rows_amount;
-                        }
-
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, eval_points_amount>
-                            evals = params.proof.proof_evals;
                         var ft_eval0 = ft_eval_component::generate_assignments(
                             assignment, 
                             {params.verifier_index,
                             alpha_powers,
-                            combined_evals,
+                            params.proof.proof_evals,
                             gamma,
                             beta,
                             zeta,
@@ -649,7 +614,7 @@ namespace nil {
                                 prev_challenges_evals,
                                 zeta_pow_n,
                                 ft_eval0,
-                                combined_evals,
+                                params.proof.proof_evals,
                                 cip,
                                 {zeta, zeta_omega}};
                     }
