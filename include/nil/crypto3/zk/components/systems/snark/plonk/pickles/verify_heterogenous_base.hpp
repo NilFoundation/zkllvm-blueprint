@@ -143,9 +143,9 @@ namespace nil {
                             proofs[i] = params.ts[i].kimchi_proof;
                         }
 
-                        kimchi_verify_component::generate_circuit(bp, assignment,
+                        /*kimchi_verify_component::generate_circuit(bp, assignment,
                             {proofs, params.ts[0].verifier_index, params.fr_data, params.fq_data}, row);
-                        row += kimchi_verify_component::rows_amount;
+                        row += kimchi_verify_component::rows_amount;*/
 
                         return result_type();
                     }
@@ -176,9 +176,9 @@ namespace nil {
                             proofs[i] = params.ts[i].kimchi_proof;
                         }
 
-                        kimchi_verify_component::generate_assignments(assignment,
+                        /*kimchi_verify_component::generate_assignments(assignment,
                             {proofs, params.ts[0].verifier_index, params.fr_data, params.fq_data}, row);
-                        row += kimchi_verify_component::rows_amount;
+                        row += kimchi_verify_component::rows_amount;*/
                         
                         return result_type();
                     }

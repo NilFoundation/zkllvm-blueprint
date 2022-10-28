@@ -97,7 +97,7 @@ namespace nil {
                                              W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
 
-                    using combined_evals_component = zk::components::combine_proof_evals<ArithmetizationType, KimchiParamsType, evals_size, W0, W1, W2, W3, W4, W5, W6,
+                    using combined_evals_component = zk::components::evals_of_split_evals<ArithmetizationType, KimchiParamsType, evals_size, W0, W1, W2, W3, W4, W5, W6,
                                                                         W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using derive_plonk_component = zk::components::derive_plonk<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6,
@@ -125,7 +125,7 @@ namespace nil {
                         typename zk::components::binding<ArithmetizationType, BlueprintFieldType, KimchiParamsType>;
                     using pickles_instance_type = instance_type<BlueprintFieldType, CurveType, KimchiParamsType>;
                     
-                    constexpr static const std::size_t poly_size = 4 + (KimchiParamsType::circuit_params::used_lookup ? 1 : 0); 
+                    constexpr static const std::size_t poly_size = 4 + (KimchiParamsType::circuit_params::use_lookup ? 1 : 0); 
 
                     constexpr static std::size_t rows() {
                         std::size_t row = 0;
@@ -135,7 +135,7 @@ namespace nil {
                             row += endo_scalar_component::rows_amount;
                             row += endo_scalar_component::rows_amount;
                             row += mul_component::rows_amount;
-                            if (KimchiParamsType::circuit_params::lookup_used) {
+                            if (KimchiParamsType::circuit_params::use_lookup) {
                                 row += endo_scalar_component::rows_amount;
                             }
                             row += combined_evals_component::rows_amount;
@@ -182,13 +182,13 @@ namespace nil {
                     constexpr static const std::size_t rows_amount = rows();
                     constexpr static const std::size_t gates_amount = 0;
 
-                    struct params_type {
+                    struct params_type{
                         std::array<pickles_instance_type, BatchSize> ts;
 
-                        typename proof_binding::template fr_data<var, BatchSize> fr_data;
-                        typename proof_binding::template fq_data<var> fq_data;
+                        //typename proof_binding::template fr_data<var, BatchSize> fr_data;
+                        //typename proof_binding::template fq_data<var> fq_data;
 
-                        std::array<typename proof_binding::fq_sponge_output, BatchSize> &fq_output;
+                        //std::array<typename proof_binding::fq_sponge_output, BatchSize> &fq_output;
                     };
 
                     struct result_type {
@@ -214,7 +214,7 @@ namespace nil {
                             auto zetaw = zk::components::generate_circuit<mul_component>(bp, assignment, {zeta, params.ts[i].statement.proof_state.deferred_values.branch_data.domain_log2}, row).output;
                             row += mul_component::rows_amount;
                             var min_poly_joint_combiner;
-                            if (KimchiParamsType::circuit_params::lookup_used) {
+                            if (KimchiParamsType::circuit_params::use_lookup) {
                                 min_poly_joint_combiner = endo_scalar_component::generate_circuit(bp, assignment, {params.ts[i].statement.proof_state.deferred_values.plonk.joint_combiner}, row).output;
                                 row += endo_scalar_component::rows_amount;
                             }
@@ -330,7 +330,7 @@ namespace nil {
                             auto zetaw = mul_by_constant_component::generate_assignments(assignment, {zeta, params.ts[i].statement.proof_state.deferred_values.branch_data.domain_log2}, row).output;
                             row += mul_component::rows_amount;
                             var min_poly_joint_combiner;
-                            if (KimchiParamsType::circuit_params::lookup_used) {
+                            if (KimchiParamsType::circuit_params::use_lookup) {
                                 min_poly_joint_combiner = endo_scalar_component::generate_assignments(assignment, {params.ts[i].statement.proof_state.deferred_values.plonk.joint_combiner}, row).output;
                                 row += endo_scalar_component::rows_amount;
                             }

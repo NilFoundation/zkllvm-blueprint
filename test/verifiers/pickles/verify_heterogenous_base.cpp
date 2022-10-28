@@ -50,6 +50,61 @@ using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_pickles_heterogenous_verify_base_field_test_suite)
 
+template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
+void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
+                   zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds> &circuit_proof,
+                   std::vector<typename BlueprintFieldType::value_type> &public_input) {
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+
+    // eval_proofs
+    for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
+        // w
+        for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
+            public_input.push_back(original_proof.evals[point_idx].w[i][0]);
+            circuit_proof.proof_evals[point_idx].w[i] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+        // z
+        public_input.push_back(original_proof.evals[point_idx].z[0]);
+        circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // s
+        for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
+            public_input.push_back(original_proof.evals[point_idx].s[i][0]);
+            circuit_proof.proof_evals[point_idx].s[i] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+        // lookup
+        if (KimchiParamsType::use_lookup) {
+            // TODO
+        }
+        // generic_selector
+        public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
+        circuit_proof.proof_evals[point_idx].generic_selector =
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // poseidon_selector
+        public_input.push_back(original_proof.evals[point_idx].poseidon_selector[0]);
+        circuit_proof.proof_evals[point_idx].poseidon_selector =
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+    }
+
+    for (std::size_t i = 0; i < KimchiParamsType::public_input_size; i++) {
+        public_input.push_back(original_proof.public_input[i]);
+        circuit_proof.public_input[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+    }
+
+    for (std::size_t i = 0; i < KimchiParamsType::prev_challenges_size; i++) {
+        for (std::size_t j = 0; j < EvalRounds; j++) {
+            public_input.push_back(original_proof.prev_challenges[i].first[j]);
+            circuit_proof.prev_challenges[i][j] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+    }
+
+    // ft_eval
+    public_input.push_back(original_proof.ft_eval1);
+    circuit_proof.ft_eval = var(0, public_input.size() - 1, false, var::column_type::public_input);
+}
+
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test) {
 
@@ -239,7 +294,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
         std::array<commitment_type, 4> chacha;
         std::array<commitment_type, 2> range_check;
 
-        proof_type proof_var = {commitments, o_var, {scalars_var}};
+        proof_type<curve_type> kimchi_proof = test_proof();
+
+        zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
+
+        prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
+        
         verifier_index_type verifier_index;
         //     H_var,
         //     {PI_G_var},
@@ -341,7 +401,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
                                     var(0, public_input.size() - 1, false, var::column_type::public_input)};
         }
 
-        params.ts[i].kimchi_proof = proof_var;
+        params.ts[i].kimchi_proof = kimchi_proof;
         params.ts[i].verifier_index = verifier_index;
         params.ts[i].app_state.Zkapp_state = Zkapp_state_var;
 
@@ -383,7 +443,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
 
         typename binding::fr_data<var, batch_size> fr_data;
 
-        fr_data.scalars = batch_scalars_var;
+        //fr_data.scalars = batch_scalars_var;
         params.fr_data = fr_data;
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
