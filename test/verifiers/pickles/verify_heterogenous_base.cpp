@@ -85,6 +85,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
     constexpr static const std::size_t bulletproofs_size = 3;
     constexpr static const std::size_t challenge_polynomial_commitments_size = batch_size;
 
+    constexpr static const std::size_t comms_len = 1;
+
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
@@ -93,8 +95,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
         public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::verify_generogenous_base<ArithmetizationType, curve_type, kimchi_params, batch_size, 0,
-                                      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+        zk::components::verify_generogenous_base<ArithmetizationType, curve_type, kimchi_params, batch_size, comms_len,
+                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     using commitment_type =
         typename zk::components::kimchi_commitment_type<BlueprintFieldType,

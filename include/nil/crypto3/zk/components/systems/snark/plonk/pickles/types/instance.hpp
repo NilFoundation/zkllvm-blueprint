@@ -51,7 +51,7 @@ namespace nil {
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
                     using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;
-                    using proof_type = kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType>;
+                    using proof_type = kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, KimchiParamsType::commitment_params_type::eval_rounds>;
 
                     public:
 

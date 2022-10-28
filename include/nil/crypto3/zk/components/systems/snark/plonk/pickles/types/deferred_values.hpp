@@ -42,7 +42,7 @@ namespace nil {
 
                 // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/composition_types/composition_types.ml#L206-L233
                 template<typename FieldType>
-                struct deffered_values {
+                struct deferred_values_type {
                     using var = snark::plonk_variable<FieldType>;
 
                     // { plonk : 'plonk
@@ -65,8 +65,7 @@ namespace nil {
                     var b;
                     var xi;
                     std::vector<var> bulletproof_challenges;
-                    branch_data<FieldType> branch_data;
-                };
+                    branch_data_type<FieldType> branch_data;
                 };
             }    // namespace components
         }        // namespace zk

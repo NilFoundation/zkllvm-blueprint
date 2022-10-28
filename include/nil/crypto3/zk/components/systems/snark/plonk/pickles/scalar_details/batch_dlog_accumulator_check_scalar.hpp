@@ -52,18 +52,18 @@ namespace nil {
 
                 // https://github.com/MinaProtocol/mina/blob/f01d3925a273ded939a80e1de9afcd9f913a7c17/src/lib/crypto/kimchi_bindings/stubs/src/urs_utils.rs#L10
                 template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType,
-                        std::size_t CommsLen, std::size_t Rounds,
+                        std::size_t CommsLen,
                          std::size_t... WireIndexes>
                 class batch_dlog_accumulator_check_scalar;
 
                 template<typename BlueprintFieldType, typename CurveType, typename ArithmetizationParams,
-                         typename KimchiParamsType, std::size_t CommsLen, std::size_t Rounds,
+                         typename KimchiParamsType, std::size_t CommsLen,
                          std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5,
                          std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10,
                          std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
                 class batch_dlog_accumulator_check_scalar<
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, CurveType,
-                    KimchiParamsType, CommsLen, Rounds, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
+                    KimchiParamsType, CommsLen, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
                     W10, W11, W12, W13, W14> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
@@ -77,10 +77,6 @@ namespace nil {
                     using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
                     using div_component = zk::components::division<ArithmetizationType, W0, W1, W2, W3>;
 
-                    using random_component =
-                        zk::components::random<ArithmetizationType, KimchiParamsType, BatchSize, W0, W1, W2, W3, W4, W5,
-                                               W6, W7, W8, W9, W10, W11, W12, W13, W14>;
-
                     using b_poly_coeff_component =
                         zk::components::b_poly_coefficients<ArithmetizationType,
                                                             KimchiCommitmentParamsType::eval_rounds, W0, W1, W2, W3, W4,
@@ -88,8 +84,12 @@ namespace nil {
 
                     using kimchi_constants = zk::components::kimchi_inner_constants<KimchiParamsType>;
 
+                    constexpr static const std::size_t srs_len = KimchiCommitmentParamsType::srs_len;
+                    constexpr static const std::size_t eval_rounds = KimchiCommitmentParamsType::eval_rounds;
+                    constexpr static const std::size_t challenges_len = CommsLen * eval_rounds;
+
                     constexpr static std::size_t scalars_len() {
-                        return kimchi_constants::final_msm_size(BatchSize);
+                        return srs_len + kimchi_constants::srs_padding_size() + CommsLen;
                     }
 
                     using prepare_scalars_component =
@@ -99,35 +99,28 @@ namespace nil {
                     using batch_proof = batch_evaluation_proof_scalar<BlueprintFieldType, ArithmetizationType,
                                                                       KimchiParamsType, KimchiCommitmentParamsType>;
 
-                    constexpr static const std::size_t selector_seed = 0x0f28;
-
-                    constexpr static const std::size_t srs_len = KimchiCommitmentParamsType::srs_len;
-                    constexpr static const std::size_t eval_rounds = KimchiCommitmentParamsType::eval_rounds;
-
                     constexpr static std::size_t rows() {
                         std::size_t row = 0;
-
-                        row += random_component::rows_amount;
 
                         for (std::size_t i = 0; i < CommsLen; i++) {
                             row += mul_component::rows_amount;
                         }
 
-                        for (std::size_t i = 0; i < params.challenges.size(); i++) {
+                        for (std::size_t i = 0; i < challenges_len; i++) {
                             row += div_component::rows_amount;
                         }
 
-                        for (std::size_t i = 0; i < Rounds; i++) {
+                        for (std::size_t i = 0; i < eval_rounds; i++) {
                             for (std::size_t j = 0; j < CommsLen; j++) {
                                 row += b_poly_coeff_component::rows_amount;
 
-                                for (std::size_t k = 0; k < s.size(); k++) {
+                                for (std::size_t k = 0; k < b_poly_coeff_component::polynomial_len; k++) {
                                     row += mul_component::rows_amount;
                                 }
                             }
                         }
 
-                        for (std::size_t i = 0; i < termss.size(); i++) {
+                        for (std::size_t i = 0; i < eval_rounds; i++) {
                             for (std::size_t j = 0;
                                 j < KimchiCommitmentParamsType::srs_len + kimchi_constants::srs_padding_size();
                                 j++) {
@@ -146,6 +139,7 @@ namespace nil {
 
                     struct params_type {
                         std::vector<var> challenges;
+                        var rand_base;
                     };
 
                     struct result_type {
@@ -163,6 +157,8 @@ namespace nil {
 
                         generate_assignments_constant(bp, assignment, params, start_row_index);
 
+                        assert(params.challenges.size() == challenges_len);
+
                         std::size_t row = start_row_index;
 
                         var zero = var(0, start_row_index, false, var::column_type::constant);
@@ -179,8 +175,7 @@ namespace nil {
                         }
 
                         var rand_base =
-                            random_component::generate_circuit(bp, assignment, {params.batches}, row).output;
-                        row += random_component::rows_amount;
+                            params.rand_base;
 
                         var rand_base_i = one;
 
@@ -204,11 +199,11 @@ namespace nil {
                             row += div_component::rows_amount;
                         }
 
-                        std::array<std::array<var, CommsLen>, Rounds> termss;
+                        std::array<std::array<var, CommsLen>, eval_rounds> termss;
 
-                        for (std::size_t i = 0; i < Rounds; i++) {
+                        for (std::size_t i = 0; i < eval_rounds; i++) {
                             for (std::size_t j = 0; j < CommsLen; j++) {
-                                auto s = b_poly_coeff_component::generate_circuit(bp, assignment, {challenges[0], one}, row)
+                                auto s = b_poly_coeff_component::generate_circuit(bp, assignment, {params.challenges[0], one}, row)
                                          .output;
                                 row += b_poly_coeff_component::rows_amount;
 
@@ -255,9 +250,7 @@ namespace nil {
                             scalars[i] = zero;
                         }
 
-                        var rand_base =
-                            random_component::generate_assignments(assignment, {params.batches}, row).output;
-                        row += random_component::rows_amount;
+                        var rand_base = params.rand_base;
 
                         var rand_base_i = one;
 
@@ -281,11 +274,11 @@ namespace nil {
                             row += div_component::rows_amount;
                         }
 
-                        std::array<std::array<var, CommsLen>, Rounds> termss;
+                        std::array<std::array<var, CommsLen>, eval_rounds> termss;
 
-                        for (std::size_t i = 0; i < Rounds; i++) {
+                        for (std::size_t i = 0; i < eval_rounds; i++) {
                             for (std::size_t j = 0; j < CommsLen; j++) {
-                                auto s = b_poly_coeff_component::generate_assignments(assignment, {challenges[0], one}, row)
+                                auto s = b_poly_coeff_component::generate_assignments(assignment, {params.challenges[0], one}, row)
                                          .output;
                                 row += b_poly_coeff_component::rows_amount;
 

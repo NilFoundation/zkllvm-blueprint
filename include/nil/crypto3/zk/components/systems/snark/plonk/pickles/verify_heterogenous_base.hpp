@@ -40,7 +40,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
 
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_scalar.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/batch_dlog_accumulator_check_scalar.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/instance.hpp>
 
 namespace nil {
@@ -51,17 +51,17 @@ namespace nil {
                 // base field part of verify_generogenous
                 // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/verify.ml#L30
                 template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType, 
-                    std::size_t BatchSize, std::size_t... WireIndexes>
+                    std::size_t BatchSize, std::size_t CommsLen, std::size_t... WireIndexes>
                 class verify_generogenous_base;
 
                 template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,  
-                         std::size_t BatchSize, std::size_t W0, std::size_t W1,
+                         std::size_t BatchSize, std::size_t CommsLen, std::size_t W0, std::size_t W1,
                          std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7,
                          std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12,
                          std::size_t W13, std::size_t W14>
                 class verify_generogenous_base<
                     snark::plonk_constraint_system<typename CurveType::base_field_type, ArithmetizationParams>,
-                    CurveType, KimchiParamsType, BatchSize,
+                    CurveType, KimchiParamsType, BatchSize, CommsLen,
                     W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     using BlueprintFieldType = typename CurveType::base_field_type;
@@ -76,7 +76,7 @@ namespace nil {
 
                     using batch_verify_component =
                         zk::components::batch_dlog_accumulator_check_scalar<ArithmetizationType, CurveType, KimchiParamsType,
-                                                                BatchSize, W0, W1, W2, W3,
+                                                                CommsLen, W0, W1, W2, W3,
                                                                 W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
                     
                     using kimchi_verify_component = zk::components::base_field<ArithmetizationType,

@@ -32,6 +32,8 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
+
 namespace nil {
     namespace crypto3 {
         namespace zk {
@@ -41,10 +43,11 @@ namespace nil {
                 template<typename FieldType>
                 struct messages_for_next_step_proof_type {
                     using var = snark::plonk_variable<FieldType>;
+                    using var_ec_point = typename zk::components::var_ec_point<FieldType>;
 
                     app_state_type<FieldType> app_state;
                     std::vector<var> old_bulletproof_challenges; 
-                    std::vector<var_ec_point>challenge_polynomial_commitments;         
+                    std::vector<var_ec_point> challenge_polynomial_commitments;         
                 };
 
                 // TODO: link

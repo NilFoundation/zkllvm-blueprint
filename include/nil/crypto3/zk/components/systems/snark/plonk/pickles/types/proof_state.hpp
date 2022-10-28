@@ -33,6 +33,7 @@
 #include <nil/crypto3/zk/component.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/deferred_values.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -43,7 +44,7 @@ namespace nil {
                 template<typename FieldType>
                 struct pickles_proof_state_type {
                     using var = snark::plonk_variable<FieldType>;
-                    deferred_values<FieldType> FieldType;
+                    deferred_values_type<FieldType> deferred_values;
                     var sponge_digest_before_evaluations;
                     messages_for_next_wrap_proof_type<FieldType> messages_for_next_wrap_proof;
                 };
