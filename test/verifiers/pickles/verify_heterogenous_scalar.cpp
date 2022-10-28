@@ -77,24 +77,27 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
     constexpr static std::size_t perm_size = 7;
 
     constexpr static std::size_t srs_len = 2;
-    constexpr static std::size_t batch_size = 1;
+    constexpr static const std::size_t batch_size = 1;
 
     constexpr static const std::size_t prev_chal_size = 1;
 
     constexpr static const std::size_t max_state_size = 3;
+    constexpr static const std::size_t evals_size = 3;
     constexpr static const std::size_t bulletproofs_size = 3;
     constexpr static const std::size_t challenge_polynomial_commitments_size = batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<AssignmentType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::verify_heterogenous_scalar<ArithmetizationType, curve_type, kimchi_params, batch_size, 0,
+        zk::components::verify_heterogenous_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, batch_size, bulletproofs_size, evals_size, 0,
                                       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+
+    typename component_type::params_type params;
 
     using commitment_type =
         typename zk::components::kimchi_commitment_type<BlueprintFieldType,
@@ -111,8 +114,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
     using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {};
-
-    typename component_type::params_type params = {};
 
     for (std::size_t i = 0; i < batch_size; i++) {
         // KIMCHI PROOF
