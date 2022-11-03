@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_chacha) {
 
     constexpr static std::size_t public_input_size = 0;
     constexpr static std::size_t max_poly_size = 8192;
-    constexpr static std::size_t eval_rounds = 0; // ?L402?
+    constexpr static std::size_t eval_rounds = 0;
 
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
