@@ -81,11 +81,11 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<var, InputSize> scalars;
+                        std::vector<var> scalars = std::vector<var>(InputSize);
                     };
 
                     struct result_type {
-                        std::array<var, InputSize> output;
+                        std::vector<var> output = std::vector<var>(InputSize);
                     };
 
                     static result_type
@@ -101,7 +101,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, InputSize> shifted;
+                        std::vector<var> shifted = std::vector<var>(InputSize);
                         result_type result;
                         assert(params.scalars.size() == InputSize);
 
@@ -130,7 +130,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::array<var, InputSize> shifted;
+                        std::vector<var> shifted = std::vector<var>(InputSize);
                         result_type result;
                         assert(params.scalars.size() == InputSize);
 

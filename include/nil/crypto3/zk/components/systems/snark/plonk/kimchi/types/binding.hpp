@@ -59,7 +59,7 @@ namespace nil {
                         std::array<VarType, BatchSize> cip_shifted;
 
                         std::array<var, KimchiParamsType::public_input_size> neg_pub;
-                        std::array<var, BatchSize> zeta_to_srs_len;
+                        std::vector<var> zeta_to_srs_len = std::vector<var>(BatchSize);
                         var zeta_to_domain_size_minus_1;
 
                         std::array<var, lookup_columns> joint_combiner_powers_prepared;
