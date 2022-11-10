@@ -255,7 +255,7 @@ namespace nil {
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
 
-                        std::array<var, scalars_len()> scalars;
+                        std::vector<var> scalars = std::vector<var>(scalars_len());
                         std::size_t scalar_idx = KimchiCommitmentParamsType::srs_len
                             + kimchi_constants::srs_padding_size();
 
@@ -437,15 +437,21 @@ namespace nil {
                             row += mul_component::rows_amount;
                         }
 
+                        typename prepare_scalars_component::params_type prepare_scalars_params;
+                        for (std::size_t i = 0; i < prepare_scalars_params.scalars.size(); ++i) {
+                            prepare_scalars_params.scalars[i] = scalars[i];
+                        }
                         scalars = prepare_scalars_component::generate_circuit(bp, assignment,
-                            {scalars}, row).output;
+                            prepare_scalars_params, row).output;
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
                         assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize) - 1);
 
                         result_type res(start_row_index);
-                        res.output = scalars;
+                        for (std::size_t i = 0; i < res.output.size(); ++i) {
+                            res.output[i] = scalars[i];
+                        }
                         return res;
                     }
 
@@ -461,7 +467,7 @@ namespace nil {
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
 
-                        std::array<var, scalars_len()> scalars;
+                        std::vector<var> scalars = std::vector<var>(scalars_len());
                         std::size_t scalar_idx = KimchiCommitmentParamsType::srs_len
                             + kimchi_constants::srs_padding_size();
 
@@ -640,15 +646,21 @@ namespace nil {
                             row += mul_component::rows_amount;
                         }
 
+                        typename prepare_scalars_component::params_type prepare_scalars_params;
+                        for (std::size_t i = 0; i < prepare_scalars_params.scalars.size(); ++i) {
+                            prepare_scalars_params.scalars[i] = scalars[i];
+                        }
                         scalars = prepare_scalars_component::generate_assignments(assignment,
-                            {scalars}, row).output;
+                            prepare_scalars_params, row).output;
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
                         assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize) - 1);
 
                         result_type res(start_row_index);
-                        res.output = scalars;
+                        for (std::size_t i = 0; i < res.output.size(); ++i) {
+                            res.output[i] = scalars[i];
+                        }
                         return res;
                     }
 
