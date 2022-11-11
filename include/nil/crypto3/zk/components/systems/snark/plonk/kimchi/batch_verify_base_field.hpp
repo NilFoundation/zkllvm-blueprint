@@ -188,13 +188,7 @@ namespace nil {
 
                         assert(bases_idx == final_msm_size);
 
-                        typename msm_component::params_type msm_params;
-                        for (std::size_t i = 0; i < msm_params.scalars.size(); ++i) {
-                            msm_params.scalars[i] = params.fr_output.scalars[i];
-                        }
-                        for (std::size_t i = 0; i < msm_params.bases.size(); ++i) {
-                            msm_params.bases[i] = bases[i];
-                        }
+                        typename msm_component::params_type msm_params = {params.fr_output.scalars, bases};
                         auto res = msm_component::generate_assignments(assignment, msm_params, row);
                         row += msm_component::rows_amount;
 
@@ -262,13 +256,7 @@ namespace nil {
 
                         assert(bases_idx == final_msm_size);
 
-                        typename msm_component::params_type msm_params;
-                        for (std::size_t i = 0; i < msm_params.scalars.size(); ++i) {
-                            msm_params.scalars[i] = params.fr_output.scalars[i];
-                        }
-                        for (std::size_t i = 0; i < msm_params.bases.size(); ++i) {
-                            msm_params.bases[i] = bases[i];
-                        }
+                        typename msm_component::params_type msm_params = {params.fr_output.scalars, bases};
                         auto res = msm_component::generate_circuit(bp, assignment, msm_params, row);
                         row += msm_component::rows_amount;
 

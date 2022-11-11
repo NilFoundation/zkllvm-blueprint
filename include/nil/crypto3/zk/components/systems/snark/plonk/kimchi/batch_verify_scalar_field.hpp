@@ -396,10 +396,7 @@ namespace nil {
                             row += mul_component::rows_amount;
                         }
 
-                        typename prepare_scalars_component::params_type prepare_scalars_params;
-                        for (std::size_t i = 0; i < prepare_scalars_params.scalars.size(); ++i) {
-                            prepare_scalars_params.scalars[i] = scalars[i];
-                        }
+                        typename prepare_scalars_component::params_type prepare_scalars_params = {scalars};
                         scalars = prepare_scalars_component::generate_circuit(bp, assignment,
                             prepare_scalars_params, row).output;
                         row += prepare_scalars_component::rows_amount;
@@ -590,10 +587,7 @@ namespace nil {
                             row += mul_component::rows_amount;
                         }
 
-                        typename prepare_scalars_component::params_type prepare_scalars_params;
-                        for (std::size_t i = 0; i < prepare_scalars_params.scalars.size(); ++i) {
-                            prepare_scalars_params.scalars[i] = scalars[i];
-                        }
+                        typename prepare_scalars_component::params_type prepare_scalars_params = {scalars};
                         scalars = prepare_scalars_component::generate_assignments(assignment,
                             prepare_scalars_params, row).output;
                         row += prepare_scalars_component::rows_amount;
