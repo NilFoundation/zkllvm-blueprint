@@ -53,13 +53,13 @@ namespace nil {
                         constexpr static const std::size_t f_comm_msm_size = kimchi_constants::f_comm_msm_size;
                         constexpr static const std::size_t lookup_columns = KimchiParamsType::circuit_params::lookup_columns;
 
-                    public:
-                        std::vector<VarType> scalars;
-                        std::array<std::array<VarType, f_comm_msm_size>, BatchSize> f_comm_scalars;
-                        std::array<VarType, BatchSize> cip_shifted;
+                    public: 
+                        std::vector<VarType> scalars = std::vector<VarType>(kimchi_constants::final_msm_size(BatchSize));
+                        std::vector<std::vector<VarType>> f_comm_scalars = std::vector<std::vector<VarType>>(BatchSize, std::vector<VarType>(f_comm_msm_size));
+                        std::vector<VarType> cip_shifted = std::vector<VarType>(BatchSize);
 
                         std::array<var, KimchiParamsType::public_input_size> neg_pub;
-                        std::array<var, BatchSize> zeta_to_srs_len;
+                        std::vector<var> zeta_to_srs_len = std::vector<var>(BatchSize);
                         var zeta_to_domain_size_minus_1;
 
                         std::array<var, lookup_columns> joint_combiner_powers_prepared;

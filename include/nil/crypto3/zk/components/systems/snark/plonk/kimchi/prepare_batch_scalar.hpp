@@ -152,7 +152,7 @@ namespace nil {
                     struct result_type {
                         batch_proof prepared_proof;
                         var zeta_to_srs_len;
-                        std::array<var, f_comm_msm_size> f_comm_scalars;
+                        std::vector<var> f_comm_scalars = std::vector<var>(f_comm_msm_size);
                     };
 
                     static result_type
@@ -174,7 +174,7 @@ namespace nil {
                         typename oracles_component::result_type oracles_output = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
                         row += oracles_component::rows_amount;
 
-                        std::array<var, f_comm_msm_size> f_comm_scalars;
+                        std::vector<var> f_comm_scalars(f_comm_msm_size);
                         std::size_t f_comm_idx = 0;
 
                         var zkp= zkpm_evaluate_component::generate_circuit(bp, assignment,
@@ -257,7 +257,7 @@ namespace nil {
                         auto oracles_output = oracles_component::generate_assignments(assignment, oracles_params, row);
                         row += oracles_component::rows_amount;
 
-                        std::array<var, f_comm_msm_size> f_comm_scalars;
+                        std::vector<var> f_comm_scalars(f_comm_msm_size);
                         std::size_t f_comm_idx = 0;
                         var zkp = zkpm_evaluate_component::generate_assignments(assignment,
                                                                                 {params.verifier_index.omega,
