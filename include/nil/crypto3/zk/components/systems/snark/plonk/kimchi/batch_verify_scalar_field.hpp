@@ -218,7 +218,7 @@ namespace nil {
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
 
-                        std::vector<var> scalars = std::vector<var>(scalars_len());
+                        std::vector<var> scalars(scalars_len());
                         std::size_t scalar_idx = KimchiCommitmentParamsType::srs_len
                             + kimchi_constants::srs_padding_size();
 
@@ -423,7 +423,7 @@ namespace nil {
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
 
-                        std::vector<var> scalars = std::vector<var>(scalars_len());
+                        std::vector<var> scalars(scalars_len());
                         std::size_t scalar_idx = KimchiCommitmentParamsType::srs_len
                             + kimchi_constants::srs_padding_size();
 

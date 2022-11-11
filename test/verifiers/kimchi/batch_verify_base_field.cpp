@@ -222,9 +222,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test) {
     var_ec_point PI_G_var = {var(0, 22, false, var::column_type::public_input),
                              var(0, 23, false, var::column_type::public_input)};
 
-    std::vector<curve_type::base_field_type::value_type> scalars = std::vector<curve_type::base_field_type::value_type>(bases_size);
+    std::vector<curve_type::base_field_type::value_type> scalars(bases_size);
 
-    std::vector<var> scalars_var = std::vector<var>(bases_size);
+    std::vector<var> scalars_var(bases_size);
 
     for (std::size_t i = 0; i < bases_size; i++) {
         scalars[i] = algebra::random_element<curve_type::base_field_type>();

@@ -101,7 +101,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::vector<var> shifted = std::vector<var>(InputSize);
+                        std::vector<var> shifted(InputSize);
                         result_type result;
                         assert(params.scalars.size() == InputSize);
 
@@ -130,7 +130,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::vector<var> shifted = std::vector<var>(InputSize);
+                        std::vector<var> shifted(InputSize);
                         result_type result;
                         assert(params.scalars.size() == InputSize);
 

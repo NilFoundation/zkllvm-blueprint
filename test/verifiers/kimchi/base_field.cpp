@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
 
-    constexpr static std::size_t srs_len = 1000000;
+    constexpr static std::size_t srs_len = 1;
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
 
     opening_proof_type o_var = {{L_var}, {R_var}, delta_var, G_var};
 
-    std::vector<curve_type::base_field_type::value_type> scalars = std::vector<curve_type::base_field_type::value_type>(kimchi_constants::f_comm_msm_size);
+    std::vector<curve_type::base_field_type::value_type> scalars(kimchi_constants::f_comm_msm_size);
 
     std::array<var, kimchi_constants::f_comm_msm_size> scalars_var;
 
@@ -270,9 +270,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
                              var(0, 73, false, var::column_type::public_input)};
 
     constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
-    std::vector<curve_type::base_field_type::value_type> batch_scalars = std::vector<curve_type::base_field_type::value_type>(bases_size);
+    std::vector<curve_type::base_field_type::value_type> batch_scalars(bases_size);
 
-    std::vector<var> batch_scalars_var = std::vector<var>(bases_size);
+    std::vector<var> batch_scalars_var(bases_size);
 
     for (std::size_t i = 0; i < bases_size; i++) {
         batch_scalars[i] = algebra::random_element<curve_type::base_field_type>();

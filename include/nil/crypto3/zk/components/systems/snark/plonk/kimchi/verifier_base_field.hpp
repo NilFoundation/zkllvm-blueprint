@@ -355,7 +355,7 @@ namespace nil {
                                                             const params_type &params,
                                                             std::size_t start_row_index) {
                         std::size_t row = start_row_index;
-                        std::vector<batch_proof_type> batch_proofs = std::vector<batch_proof_type>(BatchSize);
+                        std::vector<batch_proof_type> batch_proofs(BatchSize);
                         var zero(0, row, false, var::column_type::constant);
                         row++;
 
@@ -616,7 +616,7 @@ namespace nil {
                         var zero(0, row, false, var::column_type::constant);
                         row++;
 
-                        std::vector<batch_proof_type> batch_proofs = std::vector<batch_proof_type>(BatchSize);
+                        std::vector<batch_proof_type> batch_proofs(BatchSize);
                         for (std::size_t i = 0; i < BatchSize; i++) {
                             std::vector<var> neg_pub = std::vector<var>(params.fr_data.neg_pub.begin(),
                                                                         params.fr_data.neg_pub.end());

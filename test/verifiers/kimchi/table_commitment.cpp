@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_table_commitment_test) {
     constexpr static std::size_t witness_columns = 5;
     constexpr static std::size_t perm_size = 5;
 
-    constexpr static std::size_t srs_len = 1000000;
+    constexpr static std::size_t srs_len = 1;
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
