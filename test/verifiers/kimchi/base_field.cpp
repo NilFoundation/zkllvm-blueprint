@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
 
-    constexpr static std::size_t srs_len = 1;
+    constexpr static std::size_t srs_len = 1000000;
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
 
     opening_proof_type o_var = {{L_var}, {R_var}, delta_var, G_var};
 
-    std::array<curve_type::base_field_type::value_type, kimchi_constants::f_comm_msm_size> scalars;
+    std::vector<curve_type::base_field_type::value_type> scalars = std::vector<curve_type::base_field_type::value_type>(kimchi_constants::f_comm_msm_size);
 
     std::array<var, kimchi_constants::f_comm_msm_size> scalars_var;
 
@@ -270,9 +270,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
                              var(0, 73, false, var::column_type::public_input)};
 
     constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
-    std::array<curve_type::base_field_type::value_type, bases_size> batch_scalars;
+    std::vector<curve_type::base_field_type::value_type> batch_scalars = std::vector<curve_type::base_field_type::value_type>(bases_size);
 
-    std::array<var, bases_size> batch_scalars_var;
+    std::vector<var> batch_scalars_var = std::vector<var>(bases_size);
 
     for (std::size_t i = 0; i < bases_size; i++) {
         batch_scalars[i] = algebra::random_element<curve_type::base_field_type>();
@@ -305,8 +305,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
         psm_comm, // endo_mul_scalar
         }};
 
-    typename binding::fr_data<var, batch_size> fr_data = {
-        batch_scalars_var, {cip_var}, {Pub_var}, zeta_to_srs_len_var, zeta_to_domain_size_minus_1_var};
+    typename binding::fr_data<var, batch_size> fr_data;
+    fr_data.scalars = batch_scalars_var;
+    fr_data.cip_shifted = {cip_var};
+    fr_data.neg_pub = {Pub_var};
+    fr_data.zeta_to_srs_len = {zeta_to_srs_len_var};
+    fr_data.zeta_to_domain_size_minus_1 = zeta_to_domain_size_minus_1_var;
     typename binding::fq_data<var> fq_data;
 
     typename component_type::params_type params = {{proof_var}, verifier_index, fr_data, fq_data};
