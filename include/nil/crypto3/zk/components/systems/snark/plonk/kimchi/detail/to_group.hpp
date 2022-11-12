@@ -332,7 +332,7 @@ namespace nil {
                         result_type(std::size_t start_row_index) {
                             const std::size_t points_size = 3;
 
-                            std::size_t row = rows_amount - points_size * (2 * mul_component::rows_amount +
+                            std::size_t row = start_row_index + rows_amount - points_size * (2 * mul_component::rows_amount +
                                                                            2 * add_component::rows_amount);
 
                             var x;
