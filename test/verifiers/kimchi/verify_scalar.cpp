@@ -57,7 +57,7 @@ using namespace nil::crypto3;
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_verify_scalar_field_test_suite)
 
 template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
-void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
+void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
                    zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
@@ -66,16 +66,16 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
     for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
         // w
         for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
-            public_input.push_back(original_proof.evals[point_idx].w[i]);
+            public_input.push_back(original_proof.evals[point_idx].w[i][0]);
             circuit_proof.proof_evals[point_idx].w[i] =
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
         // z
-        public_input.push_back(original_proof.evals[point_idx].z);
+        public_input.push_back(original_proof.evals[point_idx].z[0]);
         circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
         // s
         for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
-            public_input.push_back(original_proof.evals[point_idx].s[i]);
+            public_input.push_back(original_proof.evals[point_idx].s[i][0]);
             circuit_proof.proof_evals[point_idx].s[i] =
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
@@ -84,11 +84,11 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
             // TODO
         }
         // generic_selector
-        public_input.push_back(original_proof.evals[point_idx].generic_selector);
+        public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
         circuit_proof.proof_evals[point_idx].generic_selector =
             var(0, public_input.size() - 1, false, var::column_type::public_input);
         // poseidon_selector
-        public_input.push_back(original_proof.evals[point_idx].poseidon_selector);
+        public_input.push_back(original_proof.evals[point_idx].poseidon_selector[0]);
         circuit_proof.proof_evals[point_idx].poseidon_selector =
             var(0, public_input.size() - 1, false, var::column_type::public_input);
     }
@@ -135,8 +135,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_verify_scalar_field_test_suite) {
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
 
-    constexpr static std::size_t srs_len = 10;
-    constexpr static std::size_t batch_size = 2;
+    constexpr static std::size_t srs_len = 32;
+    constexpr static std::size_t batch_size = 1;
 
     constexpr static const std::size_t prev_chal_size = 1;
 
@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_verify_scalar_field_test_suite) {
     std::array<fq_output_type, batch_size> fq_outputs;
 
     for (std::size_t batch_id = 0; batch_id < batch_size; batch_id++) {
-        zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+        zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
 
         zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
 

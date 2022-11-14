@@ -81,11 +81,11 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<var, InputSize> scalars;
+                        std::vector<var> scalars;
                     };
 
                     struct result_type {
-                        std::array<var, InputSize> output;
+                        std::vector<var> output;
                     };
 
                     static result_type
@@ -103,6 +103,8 @@ namespace nil {
 
                         std::array<var, InputSize> shifted;
                         result_type result;
+                        result.output.resize(InputSize);
+                        assert(params.scalars.size() == InputSize);
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
                             shifted[i] = zk::components::generate_circuit<add_component>(
@@ -131,6 +133,8 @@ namespace nil {
 
                         std::array<var, InputSize> shifted;
                         result_type result;
+                        result.output.resize(InputSize);
+                        assert(params.scalars.size() == InputSize);
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
                             shifted[i] =

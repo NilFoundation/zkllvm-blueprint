@@ -56,6 +56,10 @@ namespace nil {
 
                     using var = snark::plonk_variable<BlueprintFieldType>;
 
+                    using generic_scalars_component =
+                        generic_scalars<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
+                                        W10, W11, W12, W13, W14>;
+
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
                         return row;

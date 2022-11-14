@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_BRANCH_DATA_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_BRANCH_DATA_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_INSTANCE_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_INSTANCE_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -32,26 +32,39 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
+
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/statement.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
+
 namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
 
-                // https://github.com/MinaProtocol/mina/blob/develop/src/lib/mina_wire_types/pickles/pickles_composition_types.ml#L3-L15
-                template<typename FieldType>
-                struct branch_data_type {
-                    using var = snark::plonk_variable<FieldType>;
+                // TODO: link
+                template<typename BlueprintFieldType, typename CurveType, typename KimchiParamsType>
+                struct instance_type {
+                    private:
+                    using var = snark::plonk_variable<BlueprintFieldType>;
+                    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
-                    /*enum proofs_verified_type {
-                        N0, N1, N2
-                    };
+                    using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;
+                    using proof_type = kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, KimchiParamsType::commitment_params_type::eval_rounds>;
 
-                    proofs_verified_type proofs_verified;*/
-                    std::size_t domain_log2;
+                    public:
+
+                    proof_type kimchi_proof;
+                    verifier_index_type verifier_index;
+                    app_state_type<BlueprintFieldType> app_state;
+                    statement_type<BlueprintFieldType> statement;
+
+                    std::vector<var_ec_point> comms;
                 };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_BRANCH_DATA_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_INSTANCE_HPP

@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
     // constexpr static const std::size_t padding = (1 << n_2) - n;
 
     constexpr static std::size_t public_input_size = 1;
-    constexpr static std::size_t max_poly_size = 32;
-    constexpr static std::size_t eval_rounds = 5;
+    constexpr static std::size_t max_poly_size = 16;
+    constexpr static std::size_t eval_rounds = 2;
 
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;

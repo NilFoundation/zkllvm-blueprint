@@ -172,13 +172,13 @@ namespace nil {
 
                         typename oracles_component::params_type oracles_params(params.verifier_index, params.proof,
                                                                                params.fq_output);
-                        auto oracles_output = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
+                        typename oracles_component::result_type oracles_output = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
                         row += oracles_component::rows_amount;
 
                         std::array<var, f_comm_msm_size> f_comm_scalars;
                         std::size_t f_comm_idx = 0;
 
-                        var zkp = zkpm_evaluate_component::generate_circuit(bp, assignment,
+                        var zkp= zkpm_evaluate_component::generate_circuit(bp, assignment,
                                                                             {params.verifier_index.omega,
                                                                              params.verifier_index.domain_size,
                                                                              oracles_output.oracles.zeta},

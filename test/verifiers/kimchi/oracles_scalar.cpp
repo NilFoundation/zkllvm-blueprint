@@ -96,16 +96,16 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
     for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
         // w
         for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
-            public_input.push_back(original_proof.evals[point_idx].w[i]);
+            public_input.push_back(original_proof.evals[point_idx].w[i][0]);
             circuit_proof.proof_evals[point_idx].w[i] =
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
         // z
-        public_input.push_back(original_proof.evals[point_idx].z);
+        public_input.push_back(original_proof.evals[point_idx].z[0]);
         circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
         // s
         for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
-            public_input.push_back(original_proof.evals[point_idx].s[i]);
+            public_input.push_back(original_proof.evals[point_idx].s[i][0]);
             circuit_proof.proof_evals[point_idx].s[i] =
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
@@ -132,11 +132,9 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
             }
         }
         // generic_selector
-        if (KimchiParamsType::generic_gate) {
-            public_input.push_back(original_proof.evals[point_idx].generic_selector);
-            circuit_proof.proof_evals[point_idx].generic_selector =
-                var(0, public_input.size() - 1, false, var::column_type::public_input);
-        }
+        public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
+        circuit_proof.proof_evals[point_idx].generic_selector =
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
         // poseidon_selector
         if (KimchiParamsType::poseidon_gate) {
             public_input.push_back(original_proof.evals[point_idx].poseidon_selector);

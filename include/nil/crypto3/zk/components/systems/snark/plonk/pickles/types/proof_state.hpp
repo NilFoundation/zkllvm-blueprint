@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_DEFERRED_VALUES_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_DEFERRED_VALUES_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_PROOF_STATE_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_PROOF_STATE_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -32,44 +32,25 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/plonk.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/branch_data.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/deferred_values.hpp>
 
 namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
 
-                // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/composition_types/composition_types.ml#L206-L233
+                // TODO: link
                 template<typename FieldType>
-                struct deferred_values_type {
+                struct pickles_proof_state_type {
                     using var = snark::plonk_variable<FieldType>;
-
-                    // { plonk : 'plonk
-                    // ; combined_inner_product : 'fp
-                    //     (** combined_inner_product = sum_{i < num_evaluation_points} sum_{j < num_polys} r^i xi^j f_j(pt_i) *)
-                    // ; b : 'fp
-                    //     (** b = challenge_poly plonk.zeta + r * challenge_poly (domain_generrator * plonk.zeta)
-                    //     where challenge_poly(x) = \prod_i (1 + bulletproof_challenges.(i) * x^{2^{k - 1 - i}})
-                    // *)
-                    // ; xi : 'scalar_challenge
-                    //     (** The challenge used for combining polynomials *)
-                    // ; bulletproof_challenges : 'bulletproof_challenges
-                    //     (** The challenges from the inner-product argument that was partially verified. *)
-                    // ; branch_data : 'branch_data
-                    //     (** Data specific to which step branch of the proof-system was verified *)
-                    // }
-
-                    pickles_plonk<FieldType> plonk;
-                    var combined_inner_product;
-                    var b;
-                    var xi;
-                    std::vector<var> bulletproof_challenges;
-                    branch_data_type<FieldType> branch_data;
+                    deferred_values_type<FieldType> deferred_values;
+                    var sponge_digest_before_evaluations;
+                    messages_for_next_wrap_proof_type<FieldType> messages_for_next_wrap_proof;
                 };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_DEFERRED_VALUES_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_PROOF_STATE_HPP

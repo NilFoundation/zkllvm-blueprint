@@ -156,7 +156,9 @@ namespace nil {
                                 j++;
                             }       
                         }
-                        msm_component::generate_circuit(bp, assignment, {scalars, commitments}, row);
+                        std::vector<var> scalars_vec = std::vector<var>(scalars.begin(), scalars.end());
+                        std::vector<var_ec_point> commitments_vec = std::vector<var_ec_point>(commitments.begin(), commitments.end());
+                        msm_component::generate_circuit(bp, assignment, {scalars_vec, commitments_vec}, row);
                         return result_type(row);
 
                         return result_type(row);
@@ -185,7 +187,9 @@ namespace nil {
                                 j++;
                             }       
                         }
-                        msm_component::generate_assignments(assignment, {scalars, commitments}, row);
+                        std::vector<var> scalars_vec = std::vector<var>(scalars.begin(), scalars.end());
+                        std::vector<var_ec_point> commitments_vec = std::vector<var_ec_point>(commitments.begin(), commitments.end());
+                        msm_component::generate_assignments(assignment, {scalars_vec, commitments_vec}, row);
                         return result_type(row);
                     }
 

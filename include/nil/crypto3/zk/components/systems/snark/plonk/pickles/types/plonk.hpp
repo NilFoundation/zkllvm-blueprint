@@ -55,7 +55,6 @@ namespace nil {
                     var zeta;
                     var joint_combiner;
                 };
-                };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3
