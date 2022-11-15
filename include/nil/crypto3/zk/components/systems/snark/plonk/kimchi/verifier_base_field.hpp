@@ -572,12 +572,12 @@ namespace nil {
 
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
-                                evaluations[eval_idx++] = table_comm_component::generate_assignments(
+                                evaluations[eval_idx++] = {{ table_comm_component::generate_assignments(
                                                               assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
                                                                params.proofs[i].comm.lookup_runtime},
                                                               row)
-                                                              .output;
+                                                              .output }};
                                 row += table_comm_component::rows_amount;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {
@@ -826,12 +826,12 @@ namespace nil {
 
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
-                                evaluations[eval_idx++] = table_comm_component::generate_circuit(
+                                evaluations[eval_idx++] = {{ table_comm_component::generate_circuit(
                                                               bp, assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
                                                                params.proofs[i].comm.lookup_runtime},
                                                               row)
-                                                              .output;
+                                                              .output }};
                                 row += table_comm_component::rows_amount;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {
