@@ -596,23 +596,18 @@ namespace nil {
                             switch (t.type) {
                                 case token_type::alpha:
                                     stack.emplace_back(params.alpha);
-                                    std::cout << "pushed back alpha " << assignment.var_value(params.alpha).data << '\n';
                                     break;
                                 case token_type::beta:
                                     stack.emplace_back(params.beta);
-                                    std::cout << "pushed back beta " << assignment.var_value(params.beta).data << '\n';
                                     break;
                                 case token_type::gamma:
                                     stack.emplace_back(params.gamma);
-                                    std::cout << "pushed back gamma " << assignment.var_value(params.gamma).data << '\n';
                                     break;
                                 case token_type::joint_combiner:
                                     stack.emplace_back(params.joint_combiner);
-                                    std::cout << "pushed back joint_combiner " << assignment.var_value(params.joint_combiner).data << '\n';
                                     break;
                                 case token_type::endo_coefficient:
                                     stack.emplace_back(endo_factor);
-                                    std::cout << "pushed back endo_factor " << assignment.var_value(endo_factor).data << '\n';
                                     break;
                                 case token_type::mds: {
                                     std::size_t mds_row = (std::size_t)
@@ -620,13 +615,11 @@ namespace nil {
                                     std::size_t mds_col = (std::size_t)
                                         typename BlueprintFieldType::integral_type(t.value.second.data);
                                     stack.emplace_back(mds[mds_row][mds_col]);
-                                    std::cout << "pushed back mds " << assignment.var_value(mds[mds_row][mds_col]).data << '\n';
                                     break;
                                 }
                                 case token_type::literal: {
                                     var literal(0, row, false, var::column_type::constant);
                                     stack.emplace_back(literal);
-                                    std::cout << "pushed back literal " << assignment.var_value(literal).data << '\n';
                                     row++;
                                     break;
                                 }
@@ -637,11 +630,9 @@ namespace nil {
                                         typename BlueprintFieldType::integral_type(t.value.second.data);
                                     var cell_val = var_from_evals(params.evaluations, cell_col, cell_row);
                                     stack.emplace_back(cell_val);
-                                    std::cout << "pushed back cell_val " << assignment.var_value(cell_val).data << '\n';
                                     break;
                                 }
                                 case token_type::dup:
-                                    std::cout << "pushed back dup " << assignment.var_value(stack.back()).data << '\n';
                                     stack.emplace_back(stack.back());
                                     break;
                                 case token_type::pow: {
@@ -654,7 +645,6 @@ namespace nil {
                                     row += exponentiation_component::rows_amount;
 
                                     stack[stack.size() - 1] = res;
-                                    std::cout << "pushed back pow " << assignment.var_value(res).data << '\n';
                                     break;
                                 }
                                 case token_type::add: {
@@ -665,7 +655,6 @@ namespace nil {
                                     var res = add_component::generate_assignments(assignment, {x, y}, row).output;
                                     row += add_component::rows_amount;
                                     stack.push_back(res);
-                                    std::cout << "pushed back add " << assignment.var_value(res).data << '\n';
                                     break;
                                 }
                                 case token_type::mul: {
@@ -676,7 +665,6 @@ namespace nil {
                                     var res = mul_component::generate_assignments(assignment, {x, y}, row).output;
                                     row += mul_component::rows_amount;
                                     stack.push_back(res);
-                                    std::cout << "pushed back mul " << assignment.var_value(res).data << '\n';
                                     break;
                                 }
                                 case token_type::sub: {
@@ -687,7 +675,6 @@ namespace nil {
                                     var res = sub_component::generate_assignments(assignment, {y, x}, row).output;
                                     row += sub_component::rows_amount;
                                     stack.push_back(res);
-                                    std::cout << "pushed back sub " << assignment.var_value(res).data << '\n';
                                     break;
                                 }
                                 case token_type::vanishes_on_last_4_rows: {
@@ -697,7 +684,6 @@ namespace nil {
                                             .output;
                                     row += vanishes_on_last_4_rows_component::rows_amount;
                                     stack.push_back(res);
-                                    std::cout << "pushed back vanish " << assignment.var_value(res).data << '\n';
                                     break;
                                 }
                                 case token_type::unnormalized_lagrange_basis: {
@@ -708,30 +694,19 @@ namespace nil {
                                                   .output;
                                     row += unnormalized_lagrange_basis_component::rows_amount;
                                     stack.push_back(res);
-                                    std::cout << "pushed back lagrange " << assignment.var_value(res).data << '\n';
                                     break;
                                 }
                                 case token_type::store: {
                                     var x = stack.back();
                                     cache.emplace_back(x);
-                                    std::cout << "cache pushed back " << assignment.var_value(x).data << '\n';
                                     break;
                                 }
                                 case token_type::load: {
                                     std::size_t idx = (std::size_t) typename BlueprintFieldType::integral_type(t.value.first.data);
                                     stack.push_back(cache[idx]);
-                                    std::cout << "pushed back load " << assignment.var_value(cache[idx]).data << '\n';
                                     break;
                                 }
                             }
-                        }
-                        std::cout << "stack:\n";
-                        for (auto i : stack) {
-                            std::cout << assignment.var_value(i).data << '\n';
-                        }
-                        std::cout << "cache:\n";
-                        for (auto i : cache) {
-                            std::cout << assignment.var_value(i).data << '\n';
                         }
 
                         assert(row == start_row_index + rows_amount);

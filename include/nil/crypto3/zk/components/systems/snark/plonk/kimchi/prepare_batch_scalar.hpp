@@ -219,7 +219,7 @@ namespace nil {
                             index_terms_scalars_component::generate_circuit(
                                 bp, assignment,
                                 {oracles_output.oracles.zeta, oracles_output.oracles.alpha, params.fq_output.beta,
-                                 params.fq_output.gamma, params.fq_output.joint_combiner, oracles_output.combined_evals,
+                                 params.fq_output.gamma, oracles_output.joint_combiner, oracles_output.combined_evals,
                                  params.verifier_index.omega, params.verifier_index.domain_size},
                                 row)
                                 .output;
@@ -290,10 +290,6 @@ namespace nil {
                                   std::begin(f_comm_scalars) + f_comm_idx);
                         f_comm_idx += generic_scalars_component::output_size;
                         row += generic_scalars_component::rows_amount;
-                        std::cout << "generic_scalars\n";
-                        for (std::size_t i = 0; i < generic_scalars.size(); ++i) {
-                            std::cout << assignment.var_value(generic_scalars[i]).data << '\n';
-                        }
 
                         // xi^n - 1
                         var vanishing_eval =
@@ -305,17 +301,13 @@ namespace nil {
                             index_terms_scalars_component::generate_assignments(
                                 assignment,
                                 {oracles_output.oracles.zeta, oracles_output.oracles.alpha, params.fq_output.beta,
-                                 params.fq_output.gamma, params.fq_output.joint_combiner, oracles_output.combined_evals,
+                                 params.fq_output.gamma, oracles_output.joint_combiner, oracles_output.combined_evals,
                                  params.verifier_index.omega, params.verifier_index.domain_size},
                                 row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
                         for (std::size_t i = 0; i < index_scalars.size(); i++) {
                             f_comm_scalars[f_comm_idx + i] = index_scalars[i];
-                        }
-                        std::cout << "index scalars\n";
-                        for (std::size_t i = 0; i < index_scalars.size(); ++i) {
-                            std::cout << assignment.var_value(index_scalars[i]).data << '\n';
                         }
 
                         var zeta_to_srs_len = oracles_output.powers_of_eval_points_for_chunks[0];

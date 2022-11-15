@@ -86,7 +86,7 @@ struct expected_result_type {
 };
 
 template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
-void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
+void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
                    zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
@@ -111,21 +111,21 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
         // lookup
         if (KimchiParamsType::use_lookup) {
             for (std::size_t i = 0; i < KimchiParamsType::circuit_params::lookup_columns; i++) {
-                public_input.push_back(original_proof.evals[point_idx].lookup.sorted[i]);
+                public_input.push_back(original_proof.evals[point_idx].lookup.sorted[i][0]);
                 circuit_proof.proof_evals[point_idx].lookup.sorted[i] =
                     var(0, public_input.size() - 1, false, var::column_type::public_input);
             }
 
-            public_input.push_back(original_proof.evals[point_idx].lookup.aggreg);
+            public_input.push_back(original_proof.evals[point_idx].lookup.aggreg[0]);
             circuit_proof.proof_evals[point_idx].lookup.aggreg = 
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
 
-            public_input.push_back(original_proof.evals[point_idx].lookup.table);
+            public_input.push_back(original_proof.evals[point_idx].lookup.table[0]);
             circuit_proof.proof_evals[point_idx].lookup.table = 
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
 
             if (KimchiParamsType::circuit_params::lookup_runtime) {
-                public_input.push_back(original_proof.evals[point_idx].lookup.runtime);
+                public_input.push_back(original_proof.evals[point_idx].lookup.runtime[0]);
                 circuit_proof.proof_evals[point_idx].lookup.runtime = 
                     var(0, public_input.size() - 1, false, var::column_type::public_input);
             }
@@ -209,7 +209,7 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
 //         zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
 //                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-//     zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+//     zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
 
 //     typename BlueprintFieldType::value_type joint_combiner = 0;
 //     typename BlueprintFieldType::value_type beta = 0;
@@ -237,7 +237,6 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
 //                                                                          // verifier_index (6+)
 //                                                                          omega};
 
-//     // TODO prepare real data
 //     for (std::size_t i = 0; i < public_input_size; i++) {
 //         typename BlueprintFieldType::value_type tmp = algebra::random_element<BlueprintFieldType>();
 //         public_input.push_back(tmp);
@@ -323,7 +322,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
         zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof_chacha();
+    zk::snark::proof_type<curve_type> kimchi_proof = test_proof_chacha();
 
     typename BlueprintFieldType::value_type joint_combiner = 
         0x00000000000000000000000000000000CAAE895531DD8E0A0B0618483C93C727_cppui256;
@@ -365,32 +364,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
     expected_result.prepared_proof.r = 0x2A4D106C58F5A790D319487554375EDCB75B870A5F585D7FF20EF9D71798EBE0_cppui256;
     expected_result.prepared_proof.xi = 0x2C7C286ACD0842FE37DA945A743780DB32AE9A57A9048650AD4DDD0886AE650D_cppui256;
     expected_result.zeta_to_srs_len = 0x2D02AFB9FE82DCFB4656319B003FFD986271A0EDB42C3C0564FC71AC420805A3_cppui256;
-    expected_result.f_comm_scalars[0] = 0x2F66CBB2E77686BE5B2F735CC7910B9D328DC479171FECCFC7D10EA21BBD895D_cppui256; //perm scalars
-    expected_result.f_comm_scalars[1] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[2] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[3] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[4] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[5] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[6] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[7] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[8] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[9] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[10] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[11] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[12] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[13] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[14] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[15] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[16] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[17] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[18] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[19] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[20] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[21] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[22] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[23] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[24] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    expected_result.f_comm_scalars[25] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+    expected_result.f_comm_scalars[0] = 0x2F66CBB2E77686BE5B2F735CC7910B9D328DC479171FECCFC7D10EA21BBD895D_cppui256;
+    for (std::size_t i = 1; i < 26; ++i) {
+        expected_result.f_comm_scalars[i] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+    }
     expected_result.f_comm_scalars[26] = 0x2F74D1A6F09A87CDA24497E47BEF1A7F528D6665D31C00CABC07EC49006DAEE2_cppui256;
     expected_result.f_comm_scalars[27] = 0x3CB8DBE5DEE36BD6F83537ABB729CA1290AE1D6CF19803721193FA9539BB652F_cppui256;
     expected_result.f_comm_scalars[28] = 0x286EA1A7988F5A539931084343EAEE000B15A66C68FB3B7BBC1D9D9E3492ED1B_cppui256;
@@ -409,42 +386,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
         assert(expected_result.prepared_proof.r == assignment.var_value(real_res.prepared_proof.r));
         assert(expected_result.prepared_proof.xi == assignment.var_value(real_res.prepared_proof.xi));
         assert(expected_result.zeta_to_srs_len == assignment.var_value(real_res.zeta_to_srs_len));
-        assert(expected_result.f_comm_scalars[0] == assignment.var_value(real_res.f_comm_scalars[0]));
-        assert(expected_result.f_comm_scalars[1] == assignment.var_value(real_res.f_comm_scalars[1]));
-        assert(expected_result.f_comm_scalars[2] == assignment.var_value(real_res.f_comm_scalars[2]));
-        assert(expected_result.f_comm_scalars[3] == assignment.var_value(real_res.f_comm_scalars[3]));
-        assert(expected_result.f_comm_scalars[4] == assignment.var_value(real_res.f_comm_scalars[4]));
-        assert(expected_result.f_comm_scalars[5] == assignment.var_value(real_res.f_comm_scalars[5]));
-        assert(expected_result.f_comm_scalars[6] == assignment.var_value(real_res.f_comm_scalars[6]));
-        assert(expected_result.f_comm_scalars[7] == assignment.var_value(real_res.f_comm_scalars[7]));
-        assert(expected_result.f_comm_scalars[8] == assignment.var_value(real_res.f_comm_scalars[8]));
-        assert(expected_result.f_comm_scalars[9] == assignment.var_value(real_res.f_comm_scalars[9]));
-        assert(expected_result.f_comm_scalars[10] == assignment.var_value(real_res.f_comm_scalars[10]));
-        assert(expected_result.f_comm_scalars[11] == assignment.var_value(real_res.f_comm_scalars[11]));
-        assert(expected_result.f_comm_scalars[12] == assignment.var_value(real_res.f_comm_scalars[12]));
-        assert(expected_result.f_comm_scalars[13] == assignment.var_value(real_res.f_comm_scalars[13]));
-        assert(expected_result.f_comm_scalars[14] == assignment.var_value(real_res.f_comm_scalars[14]));
-        assert(expected_result.f_comm_scalars[15] == assignment.var_value(real_res.f_comm_scalars[15]));
-        assert(expected_result.f_comm_scalars[16] == assignment.var_value(real_res.f_comm_scalars[16]));
-        assert(expected_result.f_comm_scalars[17] == assignment.var_value(real_res.f_comm_scalars[17]));
-        assert(expected_result.f_comm_scalars[18] == assignment.var_value(real_res.f_comm_scalars[18]));
-        assert(expected_result.f_comm_scalars[19] == assignment.var_value(real_res.f_comm_scalars[19]));
-        assert(expected_result.f_comm_scalars[20] == assignment.var_value(real_res.f_comm_scalars[20]));
-        assert(expected_result.f_comm_scalars[21] == assignment.var_value(real_res.f_comm_scalars[21]));
-        assert(expected_result.f_comm_scalars[22] == assignment.var_value(real_res.f_comm_scalars[22]));
-        assert(expected_result.f_comm_scalars[23] == assignment.var_value(real_res.f_comm_scalars[23]));
-        assert(expected_result.f_comm_scalars[24] == assignment.var_value(real_res.f_comm_scalars[24]));
-        assert(expected_result.f_comm_scalars[25] == assignment.var_value(real_res.f_comm_scalars[25]));
-        assert(expected_result.f_comm_scalars[26] == assignment.var_value(real_res.f_comm_scalars[26]));
-        assert(expected_result.f_comm_scalars[27] == assignment.var_value(real_res.f_comm_scalars[27]));
-        assert(expected_result.f_comm_scalars[28] == assignment.var_value(real_res.f_comm_scalars[28]));
-        assert(expected_result.f_comm_scalars[29] == assignment.var_value(real_res.f_comm_scalars[29]));
-        assert(expected_result.f_comm_scalars[30] == assignment.var_value(real_res.f_comm_scalars[30]));
-        assert(expected_result.f_comm_scalars[31] == assignment.var_value(real_res.f_comm_scalars[31]));
-        assert(expected_result.f_comm_scalars[32] == assignment.var_value(real_res.f_comm_scalars[32]));
-        assert(expected_result.f_comm_scalars[33] == assignment.var_value(real_res.f_comm_scalars[33]));
-        // assert(expected_result.f_comm_scalars[34] == assignment.var_value(real_res.f_comm_scalars[34]));
-        assert(expected_result.f_comm_scalars[35] == assignment.var_value(real_res.f_comm_scalars[35]));
+        for (std::size_t i = 0; i < 36; ++i) {
+            assert(expected_result.f_comm_scalars[i] == assignment.var_value(real_res.f_comm_scalars[i]));
+        }
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
@@ -512,7 +456,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 //         zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
 //                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-//     zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof_recursion();
+//     zk::snark::proof_type<curve_type> kimchi_proof = test_proof_recursion();
 
 //     typename BlueprintFieldType::value_type joint_combiner = 0;
 //     typename BlueprintFieldType::value_type beta = 0x000000000000000000000000000000007E140A3F8F0BACC6B92E8F4BF144F13D_cppui256;
@@ -564,21 +508,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 //     expected_result.f_comm_scalars[8] = 0x124D8A07FB6BFD8E8E61FF9BD400C12067B5A8D214D4DFCA30206A763D088B4C_cppui256;
 //     expected_result.f_comm_scalars[9] = 0x0C400758CECEEAE5A929CA341595ADA15AA0C8C582CDF3A424CCBFE0C92DE235_cppui256;
 //     expected_result.f_comm_scalars[10] = 0x0EF41780273377126FC396C87B03CA6AB9488BA955C5C2EC2253F6A9459C1A9E_cppui256;
-//     expected_result.f_comm_scalars[11] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[12] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[13] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[14] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[15] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[16] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[17] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[18] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[19] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[20] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[21] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[22] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[23] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[24] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[25] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+//     for (std::size_t i = 11; i < 26; ++i) {
+//         expected_result.f_comm_scalars[i] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+//     }
 //     expected_result.f_comm_scalars[26] = 0x336C760CDBBA744FA6B98F18A955A1B44532E85A3C23787AECD5E2335417DC60_cppui256;
 //     expected_result.f_comm_scalars[27] = 0x04F0AE93737FF95171B129AEA745BE69608584EAFD43A801D73588C86D07F3A2_cppui256;
 //     expected_result.f_comm_scalars[28] = 0x04A7E70EDE4E52006C654EDEFA660D3FD97ADCE262F745650842A39128593218_cppui256;
@@ -591,36 +523,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 //         assert(expected_result.prepared_proof.r == assignment.var_value(real_res.prepared_proof.r));
 //         assert(expected_result.prepared_proof.xi == assignment.var_value(real_res.prepared_proof.xi));
 //         assert(expected_result.zeta_to_srs_len == assignment.var_value(real_res.zeta_to_srs_len));
-//         assert(expected_result.f_comm_scalars[0] == assignment.var_value(real_res.f_comm_scalars[0]));
-//         assert(expected_result.f_comm_scalars[1] == assignment.var_value(real_res.f_comm_scalars[1]));
-//         assert(expected_result.f_comm_scalars[2] == assignment.var_value(real_res.f_comm_scalars[2]));
-//         assert(expected_result.f_comm_scalars[3] == assignment.var_value(real_res.f_comm_scalars[3]));
-//         assert(expected_result.f_comm_scalars[4] == assignment.var_value(real_res.f_comm_scalars[4]));
-//         assert(expected_result.f_comm_scalars[5] == assignment.var_value(real_res.f_comm_scalars[5]));
-//         assert(expected_result.f_comm_scalars[6] == assignment.var_value(real_res.f_comm_scalars[6]));
-//         assert(expected_result.f_comm_scalars[7] == assignment.var_value(real_res.f_comm_scalars[7]));
-//         assert(expected_result.f_comm_scalars[8] == assignment.var_value(real_res.f_comm_scalars[8]));
-//         assert(expected_result.f_comm_scalars[9] == assignment.var_value(real_res.f_comm_scalars[9]));
-//         assert(expected_result.f_comm_scalars[10] == assignment.var_value(real_res.f_comm_scalars[10]));
-//         assert(expected_result.f_comm_scalars[11] == assignment.var_value(real_res.f_comm_scalars[11]));
-//         assert(expected_result.f_comm_scalars[12] == assignment.var_value(real_res.f_comm_scalars[12]));
-//         assert(expected_result.f_comm_scalars[13] == assignment.var_value(real_res.f_comm_scalars[13]));
-//         assert(expected_result.f_comm_scalars[14] == assignment.var_value(real_res.f_comm_scalars[14]));
-//         assert(expected_result.f_comm_scalars[15] == assignment.var_value(real_res.f_comm_scalars[15]));
-//         assert(expected_result.f_comm_scalars[16] == assignment.var_value(real_res.f_comm_scalars[16]));
-//         assert(expected_result.f_comm_scalars[17] == assignment.var_value(real_res.f_comm_scalars[17]));
-//         assert(expected_result.f_comm_scalars[18] == assignment.var_value(real_res.f_comm_scalars[18]));
-//         assert(expected_result.f_comm_scalars[19] == assignment.var_value(real_res.f_comm_scalars[19]));
-//         assert(expected_result.f_comm_scalars[20] == assignment.var_value(real_res.f_comm_scalars[20]));
-//         assert(expected_result.f_comm_scalars[21] == assignment.var_value(real_res.f_comm_scalars[21]));
-//         assert(expected_result.f_comm_scalars[22] == assignment.var_value(real_res.f_comm_scalars[22]));
-//         assert(expected_result.f_comm_scalars[23] == assignment.var_value(real_res.f_comm_scalars[23]));
-//         assert(expected_result.f_comm_scalars[24] == assignment.var_value(real_res.f_comm_scalars[24]));
-//         assert(expected_result.f_comm_scalars[25] == assignment.var_value(real_res.f_comm_scalars[25]));
-//         assert(expected_result.f_comm_scalars[26] == assignment.var_value(real_res.f_comm_scalars[26]));
-//         assert(expected_result.f_comm_scalars[27] == assignment.var_value(real_res.f_comm_scalars[27]));
-//         assert(expected_result.f_comm_scalars[28] == assignment.var_value(real_res.f_comm_scalars[28]));
-//         assert(expected_result.f_comm_scalars[29] == assignment.var_value(real_res.f_comm_scalars[29]));
+//         for (std::size_t i = 0; i < 30; ++i) {
+//             assert(expected_result.f_comm_scalars[i] == assignment.var_value(real_res.f_comm_scalars[i]));
+//         }
 //     };
 
 //     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
@@ -688,7 +593,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 //         zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
 //                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-//     zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof_generic();
+//     zk::snark::proof_type<curve_type> kimchi_proof = test_proof_generic();
 
 //     typename BlueprintFieldType::value_type joint_combiner = 0;
 //     typename BlueprintFieldType::value_type beta = 0x0000000000000000000000000000000070A593FE2201A0520B51FB2131B0EC50_cppui256;
@@ -740,23 +645,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 //     expected_result.f_comm_scalars[8] = 0x31B66A275CAE9248610E9AA68B908E9AF097B79EF554E5FC53F5AECA98882847_cppui256;
 //     expected_result.f_comm_scalars[9] = 0x268F3640CE20E01285383CC2E7C4D5F0610C0A096D2047601354E0D2EDA3DE13_cppui256;
 //     expected_result.f_comm_scalars[10] = 0x0332ABC485130A37F59B28386F756ED121830BBD8DA6A6990E3AB60827459B98_cppui256;
-//     expected_result.f_comm_scalars[11] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[12] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[13] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[14] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[15] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[16] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[17] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[18] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[19] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[20] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[21] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[22] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[23] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[24] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     expected_result.f_comm_scalars[25] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+//     for (std::size_t i = 11; i < 26; ++i) {
+//         expected_result.f_comm_scalars[i] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+//     }
 //     expected_result.f_comm_scalars[26] = 0x2C0CCC7F2781B61E088910F08194DFBB3123CD76B3DC0A754CD1605CB50E9AD1_cppui256;
-//     expected_result.f_comm_scalars[27] = 0x397CD2769BCB3531F9488A76AFBEBDD45080BBF8718C96FB7C98EC16265364E4_cppui256; //endomul doesnt work!!!!!!!
+//     expected_result.f_comm_scalars[27] = 0x397CD2769BCB3531F9488A76AFBEBDD45080BBF8718C96FB7C98EC16265364E4_cppui256;
 //     expected_result.f_comm_scalars[28] = 0x1E8DB028363CB1CAB03F5BF13ADABB80F5D31F919C6C6C8FC59C11A23FEBA5D4_cppui256;
 //     expected_result.f_comm_scalars[29] = 0x055D55F201B5DB8A035428340707FA56C69BF24E8AE468272A6BF1F3F4E47C11_cppui256;
 
@@ -767,36 +660,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 //         assert(expected_result.prepared_proof.r == assignment.var_value(real_res.prepared_proof.r));
 //         assert(expected_result.prepared_proof.xi == assignment.var_value(real_res.prepared_proof.xi));
 //         assert(expected_result.zeta_to_srs_len == assignment.var_value(real_res.zeta_to_srs_len));
-//         assert(expected_result.f_comm_scalars[0] == assignment.var_value(real_res.f_comm_scalars[0]));
-//         assert(expected_result.f_comm_scalars[1] == assignment.var_value(real_res.f_comm_scalars[1]));
-//         assert(expected_result.f_comm_scalars[2] == assignment.var_value(real_res.f_comm_scalars[2]));
-//         assert(expected_result.f_comm_scalars[3] == assignment.var_value(real_res.f_comm_scalars[3]));
-//         assert(expected_result.f_comm_scalars[4] == assignment.var_value(real_res.f_comm_scalars[4]));
-//         assert(expected_result.f_comm_scalars[5] == assignment.var_value(real_res.f_comm_scalars[5]));
-//         assert(expected_result.f_comm_scalars[6] == assignment.var_value(real_res.f_comm_scalars[6]));
-//         assert(expected_result.f_comm_scalars[7] == assignment.var_value(real_res.f_comm_scalars[7]));
-//         assert(expected_result.f_comm_scalars[8] == assignment.var_value(real_res.f_comm_scalars[8]));
-//         assert(expected_result.f_comm_scalars[9] == assignment.var_value(real_res.f_comm_scalars[9]));
-//         assert(expected_result.f_comm_scalars[10] == assignment.var_value(real_res.f_comm_scalars[10]));
-//         assert(expected_result.f_comm_scalars[11] == assignment.var_value(real_res.f_comm_scalars[11]));
-//         assert(expected_result.f_comm_scalars[12] == assignment.var_value(real_res.f_comm_scalars[12]));
-//         assert(expected_result.f_comm_scalars[13] == assignment.var_value(real_res.f_comm_scalars[13]));
-//         assert(expected_result.f_comm_scalars[14] == assignment.var_value(real_res.f_comm_scalars[14]));
-//         assert(expected_result.f_comm_scalars[15] == assignment.var_value(real_res.f_comm_scalars[15]));
-//         assert(expected_result.f_comm_scalars[16] == assignment.var_value(real_res.f_comm_scalars[16]));
-//         assert(expected_result.f_comm_scalars[17] == assignment.var_value(real_res.f_comm_scalars[17]));
-//         assert(expected_result.f_comm_scalars[18] == assignment.var_value(real_res.f_comm_scalars[18]));
-//         assert(expected_result.f_comm_scalars[19] == assignment.var_value(real_res.f_comm_scalars[19]));
-//         assert(expected_result.f_comm_scalars[20] == assignment.var_value(real_res.f_comm_scalars[20]));
-//         assert(expected_result.f_comm_scalars[21] == assignment.var_value(real_res.f_comm_scalars[21]));
-//         assert(expected_result.f_comm_scalars[22] == assignment.var_value(real_res.f_comm_scalars[22]));
-//         assert(expected_result.f_comm_scalars[23] == assignment.var_value(real_res.f_comm_scalars[23]));
-//         assert(expected_result.f_comm_scalars[24] == assignment.var_value(real_res.f_comm_scalars[24]));
-//         assert(expected_result.f_comm_scalars[25] == assignment.var_value(real_res.f_comm_scalars[25]));
-//         assert(expected_result.f_comm_scalars[26] == assignment.var_value(real_res.f_comm_scalars[26]));
-//         assert(expected_result.f_comm_scalars[27] == assignment.var_value(real_res.f_comm_scalars[27]));
-//         assert(expected_result.f_comm_scalars[28] == assignment.var_value(real_res.f_comm_scalars[28]));
-//         assert(expected_result.f_comm_scalars[29] == assignment.var_value(real_res.f_comm_scalars[29]));
+//         for (std::size_t i = 0; i < 30; ++i) {
+//             assert(expected_result.f_comm_scalars[i] == assignment.var_value(real_res.f_comm_scalars[i]));
+//         }
 //     };
 
 //     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
