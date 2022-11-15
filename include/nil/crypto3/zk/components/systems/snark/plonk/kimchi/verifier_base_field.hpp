@@ -355,16 +355,21 @@ namespace nil {
                                                             const params_type &params,
                                                             std::size_t start_row_index) {
                         std::size_t row = start_row_index;
-                        std::array<batch_proof_type, BatchSize> batch_proofs;
+                        std::vector<batch_proof_type> batch_proofs(BatchSize);
                         var zero(0, row, false, var::column_type::constant);
                         row++;
 
                         for (std::size_t i = 0; i < BatchSize; i++) {
 
+                            std::vector<var> neg_pub = std::vector<var>(params.fr_data.neg_pub.begin(),
+                                                                        params.fr_data.neg_pub.end());
+                            std::vector<var_ec_point> lagrange_bases = std::vector<var_ec_point>(params.verifier_index.lagrange_bases.begin(),
+                                                                               params.verifier_index.lagrange_bases.end());      
+
                             // p_comm is always the commitment of size 1
                             auto p_comm_unshifted =
                                 lagrange_msm_component::generate_assignments(
-                                    assignment, {params.fr_data.neg_pub, params.verifier_index.lagrange_bases}, row)
+                                    assignment, {neg_pub, lagrange_bases}, row)
                                     .output;
                             row = row + lagrange_msm_component::rows_amount;
 
@@ -454,8 +459,10 @@ namespace nil {
 
                             std::array<var_ec_point, KimchiCommitmentParamsType::max_comm_size> f_comm;
                             for (std::size_t j = 0; j < KimchiCommitmentParamsType::max_comm_size; j++) {
-                                std::array<var_ec_point, f_comm_base_size> bases;
-                                std::array<var, f_comm_base_size> scalars;
+                                std::vector<var_ec_point> bases;
+                                bases.resize(f_comm_base_size);
+                                std::vector<var> scalars;
+                                scalars.resize(f_comm_base_size);
                                 for (std::size_t k = 0; k < f_comm_base_size; k++) {
                                     if (j < f_comm_bases[k].size()) {
                                         bases[k] = f_comm_bases[k][j];
@@ -565,12 +572,12 @@ namespace nil {
 
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
-                                evaluations[eval_idx++] = table_comm_component::generate_assignments(
+                                evaluations[eval_idx++] = {{ table_comm_component::generate_assignments(
                                                               assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
                                                                params.proofs[i].comm.lookup_runtime},
                                                               row)
-                                                              .output;
+                                                              .output }};
                                 row += table_comm_component::rows_amount;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {
@@ -609,11 +616,15 @@ namespace nil {
                         var zero(0, row, false, var::column_type::constant);
                         row++;
 
-                        std::array<batch_proof_type, BatchSize> batch_proofs;
+                        std::vector<batch_proof_type> batch_proofs(BatchSize);
                         for (std::size_t i = 0; i < BatchSize; i++) {
+                            std::vector<var> neg_pub = std::vector<var>(params.fr_data.neg_pub.begin(),
+                                                                        params.fr_data.neg_pub.end());
+                            std::vector<var_ec_point> lagrange_bases = std::vector<var_ec_point>(params.verifier_index.lagrange_bases.begin(),
+                                                                               params.verifier_index.lagrange_bases.end());   
                             auto p_comm_unshifted =
                                 lagrange_msm_component::generate_circuit(
-                                    bp, assignment, {params.fr_data.neg_pub, params.verifier_index.lagrange_bases}, row)
+                                    bp, assignment, {neg_pub, lagrange_bases}, row)
                                     .output;
                             row = row + lagrange_msm_component::rows_amount;
 
@@ -704,8 +715,10 @@ namespace nil {
 
                             std::array<var_ec_point, KimchiCommitmentParamsType::max_comm_size> f_comm;
                             for (std::size_t j = 0; j < KimchiCommitmentParamsType::max_comm_size; j++) {
-                                std::array<var_ec_point, f_comm_base_size> bases;
-                                std::array<var, f_comm_base_size> scalars;
+                                std::vector<var_ec_point> bases;
+                                bases.resize(f_comm_base_size);
+                                std::vector<var> scalars;
+                                scalars.resize(f_comm_base_size);
                                 for (std::size_t k = 0; k < f_comm_base_size; k++) {
                                     if (j < f_comm_bases[k].size()) {
                                         bases[k] = f_comm_bases[k][j];
@@ -813,12 +826,12 @@ namespace nil {
 
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
-                                evaluations[eval_idx++] = table_comm_component::generate_circuit(
+                                evaluations[eval_idx++] = {{ table_comm_component::generate_circuit(
                                                               bp, assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
                                                                params.proofs[i].comm.lookup_runtime},
                                                               row)
-                                                              .output;
+                                                              .output }};
                                 row += table_comm_component::rows_amount;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {

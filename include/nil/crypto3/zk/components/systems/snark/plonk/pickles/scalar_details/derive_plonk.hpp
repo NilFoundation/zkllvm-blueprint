@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_EVALS_OF_SPLIT_EVALS_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_EVALS_OF_SPLIT_EVALS_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_DERIVE_PLONK_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_DERIVE_PLONK_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -181,7 +181,7 @@ namespace nil {
                         std::array<var, generic_scalars_component::output_size> generic_scalars =
                             generic_scalars_component::generate_circuit(bp, 
                                 assignment,
-                                {params.combined_evals, oracles_output.alpha_powers, alpha_idxs.first}, row)
+                                {params.combined_evals, alpha_powers, alpha_idxs.first}, row)
                                 .output;
                         row += generic_scalars_component::rows_amount;
 
@@ -206,7 +206,7 @@ namespace nil {
                         var one(0, start_row_index, false, var::column_type::public_input);
 
                         std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers =
-                            alpha_powers_component::generate_circuit(bp, assignment, {params.alpha, one}, row).output;
+                            alpha_powers_component::generate_assignments(assignment, {params.alpha, one}, row).output;
                         row += alpha_powers_component::rows_amount;
 
                         var zkp = zkpm_evaluate_component::generate_assignments(assignment,
@@ -243,7 +243,7 @@ namespace nil {
                         std::array<var, generic_scalars_component::output_size> generic_scalars =
                             generic_scalars_component::generate_assignments(
                                 assignment,
-                                {params.combined_evals, oracles_output.alpha_powers, alpha_idxs.first}, row)
+                                {params.combined_evals, alpha_powers, alpha_idxs.first}, row)
                                 .output;
                         row += generic_scalars_component::rows_amount;
 

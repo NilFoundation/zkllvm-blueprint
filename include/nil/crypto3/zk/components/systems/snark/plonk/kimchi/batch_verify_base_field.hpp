@@ -39,6 +39,8 @@
 #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/types.hpp>
 #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/multi_scalar_mul_15_wires.hpp>
 
+#include <nil/crypto3/algebra/random_element.hpp>
+
 namespace nil {
     namespace crypto3 {
         namespace zk {
@@ -99,17 +101,28 @@ namespace nil {
                     using transcript_type = kimchi_transcript_fq<ArithmetizationType, CurveType, W0, W1, W2, W3, W4, W5,
                                                                  W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
-                    constexpr static const std::size_t selector_seed = 0xff91;
+                    constexpr static const std::size_t rows() {
+                        std::size_t row = 0;
+
+                        for (std::size_t i = 0; i < BatchSize; i++) {
+                            row += transcript_type::absorb_fr_rows;
+                            row += transcript_type::challenge_rows;
+
+                            row += to_group_component::rows_amount;
+                        }
+
+                        row += msm_component::rows_amount;
+
+                        return row;
+                    }
 
                 public:
-                    constexpr static const std::size_t rows_amount = transcript_type::absorb_fr_rows +
-                                                                     transcript_type::challenge_rows + 1 +
-                                                                     msm_component::rows_amount;
+                    constexpr static const std::size_t rows_amount = rows();
 
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<batch_proof_type, BatchSize> proofs;
+                        std::vector<batch_proof_type> proofs = std::vector<batch_proof_type>(BatchSize);
                         verifier_index_type verifier_index;
                         typename proof_binding::template fr_data<var, BatchSize> fr_output;
                     };
@@ -126,7 +139,8 @@ namespace nil {
                         std::size_t row = start_row_index;
                         var two_pow_255(0, start_row_index, false, var::column_type::constant);
                         var zero(0, start_row_index + 1, false, var::column_type::constant);
-                        std::array<var_ec_point, final_msm_size> bases;
+                        std::vector<var_ec_point> bases;
+                        bases.resize(final_msm_size);
                         std::size_t bases_idx = 0;
 
                         var_ec_point point_at_infinity = {zero, zero};
@@ -147,16 +161,9 @@ namespace nil {
                             var t = transcript.challenge_fq_assignment(assignment, row);
                             row += transcript_type::challenge_rows;
 
-                            // var_ec_point U = to_group_component::
-
-                            // U = transcript.squeeze.to_group()
-                            typename CurveType::template g1_type<algebra::curves::coordinates::affine>::value_type
-                                U_value = algebra::random_element<
-                                    typename CurveType::template g1_type<algebra::curves::coordinates::affine>>();
-                            assignment.witness(W0)[row] = U_value.X;
-                            assignment.witness(W1)[row] = U_value.Y;
-                            var_ec_point U = {var(0, row), var(1, row)};
-                            row++;
+                            var_ec_point U = to_group_component::generate_assignments(assignment, 
+                                {t}, row).output;
+                            row += to_group_component::rows_amount;
 
                             // params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.x,
                             // row); params.proofs[i].transcript.absorb_assignment(assignment,
@@ -181,9 +188,8 @@ namespace nil {
 
                         assert(bases_idx == final_msm_size);
 
-                        auto res =
-                            msm_component::generate_assignments(assignment, {params.fr_output.scalars, bases}, row)
-                                .output;
+                        typename msm_component::params_type msm_params = {params.fr_output.scalars, bases};
+                        auto res = msm_component::generate_assignments(assignment, msm_params, row);
                         row += msm_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
@@ -204,7 +210,8 @@ namespace nil {
 
                         var_ec_point point_at_infinity = {zero, zero};
 
-                        std::array<var_ec_point, final_msm_size> bases;
+                        std::vector<var_ec_point> bases;
+                        bases.resize(final_msm_size);
                         std::size_t bases_idx = 0;
 
                         bases[bases_idx++] = params.verifier_index.H;
@@ -221,10 +228,10 @@ namespace nil {
                             row += transcript_type::absorb_fr_rows;
                             var t = transcript.challenge_fq_circuit(bp, assignment, row);
                             row += transcript_type::challenge_rows;
-                            // U = transcript.squeeze.to_group()
-                            var_ec_point U = {var(0, row), var(1, row)};
-
-                            row++;
+                            
+                            var_ec_point U = to_group_component::generate_circuit(bp, assignment, 
+                                {t}, row).output;
+                            row += to_group_component::rows_amount;
 
                             // params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.x,
                             // row); params.proofs[i].transcript.absorb_assignment(assignment,
@@ -249,9 +256,8 @@ namespace nil {
 
                         assert(bases_idx == final_msm_size);
 
-                        auto res =
-                            msm_component::generate_circuit(bp, assignment, {params.fr_output.scalars, bases}, row)
-                                .output;
+                        typename msm_component::params_type msm_params = {params.fr_output.scalars, bases};
+                        auto res = msm_component::generate_circuit(bp, assignment, msm_params, row);
                         row += msm_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
@@ -260,20 +266,6 @@ namespace nil {
                     }
 
                 private:
-                    static void
-                        generate_gates(blueprint<ArithmetizationType> &bp,
-                                       blueprint_public_assignment_table<ArithmetizationType> &public_assignment,
-                                       const params_type &params,
-                                       const std::size_t first_selector_index) {
-                    }
-
-                    static void
-                        generate_copy_constraints(blueprint<ArithmetizationType> &bp,
-                                                  blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                                  const params_type &params,
-                                                  const std::size_t start_row_index) {
-                        std::size_t row = start_row_index;
-                    }
 
                     static void generate_assignments_constant(
                         blueprint<ArithmetizationType> &bp,
