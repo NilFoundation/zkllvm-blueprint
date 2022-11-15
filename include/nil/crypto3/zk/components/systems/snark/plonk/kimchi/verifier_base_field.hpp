@@ -355,7 +355,7 @@ namespace nil {
                                                             const params_type &params,
                                                             std::size_t start_row_index) {
                         std::size_t row = start_row_index;
-                        std::array<batch_proof_type, BatchSize> batch_proofs;
+                        std::vector<batch_proof_type> batch_proofs(BatchSize);
                         var zero(0, row, false, var::column_type::constant);
                         row++;
 
@@ -572,12 +572,12 @@ namespace nil {
 
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
-                                evaluations[eval_idx++] = table_comm_component::generate_assignments(
+                                evaluations[eval_idx++] = {{ table_comm_component::generate_assignments(
                                                               assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
                                                                params.proofs[i].comm.lookup_runtime},
                                                               row)
-                                                              .output;
+                                                              .output }};
                                 row += table_comm_component::rows_amount;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {
@@ -616,7 +616,7 @@ namespace nil {
                         var zero(0, row, false, var::column_type::constant);
                         row++;
 
-                        std::array<batch_proof_type, BatchSize> batch_proofs;
+                        std::vector<batch_proof_type> batch_proofs(BatchSize);
                         for (std::size_t i = 0; i < BatchSize; i++) {
                             std::vector<var> neg_pub = std::vector<var>(params.fr_data.neg_pub.begin(),
                                                                         params.fr_data.neg_pub.end());
@@ -826,12 +826,12 @@ namespace nil {
 
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
-                                evaluations[eval_idx++] = table_comm_component::generate_circuit(
+                                evaluations[eval_idx++] = {{ table_comm_component::generate_circuit(
                                                               bp, assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
                                                                params.proofs[i].comm.lookup_runtime},
                                                               row)
-                                                              .output;
+                                                              .output }};
                                 row += table_comm_component::rows_amount;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {

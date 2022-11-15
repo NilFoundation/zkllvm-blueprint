@@ -122,7 +122,7 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<batch_proof_type, BatchSize> proofs;
+                        std::vector<batch_proof_type> proofs = std::vector<batch_proof_type>(BatchSize);
                         verifier_index_type verifier_index;
                         typename proof_binding::template fr_data<var, BatchSize> fr_output;
                     };
@@ -188,9 +188,8 @@ namespace nil {
 
                         assert(bases_idx == final_msm_size);
 
-                        auto res =
-                            msm_component::generate_assignments(assignment, {params.fr_output.scalars, bases}, row)
-                                .output;
+                        typename msm_component::params_type msm_params = {params.fr_output.scalars, bases};
+                        auto res = msm_component::generate_assignments(assignment, msm_params, row);
                         row += msm_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
@@ -257,9 +256,8 @@ namespace nil {
 
                         assert(bases_idx == final_msm_size);
 
-                        auto res =
-                            msm_component::generate_circuit(bp, assignment, {params.fr_output.scalars, bases}, row)
-                                .output;
+                        typename msm_component::params_type msm_params = {params.fr_output.scalars, bases};
+                        auto res = msm_component::generate_circuit(bp, assignment, msm_params, row);
                         row += msm_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);

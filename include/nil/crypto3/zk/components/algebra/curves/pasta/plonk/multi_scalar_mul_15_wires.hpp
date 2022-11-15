@@ -73,13 +73,12 @@ namespace nil {
 
                 public:
                     constexpr static const std::size_t selector_seed = 0x0f07;
-                    constexpr static const std::size_t rows_amount =
-                        PointsAmount * (scalar_mul_component::rows_amount + add_component::rows_amount);
+                    constexpr static const std::size_t rows_amount = scalar_mul_component::rows_amount + (PointsAmount - 1) * (scalar_mul_component::rows_amount + add_component::rows_amount);
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::vector<var> scalars;
-                        std::vector<var_ec_point> bases;
+                        std::vector<var> scalars = std::vector<var>(PointsAmount);
+                        std::vector<var_ec_point> bases = std::vector<var_ec_point>(PointsAmount);
                     };
 
                     struct result_type {

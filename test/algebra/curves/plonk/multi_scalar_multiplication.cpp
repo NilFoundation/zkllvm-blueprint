@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multi_scalar_mul) {
     using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    constexpr std::size_t msm_size = 2;
+    constexpr std::size_t msm_size = 5;
     using component_type = zk::components::element_g1_multi_scalar_mul<ArithmetizationType, curve_type, msm_size,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
@@ -78,6 +78,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multi_scalar_mul) {
         curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type::zero();
     for (std::size_t i = 0; i < msm_size; i++) {
         typename curve_type::scalar_field_type::value_type x = algebra::random_element<BlueprintScalarType>();
+        if (i == 1) {
+            x = -1;
+        } else if (i == 2) {
+            x = 0;
+        } else if (i == 3) {
+            x = 1;
+        }
         typename curve_type::scalar_field_type::value_type shift = 2;
         shift = shift.pow(255) + 1;
         typename curve_type::scalar_field_type::value_type b = (x - shift) / 2;
@@ -96,7 +103,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multi_scalar_mul) {
         sum = sum + x * T;
     }
 
-    std::cout<<"expected recult: "<<sum.X.data<<" "<<sum.Y.data<<std::endl;
+    std::cout << "msm expected res: "<<sum.X.data<<" "<<sum.Y.data<<std::endl;
 
     auto result_check = [&sum](AssignmentType &assignment, 
         component_type::result_type &real_res) {
