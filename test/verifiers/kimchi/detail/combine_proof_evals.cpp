@@ -187,29 +187,29 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
                                                      component_type::result_type &real_res) {
         // w
         for (std::size_t i = 0; i < kimchi_proof.evals[0].w.size(); i++) {
-            assert(kimchi_proof.evals[0].w[i] * zeta_value == assignment.var_value(real_res.output.w[i]));
+            assert(kimchi_proof.evals[0].w[i][0] * zeta_value == assignment.var_value(real_res.output.w[i]));
         }
         // z
-        assert(kimchi_proof.evals[0].z * zeta_value == assignment.var_value(real_res.output.z));
+        assert(kimchi_proof.evals[0].z[0] * zeta_value == assignment.var_value(real_res.output.z));
         // s
         for (std::size_t i = 0; i < kimchi_proof.evals[0].s.size(); i++) {
-            assert(kimchi_proof.evals[0].s[i] * zeta_value == assignment.var_value(real_res.output.s[i]));
+            assert(kimchi_proof.evals[0].s[i][0] * zeta_value == assignment.var_value(real_res.output.s[i]));
         }
         // lookup
         if (kimchi_params::use_lookup) {
             for (std::size_t i = 0; i < kimchi_proof.evals[0].lookup.sorted.size(); i++) {
-                assert(kimchi_proof.evals[0].lookup.sorted[i] * zeta_value == assignment.var_value(real_res.output.lookup.sorted[i]));
+                assert(kimchi_proof.evals[0].lookup.sorted[i][0] * zeta_value == assignment.var_value(real_res.output.lookup.sorted[i]));
             }
-            assert(kimchi_proof.evals[0].lookup.aggreg * zeta_value == assignment.var_value(real_res.output.lookup.aggreg));
-            assert(kimchi_proof.evals[0].lookup.table * zeta_value == assignment.var_value(real_res.output.lookup.table));
+            assert(kimchi_proof.evals[0].lookup.aggreg[0] * zeta_value == assignment.var_value(real_res.output.lookup.aggreg));
+            assert(kimchi_proof.evals[0].lookup.table[0] * zeta_value == assignment.var_value(real_res.output.lookup.table));
             if (kimchi_params::circuit_params::lookup_runtime) {
-                assert(kimchi_proof.evals[0].lookup.runtime * zeta_value == assignment.var_value(real_res.output.lookup.runtime));
+                assert(kimchi_proof.evals[0].lookup.runtime[0] * zeta_value == assignment.var_value(real_res.output.lookup.runtime));
             }
         }
         // generic_selector
-        assert(kimchi_proof.evals[0].generic_selector * zeta_value == assignment.var_value(real_res.output.generic_selector));
+        assert(kimchi_proof.evals[0].generic_selector[0] * zeta_value == assignment.var_value(real_res.output.generic_selector));
         // poseidon_selector
-        assert(kimchi_proof.evals[0].poseidon_selector * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
+        assert(kimchi_proof.evals[0].poseidon_selector[0] * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
