@@ -65,18 +65,9 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_prepare_batch_scalar_test_suite)
 template<typename BlueprintFieldType, typename KimchiParamsType>
 struct batch_evaluation_proof_scalar {
     typename BlueprintFieldType::value_type cip;
-    // fq_sponge_output fq_output; - is passed as params
     std::array<typename BlueprintFieldType::value_type, KimchiParamsType::eval_points_amount> eval_points;
     typename BlueprintFieldType::value_type r;
     typename BlueprintFieldType::value_type xi;
-
-    // typename BlueprintFieldType::value_type opening_z1; - is passed as params
-    // typename BlueprintFieldType::value_type opening_z2; - is passed as params
-
-    // using transcript_type =
-    //     kimchi_transcript_fr<ArithmetizationType, typename KimchiParamsType::curve_type,
-    //                          KimchiParamsType, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
-    // transcript_type transcript;
 };
 template<typename BlueprintFieldType, typename KimchiParamsType, std::size_t f_comm_msm_size>
 struct expected_result_type {
