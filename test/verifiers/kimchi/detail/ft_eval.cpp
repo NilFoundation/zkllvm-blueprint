@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_ft_eval_test) {
     using component_type = zk::components::
         ft_eval<ArithmetizationType, curve_type, kimchi_params, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+    zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
 
     typename BlueprintFieldType::value_type omega_value =
         0x0CB8102D0128EBB25343154773101EAF1A9DAEF679667EB4BD1E06B973E985E4_cppui256;

@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
 // Copyright (c) 2022 Ekaterina Chukavina <kate@nil.foundation>
+// Copyright (c) 2022 Polina Chernyshova <pockvokhbtra@nil.foundation>
 //
 // MIT License
 //
@@ -71,7 +72,7 @@ namespace nil {
                         return 0;
                     }
                     constexpr static std::size_t generic_selector_size() {
-                        if (KimchiParamsType::circuit_params::ec_arithmetic_gates == true) {
+                        if (KimchiParamsType::circuit_params::generic_gate ==true) {
                             return 1;
                         }
                         return 0;
@@ -108,10 +109,9 @@ namespace nil {
 
                         var ft_eval0;
                         var ft_eval1;
-                        std::array<
+                        std::vector<
                             std::array<std::array<var, KimchiParamsType::commitment_params_type::split_poly_eval_size>,
-                                       eval_points_amount>,
-                            KimchiParamsType::prev_challenges_size>
+                                       eval_points_amount>>
                             polys;
                         std::array<var, eval_points_amount> p_eval;
                         std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, eval_points_amount>
@@ -167,7 +167,7 @@ namespace nil {
                             es[i][es_idx] = params.evals[i].z;
                         }
                         es_idx++;
-                        if (KimchiParamsType::circuit_params::ec_arithmetic_gates == true) {
+                        if (KimchiParamsType::circuit_params::generic_gate == true) {
                             for (std::size_t i = 0; i < eval_points_amount; ++i) {
                                 es[i][es_idx] = params.evals[i].generic_selector;
                             }

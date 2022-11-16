@@ -62,7 +62,7 @@ namespace nil {
                     constexpr static const typename scalar_field_type::value_type endo_r =
                         0x12CCCA834ACDBA712CAAD5DC57AAB1B01D1F8BD237AD31491DAD5EBDFDFE4AB9_cppui255;
                     constexpr static const typename base_field_type::value_type endo_q =
-                        0x06819A58283E528E511DB4D81CF70F5A0FED467D47C033AF2AA9D2E050AA0E4F_cppui255;
+                        0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547_cppui255;
                 };
 
                 template<>

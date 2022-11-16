@@ -99,11 +99,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test2) 
     var u;
     var ft_eval0;
     var ft_eval1;
-    std::array<
+    std::vector<
         std::array<
             std::array<var, commitment_params::split_poly_eval_size>,
-            eval_points_amount>,
-        kimchi_params::prev_challenges_size> polys;
+            eval_points_amount>> polys(kimchi_params::prev_challenges_size);
     std::array<var,eval_points_amount> p_eval;
     std::array<zk::components::kimchi_proof_evaluations<BlueprintFieldType, kimchi_params>,
                eval_points_amount> evals;
@@ -302,11 +301,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test) {
     var u;
     var ft_eval0;
     var ft_eval1;
-    std::array<
+    std::vector<
         std::array<
             std::array<var, commitment_params::split_poly_eval_size>,
-            eval_points_amount>,
-        kimchi_params::prev_challenges_size> polys;
+            eval_points_amount>> polys(kimchi_params::prev_challenges_size);
     std::array<var,eval_points_amount> p_eval;
     std::array<zk::components::kimchi_proof_evaluations<BlueprintFieldType, kimchi_params>,
                eval_points_amount> evals;

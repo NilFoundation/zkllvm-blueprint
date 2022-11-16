@@ -35,14 +35,14 @@ namespace nil {
         namespace zk {
             namespace components {
 
-                // index terms for ec test
+                // index terms for recursion test
                 // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/recursion.rs#L15
                 template<typename ArithmetizationType>
-                class index_terms_scalars_list_chacha_test;
+                class index_terms_scalars_list_recursion_test;
 
                 template<typename BlueprintFieldType, 
                          typename ArithmetizationParams>
-                class index_terms_scalars_list_chacha_test<
+                class index_terms_scalars_list_recursion_test<
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
@@ -74,13 +74,13 @@ namespace nil {
                         return std::make_pair(0, 0);
                     }
 
-                    constexpr static const std::size_t lookup_columns = 5;
+                    constexpr static const std::size_t lookup_columns = 0;
                     constexpr static const bool lookup_runtime = false;
                     constexpr static const bool joint_lookup = false;
 
                     constexpr static const bool poseidon_gate = false;
                     constexpr static const bool ec_arithmetic_gates = true;
-                    constexpr static const bool generic_gate = false;
+                    constexpr static const bool generic_gate = true;
                     constexpr static const bool chacha_gate = false;
 
                     constexpr static const std::size_t poseidon_gates_count = 15;
@@ -138,7 +138,9 @@ namespace nil {
 
                     constexpr static const std::size_t endo_mul_scalar_array_size = count_delimiters(endo_mul_scalar_str);
 
-                    constexpr static const std::size_t constatnt_term_array_size = count_delimiters(constant_term_str);
+                    constexpr static const std::size_t constant_term_array_size = count_delimiters(constant_term_str);
+
+                public: 
 
                     constexpr static const std::array<std::size_t, poseidon_gates_count> 
                         coefficient_rows = {
@@ -172,12 +174,7 @@ namespace nil {
                         rpn_component_rows<endo_mul_scalar_array_size, ArithmetizationType>(endo_mul_scalar_str);
 
                     constexpr static const std::size_t constant_term_rows = 
-                        rpn_component_rows<constatnt_term_array_size, ArithmetizationType>(constant_term_str);
-
-                    constexpr static const std::size_t lookup_gate_rows = 
-                        rpn_component_rows<lookup_gate_array_size, ArithmetizationType>(lookup_gate_str);
-
-                    public: 
+                        rpn_component_rows<constant_term_array_size, ArithmetizationType>(constant_term_str);
                     
                     constexpr static const std::size_t size = 19;
                     constexpr static const std::array<index_term_type, size> terms = {{
@@ -207,4 +204,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_RECURSION_TEST_HPP
