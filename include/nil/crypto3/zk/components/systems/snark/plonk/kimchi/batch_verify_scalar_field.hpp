@@ -403,11 +403,14 @@ namespace nil {
 
                         assert(row == start_row_index + rows_amount);
                         assert(scalar_idx == scalars.size() - 1);
+                        assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize) - 1);
 
                         result_type res(start_row_index);
-                        for (std::size_t i = 0; i < res.output.size(); ++i) {
-                            res.output[i] = scalars[i];
+                        for (std::size_t i = 0; i < scalars.size(); ++i) {
+                            res.output.push_back(scalars[i]);
                         }
+                        std::cout << "res: " << res.output.size() << "\n";
+                        std::cout << "scal: " << scalars.size() << "\n";
                         return res;
                     }
 
@@ -596,8 +599,8 @@ namespace nil {
                         assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize) - 1);
 
                         result_type res(start_row_index);
-                        for (std::size_t i = 0; i < res.output.size(); ++i) {
-                            res.output[i] = scalars[i];
+                        for (std::size_t i = 0; i < scalars.size(); ++i) {
+                            res.output.push_back(scalars[i]);
                         }
                         return res;
                     }
