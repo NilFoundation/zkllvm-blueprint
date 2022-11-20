@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_b_poly_coefficients) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 2;
-    constexpr std::size_t n = 15;
+    constexpr std::size_t n = 5;
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
