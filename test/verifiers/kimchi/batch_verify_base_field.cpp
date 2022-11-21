@@ -57,913 +57,6 @@ using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_batch_verify_base_field_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
-
-    using curve_type = algebra::curves::vesta;
-    using BlueprintFieldType = typename curve_type::base_field_type;
-    constexpr std::size_t WitnessColumns = 15;
-    constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 25;
-    using ArithmetizationParams =
-        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
-    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-    constexpr std::size_t Lambda = 40;
-
-    constexpr static const std::size_t batch_size = 1;
-    constexpr static const std::size_t eval_rounds = 9; // L and R length
-    constexpr static const std::size_t comm_size = 1;
-    // constexpr static const std::size_t n_2 = ceil(log2(n));
-    // constexpr static const std::size_t padding = (1 << n_2) - n;
-
-    constexpr static std::size_t public_input_size = 32;
-    constexpr static std::size_t max_poly_size = 32;
-
-    constexpr static std::size_t witness_columns = 15;
-    constexpr static std::size_t perm_size = 3; // отсюда высчитывается комм лен
-
-    constexpr static std::size_t srs_len = 512; // g_len
-    constexpr static const std::size_t prev_chal_size = 1;
-
-    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
-        witness_columns, perm_size>;
-    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
-        public_input_size, prev_chal_size>;
-    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
-
-    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
-
-    using component_type = zk::components::batch_verify_base_field<ArithmetizationType,
-                                                                   curve_type,
-                                                                   kimchi_params,
-                                                                   commitment_params,
-                                                                   batch_size,
-                                                                   0,
-                                                                   1,
-                                                                   2,
-                                                                   3,
-                                                                   4,
-                                                                   5,
-                                                                   6,
-                                                                   7,
-                                                                   8,
-                                                                   9,
-                                                                   10,
-                                                                   11,
-                                                                   12,
-                                                                   13,
-                                                                   14>;
-
-    using opening_proof_type =
-        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
-    using commitment_type =
-        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
-                                                                commitment_params::shifted_commitment_split>;
-
-    // using transcript_type = kimchi_transcript_fq<ArithmetizationType, CurveType,
-    //                                 W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10,
-    //                                 W11, W12, W13, W14>;
-
-    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
-
-    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
-
-    using batch_proof_type = typename zk::components::
-        batch_evaluation_proof_base<BlueprintFieldType, ArithmetizationType, kimchi_params, commitment_params>;
-
-    // zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
-
-    std::size_t row = 0;
-
-    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
-
-    std::vector<typename BlueprintFieldType::value_type> public_input;
-
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type H; // ec.rs
-    H.X = 0x092060386301C999AAB4F263757836369CA27975E28BC7A8E5B2CE5B26262201_cppui256;
-    H.Y = 0x314FC4D83AE66A509F9D41BE6165F2606A209A9B5805EE85CE20249C5EBCBE26_cppui256;
-
-    public_input.push_back(H.X);
-    public_input.push_back(H.Y);
-
-    var_ec_point H_var = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-
-
-
-    ///////////////////////////////////
-
-    std::array<var_ec_point, srs_len> G_var;
-
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type current_G;
-
-    typename BlueprintFieldType::integral_type least_x;
-    typename BlueprintFieldType::integral_type small_x;
-    typename BlueprintFieldType::integral_type big_x;
-    typename BlueprintFieldType::integral_type biggest_x;
-    typename BlueprintFieldType::integral_type least_y;
-    typename BlueprintFieldType::integral_type small_y;
-    typename BlueprintFieldType::integral_type big_y;
-    typename BlueprintFieldType::integral_type biggest_y;
-
-    unsigned long least_x_64bits, small_x_64bits, big_x_64bits, biggest_x_64bits, least_y_64bits, small_y_64bits, big_y_64bits, biggest_y_64bits;
-
-    std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_g_points.txt");
-        if (file) {
-            std::cout << "FILE == TRUE" << std::endl;
-
-            std::size_t i = 0;
-            while(true) {
-                
-        
-                if (file.eof()) {
-                    break;
-                }
-                
-                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
-                
-
-                least_x = least_x_64bits;
-                small_x = small_x_64bits;
-                big_x = big_x_64bits;
-                biggest_x = biggest_x_64bits;
-                least_y = least_y_64bits;
-                small_y = small_y_64bits;
-                big_y = big_y_64bits;
-                biggest_y = biggest_y_64bits;
-
-                current_G.X = least_x + (small_x <<  64) + (big_x << 128) + (biggest_x << 192);
-                current_G.Y = least_y + (small_y <<  64) + (big_y << 128) + (biggest_y << 192);
-
-                public_input.push_back(current_G.X);
-                public_input.push_back(current_G.Y);
-                G_var[i] = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-                i++;
-
-        }
-    }
-    
-//    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, srs_len> G;
-
-
-
-
-///////////////
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type op_proof_g;
-    op_proof_g.X = 0x20BCBCB6258D8B9C48A97AB7A1864971981D6CF56FD525DC5E4023C03ACFB8C7_cppui256; // ec.rs
-    op_proof_g.Y = 0x011A5FF465BEC039D22CFE481A967E225962639614D1D40C90A716CD7F24458C_cppui256;
-
-    public_input.push_back(op_proof_g.X);
-    public_input.push_back(op_proof_g.Y);
-
-    var_ec_point op_proof_g_var = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-
-
-    std::array<var_ec_point, eval_rounds> L_var;
-    std::array<var_ec_point, eval_rounds> R_var;
-    
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> L_value;
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> R_value;
-
-    L_value[0].X = 0x36D7AC3D8AF4CE326F42193455F1D9811400FFF87D5DAE91B88E4FC3AAB9FCA0_cppui256; // ec.rs
-    L_value[0].Y = 0x10CB889861041D2399EB637FF59EBE4EDCA54A8C4C488E972BF5118DA6B60641_cppui256;
-    R_value[0].X = 0x1F94FCFB79A2FD2D14057DC2BA42108F6001A293D90116F6B89903F1A82E759A_cppui256;
-    R_value[0].Y = 0x13553E6BDE5E5831030C69B05DC5AB82DAB6037D669DC08253F2D5D7646B0269_cppui256;
-    L_value[1].X = 0x00E26347431A029C3BD25EF3524F17E554CF1D7BC0ECB10A18A26883B805FF8A_cppui256;
-    L_value[1].Y = 0x0FD126CABD2824CED6172C148B8E11C60443512CD67168609E0F4A0D108870B1_cppui256;
-    R_value[1].X = 0x06F9C659457425E3826C3837F7276A058C1E63E66E697F168C8BF82C33185163_cppui256;
-    R_value[1].Y = 0x372D3E2233900C8350E1BAE0CF64FFC6618E70D955244C32CDBF5BFF4761F27A_cppui256;
-    L_value[2].X = 0x2E9301A7639C830F633C3B9D8CF3D11C03387A64C8CF593AB23A4FEC20154A6A_cppui256;
-    L_value[2].Y = 0x1FB092BE7A751A160A0AE9E4270B46A4FC7982EC93C6E8E3977C9E8EC8651882_cppui256;
-    R_value[2].X = 0x0B522423A8A0B9D6460F2919E64A2863F3FD491871011379E0305C037493B5DB_cppui256;
-    R_value[2].Y = 0x128F519068A8CBA8B1CD18DA8F91F289167B42EF1119B51AB09C3FF9EF53CF7B_cppui256;
-    L_value[3].X = 0x02066B4299B7D03CB9D81327D4D289938F2DF2791DEB0E38984908D35DF54EBA_cppui256;
-    L_value[3].Y = 0x16AF9B779DAD1E7F8E3C9D4AAC9B1CF655471DBB08013AF5DFFA789587B2E972_cppui256;
-    R_value[3].X = 0x063ECFA0F996C25B1E809FDAD4245541CFA744C60A25C9106444921977528A7F_cppui256;
-    R_value[3].Y = 0x29AE6773F7E0FC6BAFDD0111E45AC3E1384CCB4415B0B0932738A45FEFBED23D_cppui256;
-    L_value[4].X = 0x0623C69BDD9055AC867990D4F4272D7C13305AD2AF4074CAEA64244D886ACE01_cppui256;
-    L_value[4].Y = 0x1DB180D0E2F61D79276565CA5696D1D83C37E52A7C13C9A33CE944CC9B4EB887_cppui256;
-    R_value[4].X = 0x2B92C5E932EC19EAD6432CD1FCAE1DBC5437ACBDB071E3F7DD5E59F4FE31D1A4_cppui256;
-    R_value[4].Y = 0x1B4FBA7E40611A01B70A1B54A6293E992201A1F8B288F6C9E1958A935F85F674_cppui256;
-    L_value[5].X = 0x16F88740A39D6CB6D9E660A39E0B22BFB689D8B5B4BE161D560B9149ABD6521F_cppui256;
-    L_value[5].Y = 0x25EE0B835BD663441558D0E77F6C1C3B882F68B1117AD154EA098B83E0037266_cppui256;
-    R_value[5].X = 0x216ACE2F7625415215710E37E2C51C25969E992D63FAEF9523C5FC1CBDCFED82_cppui256;
-    R_value[5].Y = 0x2689C67EB7AEF899425D7D1437892DA7E7579576B9A60462E877C8C44AB38B7E_cppui256;
-    L_value[6].X = 0x1D01E7A6A13F09B151349DE4E22499D5DE1002ADD8886452673369857590677B_cppui256;
-    L_value[6].Y = 0x291F4D79D036E6226FA7FE2028B649E3DD5F8DE91454BEF5EFB4C34BB20FC498_cppui256;
-    R_value[6].X = 0x02BF93F4170A37A286B45BAB325B25D38B5EAD1158D004C9C7E92FE6ED419C14_cppui256;
-    R_value[6].Y = 0x134E8BF9C47C2ECB32BF3CA63D280F47304F86674C8B21FB63FF1125BEC75AF6_cppui256;
-    L_value[7].X = 0x28AF171CD6FC3EBB46E6EE4BA3E646BD8AE0667751F7F5F926C12E69C64C94F6_cppui256;
-    L_value[7].Y = 0x061A24803FC93052B1A977E2962022EF7DED20B417F2BDAFE9DB91E5F1ECEDFA_cppui256;
-    R_value[7].X = 0x186F78167B5C798DB1BFCBB5908708AA2C18DEA2BF7B4EBCFF5F14A9B6039F84_cppui256;
-    R_value[7].Y = 0x199B4E5C49F2A3BA1BEA8BB41A8B43A3F5907A5DADD01FD0C014EC7FB74E153A_cppui256;
-    L_value[8].X = 0x02919782DF31B4D837C9869B506AAB76F3D77D30D0AE1FEEA2B774687C8F40D5_cppui256;
-    L_value[8].Y = 0x2D344EAB35BB04A6C514910D0E981ED01E74BF31D7F684F5EE5D1C71A620F1C6_cppui256;
-    R_value[8].X = 0x3FE7D1FF6DB1B3E20A3A7DAD868EA19C6F018DB49E3AEB5460A92CFC32EE4949_cppui256;
-    R_value[8].Y = 0x2308667C08B1990F1A4E623F8FEC00B9AEC5734491EB8792DC07B4B967FCA8F2_cppui256;
-
-
-
-
-    for (std::size_t i = 0; i < eval_rounds; i++){
-        public_input.push_back(L_value[i].X);
-        public_input.push_back(L_value[i].Y);
-        public_input.push_back(R_value[i].X);
-        public_input.push_back(R_value[i].Y);
-
-        L_var[i] = {
-            var(0, row++, false, var::column_type::public_input),
-            var(0, row++, false, var::column_type::public_input)
-        };
-
-        R_var[i] = {
-            var(0, row++, false, var::column_type::public_input),
-            var(0, row++, false, var::column_type::public_input)
-        };
-    }
-
-    // 23 comms in ec.rs
-    const std::size_t comm_len = 23;
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, comm_len> comm;
-
-    comm[0].X = 0x1919E614B06E6898F56C8FE08B3D11ADDC5261F42624080AA0F1BC4D6A081C02_cppui256; // ec.rs
-    comm[0].Y = 0x2019E2E0C1B42B686B713CF84373CC390DEC1CE4952490F6110C66E87823BC5A_cppui256;
-    comm[1].X = 0x10720ABB90B8D7FFECC81D72098988588E5C762EA195BFB0B747B768A352E6B4_cppui256;
-    comm[1].Y = 0x1315086C4FD5E5B4A396E4070DFBD4569C54AF3D16908A0031D4671F40D98BA1_cppui256;
-    comm[2].X = 0x3992FC42921BCA5A98D4D4C10406B5111E259E90455A36B1BBB1CF2874BD80B7_cppui256;
-    comm[2].Y = 0x033981CF968C0D13A3490F2C1E823AE40B572E37AD352108EC1D416D7FDA6843_cppui256;
-    comm[3].X = 0x35DFC0800543D41BD72F2A180BD5918CF75FA4EDD71CDBBB172C717F275D272B_cppui256;
-    comm[3].Y = 0x02AC70B44A58C1D7EE867C9AF46BD051F4AEBDD86387770F6F29A30564E4D75E_cppui256;
-    comm[4].X = 0x02BDC45AE501633547646B6504408F790C3C8331D89CF0A2FBA6B5B6F5A33FCA_cppui256;
-    comm[4].Y = 0x247FE1BB300C5C87A21338D1E3B273F5C2E47841A37A09AF88495F00880EA7B3_cppui256;
-    comm[5].X = 0x26FA76D98BF5C432FB94F7AD2BC42AA36ECADCA47F4A592A92BEBC43FC5F93E5_cppui256;
-    comm[5].Y = 0x37017857B0B5EA1B976C567307E4FC0BBDA9F3251AA6E469618BCBA2B89A71F0_cppui256;
-    comm[6].X = 0x30F3AE5072AC07B8296583B203C8BA1C0019391786407701EDA5C1509F041F20_cppui256;
-    comm[6].Y = 0x2592A5D822B4CA17DF205F74184A26D6880B80BA93488CB7520D5B6764565482_cppui256;
-    comm[7].X = 0x3C7C040B106E1AD672099E4627C940BBA28F8456DE66892934169F866A2BCF2B_cppui256;
-    comm[7].Y = 0x17056414EB6011A3A9CE9A4B5252C50DFDAB4B0BA05BB6FC45E5C6522BD8AE89_cppui256;
-    comm[8].X = 0x2196A2907E0E67DB5B403E254594E1A86D4137202D5796DA4025C126B00F737D_cppui256;
-    comm[8].Y = 0x154449DA9F1231ABC02E6DA74C7CD31157FC86F9D4EFEA987D17B6C269B5AF4E_cppui256;
-    comm[9].X = 0x34E9DA740C3940491186C715AE5DB194514FB10B64EB0E4861F8174C0895833D_cppui256;
-    comm[9].Y = 0x37D118CAA223C625D36F554ADB102A11137FE3B4508C771E17AF84FDEDD9ADAB_cppui256;
-    comm[10].X = 0x36F77E77C07A292E2AADC4E0C0E80732AFD854C1AD3C250D30A17ACEFD9B443D_cppui256;
-    comm[10].Y = 0x2CA08E22B289ADB468ADD71AC43663A9980BCBF4D3D216A6D7127ECE7C82C178_cppui256;
-    comm[11].X = 0x294138D3C9B10EC9914DAC6569F1E462E31E16624441847878A1ED40748C4B69_cppui256;
-    comm[11].Y = 0x05CBD5705CA29E8AB97A63370A3EBFBC60A0FCF22838E5553F1170B7B8D06BB4_cppui256;
-    comm[12].X = 0x1D1345505D83CC600EF491D5FF7F2804F9D585333E22DDBECA4385B273D34AEA_cppui256;
-    comm[12].Y = 0x2468E70D18BCE95AA038E3FEFD3A9CE7681A6B127B8333B32D638B0B82C203E2_cppui256;
-    comm[13].X = 0x09376718CB461320CB3A60E6E6200AE5F826ECF193EB7F444F5388A58780AB77_cppui256;
-    comm[13].Y = 0x193E86361EDEC8E92E3EC770545A5DCDAF6FF840D24574EECD66405A1233BBC2_cppui256;
-    comm[14].X = 0x2AF2C37FF57D082642F4B9D5308021E4AB5FD59475ABA38E895C1B39740A03FB_cppui256;
-    comm[14].Y = 0x316B90A404D54D2A1619595C893B2D8D5073BD5ED5948C1CC912DE55727CE091_cppui256;
-    comm[15].X = 0x1E5F91CC5D42260ED79525C78391C52FE52583C17520D4F6848FFF8F711A08D5_cppui256;
-    comm[15].Y = 0x299719F79AC5A5A58FA292F99701D19A31D884290C315592218C49D52FBDF817_cppui256;
-    comm[16].X = 0x32B3B2D69CFBF8AF77DEC0E1A4177E3553524037776B58C06F39FDB96B9B2A88_cppui256;
-    comm[16].Y = 0x3A381FC3874EB297BE27CEF01C21F3E2C27EAED137351E1A9660A731CA58825B_cppui256;
-    comm[17].X = 0x26C9349FF7FB4AB230A6F6AEF045F451FBBE9B37C43C3274E2AA4B82D131FD26_cppui256;
-    comm[17].Y = 0x1996274D67EC0464C51F79CCFA1F511C2AABB666ABE67733EE8185B71B27A504_cppui256;
-    comm[18].X = 0x35AF80504B4DBF58CE3535F3E159BD407695088EFBF1EF56D4597A7F1CBEF531_cppui256;
-    comm[18].Y = 0x2D36B9BCB23702DF2F4A2C9E60ABBB81C2BE261D227AF025DDDE4FFF354727CB_cppui256;
-    comm[19].X = 0x1CFDC82F8279850B957D0BDE2A188AD5060D80A97EF8B4E56CD17CFE1067CBD9_cppui256;
-    comm[19].Y = 0x2863D1D7D5EFC2155B2BCCB849B6EA6738E2705A4DC63115045B797E2CFA6511_cppui256;
-    comm[20].X = 0x262ABA0787800EF4CBD18688A534659AB77861C373006A4E0E42BC06D85F9E79_cppui256;
-    comm[20].Y = 0x150A55D182F3B621B10774BD11C8B8198048DEE7C535DDD08992B41928E45DC3_cppui256;
-    comm[21].X = 0x0C51759D046C2382B5800C5CAA9D9DF74636E1FE0671DF237CD2AC771D56436D_cppui256;
-    comm[21].Y = 0x39AE43E4BE7084DB9EFDCA61204B29929A2C242605FEFE95F41F0D5DD286DA38_cppui256;
-    comm[22].X = 0x18819B168F851F614CF0DD2F4C30030C1267688C1723BF68293324770AB41DE3_cppui256;
-    comm[22].Y = 0x1E03B384B597E7A9F17F1B7E36A0B1179291AD17F30C8871379318BADEC65C8C_cppui256;
-
-
-    
-
-
-    std::array <var_ec_point, comm_len> comm_var;
-    for (std::size_t i = 0; i < comm_len; i++) {
-        public_input.push_back(comm[i].X);
-        public_input.push_back(comm[i].Y);
-        comm_var[i] = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-
-    } 
-
-
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type delta =
-        algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
-
-    delta.X = 0x1720017815E8FF68157836C6682D4C35F4D484B19FC73C0B4C26198DB6FB0140_cppui256; // rust ec
-    delta.Y = 0x38491699E96B59E51EF9F87F8AFE925B59AFBD357488CFD913928F6E238B5476_cppui256; // rust ec
-
-    public_input.push_back(delta.X);
-    public_input.push_back(delta.Y);
-
-    var_ec_point delta_var = {var(0, row++, false, var::column_type::public_input),
-                              var(0, row++, false, var::column_type::public_input)};
-
-
-
-    
-    std::array<var, bases_size> scalars_var;
-
-    typename BlueprintFieldType::integral_type least;
-    typename BlueprintFieldType::integral_type small;
-    typename BlueprintFieldType::integral_type big;
-    typename BlueprintFieldType::integral_type biggest;
-
-    typename curve_type::scalar_field_type::value_type base = 2;
-    typename curve_type::scalar_field_type::value_type current_scalar_field_scalar;
-    typename curve_type::scalar_field_type::integral_type integral_scalar;
-    typename curve_type::base_field_type::value_type current_base_field_scalar;
-
-    std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_scalars.txt");
-        if (file2) {
-            std::cout << "FILE == TRUE" << std::endl;
-
-        for (std::size_t i = 0; i < bases_size; i++) {
-            unsigned long a, b, c, d;
-        
-            // while (true) {
-            file2 >> a >> b >> c >> d;
-            //     if (file.eof()) {
-            //         break;
-            //     }
-
-            least = a;
-            small = b;
-            big = c;
-            biggest = d;
-
-            current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
-
-            if (i%1000 == 0) {
-                std::cout << "i: " << i << std::endl;
-                std::cout << "a = " << a << std::endl;
-                std::cout << "b = " << b << std::endl;
-                std::cout << "c = " << c << std::endl;
-                std::cout << "d = " << d << std::endl;
-                std::cout << std::endl;
-                std::cout << "b << = " << (small <<  64) << std::endl;
-                std::cout << "c << = " << (big << 128) << std::endl;
-                std::cout << "d << = " << (biggest << 192) << std::endl;
-                std::cout << "scalar unshifted: " << current_scalar_field_scalar.data << std::endl;
-                std::cout << std::endl;
-            }
-        
-            if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
-                current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
-            } else {
-                current_scalar_field_scalar = current_scalar_field_scalar - base.pow(255);
-            }
-
-            integral_scalar = typename curve_type::scalar_field_type::integral_type(current_scalar_field_scalar.data);
-            current_base_field_scalar = integral_scalar;
-            public_input.push_back(current_base_field_scalar);
-            scalars_var[i] = var(0, row++, false, var::column_type::public_input);
-            if (i%1000 == 0) {
-                std::cout << "scalar shifted: " << current_scalar_field_scalar.data << std::endl;
-            }
-
-        }
-    }
-
-
-
-
-    curve_type::base_field_type::value_type cip_shifted = 0x3AA52C0B2BC507CEC6CEEDBFD2C02B9C74CFA1043847011BA789D6F871201A52_cppui256; // ec
-    public_input.push_back(cip_shifted);
-    var cip_var = var(0, row++, false, var::column_type::public_input);
-    
-    curve_type::base_field_type::value_type state0 = 0x176FDD22E886DEF7D57620F5982A9902CE60C696BB2745745A9BCC5ECEEE3AE5_cppui256; // ec
-    public_input.push_back(state0);
-    var state0_var = var(0, row++, false, var::column_type::public_input);
-
-    curve_type::base_field_type::value_type state1 = 0x0ACB65E0765F80498D643313EAAEBFBC7899766A4A337EAF61261344E8C2C551_cppui256; // ec
-    public_input.push_back(state1);
-    var state1_var = var(0, row++, false, var::column_type::public_input);
-
-    curve_type::base_field_type::value_type state2 = 0x1AA5199A2E6814DAC6759D5B55B3DF040BBE77EB9A0A00DD42925803CE370BC1_cppui256; // ec
-    public_input.push_back(state2);
-    var state2_var = var(0, row++, false, var::column_type::public_input);
-
-
-
-    // commitment_type comm_var = {{unshifted_var}};
-
-    opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
-    //transcript_type transcript;
-
-    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
-
-    std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
-
-    typename component_type::params_type params; // = {prepared_proofs, {H_var, {PI_G_var}, {PI_G_var}}, fr_data};
-    
-    for (std::size_t i = 0; i < comm_len; i++){
-        params.proofs[0].comm[i].parts[0] = comm_var[i];
-    }
-    params.proofs[0].opening_proof.G = op_proof_g_var;
-    params.proofs[0].opening_proof.L = L_var;
-    params.proofs[0].opening_proof.R = R_var;
-    params.verifier_index.H = H_var;
-    params.verifier_index.G = G_var;
-    params.fr_output.scalars = scalars_var;
-    params.proofs[0].opening_proof.delta = delta_var;
-    params.fr_output.cip_shifted[0] = cip_var;
-    params.proofs[0].transcript.sponge.state[0] = state0_var;
-    params.proofs[0].transcript.sponge.state[1] =  state1_var;
-    params.proofs[0].transcript.sponge.state[2] =  state2_var;
-
-
-//    params.verifier_index.
-    
-    // prepared_proofs.
-
-    // bases[bases_idx++] = params.proofs[i].opening_proof.L[j];
-    // bases[bases_idx++] = params.proofs[i].opening_proof.R[j];
-
-    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {
-        assert (assignment.var_value(real_res.output.X) == 0);
-        assert (assignment.var_value(real_res.output.Y) == 0);
-    };
-
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        params, public_input, result_check);
-};
-
-
-BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
-
-    using curve_type = algebra::curves::vesta;
-    using BlueprintFieldType = typename curve_type::base_field_type;
-    constexpr std::size_t WitnessColumns = 15;
-    constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 25;
-    using ArithmetizationParams =
-        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
-    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-    constexpr std::size_t Lambda = 40;
-
-    constexpr static const std::size_t batch_size = 1;
-    constexpr static const std::size_t eval_rounds = 13; // L and R length
-    constexpr static const std::size_t comm_size = 1;
-    // constexpr static const std::size_t n_2 = ceil(log2(n));
-    // constexpr static const std::size_t padding = (1 << n_2) - n;
-
-    constexpr static std::size_t public_input_size = 32;
-    constexpr static std::size_t max_poly_size = 32;
-
-    constexpr static std::size_t witness_columns = 15;
-    constexpr static std::size_t perm_size = 10; // отсюда высчитывается комм лен
-
-    constexpr static std::size_t srs_len = 8192; // g_len
-    constexpr static const std::size_t prev_chal_size = 1;
-
-    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
-        witness_columns, perm_size>;
-    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
-        public_input_size, prev_chal_size>;
-    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
-
-    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
-
-    using component_type = zk::components::batch_verify_base_field<ArithmetizationType,
-                                                                   curve_type,
-                                                                   kimchi_params,
-                                                                   commitment_params,
-                                                                   batch_size,
-                                                                   0,
-                                                                   1,
-                                                                   2,
-                                                                   3,
-                                                                   4,
-                                                                   5,
-                                                                   6,
-                                                                   7,
-                                                                   8,
-                                                                   9,
-                                                                   10,
-                                                                   11,
-                                                                   12,
-                                                                   13,
-                                                                   14>;
-
-    using opening_proof_type =
-        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
-    using commitment_type =
-        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
-                                                                commitment_params::shifted_commitment_split>;
-
-    // using transcript_type = kimchi_transcript_fq<ArithmetizationType, CurveType,
-    //                                 W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10,
-    //                                 W11, W12, W13, W14>;
-
-    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
-
-    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
-
-    using batch_proof_type = typename zk::components::
-        batch_evaluation_proof_base<BlueprintFieldType, ArithmetizationType, kimchi_params, commitment_params>;
-
-    // zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
-
-    std::size_t row = 0;
-
-    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
-
-    std::vector<typename BlueprintFieldType::value_type> public_input;
-
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type H; // chacha
-    H.X = 0x092060386301C999AAB4F263757836369CA27975E28BC7A8E5B2CE5B26262201_cppui256;
-    H.Y = 0x314FC4D83AE66A509F9D41BE6165F2606A209A9B5805EE85CE20249C5EBCBE26_cppui256;
-
-    public_input.push_back(H.X);
-    public_input.push_back(H.Y);
-
-    var_ec_point H_var = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-
-
-
-    ///////////////////////////////////
-
-    std::array<var_ec_point, srs_len> G_var;
-
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type current_G;
-
-    typename BlueprintFieldType::integral_type least_x;
-    typename BlueprintFieldType::integral_type small_x;
-    typename BlueprintFieldType::integral_type big_x;
-    typename BlueprintFieldType::integral_type biggest_x;
-    typename BlueprintFieldType::integral_type least_y;
-    typename BlueprintFieldType::integral_type small_y;
-    typename BlueprintFieldType::integral_type big_y;
-    typename BlueprintFieldType::integral_type biggest_y;
-
-    unsigned long least_x_64bits, small_x_64bits, big_x_64bits, biggest_x_64bits, least_y_64bits, small_y_64bits, big_y_64bits, biggest_y_64bits;
-
-    std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_g_points.txt");
-        if (file) {
-            std::cout << "FILE == TRUE" << std::endl;
-
-            std::size_t i = 0;
-            while(true) {
-                
-        
-                if (file.eof()) {
-                    break;
-                }
-                
-                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
-                
-
-                least_x = least_x_64bits;
-                small_x = small_x_64bits;
-                big_x = big_x_64bits;
-                biggest_x = biggest_x_64bits;
-                least_y = least_y_64bits;
-                small_y = small_y_64bits;
-                big_y = big_y_64bits;
-                biggest_y = biggest_y_64bits;
-
-                current_G.X = least_x + (small_x <<  64) + (big_x << 128) + (biggest_x << 192);
-                current_G.Y = least_y + (small_y <<  64) + (big_y << 128) + (biggest_y << 192);
-
-                public_input.push_back(current_G.X);
-                public_input.push_back(current_G.Y);
-                G_var[i] = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-                i++;
-
-        }
-    }
-    
-//    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, srs_len> G;
-
-
-
-
-///////////////
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type op_proof_g;
-    op_proof_g.X = 0x35B909072B9056F403B86BCE1ABFA1929480926339626AF31CB9EB007C673106_cppui256;
-    op_proof_g.Y = 0x26E5173B2991DFB736D8F0031C75720759ED223BB2EF50E7DBF7011877BCF778_cppui256;
-
-    public_input.push_back(op_proof_g.X);
-    public_input.push_back(op_proof_g.Y);
-
-    var_ec_point op_proof_g_var = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-
-
-    std::array<var_ec_point, eval_rounds> L_var;
-    std::array<var_ec_point, eval_rounds> R_var;
-    
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> L_value;
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> R_value;
-
-    L_value[0].X = 0x28B4284D06BC217B3FDFA8E15E0037E5809560C251FB336CB8A995F62CA6C5D4_cppui256; // chacha
-    L_value[0].Y = 0x3E0121EAAC28019F6321E9B8CC0CB611658115C87F8215544EFE891FB1DD3764_cppui256;
-    R_value[0].X = 0x232A3F9ADC67699D5798826159BF19162155C7E61C20A85A264A3DE0D165F0E6_cppui256;
-    R_value[0].Y = 0x313F74DA378E906EB1ECF5F2F8C8DD6124CCC63DBCFB1263B75CED59464035B8_cppui256;
-    L_value[1].X = 0x1B91D703280F7C53C374320A34EF2F13F7DFA0F4A5CA1957D7FE462530CB775C_cppui256;
-    L_value[1].Y = 0x15D019278BE5980D8D4ADF9670064627DEA83A41BA211CC1224C0EA16F5FD6DD_cppui256;
-    R_value[1].X = 0x1044A3A79383C9C8C969582927F258A41D39AA2FC56EF221BFCF1B7229C13BCB_cppui256;
-    R_value[1].Y = 0x10C2AA39603006CBB7913FCDBCD3A03BAA838EB6454478DA0974D24A4364FACA_cppui256;
-    L_value[2].X = 0x1846C6CBE29E7B8E2568D16168B6235ED2A62BF72E127344A3D5B2BC641EA028_cppui256;
-    L_value[2].Y = 0x09EB5BA1F288CA729A7152F50494A37779C6BDE4BDD82EA1F8DAA3D378D60C03_cppui256;
-    R_value[2].X = 0x0268F5650FBF4DD7A65C7AB3DF66754C89E6070A21D849E6BBA94DC4631CE0AF_cppui256;
-    R_value[2].Y = 0x31C6B6EED55E9FD96B6ED57928024F01949AD14F1ACF0385DE14A1520AA8CDF4_cppui256;
-    L_value[3].X = 0x1C5020E9A7BDB8C55737C2F54EC17E9E547ADF4D08D8654E2B062FD8CCDAF334_cppui256;
-    L_value[3].Y = 0x20A2DA59B94FA9F6EFB8E712D6123A739BB1832E769B581546865989CE0D03E7_cppui256;
-    R_value[3].X = 0x32E91D83B44B71BB9489F2428555D5C0CF7F52B2D526522DBF42C024DDC93105_cppui256;
-    R_value[3].Y = 0x3ADB189B2C5AC29EA41CA89F1E6D2065BB288CAC9A14114D2E0D3375D47B1649_cppui256;
-    L_value[4].X = 0x34D8D309EC9062FF72FDD3D7943E0BC9F2D18374986844EFA3400E0381A6601B_cppui256;
-    L_value[4].Y = 0x061EF75A6DD5A145BDD56BA772E7B3F13973BC071EC5FE8B155CDF74C7F0A81C_cppui256;
-    R_value[4].X = 0x1A14ED1E569E6A84366DD94DBEE5BA059777D03C338E39FEFE2A691593019F8E_cppui256;
-    R_value[4].Y = 0x25033131A7B7E63C98A3C9713FF645640947B63B25857AD694D918B3F6962C7D_cppui256;
-    L_value[5].X = 0x06A0A1F0724A99909AA80B28CC0893F62CF2C0A980EB9073F74F934D3B3F0CA0_cppui256;
-    L_value[5].Y = 0x07014B84B80D4CC17FA8F5D5FED4777C8843344122AFC95F8F992189A3774379_cppui256;
-    R_value[5].X = 0x003FD2DF69EC938BBBD5F74BF279C57DED0F9E5E820266BBEAF84BD12496261C_cppui256;
-    R_value[5].Y = 0x2E8FE7EED8DE629B618236451B26EF5017FD107D60B87AE6297A2CC8F0FCC03C_cppui256;
-    L_value[6].X = 0x2A861FA45AD74E6F787B352261EE9E6A156D44D16D368787FD1653D5FAF980D0_cppui256;
-    L_value[6].Y = 0x22E597450A6A73F7C6495F68F10EAF44FA7816AF25F6ECE9980D6C19B299FAA7_cppui256;
-    R_value[6].X = 0x031AA3F44305C3B44DEA4055D28B8AECE2CC8E5CF7AC18D22682A6B103E96D56_cppui256;
-    R_value[6].Y = 0x2EB01C4E72E61A5A969B4839B64687AEABD92D695ED288B7EA1EA0B018DEA0D9_cppui256;
-    L_value[7].X = 0x2CD79844871E9A2FD55E5E2A3DC5C4F1BB7B024B5B62C6B1F769E7B1421C3CBF_cppui256;
-    L_value[7].Y = 0x1FB7A12151416ABD40713AA195F578506445E69ADC640C0B07C60E830801476E_cppui256;
-    R_value[7].X = 0x1B7CB5CC78DFB297EC0DB343F227DDE8EC3DFBFB60558C63F5A4769D7FAEEC56_cppui256;
-    R_value[7].Y = 0x3730403A5983BA55B67BC0E57968CE454E89DE314527223333629DF233B4E4C9_cppui256;
-    L_value[8].X = 0x0E38EC8F81BE09BD4E06D7D17843AD402E24B44C8C58715C0215D8E8A256F121_cppui256;
-    L_value[8].Y = 0x32EC15229BFE5E19D3995922C0F2E6FC2850959B12CE206336D0301EA9537E16_cppui256;
-    R_value[8].X = 0x0CCE539E544C5A4E6BD795E66136C56B312D695E9B70493DDF94265BB3A93B5D_cppui256;
-    R_value[8].Y = 0x2888ACFF90475257C2B0FA8280F66262971E894F4F90091ACB55EC7A7D750498_cppui256;
-    L_value[9].X = 0x2A6E12EC58078B188573541FF00C0FB467FE0E107323F936B1F3058B14444DF4_cppui256;
-    L_value[9].Y = 0x04FDDA5B7E9FAF8493C194A5309589677695B84FC86681F87AD7712EEF65CA40_cppui256;
-    R_value[9].X = 0x23215F196EE69E20B1150DADCF393E680CD50105444DAE73A4C35CF49B072DD8_cppui256;
-    R_value[9].Y = 0x02506994B266E1F967587D3B7C36B7F5AD181EF32420FDFC41F540E2326B7D0C_cppui256;
-    L_value[10].X = 0x00D2311D1B8D96AEE714ED203594D2A09536A77E92F9E62A0B999E5402A55AF2_cppui256;
-    L_value[10].Y = 0x1DB7BE1192A7DA3D8587248DFB2764595DE2CFDC3D98D11811D84518A7966268_cppui256;
-    R_value[10].X = 0x0967F9851E3EA380D6F06B1ADCD317879641CC7300255E031D5F55D56DBADF71_cppui256;
-    R_value[10].Y = 0x32FFC3179C1E87E315C7D85CF1337EEF47C09940DF79AF7FD20E8CA115417999_cppui256;
-    L_value[11].X = 0x1E2C34E6F1403CF50F7920F6004F02158152E852C011AAC7E0BC38D9C5DB8F70_cppui256;
-    L_value[11].Y = 0x0AFE06BDB5C30345D3FE38733E6E823030500EC79C15D6C86EEA74CE9E98EEA6_cppui256;
-    R_value[11].X = 0x22D608813B98FEDBAB1650266627830099FB71B2DFE166610BDD38DB635FE22A_cppui256;
-    R_value[11].Y = 0x12FBBC5B5D146742C2DA1F7DF5E009530244A0EC52FCC483D51BB614B50879E7_cppui256;
-    L_value[12].X = 0x155318C000536B442DBDFA291340303D0C68E88B672B36103E5B880EF5927BA2_cppui256;
-    L_value[12].Y = 0x127B3BFE72F1F91E23EBA11485C9D18CEDF4B2E68EEE6075877ADD2208D31457_cppui256;
-    R_value[12].X = 0x0A4F35D241BE94120EC270A185338ADDEE39D1B8C6347D00F52AB0BCB5EEFB84_cppui256;
-    R_value[12].Y = 0x024DA534C948296B2FC300D614BBAE6A6DDF3C8368D82AD19A0AA48AB00AE40E_cppui256;
-
-
-    for (std::size_t i = 0; i < eval_rounds; i++){
-        public_input.push_back(L_value[i].X);
-        public_input.push_back(L_value[i].Y);
-        public_input.push_back(R_value[i].X);
-        public_input.push_back(R_value[i].Y);
-
-        L_var[i] = {
-            var(0, row++, false, var::column_type::public_input),
-            var(0, row++, false, var::column_type::public_input)
-        };
-
-        R_var[i] = {
-            var(0, row++, false, var::column_type::public_input),
-            var(0, row++, false, var::column_type::public_input)
-        };
-    }
-
-    // 30 comms in chacha
-    const std::size_t comm_len = 30;
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, comm_len> comm;
-
-    comm[0].X = 0x146BE0023DE79AEA3D044413C663182F72C0FE8FBFF5A74C7398E45F7AC35266_cppui256; // chacha
-    comm[0].Y = 0x053536E1B8AADE51807C7C5ADBA072B4BB3060A21A05A80123983D81EF998798_cppui256;
-    comm[1].X = 0x168D1F61027A5C68D96128563D7D9BD4A8D5FD57D7623EF27619C9ADA28BAD02_cppui256;
-    comm[1].Y = 0x013192C269F19B5EB0B95EE81907FF99798E8C42842C92180D4677DF3C8F73FD_cppui256;
-    comm[2].X = 0x0D907C081D3359118A5E478BFCC88DDAD869FD50100838716ED04567BAA33FDC_cppui256;
-    comm[2].Y = 0x199EFC218D385BCF2CBA3C51B4680FE89731F0C988F439AACBB208D3400D80C5_cppui256;
-    comm[3].X = 0x08A18A9708983882B615505E3DA102163F7F76F69EF417A4B4417EEC5E00B80B_cppui256;
-    comm[3].Y = 0x078D4CFB021A87188BB224F6EF9C823F494D2E56D1E57606EDE06473D79A8CCE_cppui256;
-    comm[4].X = 0x2944BF7129EEC430005C0EDA0B903ED722C86E05CC04292FE084FEE760FD82BF_cppui256;
-    comm[4].Y = 0x1DD04BD57C026FBA7123B4DCD82FAF9B2C05589675F348D5943E2FAA0A92DC87_cppui256;
-    comm[5].X = 0x27729DAEB5BDF9CF755D600517EFA3E204705F28C0CDDB889B5435034D541902_cppui256;
-    comm[5].Y = 0x0E5F7F8069AC0F130A14C555BAA464CA0A081E283C1C3AC53017C60BBA4ECB57_cppui256;
-    comm[6].X = 0x064CFBD0B163449D04902AC4FFB09D3EA3A72CC8B334B1DA4375B0FC75FB25A8_cppui256;
-    comm[6].Y = 0x35CF294F1E13BA90AA8C74762D40DE0E59DCE6914E643DC1D18E4FCC035C285D_cppui256;
-    comm[7].X = 0x07B2F882DA399E1BED7BACE6F99C6115B08968A868213430090F481B7A638108_cppui256;
-    comm[7].Y = 0x00BBDB1CA3C8DFCFAD7C90D9DFAA7967374C9B99135CD6B21683AEB440BDA088_cppui256;
-    comm[8].X = 0x1207F4C62F9CEA36FF582F6AC59114AE99B294A50D8968284CE5EC72C3F69185_cppui256;
-    comm[8].Y = 0x29B160C5C45B5688F9EF8E90A0F990AE59FEB83B77BD4CE364A320010F2AD2AA_cppui256;
-    comm[9].X = 0x10E774D4C3398E6C41559F33C20F58A1A49380FCA39624654DDFB5DA28358080_cppui256;
-    comm[9].Y = 0x378EC7B1439AB7EA73A86DCC3DDFBBCA1133B335B07CC3BD8CEFDE3040D1BDDE_cppui256;
-    comm[10].X = 0x358BF013A8F51D5DEA2653574E146ABD5D6E854F5ACB9ECF67C5DBB0AC73E1E0_cppui256;
-    comm[10].Y = 0x01EE00512CFA85115782AF671DE135052E7460CDDB25E6D38243F78A92930160_cppui256;
-    comm[11].X = 0x19699D87F672F27129E3DBBBF87A39C2699E5CC5056E26E1B8C8F74A17F89FFA_cppui256;
-    comm[11].Y = 0x2A5CB241A09940A2A989500F511B980216BD610BCDDCA3A4E6206ABCC9A02AB6_cppui256;
-    comm[12].X = 0x0AB47B8B2AE32661D556855B29E6CDF5D0D166C1DAA6AD4C8E234954C87C4B26_cppui256;
-    comm[12].Y = 0x286B1D54C945B309FB6192CDBE8D1E54656CE66885ADCB46FF46188EAEED4B80_cppui256;
-    comm[13].X = 0x37E09A88844FF75DC337A74E15AA71FC45E6B2B8986F1038E8628B715161A205_cppui256;
-    comm[13].Y = 0x0B4CD3CDCE9EC4E73E88C5613ED290A5417F86C618737E86BF7D945ABE8B93C3_cppui256;
-    comm[14].X = 0x2D1F5A5E3141E4CC44619445BFC27075AD39BC47B168069E6FA15BC327D00B79_cppui256;
-    comm[14].Y = 0x2F2B377BA8D7BCEB3F25E3D97BCDB0F01DA7C06351AAC19129BF2895C1B798C7_cppui256;
-    comm[15].X = 0x39B6E743A1CCC0F94ABAB2079AAEBA5B402F568F394AA35337D14C4302A70821_cppui256;
-    comm[15].Y = 0x09B0D8363FD8EF85113FCCCE4756FEF2D35F715FC5898CC6FC0BB7D8059E3D10_cppui256;
-    comm[16].X = 0x3AB9777571999A038E1D00DE3B4B50C7C49BE9DE7F577C170BE3086293A64981_cppui256;
-    comm[16].Y = 0x076552C4118AAE605ECE125CCDBC09EF70DFF9C718B24888E2CA6259DB5146B7_cppui256;
-    comm[17].X = 0x26C9349FF7FB4AB230A6F6AEF045F451FBBE9B37C43C3274E2AA4B82D131FD26_cppui256;
-    comm[17].Y = 0x1996274D67EC0464C51F79CCFA1F511C2AABB666ABE67733EE8185B71B27A504_cppui256;
-    comm[18].X = 0x35AF80504B4DBF58CE3535F3E159BD407695088EFBF1EF56D4597A7F1CBEF531_cppui256;
-    comm[18].Y = 0x2D36B9BCB23702DF2F4A2C9E60ABBB81C2BE261D227AF025DDDE4FFF354727CB_cppui256;
-    comm[19].X = 0x1CFDC82F8279850B957D0BDE2A188AD5060D80A97EF8B4E56CD17CFE1067CBD9_cppui256;
-    comm[19].Y = 0x2863D1D7D5EFC2155B2BCCB849B6EA6738E2705A4DC63115045B797E2CFA6511_cppui256;
-    comm[20].X = 0x262ABA0787800EF4CBD18688A534659AB77861C373006A4E0E42BC06D85F9E79_cppui256;
-    comm[20].Y = 0x150A55D182F3B621B10774BD11C8B8198048DEE7C535DDD08992B41928E45DC3_cppui256;
-    comm[21].X = 0x0C51759D046C2382B5800C5CAA9D9DF74636E1FE0671DF237CD2AC771D56436D_cppui256;
-    comm[21].Y = 0x39AE43E4BE7084DB9EFDCA61204B29929A2C242605FEFE95F41F0D5DD286DA38_cppui256;
-    comm[22].X = 0x18819B168F851F614CF0DD2F4C30030C1267688C1723BF68293324770AB41DE3_cppui256;
-    comm[22].Y = 0x1E03B384B597E7A9F17F1B7E36A0B1179291AD17F30C8871379318BADEC65C8C_cppui256;
-    comm[23].X = 0x22330BC42155F70FC0117D9D94CC85C07A583B4F40C4F4BE51711E3452FB32AE_cppui256;
-    comm[23].Y = 0x267CC5C7A5FD745C12740B4C3A54171D7FB04FAE724A8439B42C92EA089DE8FA_cppui256;
-    comm[24].X = 0x28A0F4345C542F1F46858CD295558400B821DCC701B289D7D25A7AEA95050157_cppui256;
-    comm[24].Y = 0x2F6D5914727918AFA40A1E447742CF107AEF701B1583E4A0DB851084E29F77E2_cppui256;
-    comm[25].X = 0x39B1BC080F6D2E9708E359DDB6A4B49B8B8351C36E0AAD8793A79D3599A5C2AA_cppui256;
-    comm[25].Y = 0x1F5D32A920BC74E31982F40FA29F7057716C844D5AFF152BE8F522D6A5F3B55D_cppui256;
-    comm[26].X = 0x2DB0BDE27EB7B8050B3C3B3AF69895347CD6053131428C49B95BC753E0EE3CE6_cppui256;
-    comm[26].Y = 0x0D6E81597D9A5A7AE5A712C98F47FE07C1E457A737E13BB4831BBA88C5380D8D_cppui256;
-    comm[27].X = 0x27DE0C28A0129C83A15524CFD4D77724AFF439BB9D4D77B1037EFE632CC0C1A6_cppui256;
-    comm[27].Y = 0x2C444F833C6665940A85299EBEAEBB544205E9229D6ADAF6F98EEC213C81AA52_cppui256;
-    comm[28].X = 0x14D6C04EBF1F35A660ECAB34E63F5B67654C11361DD6216B68916C9B9863E7F1_cppui256;
-    comm[28].Y = 0x16AD7785DF6E1EB0E11993A7E6DDA819FF39502F8C86AEBFE757C2464A7D78C6_cppui256;
-    comm[29].X = 0x1F74B3087CCB2064D2F9ED4552E7D2A794CA42687528D777F6B18A5D8B63EDC1_cppui256;
-    comm[29].Y = 0x03FD6EC26748E1B5C7AFBF50C4C250217D2AA2A343F94C174FE0BEF28608277C_cppui256;
-
-    
-
-
-    std::array <var_ec_point, comm_len> comm_var;
-    for (std::size_t i = 0; i < comm_len; i++) {
-        public_input.push_back(comm[i].X);
-        public_input.push_back(comm[i].Y);
-        comm_var[i] = {var(0, row++, false, var::column_type::public_input),
-                          var(0, row++, false, var::column_type::public_input)};
-
-    } 
-
-
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type delta =
-        algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
-
-    delta.X = 0x115EAC7ED8BA81AF66035A71BAE91E4E17E6345116DD6079A150D2D0949AAE21_cppui256; // rust chacha
-    delta.Y = 0x1725882EE5AE967351A149954838CF76CEC484F78D1E8647047005154B06B6D2_cppui256; // rust chacha
-
-    public_input.push_back(delta.X);
-    public_input.push_back(delta.Y);
-
-    var_ec_point delta_var = {var(0, row++, false, var::column_type::public_input),
-                              var(0, row++, false, var::column_type::public_input)};
-
-
-
-    
-    std::array<var, bases_size> scalars_var;
-
-    typename BlueprintFieldType::integral_type least;
-    typename BlueprintFieldType::integral_type small;
-    typename BlueprintFieldType::integral_type big;
-    typename BlueprintFieldType::integral_type biggest;
-
-    typename curve_type::scalar_field_type::value_type base = 2;
-    typename curve_type::scalar_field_type::value_type current_scalar_field_scalar;
-    typename curve_type::scalar_field_type::integral_type integral_scalar;
-    typename curve_type::base_field_type::value_type current_base_field_scalar;
-
-    std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_scalars.txt");
-        if (file2) {
-            std::cout << "FILE == TRUE" << std::endl;
-
-        for (std::size_t i = 0; i < bases_size; i++) {
-            unsigned long a, b, c, d;
-        
-            // while (true) {
-            file2 >> a >> b >> c >> d;
-            //     if (file.eof()) {
-            //         break;
-            //     }
-
-            least = a;
-            small = b;
-            big = c;
-            biggest = d;
-
-            current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
-
-            if (i%1000 == 0) {
-                std::cout << "i: " << i << std::endl;
-                std::cout << "a = " << a << std::endl;
-                std::cout << "b = " << b << std::endl;
-                std::cout << "c = " << c << std::endl;
-                std::cout << "d = " << d << std::endl;
-                std::cout << std::endl;
-                std::cout << "b << = " << (small <<  64) << std::endl;
-                std::cout << "c << = " << (big << 128) << std::endl;
-                std::cout << "d << = " << (biggest << 192) << std::endl;
-                std::cout << "scalar unshifted: " << current_scalar_field_scalar.data << std::endl;
-                std::cout << std::endl;
-            }
-        
-            if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
-                current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
-            } else {
-                current_scalar_field_scalar = current_scalar_field_scalar - base.pow(255);
-            }
-
-            integral_scalar = typename curve_type::scalar_field_type::integral_type(current_scalar_field_scalar.data);
-            current_base_field_scalar = integral_scalar;
-            public_input.push_back(current_base_field_scalar);
-            scalars_var[i] = var(0, row++, false, var::column_type::public_input);
-            if (i%1000 == 0) {
-                std::cout << "scalar shifted: " << current_scalar_field_scalar.data << std::endl;
-            }
-
-        }
-    }
-
-
-
-
-    curve_type::base_field_type::value_type cip_shifted = 0x1C46F778300ED8499E12AC99920C8F426C59D3E94CCDD17941523412F6574A93_cppui256;
-    public_input.push_back(cip_shifted);
-    var cip_var = var(0, row++, false, var::column_type::public_input);
-    
-    curve_type::base_field_type::value_type state0 = 0x1CA18F11BE5840BDC7700504D8D7F7A075682BC2C8E8E561028A9B44CB52E0AB_cppui256;
-    public_input.push_back(state0);
-    var state0_var = var(0, row++, false, var::column_type::public_input);
-
-    curve_type::base_field_type::value_type state1 = 0x2C85FCC264A1C8E1082E97E5686196CB1A7EF642F7B162EB21723CCCB6344341_cppui256;
-    public_input.push_back(state1);
-    var state1_var = var(0, row++, false, var::column_type::public_input);
-
-    curve_type::base_field_type::value_type state2 = 0x221A064E37C3EE4CD60EAF94EAA8001F84D625A2E608B7CCC49CC05C6C5B4A24_cppui256;
-    public_input.push_back(state2);
-    var state2_var = var(0, row++, false, var::column_type::public_input);
-
-
-
-    // commitment_type comm_var = {{unshifted_var}};
-
-    opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
-    //transcript_type transcript;
-
-    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
-
-    std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
-
-    typename component_type::params_type params; // = {prepared_proofs, {H_var, {PI_G_var}, {PI_G_var}}, fr_data};
-    
-    for (std::size_t i = 0; i < comm_len; i++){
-        params.proofs[0].comm[i].parts[0] = comm_var[i];
-    }
-    params.proofs[0].opening_proof.G = op_proof_g_var;
-    params.proofs[0].opening_proof.L = L_var;
-    params.proofs[0].opening_proof.R = R_var;
-    params.verifier_index.H = H_var;
-    params.verifier_index.G = G_var;
-    params.fr_output.scalars = scalars_var;
-    params.proofs[0].opening_proof.delta = delta_var;
-    params.fr_output.cip_shifted[0] = cip_var;
-    params.proofs[0].transcript.sponge.state[0] = state0_var;
-    params.proofs[0].transcript.sponge.state[1] =  state1_var;
-    params.proofs[0].transcript.sponge.state[2] =  state2_var;
-
-
-//    params.verifier_index.
-    
-    // prepared_proofs.
-
-    // bases[bases_idx++] = params.proofs[i].opening_proof.L[j];
-    // bases[bases_idx++] = params.proofs[i].opening_proof.R[j];
-
-    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {
-        assert (assignment.var_value(real_res.output.X) == 0);
-        assert (assignment.var_value(real_res.output.Y) == 0);
-    };
-
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        params, public_input, result_check);
-};
-
-
 BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
 
     using curve_type = algebra::curves::vesta;
@@ -1411,6 +504,896 @@ scalars[71] = 0x0000000000000000000000000000000000000000000000000000000000000001
     params.proofs[0].transcript.sponge.state[2] =  state2_var;
 
 
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {
+        assert (assignment.var_value(real_res.output.X) == 0);
+        assert (assignment.var_value(real_res.output.Y) == 0);
+    };
+
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check);
+};
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
+
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::base_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 25;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+
+    constexpr static const std::size_t batch_size = 1;
+    constexpr static const std::size_t eval_rounds = 9; // L and R length
+    constexpr static const std::size_t comm_size = 1;
+    // constexpr static const std::size_t n_2 = ceil(log2(n));
+    // constexpr static const std::size_t padding = (1 << n_2) - n;
+
+    constexpr static std::size_t public_input_size = 32;
+    constexpr static std::size_t max_poly_size = 32;
+
+    constexpr static std::size_t witness_columns = 15;
+    constexpr static std::size_t perm_size = 3; // comm_len is calculated from this
+
+    constexpr static std::size_t srs_len = 512; // g_len
+    constexpr static const std::size_t prev_chal_size = 1;
+
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+
+    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
+
+    using component_type = zk::components::batch_verify_base_field<ArithmetizationType,
+                                                                   curve_type,
+                                                                   kimchi_params,
+                                                                   commitment_params,
+                                                                   batch_size,
+                                                                   0,
+                                                                   1,
+                                                                   2,
+                                                                   3,
+                                                                   4,
+                                                                   5,
+                                                                   6,
+                                                                   7,
+                                                                   8,
+                                                                   9,
+                                                                   10,
+                                                                   11,
+                                                                   12,
+                                                                   13,
+                                                                   14>;
+
+    using opening_proof_type =
+        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
+    using commitment_type =
+        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
+                                                                commitment_params::shifted_commitment_split>;
+
+    // using transcript_type = kimchi_transcript_fq<ArithmetizationType, CurveType,
+    //                                 W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10,
+    //                                 W11, W12, W13, W14>;
+
+    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
+
+    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+
+    using batch_proof_type = typename zk::components::
+        batch_evaluation_proof_base<BlueprintFieldType, ArithmetizationType, kimchi_params, commitment_params>;
+
+    // zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+
+    std::size_t row = 0;
+
+    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input;
+
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type H; // ec.rs
+    H.X = 0x092060386301C999AAB4F263757836369CA27975E28BC7A8E5B2CE5B26262201_cppui256;
+    H.Y = 0x314FC4D83AE66A509F9D41BE6165F2606A209A9B5805EE85CE20249C5EBCBE26_cppui256;
+
+    public_input.push_back(H.X);
+    public_input.push_back(H.Y);
+
+    var_ec_point H_var = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+
+
+
+    ///////////////////////////////////
+
+    std::array<var_ec_point, srs_len> G_var;
+
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type current_G;
+
+    typename BlueprintFieldType::integral_type least_x;
+    typename BlueprintFieldType::integral_type small_x;
+    typename BlueprintFieldType::integral_type big_x;
+    typename BlueprintFieldType::integral_type biggest_x;
+    typename BlueprintFieldType::integral_type least_y;
+    typename BlueprintFieldType::integral_type small_y;
+    typename BlueprintFieldType::integral_type big_y;
+    typename BlueprintFieldType::integral_type biggest_y;
+
+    unsigned long least_x_64bits, small_x_64bits, big_x_64bits, biggest_x_64bits, least_y_64bits, small_y_64bits, big_y_64bits, biggest_y_64bits;
+
+    std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_g_points.txt");
+        if (file) {
+            std::cout << "FILE == TRUE" << std::endl;
+
+            std::size_t i = 0;
+            while(true) {
+                
+        
+                if (file.eof()) {
+                    break;
+                }
+                
+                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
+                
+
+                least_x = least_x_64bits;
+                small_x = small_x_64bits;
+                big_x = big_x_64bits;
+                biggest_x = biggest_x_64bits;
+                least_y = least_y_64bits;
+                small_y = small_y_64bits;
+                big_y = big_y_64bits;
+                biggest_y = biggest_y_64bits;
+
+                current_G.X = least_x + (small_x <<  64) + (big_x << 128) + (biggest_x << 192);
+                current_G.Y = least_y + (small_y <<  64) + (big_y << 128) + (biggest_y << 192);
+
+                public_input.push_back(current_G.X);
+                public_input.push_back(current_G.Y);
+                G_var[i] = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+                i++;
+
+        }
+    }
+    
+//    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, srs_len> G;
+
+
+
+
+///////////////
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type op_proof_g;
+    op_proof_g.X = 0x20BCBCB6258D8B9C48A97AB7A1864971981D6CF56FD525DC5E4023C03ACFB8C7_cppui256; // ec.rs
+    op_proof_g.Y = 0x011A5FF465BEC039D22CFE481A967E225962639614D1D40C90A716CD7F24458C_cppui256;
+
+    public_input.push_back(op_proof_g.X);
+    public_input.push_back(op_proof_g.Y);
+
+    var_ec_point op_proof_g_var = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+
+
+    std::array<var_ec_point, eval_rounds> L_var;
+    std::array<var_ec_point, eval_rounds> R_var;
+    
+    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> L_value;
+    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> R_value;
+
+    L_value[0].X = 0x36D7AC3D8AF4CE326F42193455F1D9811400FFF87D5DAE91B88E4FC3AAB9FCA0_cppui256; // ec.rs
+    L_value[0].Y = 0x10CB889861041D2399EB637FF59EBE4EDCA54A8C4C488E972BF5118DA6B60641_cppui256;
+    R_value[0].X = 0x1F94FCFB79A2FD2D14057DC2BA42108F6001A293D90116F6B89903F1A82E759A_cppui256;
+    R_value[0].Y = 0x13553E6BDE5E5831030C69B05DC5AB82DAB6037D669DC08253F2D5D7646B0269_cppui256;
+    L_value[1].X = 0x00E26347431A029C3BD25EF3524F17E554CF1D7BC0ECB10A18A26883B805FF8A_cppui256;
+    L_value[1].Y = 0x0FD126CABD2824CED6172C148B8E11C60443512CD67168609E0F4A0D108870B1_cppui256;
+    R_value[1].X = 0x06F9C659457425E3826C3837F7276A058C1E63E66E697F168C8BF82C33185163_cppui256;
+    R_value[1].Y = 0x372D3E2233900C8350E1BAE0CF64FFC6618E70D955244C32CDBF5BFF4761F27A_cppui256;
+    L_value[2].X = 0x2E9301A7639C830F633C3B9D8CF3D11C03387A64C8CF593AB23A4FEC20154A6A_cppui256;
+    L_value[2].Y = 0x1FB092BE7A751A160A0AE9E4270B46A4FC7982EC93C6E8E3977C9E8EC8651882_cppui256;
+    R_value[2].X = 0x0B522423A8A0B9D6460F2919E64A2863F3FD491871011379E0305C037493B5DB_cppui256;
+    R_value[2].Y = 0x128F519068A8CBA8B1CD18DA8F91F289167B42EF1119B51AB09C3FF9EF53CF7B_cppui256;
+    L_value[3].X = 0x02066B4299B7D03CB9D81327D4D289938F2DF2791DEB0E38984908D35DF54EBA_cppui256;
+    L_value[3].Y = 0x16AF9B779DAD1E7F8E3C9D4AAC9B1CF655471DBB08013AF5DFFA789587B2E972_cppui256;
+    R_value[3].X = 0x063ECFA0F996C25B1E809FDAD4245541CFA744C60A25C9106444921977528A7F_cppui256;
+    R_value[3].Y = 0x29AE6773F7E0FC6BAFDD0111E45AC3E1384CCB4415B0B0932738A45FEFBED23D_cppui256;
+    L_value[4].X = 0x0623C69BDD9055AC867990D4F4272D7C13305AD2AF4074CAEA64244D886ACE01_cppui256;
+    L_value[4].Y = 0x1DB180D0E2F61D79276565CA5696D1D83C37E52A7C13C9A33CE944CC9B4EB887_cppui256;
+    R_value[4].X = 0x2B92C5E932EC19EAD6432CD1FCAE1DBC5437ACBDB071E3F7DD5E59F4FE31D1A4_cppui256;
+    R_value[4].Y = 0x1B4FBA7E40611A01B70A1B54A6293E992201A1F8B288F6C9E1958A935F85F674_cppui256;
+    L_value[5].X = 0x16F88740A39D6CB6D9E660A39E0B22BFB689D8B5B4BE161D560B9149ABD6521F_cppui256;
+    L_value[5].Y = 0x25EE0B835BD663441558D0E77F6C1C3B882F68B1117AD154EA098B83E0037266_cppui256;
+    R_value[5].X = 0x216ACE2F7625415215710E37E2C51C25969E992D63FAEF9523C5FC1CBDCFED82_cppui256;
+    R_value[5].Y = 0x2689C67EB7AEF899425D7D1437892DA7E7579576B9A60462E877C8C44AB38B7E_cppui256;
+    L_value[6].X = 0x1D01E7A6A13F09B151349DE4E22499D5DE1002ADD8886452673369857590677B_cppui256;
+    L_value[6].Y = 0x291F4D79D036E6226FA7FE2028B649E3DD5F8DE91454BEF5EFB4C34BB20FC498_cppui256;
+    R_value[6].X = 0x02BF93F4170A37A286B45BAB325B25D38B5EAD1158D004C9C7E92FE6ED419C14_cppui256;
+    R_value[6].Y = 0x134E8BF9C47C2ECB32BF3CA63D280F47304F86674C8B21FB63FF1125BEC75AF6_cppui256;
+    L_value[7].X = 0x28AF171CD6FC3EBB46E6EE4BA3E646BD8AE0667751F7F5F926C12E69C64C94F6_cppui256;
+    L_value[7].Y = 0x061A24803FC93052B1A977E2962022EF7DED20B417F2BDAFE9DB91E5F1ECEDFA_cppui256;
+    R_value[7].X = 0x186F78167B5C798DB1BFCBB5908708AA2C18DEA2BF7B4EBCFF5F14A9B6039F84_cppui256;
+    R_value[7].Y = 0x199B4E5C49F2A3BA1BEA8BB41A8B43A3F5907A5DADD01FD0C014EC7FB74E153A_cppui256;
+    L_value[8].X = 0x02919782DF31B4D837C9869B506AAB76F3D77D30D0AE1FEEA2B774687C8F40D5_cppui256;
+    L_value[8].Y = 0x2D344EAB35BB04A6C514910D0E981ED01E74BF31D7F684F5EE5D1C71A620F1C6_cppui256;
+    R_value[8].X = 0x3FE7D1FF6DB1B3E20A3A7DAD868EA19C6F018DB49E3AEB5460A92CFC32EE4949_cppui256;
+    R_value[8].Y = 0x2308667C08B1990F1A4E623F8FEC00B9AEC5734491EB8792DC07B4B967FCA8F2_cppui256;
+
+
+
+
+    for (std::size_t i = 0; i < eval_rounds; i++){
+        public_input.push_back(L_value[i].X);
+        public_input.push_back(L_value[i].Y);
+        public_input.push_back(R_value[i].X);
+        public_input.push_back(R_value[i].Y);
+
+        L_var[i] = {
+            var(0, row++, false, var::column_type::public_input),
+            var(0, row++, false, var::column_type::public_input)
+        };
+
+        R_var[i] = {
+            var(0, row++, false, var::column_type::public_input),
+            var(0, row++, false, var::column_type::public_input)
+        };
+    }
+
+    // 23 comms in ec.rs
+    const std::size_t comm_len = 23;
+    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, comm_len> comm;
+
+    comm[0].X = 0x1919E614B06E6898F56C8FE08B3D11ADDC5261F42624080AA0F1BC4D6A081C02_cppui256; // ec.rs
+    comm[0].Y = 0x2019E2E0C1B42B686B713CF84373CC390DEC1CE4952490F6110C66E87823BC5A_cppui256;
+    comm[1].X = 0x10720ABB90B8D7FFECC81D72098988588E5C762EA195BFB0B747B768A352E6B4_cppui256;
+    comm[1].Y = 0x1315086C4FD5E5B4A396E4070DFBD4569C54AF3D16908A0031D4671F40D98BA1_cppui256;
+    comm[2].X = 0x3992FC42921BCA5A98D4D4C10406B5111E259E90455A36B1BBB1CF2874BD80B7_cppui256;
+    comm[2].Y = 0x033981CF968C0D13A3490F2C1E823AE40B572E37AD352108EC1D416D7FDA6843_cppui256;
+    comm[3].X = 0x35DFC0800543D41BD72F2A180BD5918CF75FA4EDD71CDBBB172C717F275D272B_cppui256;
+    comm[3].Y = 0x02AC70B44A58C1D7EE867C9AF46BD051F4AEBDD86387770F6F29A30564E4D75E_cppui256;
+    comm[4].X = 0x02BDC45AE501633547646B6504408F790C3C8331D89CF0A2FBA6B5B6F5A33FCA_cppui256;
+    comm[4].Y = 0x247FE1BB300C5C87A21338D1E3B273F5C2E47841A37A09AF88495F00880EA7B3_cppui256;
+    comm[5].X = 0x26FA76D98BF5C432FB94F7AD2BC42AA36ECADCA47F4A592A92BEBC43FC5F93E5_cppui256;
+    comm[5].Y = 0x37017857B0B5EA1B976C567307E4FC0BBDA9F3251AA6E469618BCBA2B89A71F0_cppui256;
+    comm[6].X = 0x30F3AE5072AC07B8296583B203C8BA1C0019391786407701EDA5C1509F041F20_cppui256;
+    comm[6].Y = 0x2592A5D822B4CA17DF205F74184A26D6880B80BA93488CB7520D5B6764565482_cppui256;
+    comm[7].X = 0x3C7C040B106E1AD672099E4627C940BBA28F8456DE66892934169F866A2BCF2B_cppui256;
+    comm[7].Y = 0x17056414EB6011A3A9CE9A4B5252C50DFDAB4B0BA05BB6FC45E5C6522BD8AE89_cppui256;
+    comm[8].X = 0x2196A2907E0E67DB5B403E254594E1A86D4137202D5796DA4025C126B00F737D_cppui256;
+    comm[8].Y = 0x154449DA9F1231ABC02E6DA74C7CD31157FC86F9D4EFEA987D17B6C269B5AF4E_cppui256;
+    comm[9].X = 0x34E9DA740C3940491186C715AE5DB194514FB10B64EB0E4861F8174C0895833D_cppui256;
+    comm[9].Y = 0x37D118CAA223C625D36F554ADB102A11137FE3B4508C771E17AF84FDEDD9ADAB_cppui256;
+    comm[10].X = 0x36F77E77C07A292E2AADC4E0C0E80732AFD854C1AD3C250D30A17ACEFD9B443D_cppui256;
+    comm[10].Y = 0x2CA08E22B289ADB468ADD71AC43663A9980BCBF4D3D216A6D7127ECE7C82C178_cppui256;
+    comm[11].X = 0x294138D3C9B10EC9914DAC6569F1E462E31E16624441847878A1ED40748C4B69_cppui256;
+    comm[11].Y = 0x05CBD5705CA29E8AB97A63370A3EBFBC60A0FCF22838E5553F1170B7B8D06BB4_cppui256;
+    comm[12].X = 0x1D1345505D83CC600EF491D5FF7F2804F9D585333E22DDBECA4385B273D34AEA_cppui256;
+    comm[12].Y = 0x2468E70D18BCE95AA038E3FEFD3A9CE7681A6B127B8333B32D638B0B82C203E2_cppui256;
+    comm[13].X = 0x09376718CB461320CB3A60E6E6200AE5F826ECF193EB7F444F5388A58780AB77_cppui256;
+    comm[13].Y = 0x193E86361EDEC8E92E3EC770545A5DCDAF6FF840D24574EECD66405A1233BBC2_cppui256;
+    comm[14].X = 0x2AF2C37FF57D082642F4B9D5308021E4AB5FD59475ABA38E895C1B39740A03FB_cppui256;
+    comm[14].Y = 0x316B90A404D54D2A1619595C893B2D8D5073BD5ED5948C1CC912DE55727CE091_cppui256;
+    comm[15].X = 0x1E5F91CC5D42260ED79525C78391C52FE52583C17520D4F6848FFF8F711A08D5_cppui256;
+    comm[15].Y = 0x299719F79AC5A5A58FA292F99701D19A31D884290C315592218C49D52FBDF817_cppui256;
+    comm[16].X = 0x32B3B2D69CFBF8AF77DEC0E1A4177E3553524037776B58C06F39FDB96B9B2A88_cppui256;
+    comm[16].Y = 0x3A381FC3874EB297BE27CEF01C21F3E2C27EAED137351E1A9660A731CA58825B_cppui256;
+    comm[17].X = 0x26C9349FF7FB4AB230A6F6AEF045F451FBBE9B37C43C3274E2AA4B82D131FD26_cppui256;
+    comm[17].Y = 0x1996274D67EC0464C51F79CCFA1F511C2AABB666ABE67733EE8185B71B27A504_cppui256;
+    comm[18].X = 0x35AF80504B4DBF58CE3535F3E159BD407695088EFBF1EF56D4597A7F1CBEF531_cppui256;
+    comm[18].Y = 0x2D36B9BCB23702DF2F4A2C9E60ABBB81C2BE261D227AF025DDDE4FFF354727CB_cppui256;
+    comm[19].X = 0x1CFDC82F8279850B957D0BDE2A188AD5060D80A97EF8B4E56CD17CFE1067CBD9_cppui256;
+    comm[19].Y = 0x2863D1D7D5EFC2155B2BCCB849B6EA6738E2705A4DC63115045B797E2CFA6511_cppui256;
+    comm[20].X = 0x262ABA0787800EF4CBD18688A534659AB77861C373006A4E0E42BC06D85F9E79_cppui256;
+    comm[20].Y = 0x150A55D182F3B621B10774BD11C8B8198048DEE7C535DDD08992B41928E45DC3_cppui256;
+    comm[21].X = 0x0C51759D046C2382B5800C5CAA9D9DF74636E1FE0671DF237CD2AC771D56436D_cppui256;
+    comm[21].Y = 0x39AE43E4BE7084DB9EFDCA61204B29929A2C242605FEFE95F41F0D5DD286DA38_cppui256;
+    comm[22].X = 0x18819B168F851F614CF0DD2F4C30030C1267688C1723BF68293324770AB41DE3_cppui256;
+    comm[22].Y = 0x1E03B384B597E7A9F17F1B7E36A0B1179291AD17F30C8871379318BADEC65C8C_cppui256;
+
+
+    
+
+
+    std::array <var_ec_point, comm_len> comm_var;
+    for (std::size_t i = 0; i < comm_len; i++) {
+        public_input.push_back(comm[i].X);
+        public_input.push_back(comm[i].Y);
+        comm_var[i] = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+
+    } 
+
+
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type delta =
+        algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+    delta.X = 0x1720017815E8FF68157836C6682D4C35F4D484B19FC73C0B4C26198DB6FB0140_cppui256; // rust ec
+    delta.Y = 0x38491699E96B59E51EF9F87F8AFE925B59AFBD357488CFD913928F6E238B5476_cppui256; // rust ec
+
+    public_input.push_back(delta.X);
+    public_input.push_back(delta.Y);
+
+    var_ec_point delta_var = {var(0, row++, false, var::column_type::public_input),
+                              var(0, row++, false, var::column_type::public_input)};
+
+
+
+    
+    std::array<var, bases_size> scalars_var;
+
+    typename BlueprintFieldType::integral_type least;
+    typename BlueprintFieldType::integral_type small;
+    typename BlueprintFieldType::integral_type big;
+    typename BlueprintFieldType::integral_type biggest;
+
+    typename curve_type::scalar_field_type::value_type base = 2;
+    typename curve_type::scalar_field_type::value_type current_scalar_field_scalar;
+    typename curve_type::scalar_field_type::integral_type integral_scalar;
+    typename curve_type::base_field_type::value_type current_base_field_scalar;
+
+    std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_scalars.txt");
+        if (file2) {
+            std::cout << "FILE == TRUE" << std::endl;
+
+        for (std::size_t i = 0; i < bases_size; i++) {
+            unsigned long a, b, c, d;
+        
+            file2 >> a >> b >> c >> d;
+
+
+            least = a;
+            small = b;
+            big = c;
+            biggest = d;
+
+            current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
+
+            if (i%1000 == 0) {
+                std::cout << "i: " << i << std::endl;
+                std::cout << "a = " << a << std::endl;
+                std::cout << "b = " << b << std::endl;
+                std::cout << "c = " << c << std::endl;
+                std::cout << "d = " << d << std::endl;
+                std::cout << std::endl;
+                std::cout << "b << = " << (small <<  64) << std::endl;
+                std::cout << "c << = " << (big << 128) << std::endl;
+                std::cout << "d << = " << (biggest << 192) << std::endl;
+                std::cout << "scalar unshifted: " << current_scalar_field_scalar.data << std::endl;
+                std::cout << std::endl;
+            }
+        
+            if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
+                current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
+            } else {
+                current_scalar_field_scalar = current_scalar_field_scalar - base.pow(255);
+            }
+
+            integral_scalar = typename curve_type::scalar_field_type::integral_type(current_scalar_field_scalar.data);
+            current_base_field_scalar = integral_scalar;
+            public_input.push_back(current_base_field_scalar);
+            scalars_var[i] = var(0, row++, false, var::column_type::public_input);
+            if (i%1000 == 0) {
+                std::cout << "scalar shifted: " << current_scalar_field_scalar.data << std::endl;
+            }
+
+        }
+    }
+
+
+
+
+    curve_type::base_field_type::value_type cip_shifted = 0x3AA52C0B2BC507CEC6CEEDBFD2C02B9C74CFA1043847011BA789D6F871201A52_cppui256; // ec
+    public_input.push_back(cip_shifted);
+    var cip_var = var(0, row++, false, var::column_type::public_input);
+    
+    curve_type::base_field_type::value_type state0 = 0x176FDD22E886DEF7D57620F5982A9902CE60C696BB2745745A9BCC5ECEEE3AE5_cppui256; // ec
+    public_input.push_back(state0);
+    var state0_var = var(0, row++, false, var::column_type::public_input);
+
+    curve_type::base_field_type::value_type state1 = 0x0ACB65E0765F80498D643313EAAEBFBC7899766A4A337EAF61261344E8C2C551_cppui256; // ec
+    public_input.push_back(state1);
+    var state1_var = var(0, row++, false, var::column_type::public_input);
+
+    curve_type::base_field_type::value_type state2 = 0x1AA5199A2E6814DAC6759D5B55B3DF040BBE77EB9A0A00DD42925803CE370BC1_cppui256; // ec
+    public_input.push_back(state2);
+    var state2_var = var(0, row++, false, var::column_type::public_input);
+
+
+
+    // commitment_type comm_var = {{unshifted_var}};
+
+    opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
+    //transcript_type transcript;
+
+    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
+
+    std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
+
+    typename component_type::params_type params; // = {prepared_proofs, {H_var, {PI_G_var}, {PI_G_var}}, fr_data};
+    
+    for (std::size_t i = 0; i < comm_len; i++){
+        params.proofs[0].comm[i].parts[0] = comm_var[i];
+    }
+    params.proofs[0].opening_proof.G = op_proof_g_var;
+    params.proofs[0].opening_proof.L = L_var;
+    params.proofs[0].opening_proof.R = R_var;
+    params.verifier_index.H = H_var;
+    params.verifier_index.G = G_var;
+    params.fr_output.scalars = scalars_var;
+    params.proofs[0].opening_proof.delta = delta_var;
+    params.fr_output.cip_shifted[0] = cip_var;
+    params.proofs[0].transcript.sponge.state[0] = state0_var;
+    params.proofs[0].transcript.sponge.state[1] =  state1_var;
+    params.proofs[0].transcript.sponge.state[2] =  state2_var;
+
+
+
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {
+        assert (assignment.var_value(real_res.output.X) == 0);
+        assert (assignment.var_value(real_res.output.Y) == 0);
+    };
+
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check);
+};
+
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
+
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::base_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 25;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+
+    constexpr static const std::size_t batch_size = 1;
+    constexpr static const std::size_t eval_rounds = 13; // L and R length
+    constexpr static const std::size_t comm_size = 1;
+    // constexpr static const std::size_t n_2 = ceil(log2(n));
+    // constexpr static const std::size_t padding = (1 << n_2) - n;
+
+    constexpr static std::size_t public_input_size = 32;
+    constexpr static std::size_t max_poly_size = 32;
+
+    constexpr static std::size_t witness_columns = 15;
+    constexpr static std::size_t perm_size = 10;  // comm_len is calculated from this
+
+    constexpr static std::size_t srs_len = 8192; // g_len
+    constexpr static const std::size_t prev_chal_size = 1;
+
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+
+    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
+
+    using component_type = zk::components::batch_verify_base_field<ArithmetizationType,
+                                                                   curve_type,
+                                                                   kimchi_params,
+                                                                   commitment_params,
+                                                                   batch_size,
+                                                                   0,
+                                                                   1,
+                                                                   2,
+                                                                   3,
+                                                                   4,
+                                                                   5,
+                                                                   6,
+                                                                   7,
+                                                                   8,
+                                                                   9,
+                                                                   10,
+                                                                   11,
+                                                                   12,
+                                                                   13,
+                                                                   14>;
+
+    using opening_proof_type =
+        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
+    using commitment_type =
+        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
+                                                                commitment_params::shifted_commitment_split>;
+
+    // using transcript_type = kimchi_transcript_fq<ArithmetizationType, CurveType,
+    //                                 W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10,
+    //                                 W11, W12, W13, W14>;
+
+    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
+
+    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+
+    using batch_proof_type = typename zk::components::
+        batch_evaluation_proof_base<BlueprintFieldType, ArithmetizationType, kimchi_params, commitment_params>;
+
+    // zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+
+    std::size_t row = 0;
+
+    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input;
+
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type H; // chacha
+    H.X = 0x092060386301C999AAB4F263757836369CA27975E28BC7A8E5B2CE5B26262201_cppui256;
+    H.Y = 0x314FC4D83AE66A509F9D41BE6165F2606A209A9B5805EE85CE20249C5EBCBE26_cppui256;
+
+    public_input.push_back(H.X);
+    public_input.push_back(H.Y);
+
+    var_ec_point H_var = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+
+
+
+    ///////////////////////////////////
+
+    std::array<var_ec_point, srs_len> G_var;
+
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type current_G;
+
+    typename BlueprintFieldType::integral_type least_x;
+    typename BlueprintFieldType::integral_type small_x;
+    typename BlueprintFieldType::integral_type big_x;
+    typename BlueprintFieldType::integral_type biggest_x;
+    typename BlueprintFieldType::integral_type least_y;
+    typename BlueprintFieldType::integral_type small_y;
+    typename BlueprintFieldType::integral_type big_y;
+    typename BlueprintFieldType::integral_type biggest_y;
+
+    unsigned long least_x_64bits, small_x_64bits, big_x_64bits, biggest_x_64bits, least_y_64bits, small_y_64bits, big_y_64bits, biggest_y_64bits;
+
+    std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_g_points.txt");
+        if (file) {
+            std::cout << "FILE == TRUE" << std::endl;
+
+            std::size_t i = 0;
+            while(true) {
+                
+        
+                if (file.eof()) {
+                    break;
+                }
+                
+                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
+                
+
+                least_x = least_x_64bits;
+                small_x = small_x_64bits;
+                big_x = big_x_64bits;
+                biggest_x = biggest_x_64bits;
+                least_y = least_y_64bits;
+                small_y = small_y_64bits;
+                big_y = big_y_64bits;
+                biggest_y = biggest_y_64bits;
+
+                current_G.X = least_x + (small_x <<  64) + (big_x << 128) + (biggest_x << 192);
+                current_G.Y = least_y + (small_y <<  64) + (big_y << 128) + (biggest_y << 192);
+
+                public_input.push_back(current_G.X);
+                public_input.push_back(current_G.Y);
+                G_var[i] = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+                i++;
+
+        }
+    }
+    
+//    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, srs_len> G;
+
+
+
+
+///////////////
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type op_proof_g;
+    op_proof_g.X = 0x35B909072B9056F403B86BCE1ABFA1929480926339626AF31CB9EB007C673106_cppui256;
+    op_proof_g.Y = 0x26E5173B2991DFB736D8F0031C75720759ED223BB2EF50E7DBF7011877BCF778_cppui256;
+
+    public_input.push_back(op_proof_g.X);
+    public_input.push_back(op_proof_g.Y);
+
+    var_ec_point op_proof_g_var = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+
+
+    std::array<var_ec_point, eval_rounds> L_var;
+    std::array<var_ec_point, eval_rounds> R_var;
+    
+    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> L_value;
+    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, eval_rounds> R_value;
+
+    L_value[0].X = 0x28B4284D06BC217B3FDFA8E15E0037E5809560C251FB336CB8A995F62CA6C5D4_cppui256; // chacha
+    L_value[0].Y = 0x3E0121EAAC28019F6321E9B8CC0CB611658115C87F8215544EFE891FB1DD3764_cppui256;
+    R_value[0].X = 0x232A3F9ADC67699D5798826159BF19162155C7E61C20A85A264A3DE0D165F0E6_cppui256;
+    R_value[0].Y = 0x313F74DA378E906EB1ECF5F2F8C8DD6124CCC63DBCFB1263B75CED59464035B8_cppui256;
+    L_value[1].X = 0x1B91D703280F7C53C374320A34EF2F13F7DFA0F4A5CA1957D7FE462530CB775C_cppui256;
+    L_value[1].Y = 0x15D019278BE5980D8D4ADF9670064627DEA83A41BA211CC1224C0EA16F5FD6DD_cppui256;
+    R_value[1].X = 0x1044A3A79383C9C8C969582927F258A41D39AA2FC56EF221BFCF1B7229C13BCB_cppui256;
+    R_value[1].Y = 0x10C2AA39603006CBB7913FCDBCD3A03BAA838EB6454478DA0974D24A4364FACA_cppui256;
+    L_value[2].X = 0x1846C6CBE29E7B8E2568D16168B6235ED2A62BF72E127344A3D5B2BC641EA028_cppui256;
+    L_value[2].Y = 0x09EB5BA1F288CA729A7152F50494A37779C6BDE4BDD82EA1F8DAA3D378D60C03_cppui256;
+    R_value[2].X = 0x0268F5650FBF4DD7A65C7AB3DF66754C89E6070A21D849E6BBA94DC4631CE0AF_cppui256;
+    R_value[2].Y = 0x31C6B6EED55E9FD96B6ED57928024F01949AD14F1ACF0385DE14A1520AA8CDF4_cppui256;
+    L_value[3].X = 0x1C5020E9A7BDB8C55737C2F54EC17E9E547ADF4D08D8654E2B062FD8CCDAF334_cppui256;
+    L_value[3].Y = 0x20A2DA59B94FA9F6EFB8E712D6123A739BB1832E769B581546865989CE0D03E7_cppui256;
+    R_value[3].X = 0x32E91D83B44B71BB9489F2428555D5C0CF7F52B2D526522DBF42C024DDC93105_cppui256;
+    R_value[3].Y = 0x3ADB189B2C5AC29EA41CA89F1E6D2065BB288CAC9A14114D2E0D3375D47B1649_cppui256;
+    L_value[4].X = 0x34D8D309EC9062FF72FDD3D7943E0BC9F2D18374986844EFA3400E0381A6601B_cppui256;
+    L_value[4].Y = 0x061EF75A6DD5A145BDD56BA772E7B3F13973BC071EC5FE8B155CDF74C7F0A81C_cppui256;
+    R_value[4].X = 0x1A14ED1E569E6A84366DD94DBEE5BA059777D03C338E39FEFE2A691593019F8E_cppui256;
+    R_value[4].Y = 0x25033131A7B7E63C98A3C9713FF645640947B63B25857AD694D918B3F6962C7D_cppui256;
+    L_value[5].X = 0x06A0A1F0724A99909AA80B28CC0893F62CF2C0A980EB9073F74F934D3B3F0CA0_cppui256;
+    L_value[5].Y = 0x07014B84B80D4CC17FA8F5D5FED4777C8843344122AFC95F8F992189A3774379_cppui256;
+    R_value[5].X = 0x003FD2DF69EC938BBBD5F74BF279C57DED0F9E5E820266BBEAF84BD12496261C_cppui256;
+    R_value[5].Y = 0x2E8FE7EED8DE629B618236451B26EF5017FD107D60B87AE6297A2CC8F0FCC03C_cppui256;
+    L_value[6].X = 0x2A861FA45AD74E6F787B352261EE9E6A156D44D16D368787FD1653D5FAF980D0_cppui256;
+    L_value[6].Y = 0x22E597450A6A73F7C6495F68F10EAF44FA7816AF25F6ECE9980D6C19B299FAA7_cppui256;
+    R_value[6].X = 0x031AA3F44305C3B44DEA4055D28B8AECE2CC8E5CF7AC18D22682A6B103E96D56_cppui256;
+    R_value[6].Y = 0x2EB01C4E72E61A5A969B4839B64687AEABD92D695ED288B7EA1EA0B018DEA0D9_cppui256;
+    L_value[7].X = 0x2CD79844871E9A2FD55E5E2A3DC5C4F1BB7B024B5B62C6B1F769E7B1421C3CBF_cppui256;
+    L_value[7].Y = 0x1FB7A12151416ABD40713AA195F578506445E69ADC640C0B07C60E830801476E_cppui256;
+    R_value[7].X = 0x1B7CB5CC78DFB297EC0DB343F227DDE8EC3DFBFB60558C63F5A4769D7FAEEC56_cppui256;
+    R_value[7].Y = 0x3730403A5983BA55B67BC0E57968CE454E89DE314527223333629DF233B4E4C9_cppui256;
+    L_value[8].X = 0x0E38EC8F81BE09BD4E06D7D17843AD402E24B44C8C58715C0215D8E8A256F121_cppui256;
+    L_value[8].Y = 0x32EC15229BFE5E19D3995922C0F2E6FC2850959B12CE206336D0301EA9537E16_cppui256;
+    R_value[8].X = 0x0CCE539E544C5A4E6BD795E66136C56B312D695E9B70493DDF94265BB3A93B5D_cppui256;
+    R_value[8].Y = 0x2888ACFF90475257C2B0FA8280F66262971E894F4F90091ACB55EC7A7D750498_cppui256;
+    L_value[9].X = 0x2A6E12EC58078B188573541FF00C0FB467FE0E107323F936B1F3058B14444DF4_cppui256;
+    L_value[9].Y = 0x04FDDA5B7E9FAF8493C194A5309589677695B84FC86681F87AD7712EEF65CA40_cppui256;
+    R_value[9].X = 0x23215F196EE69E20B1150DADCF393E680CD50105444DAE73A4C35CF49B072DD8_cppui256;
+    R_value[9].Y = 0x02506994B266E1F967587D3B7C36B7F5AD181EF32420FDFC41F540E2326B7D0C_cppui256;
+    L_value[10].X = 0x00D2311D1B8D96AEE714ED203594D2A09536A77E92F9E62A0B999E5402A55AF2_cppui256;
+    L_value[10].Y = 0x1DB7BE1192A7DA3D8587248DFB2764595DE2CFDC3D98D11811D84518A7966268_cppui256;
+    R_value[10].X = 0x0967F9851E3EA380D6F06B1ADCD317879641CC7300255E031D5F55D56DBADF71_cppui256;
+    R_value[10].Y = 0x32FFC3179C1E87E315C7D85CF1337EEF47C09940DF79AF7FD20E8CA115417999_cppui256;
+    L_value[11].X = 0x1E2C34E6F1403CF50F7920F6004F02158152E852C011AAC7E0BC38D9C5DB8F70_cppui256;
+    L_value[11].Y = 0x0AFE06BDB5C30345D3FE38733E6E823030500EC79C15D6C86EEA74CE9E98EEA6_cppui256;
+    R_value[11].X = 0x22D608813B98FEDBAB1650266627830099FB71B2DFE166610BDD38DB635FE22A_cppui256;
+    R_value[11].Y = 0x12FBBC5B5D146742C2DA1F7DF5E009530244A0EC52FCC483D51BB614B50879E7_cppui256;
+    L_value[12].X = 0x155318C000536B442DBDFA291340303D0C68E88B672B36103E5B880EF5927BA2_cppui256;
+    L_value[12].Y = 0x127B3BFE72F1F91E23EBA11485C9D18CEDF4B2E68EEE6075877ADD2208D31457_cppui256;
+    R_value[12].X = 0x0A4F35D241BE94120EC270A185338ADDEE39D1B8C6347D00F52AB0BCB5EEFB84_cppui256;
+    R_value[12].Y = 0x024DA534C948296B2FC300D614BBAE6A6DDF3C8368D82AD19A0AA48AB00AE40E_cppui256;
+
+
+    for (std::size_t i = 0; i < eval_rounds; i++){
+        public_input.push_back(L_value[i].X);
+        public_input.push_back(L_value[i].Y);
+        public_input.push_back(R_value[i].X);
+        public_input.push_back(R_value[i].Y);
+
+        L_var[i] = {
+            var(0, row++, false, var::column_type::public_input),
+            var(0, row++, false, var::column_type::public_input)
+        };
+
+        R_var[i] = {
+            var(0, row++, false, var::column_type::public_input),
+            var(0, row++, false, var::column_type::public_input)
+        };
+    }
+
+    // 30 comms in chacha
+    const std::size_t comm_len = 30;
+    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, comm_len> comm;
+
+    comm[0].X = 0x146BE0023DE79AEA3D044413C663182F72C0FE8FBFF5A74C7398E45F7AC35266_cppui256; // chacha
+    comm[0].Y = 0x053536E1B8AADE51807C7C5ADBA072B4BB3060A21A05A80123983D81EF998798_cppui256;
+    comm[1].X = 0x168D1F61027A5C68D96128563D7D9BD4A8D5FD57D7623EF27619C9ADA28BAD02_cppui256;
+    comm[1].Y = 0x013192C269F19B5EB0B95EE81907FF99798E8C42842C92180D4677DF3C8F73FD_cppui256;
+    comm[2].X = 0x0D907C081D3359118A5E478BFCC88DDAD869FD50100838716ED04567BAA33FDC_cppui256;
+    comm[2].Y = 0x199EFC218D385BCF2CBA3C51B4680FE89731F0C988F439AACBB208D3400D80C5_cppui256;
+    comm[3].X = 0x08A18A9708983882B615505E3DA102163F7F76F69EF417A4B4417EEC5E00B80B_cppui256;
+    comm[3].Y = 0x078D4CFB021A87188BB224F6EF9C823F494D2E56D1E57606EDE06473D79A8CCE_cppui256;
+    comm[4].X = 0x2944BF7129EEC430005C0EDA0B903ED722C86E05CC04292FE084FEE760FD82BF_cppui256;
+    comm[4].Y = 0x1DD04BD57C026FBA7123B4DCD82FAF9B2C05589675F348D5943E2FAA0A92DC87_cppui256;
+    comm[5].X = 0x27729DAEB5BDF9CF755D600517EFA3E204705F28C0CDDB889B5435034D541902_cppui256;
+    comm[5].Y = 0x0E5F7F8069AC0F130A14C555BAA464CA0A081E283C1C3AC53017C60BBA4ECB57_cppui256;
+    comm[6].X = 0x064CFBD0B163449D04902AC4FFB09D3EA3A72CC8B334B1DA4375B0FC75FB25A8_cppui256;
+    comm[6].Y = 0x35CF294F1E13BA90AA8C74762D40DE0E59DCE6914E643DC1D18E4FCC035C285D_cppui256;
+    comm[7].X = 0x07B2F882DA399E1BED7BACE6F99C6115B08968A868213430090F481B7A638108_cppui256;
+    comm[7].Y = 0x00BBDB1CA3C8DFCFAD7C90D9DFAA7967374C9B99135CD6B21683AEB440BDA088_cppui256;
+    comm[8].X = 0x1207F4C62F9CEA36FF582F6AC59114AE99B294A50D8968284CE5EC72C3F69185_cppui256;
+    comm[8].Y = 0x29B160C5C45B5688F9EF8E90A0F990AE59FEB83B77BD4CE364A320010F2AD2AA_cppui256;
+    comm[9].X = 0x10E774D4C3398E6C41559F33C20F58A1A49380FCA39624654DDFB5DA28358080_cppui256;
+    comm[9].Y = 0x378EC7B1439AB7EA73A86DCC3DDFBBCA1133B335B07CC3BD8CEFDE3040D1BDDE_cppui256;
+    comm[10].X = 0x358BF013A8F51D5DEA2653574E146ABD5D6E854F5ACB9ECF67C5DBB0AC73E1E0_cppui256;
+    comm[10].Y = 0x01EE00512CFA85115782AF671DE135052E7460CDDB25E6D38243F78A92930160_cppui256;
+    comm[11].X = 0x19699D87F672F27129E3DBBBF87A39C2699E5CC5056E26E1B8C8F74A17F89FFA_cppui256;
+    comm[11].Y = 0x2A5CB241A09940A2A989500F511B980216BD610BCDDCA3A4E6206ABCC9A02AB6_cppui256;
+    comm[12].X = 0x0AB47B8B2AE32661D556855B29E6CDF5D0D166C1DAA6AD4C8E234954C87C4B26_cppui256;
+    comm[12].Y = 0x286B1D54C945B309FB6192CDBE8D1E54656CE66885ADCB46FF46188EAEED4B80_cppui256;
+    comm[13].X = 0x37E09A88844FF75DC337A74E15AA71FC45E6B2B8986F1038E8628B715161A205_cppui256;
+    comm[13].Y = 0x0B4CD3CDCE9EC4E73E88C5613ED290A5417F86C618737E86BF7D945ABE8B93C3_cppui256;
+    comm[14].X = 0x2D1F5A5E3141E4CC44619445BFC27075AD39BC47B168069E6FA15BC327D00B79_cppui256;
+    comm[14].Y = 0x2F2B377BA8D7BCEB3F25E3D97BCDB0F01DA7C06351AAC19129BF2895C1B798C7_cppui256;
+    comm[15].X = 0x39B6E743A1CCC0F94ABAB2079AAEBA5B402F568F394AA35337D14C4302A70821_cppui256;
+    comm[15].Y = 0x09B0D8363FD8EF85113FCCCE4756FEF2D35F715FC5898CC6FC0BB7D8059E3D10_cppui256;
+    comm[16].X = 0x3AB9777571999A038E1D00DE3B4B50C7C49BE9DE7F577C170BE3086293A64981_cppui256;
+    comm[16].Y = 0x076552C4118AAE605ECE125CCDBC09EF70DFF9C718B24888E2CA6259DB5146B7_cppui256;
+    comm[17].X = 0x26C9349FF7FB4AB230A6F6AEF045F451FBBE9B37C43C3274E2AA4B82D131FD26_cppui256;
+    comm[17].Y = 0x1996274D67EC0464C51F79CCFA1F511C2AABB666ABE67733EE8185B71B27A504_cppui256;
+    comm[18].X = 0x35AF80504B4DBF58CE3535F3E159BD407695088EFBF1EF56D4597A7F1CBEF531_cppui256;
+    comm[18].Y = 0x2D36B9BCB23702DF2F4A2C9E60ABBB81C2BE261D227AF025DDDE4FFF354727CB_cppui256;
+    comm[19].X = 0x1CFDC82F8279850B957D0BDE2A188AD5060D80A97EF8B4E56CD17CFE1067CBD9_cppui256;
+    comm[19].Y = 0x2863D1D7D5EFC2155B2BCCB849B6EA6738E2705A4DC63115045B797E2CFA6511_cppui256;
+    comm[20].X = 0x262ABA0787800EF4CBD18688A534659AB77861C373006A4E0E42BC06D85F9E79_cppui256;
+    comm[20].Y = 0x150A55D182F3B621B10774BD11C8B8198048DEE7C535DDD08992B41928E45DC3_cppui256;
+    comm[21].X = 0x0C51759D046C2382B5800C5CAA9D9DF74636E1FE0671DF237CD2AC771D56436D_cppui256;
+    comm[21].Y = 0x39AE43E4BE7084DB9EFDCA61204B29929A2C242605FEFE95F41F0D5DD286DA38_cppui256;
+    comm[22].X = 0x18819B168F851F614CF0DD2F4C30030C1267688C1723BF68293324770AB41DE3_cppui256;
+    comm[22].Y = 0x1E03B384B597E7A9F17F1B7E36A0B1179291AD17F30C8871379318BADEC65C8C_cppui256;
+    comm[23].X = 0x22330BC42155F70FC0117D9D94CC85C07A583B4F40C4F4BE51711E3452FB32AE_cppui256;
+    comm[23].Y = 0x267CC5C7A5FD745C12740B4C3A54171D7FB04FAE724A8439B42C92EA089DE8FA_cppui256;
+    comm[24].X = 0x28A0F4345C542F1F46858CD295558400B821DCC701B289D7D25A7AEA95050157_cppui256;
+    comm[24].Y = 0x2F6D5914727918AFA40A1E447742CF107AEF701B1583E4A0DB851084E29F77E2_cppui256;
+    comm[25].X = 0x39B1BC080F6D2E9708E359DDB6A4B49B8B8351C36E0AAD8793A79D3599A5C2AA_cppui256;
+    comm[25].Y = 0x1F5D32A920BC74E31982F40FA29F7057716C844D5AFF152BE8F522D6A5F3B55D_cppui256;
+    comm[26].X = 0x2DB0BDE27EB7B8050B3C3B3AF69895347CD6053131428C49B95BC753E0EE3CE6_cppui256;
+    comm[26].Y = 0x0D6E81597D9A5A7AE5A712C98F47FE07C1E457A737E13BB4831BBA88C5380D8D_cppui256;
+    comm[27].X = 0x27DE0C28A0129C83A15524CFD4D77724AFF439BB9D4D77B1037EFE632CC0C1A6_cppui256;
+    comm[27].Y = 0x2C444F833C6665940A85299EBEAEBB544205E9229D6ADAF6F98EEC213C81AA52_cppui256;
+    comm[28].X = 0x14D6C04EBF1F35A660ECAB34E63F5B67654C11361DD6216B68916C9B9863E7F1_cppui256;
+    comm[28].Y = 0x16AD7785DF6E1EB0E11993A7E6DDA819FF39502F8C86AEBFE757C2464A7D78C6_cppui256;
+    comm[29].X = 0x1F74B3087CCB2064D2F9ED4552E7D2A794CA42687528D777F6B18A5D8B63EDC1_cppui256;
+    comm[29].Y = 0x03FD6EC26748E1B5C7AFBF50C4C250217D2AA2A343F94C174FE0BEF28608277C_cppui256;
+
+    
+
+
+    std::array <var_ec_point, comm_len> comm_var;
+    for (std::size_t i = 0; i < comm_len; i++) {
+        public_input.push_back(comm[i].X);
+        public_input.push_back(comm[i].Y);
+        comm_var[i] = {var(0, row++, false, var::column_type::public_input),
+                          var(0, row++, false, var::column_type::public_input)};
+
+    } 
+
+
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type delta =
+        algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
+
+    delta.X = 0x115EAC7ED8BA81AF66035A71BAE91E4E17E6345116DD6079A150D2D0949AAE21_cppui256; // rust chacha
+    delta.Y = 0x1725882EE5AE967351A149954838CF76CEC484F78D1E8647047005154B06B6D2_cppui256; // rust chacha
+
+    public_input.push_back(delta.X);
+    public_input.push_back(delta.Y);
+
+    var_ec_point delta_var = {var(0, row++, false, var::column_type::public_input),
+                              var(0, row++, false, var::column_type::public_input)};
+
+
+
+    
+    std::array<var, bases_size> scalars_var;
+
+    typename BlueprintFieldType::integral_type least;
+    typename BlueprintFieldType::integral_type small;
+    typename BlueprintFieldType::integral_type big;
+    typename BlueprintFieldType::integral_type biggest;
+
+    typename curve_type::scalar_field_type::value_type base = 2;
+    typename curve_type::scalar_field_type::value_type current_scalar_field_scalar;
+    typename curve_type::scalar_field_type::integral_type integral_scalar;
+    typename curve_type::base_field_type::value_type current_base_field_scalar;
+
+    std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_scalars.txt");
+        if (file2) {
+            std::cout << "FILE == TRUE" << std::endl;
+
+        for (std::size_t i = 0; i < bases_size; i++) {
+            unsigned long a, b, c, d;
+        
+            // while (true) {
+            file2 >> a >> b >> c >> d;
+            //     if (file.eof()) {
+            //         break;
+            //     }
+
+            least = a;
+            small = b;
+            big = c;
+            biggest = d;
+
+            current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
+
+            if (i%1000 == 0) {
+                std::cout << "i: " << i << std::endl;
+                std::cout << "a = " << a << std::endl;
+                std::cout << "b = " << b << std::endl;
+                std::cout << "c = " << c << std::endl;
+                std::cout << "d = " << d << std::endl;
+                std::cout << std::endl;
+                std::cout << "b << = " << (small <<  64) << std::endl;
+                std::cout << "c << = " << (big << 128) << std::endl;
+                std::cout << "d << = " << (biggest << 192) << std::endl;
+                std::cout << "scalar unshifted: " << current_scalar_field_scalar.data << std::endl;
+                std::cout << std::endl;
+            }
+        
+            if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
+                current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
+            } else {
+                current_scalar_field_scalar = current_scalar_field_scalar - base.pow(255);
+            }
+
+            integral_scalar = typename curve_type::scalar_field_type::integral_type(current_scalar_field_scalar.data);
+            current_base_field_scalar = integral_scalar;
+            public_input.push_back(current_base_field_scalar);
+            scalars_var[i] = var(0, row++, false, var::column_type::public_input);
+            if (i%1000 == 0) {
+                std::cout << "scalar shifted: " << current_scalar_field_scalar.data << std::endl;
+            }
+
+        }
+    }
+
+
+
+
+    curve_type::base_field_type::value_type cip_shifted = 0x1C46F778300ED8499E12AC99920C8F426C59D3E94CCDD17941523412F6574A93_cppui256;
+    public_input.push_back(cip_shifted);
+    var cip_var = var(0, row++, false, var::column_type::public_input);
+    
+    curve_type::base_field_type::value_type state0 = 0x1CA18F11BE5840BDC7700504D8D7F7A075682BC2C8E8E561028A9B44CB52E0AB_cppui256;
+    public_input.push_back(state0);
+    var state0_var = var(0, row++, false, var::column_type::public_input);
+
+    curve_type::base_field_type::value_type state1 = 0x2C85FCC264A1C8E1082E97E5686196CB1A7EF642F7B162EB21723CCCB6344341_cppui256;
+    public_input.push_back(state1);
+    var state1_var = var(0, row++, false, var::column_type::public_input);
+
+    curve_type::base_field_type::value_type state2 = 0x221A064E37C3EE4CD60EAF94EAA8001F84D625A2E608B7CCC49CC05C6C5B4A24_cppui256;
+    public_input.push_back(state2);
+    var state2_var = var(0, row++, false, var::column_type::public_input);
+
+
+
+    // commitment_type comm_var = {{unshifted_var}};
+
+    opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
+    //transcript_type transcript;
+
+    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
+
+    std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
+
+    typename component_type::params_type params; // = {prepared_proofs, {H_var, {PI_G_var}, {PI_G_var}}, fr_data};
+    
+    for (std::size_t i = 0; i < comm_len; i++){
+        params.proofs[0].comm[i].parts[0] = comm_var[i];
+    }
+    params.proofs[0].opening_proof.G = op_proof_g_var;
+    params.proofs[0].opening_proof.L = L_var;
+    params.proofs[0].opening_proof.R = R_var;
+    params.verifier_index.H = H_var;
+    params.verifier_index.G = G_var;
+    params.fr_output.scalars = scalars_var;
+    params.proofs[0].opening_proof.delta = delta_var;
+    params.fr_output.cip_shifted[0] = cip_var;
+    params.proofs[0].transcript.sponge.state[0] = state0_var;
+    params.proofs[0].transcript.sponge.state[1] =  state1_var;
+    params.proofs[0].transcript.sponge.state[2] =  state2_var;
+
+
 //    params.verifier_index.
     
     // prepared_proofs.
@@ -1426,4 +1409,5 @@ scalars[71] = 0x0000000000000000000000000000000000000000000000000000000000000001
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 };
+
 BOOST_AUTO_TEST_SUITE_END()

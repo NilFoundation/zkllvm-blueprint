@@ -75,7 +75,6 @@ namespace nil {
                         std::array<commitment_type, KimchiParamsType::witness_columns> coefficient;
                         commitment_type generic;
                         commitment_type psm;
-                        std::vector<commitment_type> selectors;
                         std::vector<commitment_type> lookup_selectors;
                         commitment_type runtime_tables_selector;
                         std::vector<commitment_type> lookup_table;

@@ -128,8 +128,13 @@ namespace nil {
                     };
 
                     struct result_type {
+                        var_ec_point output;
 
                         result_type(std::size_t start_row_index) {
+                            output = {
+                                var(W4, start_row_index + rows_amount - 1, false),
+                                var(W5, start_row_index + rows_amount - 1, false)
+                            }
                         }
                     };
 
@@ -262,10 +267,23 @@ namespace nil {
 
                         assert(row == start_row_index + rows_amount);
 
+                        generate_copy_constraints(bp, assignment, params, start_row_index);
+
                         return result_type(start_row_index);
                     }
 
                 private:
+
+                    static void
+                        generate_copy_constraints(blueprint<ArithmetizationType> &bp,
+                                                  blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                                                  const params_type params,
+                                                  const std::size_t start_row_index) {
+
+                        
+                        bp.add_copy_constraint({{W4, start_row_index + rows_amount - 1, false}, {0, 1, false, var::column_type::constant}});
+                        bp.add_copy_constraint({{W5, start_row_index + rows_amount - 1, false}, {0, 1, false, var::column_type::constant}});
+                    }
 
                     static void generate_assignments_constant(
                         blueprint<ArithmetizationType> &bp,

@@ -33,6 +33,7 @@
 #include <nil/crypto3/zk/component.hpp>
 
 #include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/crypto3/zk/components/algebra/fields/plonk/sqrt.hpp>
 #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/types.hpp>
 #include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 
@@ -68,6 +69,8 @@ namespace nil {
                     using add_component = zk::components::addition<ArithmetizationType, W0, W1, W2>;
                     using div_component = zk::components::division_or_zero<ArithmetizationType, W0, W1, W2, W3, W4>;
                     using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
+                    using sqrt_component = zk::components::sqrt<ArithmetizationType, W0, W1, W2, W3,
+                           W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     constexpr static const std::size_t selector_seed = 0x0f30;
 
@@ -216,7 +219,7 @@ namespace nil {
                     }
 
                     constexpr static std::size_t get_y_rows =
-                        mul_component::rows_amount * 3 + add_component::rows_amount;
+                        mul_component::rows_amount * 2 + add_component::rows_amount + sqrt_component::rows_amount;
 
                     static var get_y_assignments(blueprint_assignment_table<ArithmetizationType> &assignment, var x,
                                                  curve_params params, std::size_t row) {
@@ -233,15 +236,8 @@ namespace nil {
                                         .output;    // x^3 + A x + B
                         row += add_component::rows_amount;
 
-                        // sqrt
-                        typename BlueprintFieldType::value_type y_val = assignment.var_value(y_squared).sqrt();
-                        assignment.witness(0)[row] = y_val;
-                        var y(0, row);
-                        var y_squared_recalculated =
-                            mul_component::generate_assignments(assignment, {y, y}, row).output;
-                        row += mul_component::rows_amount;
-
-                        // copy constraint
+                        var y = sqrt_component::generate_assignments(assignment, {y_squared}, row).output;
+                        row += sqrt_component::rows_amount;
 
                         return y;
                     }
@@ -263,13 +259,8 @@ namespace nil {
                                 .output;    // x^3 + A x + B
                         row += add_component::rows_amount;
 
-                        // sqrt
-                        var y(0, row);
-                        var y_squared_recalculated =
-                            zk::components::generate_circuit<mul_component>(bp, assignment, {y, y}, row).output;
-                        row += mul_component::rows_amount;
-
-                        // copy constraint
+                        var y = sqrt_component::generate_circuit(bp, assignment, {y_squared}, row).output;
+                        row += sqrt_component::rows_amount;
 
                         return y;
                     }
@@ -290,21 +281,12 @@ namespace nil {
                             row += mul_component::rows_amount;
                             row += sub_component::rows_amount;
 
-                            row += add_component::rows_amount;
-
                             if (i == 0) {
                                 continue;
                             }
 
-                            row += div_component::rows_amount;
-
                             row += mul_component::rows_amount;
-
                             row += sub_component::rows_amount;
-
-                            row += mul_component::rows_amount;
-
-                            row += mul_component::rows_amount;
                         }
 
                         for (std::size_t i = 0; i < points_size; ++i) {
@@ -378,61 +360,47 @@ namespace nil {
                         }
 
                         std::array<var, 3> nulifiers;
-                        // nulifiers[i] = 1 if ys[i] != -1 AND nulifiers[i - 1] == 0, 0 otherwise
-                        // E1: (ys[i] - (-1)) * (ys[i] - (-1))**(-1) -1 = 0 if ys[i] != -1, -1 otherwise
-                        // E2: E1 + 1 = 1 if ys[i] != -1, 0 otherwise
-                        // E3: nulifiers[i - 1] * nulifiers[i - 1]**(-1) -1 = 0 if nulifiers[i - 1] != 0, -1 otherwise
-                        // E4: E3 * (-1) = 0 if nulifiers[i - 1] != 0, 1 otherwise
-                        // E5: E2 * E4 = 1 if ys[i] != -1 AND nulifiers[i - 1] = 0, 0 otherwise
+                        // nulifier[0] = 1 if ys[0] != -1, 0 otherwise 
+                        // nulifiers[i] = 1 if ys[i] != -1 and all previous nulifiers are 0, 0 otherwise
+
+                        var all_previous_nulifiers_are_zero;
 
                         for (std::size_t i = 0; i < ys.size(); ++i) {
-                            var y1 =
+                            var y1 = // ys - (-1)
                                 zk::components::generate_circuit<sub_component>(bp, assignment, {ys[i], minus_one}, row)
                                     .output;
                             row += sub_component::rows_amount;
-                            var y1_inversed =
+                            var y1_inversed = // 1 / (ys - (-1))
                                 zk::components::generate_circuit<div_component>(bp, assignment, {one, y1}, row).output;
                             row += div_component::rows_amount;
 
-                            var e1 =
+                            var y_is_not_neg1 = // (ys - (-1) / ys - (-1)) == 0 if ys == -1 and = 1 if ys != -1
                                 zk::components::generate_circuit<mul_component>(bp, assignment, {y1, y1_inversed}, row)
                                     .output;
                             row += mul_component::rows_amount;
-                            e1 = zk::components::generate_circuit<sub_component>(bp, assignment, {e1, one}, row).output;
+
+                            var y_is_neg1 =
+                                zk::components::generate_circuit<sub_component>(bp, assignment, {one, y_is_not_neg1}, row)
+                                    .output;
                             row += sub_component::rows_amount;
 
-                            var e2 =
-                                zk::components::generate_circuit<add_component>(bp, assignment, {e1, one}, row).output;
-                            row += add_component::rows_amount;
-
+                            
                             if (i == 0) {
-                                nulifiers[i] = e2;
+                                nulifiers[i] = y_is_not_neg1;
+                                all_previous_nulifiers_are_zero = y_is_neg1;
                                 continue;
                             }
 
-                            var n_inversed = zk::components::generate_circuit<div_component>(
-                                                 bp, assignment, {one, nulifiers[i - 1]}, row)
-                                                 .output;
-                            row += div_component::rows_amount;
-
-                            var e3 = zk::components::generate_circuit<mul_component>(
-                                         bp, assignment, {nulifiers[i - 1], n_inversed}, row)
-                                         .output;
-                            row += mul_component::rows_amount;
-
-                            e3 = zk::components::generate_circuit<sub_component>(bp, assignment, {e3, one}, row).output;
-                            row += sub_component::rows_amount;
-
-                            var e4 =
-                                zk::components::generate_circuit<mul_component>(bp, assignment, {e3, minus_one}, row)
+                            var current_nulifier = zk::components::generate_circuit<mul_component>(bp, assignment, {y_is_not_neg1, all_previous_nulifiers_are_zero}, row)
                                     .output;
                             row += mul_component::rows_amount;
 
-                            var e5 =
-                                zk::components::generate_circuit<mul_component>(bp, assignment, {e2, e4}, row).output;
-                            row += mul_component::rows_amount;
+                            nulifiers[i] = current_nulifier;
 
-                            nulifiers[i] = e5;
+                            all_previous_nulifiers_are_zero = zk::components::generate_circuit<sub_component>(bp, assignment, {all_previous_nulifiers_are_zero, current_nulifier}, row)
+                                    .output;
+                            row += sub_component::rows_amount;
+
                         }
 
                         var x = zero;
@@ -484,51 +452,40 @@ namespace nil {
                         }
 
                         std::array<var, 3> nulifiers;
-                        // nulifiers[i] = 1 if ys[i] != -1 AND nulifiers[i - 1] == 0, 0 otherwise
-                        // E1: (ys[i] - (-1)) * (ys[i] - (-1))**(-1) -1 = 0 if ys[i] != -1, -1 otherwise
-                        // E2: E1 + 1 = 1 if ys[i] != -1, 0 otherwise
-                        // E3: nulifiers[i - 1] * nulifiers[i - 1]**(-1) -1 = 0 if nulifiers[i - 1] != 0, -1 otherwise
-                        // E4: E3 * (-1) = 0 if nulifiers[i - 1] != 0, 1 otherwise
-                        // E5: E2 * E4 = 1 if ys[i] != -1 AND nulifiers[i - 1] = 0, 0 otherwise
+                        // nulifier[0] = 1 if ys[0] != -1, 0 otherwise 
+                        // nulifiers[i] = 1 if ys[i] != -1 and all previous nulifiers are 0, 0 otherwise
+
+                        var all_previous_nulifiers_are_zero;
 
                         for (std::size_t i = 0; i < ys.size(); ++i) {
+
                             var y1 = sub_component::generate_assignments(assignment, {ys[i], minus_one}, row).output;
                             row += sub_component::rows_amount;
+
                             var y1_inversed = div_component::generate_assignments(assignment, {one, y1}, row).output;
                             row += div_component::rows_amount;
 
-                            var e1 = mul_component::generate_assignments(assignment, {y1, y1_inversed}, row).output;
+                            var y_is_not_neg1 = mul_component::generate_assignments(assignment, {y1, y1_inversed}, row).output;
                             row += mul_component::rows_amount;
-                            e1 = sub_component::generate_assignments(assignment, {e1, one}, row).output;
+
+                            var y_is_neg1 = sub_component::generate_assignments(assignment, {one, y_is_not_neg1}, row).output;
                             row += sub_component::rows_amount;
 
-                            var e2 = add_component::generate_assignments(assignment, {e1, one}, row).output;
-                            row += add_component::rows_amount;
-
+                            
                             if (i == 0) {
-                                nulifiers[i] = e2;
+                                nulifiers[i] = y_is_not_neg1;
+                                all_previous_nulifiers_are_zero = y_is_neg1;
                                 continue;
                             }
 
-                            var n_inversed =
-                                div_component::generate_assignments(assignment, {one, nulifiers[i - 1]}, row).output;
-                            row += div_component::rows_amount;
-
-                            var e3 =
-                                mul_component::generate_assignments(assignment, {nulifiers[i - 1], n_inversed}, row)
-                                    .output;
+                            var current_nulifier = mul_component::generate_assignments(assignment, {y_is_not_neg1, all_previous_nulifiers_are_zero}, row).output;
                             row += mul_component::rows_amount;
 
-                            e3 = sub_component::generate_assignments(assignment, {e3, one}, row).output;
+                            nulifiers[i] = current_nulifier;
+
+                            all_previous_nulifiers_are_zero = sub_component::generate_assignments(assignment, {all_previous_nulifiers_are_zero, current_nulifier}, row).output;
                             row += sub_component::rows_amount;
 
-                            var e4 = mul_component::generate_assignments(assignment, {e3, minus_one}, row).output;
-                            row += mul_component::rows_amount;
-
-                            var e5 = mul_component::generate_assignments(assignment, {e2, e4}, row).output;
-                            row += mul_component::rows_amount;
-
-                            nulifiers[i] = e5;
                         }
 
                         var x = zero;
