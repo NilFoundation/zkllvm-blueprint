@@ -134,7 +134,7 @@ namespace nil {
                             output = {
                                 var(W4, start_row_index + rows_amount - 1, false),
                                 var(W5, start_row_index + rows_amount - 1, false)
-                            }
+                            };
                         }
                     };
 
