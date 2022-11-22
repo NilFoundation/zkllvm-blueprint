@@ -55,9 +55,9 @@ using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_combine_proof_evals_test_suite)
 
-template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvelRounds>
-void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
-                   zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvelRounds> &circuit_proof,
+template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
+void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
+                   zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
@@ -65,50 +65,69 @@ void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
     for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
         // w
         for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
-            public_input.push_back(original_proof.evals[point_idx].w[i]);
+            public_input.push_back(original_proof.evals[point_idx].w[i][0]);
             circuit_proof.proof_evals[point_idx].w[i] =
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
         // z
-        public_input.push_back(original_proof.evals[point_idx].z);
+        public_input.push_back(original_proof.evals[point_idx].z[0]);
         circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
         // s
         for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
-            public_input.push_back(original_proof.evals[point_idx].s[i]);
+            public_input.push_back(original_proof.evals[point_idx].s[i][0]);
             circuit_proof.proof_evals[point_idx].s[i] =
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
         // lookup
         if (KimchiParamsType::use_lookup) {
             for (std::size_t i = 0; i < KimchiParamsType::circuit_params::lookup_columns; i++) {
-                public_input.push_back(original_proof.evals[point_idx].lookup.sorted[i]);
+                public_input.push_back(original_proof.evals[point_idx].lookup.sorted[i][0]);
                 circuit_proof.proof_evals[point_idx].lookup.sorted[i] =
                     var(0, public_input.size() - 1, false, var::column_type::public_input);
             }
 
-            public_input.push_back(original_proof.evals[point_idx].lookup.aggreg);
+            public_input.push_back(original_proof.evals[point_idx].lookup.aggreg[0]);
             circuit_proof.proof_evals[point_idx].lookup.aggreg = 
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
 
-            public_input.push_back(original_proof.evals[point_idx].lookup.table);
+            public_input.push_back(original_proof.evals[point_idx].lookup.table[0]);
             circuit_proof.proof_evals[point_idx].lookup.table = 
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
 
             if (KimchiParamsType::circuit_params::lookup_runtime) {
-                public_input.push_back(original_proof.evals[point_idx].lookup.runtime);
+                public_input.push_back(original_proof.evals[point_idx].lookup.runtime[0]);
                 circuit_proof.proof_evals[point_idx].lookup.runtime = 
                     var(0, public_input.size() - 1, false, var::column_type::public_input);
             }
         }
         // generic_selector
-        public_input.push_back(original_proof.evals[point_idx].generic_selector);
+        public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
         circuit_proof.proof_evals[point_idx].generic_selector =
             var(0, public_input.size() - 1, false, var::column_type::public_input);
         // poseidon_selector
-        public_input.push_back(original_proof.evals[point_idx].poseidon_selector);
+        public_input.push_back(original_proof.evals[point_idx].poseidon_selector[0]);
         circuit_proof.proof_evals[point_idx].poseidon_selector =
             var(0, public_input.size() - 1, false, var::column_type::public_input);
     }
+    // public_input
+    circuit_proof.public_input.resize(KimchiParamsType::public_input_size);
+    for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {
+        public_input.push_back(original_proof.public_input[i]);
+        circuit_proof.public_input[i] =
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+    }
+    // prev_chal
+    circuit_proof.prev_challenges.resize(KimchiParamsType::prev_challenges_size);
+    for (std::size_t i = 0; i < KimchiParamsType::prev_challenges_size; ++i) {
+        for (std::size_t j = 0; j < EvalRounds; ++j) {
+            public_input.push_back(original_proof.prev_challenges[i].first[j]);
+            circuit_proof.prev_challenges[i][j] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+    }
+    // ft_eval
+    public_input.push_back(original_proof.ft_eval1);
+    circuit_proof.ft_eval = var(0, public_input.size() - 1, false, var::column_type::public_input);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
@@ -147,7 +166,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
     using component_type = zk::components::combine_proof_evals<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4, 5, 6,
                                                                7, 8, 9, 10, 11, 12, 13, 14>;
 
-    zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof_chacha();
+    zk::snark::proof_type<curve_type> kimchi_proof = test_proof_chacha();
 
     typename BlueprintFieldType::value_type zeta_value =
         0x3CE960ABCAC273BBEEBA92D1EF87514B51187BFE5E8797B5DE97B01FF7C64484_cppui256;
@@ -168,29 +187,29 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
                                                      component_type::result_type &real_res) {
         // w
         for (std::size_t i = 0; i < kimchi_proof.evals[0].w.size(); i++) {
-            assert(kimchi_proof.evals[0].w[i] * zeta_value == assignment.var_value(real_res.output.w[i]));
+            assert(kimchi_proof.evals[0].w[i][0] * zeta_value == assignment.var_value(real_res.output.w[i]));
         }
         // z
-        assert(kimchi_proof.evals[0].z * zeta_value == assignment.var_value(real_res.output.z));
+        assert(kimchi_proof.evals[0].z[0] * zeta_value == assignment.var_value(real_res.output.z));
         // s
         for (std::size_t i = 0; i < kimchi_proof.evals[0].s.size(); i++) {
-            assert(kimchi_proof.evals[0].s[i] * zeta_value == assignment.var_value(real_res.output.s[i]));
+            assert(kimchi_proof.evals[0].s[i][0] * zeta_value == assignment.var_value(real_res.output.s[i]));
         }
         // lookup
         if (kimchi_params::use_lookup) {
             for (std::size_t i = 0; i < kimchi_proof.evals[0].lookup.sorted.size(); i++) {
-                assert(kimchi_proof.evals[0].lookup.sorted[i] * zeta_value == assignment.var_value(real_res.output.lookup.sorted[i]));
+                assert(kimchi_proof.evals[0].lookup.sorted[i][0] * zeta_value == assignment.var_value(real_res.output.lookup.sorted[i]));
             }
-            assert(kimchi_proof.evals[0].lookup.aggreg * zeta_value == assignment.var_value(real_res.output.lookup.aggreg));
-            assert(kimchi_proof.evals[0].lookup.table * zeta_value == assignment.var_value(real_res.output.lookup.table));
+            assert(kimchi_proof.evals[0].lookup.aggreg[0] * zeta_value == assignment.var_value(real_res.output.lookup.aggreg));
+            assert(kimchi_proof.evals[0].lookup.table[0] * zeta_value == assignment.var_value(real_res.output.lookup.table));
             if (kimchi_params::circuit_params::lookup_runtime) {
-                assert(kimchi_proof.evals[0].lookup.runtime * zeta_value == assignment.var_value(real_res.output.lookup.runtime));
+                assert(kimchi_proof.evals[0].lookup.runtime[0] * zeta_value == assignment.var_value(real_res.output.lookup.runtime));
             }
         }
         // generic_selector
-        assert(kimchi_proof.evals[0].generic_selector * zeta_value == assignment.var_value(real_res.output.generic_selector));
+        assert(kimchi_proof.evals[0].generic_selector[0] * zeta_value == assignment.var_value(real_res.output.generic_selector));
         // poseidon_selector
-        assert(kimchi_proof.evals[0].poseidon_selector * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
+        assert(kimchi_proof.evals[0].poseidon_selector[0] * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,

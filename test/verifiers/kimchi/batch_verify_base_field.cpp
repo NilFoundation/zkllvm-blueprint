@@ -35,7 +35,7 @@
 #include <nil/crypto3/hash/keccak.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
-//#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
 
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
 
     std::size_t row = 0;
 
-    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
+    std::cout << "batch_verify_base_field test on data from generic.rs" << std::endl;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
     var_ec_point H_var = {var(0, row++, false, var::column_type::public_input),
                           var(0, row++, false, var::column_type::public_input)};
     
-    std::array<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type, srs_len> G;
+    std::vector<curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type> G(srs_len);
 
     G[0].X = 0x121C4426885FD5A9701385AAF8D43E52E7660F1FC5AFC5F6468CC55312FC60F8_cppui256;
     G[0].Y = 0x21B439C01247EA3518C5DDEB324E4CB108AF617780DDF766D96D3FD8AB028B70_cppui256;
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
     G[31].X = 0x3FC5DE9E2422625B53D18E55C069CBCEC9C2D2C4F8DAB5B1BC11D3702F3F5E22_cppui256;
     G[31].Y = 0x0EE46C6ABF41C33D66B60AA4E508CE43DFE02535EF19E158AB66B49D12BD171F_cppui256;
 
-    std::array <var_ec_point, srs_len> G_var;
+    std::vector <var_ec_point> G_var(srs_len);
     for (std::size_t i = 0; i < srs_len; i++) {
         public_input.push_back(G[i].X);
         public_input.push_back(G[i].Y);
@@ -366,11 +366,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
 
     var_ec_point delta_var = {var(0, row++, false, var::column_type::public_input),
                               var(0, row++, false, var::column_type::public_input)};
+    
 
+    std::vector<curve_type::scalar_field_type::value_type> scalars(bases_size);
 
-    std::array<curve_type::scalar_field_type::value_type, bases_size> scalars;
-
-    std::array<var, bases_size> scalars_var;
+    std::vector<var> scalars_var(bases_size);
 
     scalars[0] = 0x0D9A3B23A66EE3D3BF40B67D4EDCAEB5C14A625C025CABAD63E13D291AD5CB2E_cppui256;
 scalars[1] = 0x0000000000000000000000000000000000000000000000000000000000000001_cppui256;
@@ -482,9 +482,13 @@ scalars[71] = 0x0000000000000000000000000000000000000000000000000000000000000001
     opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
     //transcript_type transcript;
 
-    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
+    typename binding::fr_data<var, batch_size> fr_data;
+    for (std::size_t i = 0; i < scalars_var.size(); ++i) {
+        fr_data.scalars[i] = scalars_var[i];
+    }
+    fr_data.cip_shifted = {cip_var};
 
-    std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
+    std::vector<batch_proof_type> prepared_proofs(batch_size); // = {{{comm_var, o_var}}};
 
     typename component_type::params_type params; // = {prepared_proofs, {H_var, {PI_G_var}, {PI_G_var}}, fr_data};
     
@@ -596,7 +600,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     std::size_t row = 0;
 
-    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
+    std::cout << "batch_verify_base_field test on data from ec.rs" << std::endl;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
@@ -614,7 +618,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     ///////////////////////////////////
 
-    std::array<var_ec_point, srs_len> G_var;
+    std::vector<var_ec_point> G_var(srs_len);
 
     curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type current_G;
 
@@ -631,18 +635,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_g_points.txt");
         if (file) {
-            std::cout << "FILE == TRUE" << std::endl;
-
             std::size_t i = 0;
             while(true) {
                 
-        
+                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
                 if (file.eof()) {
                     break;
                 }
-                
-                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
-                
 
                 least_x = least_x_64bits;
                 small_x = small_x_64bits;
@@ -825,7 +824,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
 
     
-    std::array<var, bases_size> scalars_var;
+    std::vector<var> scalars_var(bases_size);
 
     typename BlueprintFieldType::integral_type least;
     typename BlueprintFieldType::integral_type small;
@@ -839,12 +838,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_scalars.txt");
         if (file2) {
-            std::cout << "FILE == TRUE" << std::endl;
-
-        for (std::size_t i = 0; i < bases_size; i++) {
+        std::size_t i = 0;
+        while(true){
+            
             unsigned long a, b, c, d;
         
             file2 >> a >> b >> c >> d;
+            if (file.eof()) {
+                    break;
+                }
 
 
             least = a;
@@ -854,19 +856,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
             current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
 
-            if (i%1000 == 0) {
-                std::cout << "i: " << i << std::endl;
-                std::cout << "a = " << a << std::endl;
-                std::cout << "b = " << b << std::endl;
-                std::cout << "c = " << c << std::endl;
-                std::cout << "d = " << d << std::endl;
-                std::cout << std::endl;
-                std::cout << "b << = " << (small <<  64) << std::endl;
-                std::cout << "c << = " << (big << 128) << std::endl;
-                std::cout << "d << = " << (biggest << 192) << std::endl;
-                std::cout << "scalar unshifted: " << current_scalar_field_scalar.data << std::endl;
-                std::cout << std::endl;
-            }
         
             if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
                 current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
@@ -878,10 +867,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
             current_base_field_scalar = integral_scalar;
             public_input.push_back(current_base_field_scalar);
             scalars_var[i] = var(0, row++, false, var::column_type::public_input);
-            if (i%1000 == 0) {
-                std::cout << "scalar shifted: " << current_scalar_field_scalar.data << std::endl;
-            }
-
+            i++;
+            
         }
     }
 
@@ -910,8 +897,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
     //transcript_type transcript;
-
-    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
 
     std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
 
@@ -942,7 +927,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 };
-
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
@@ -1027,7 +1011,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     std::size_t row = 0;
 
-    std::cout << "FINAL MSM SIZE(bases_size): " << bases_size << std::endl;
+    std::cout << "batch_verify_base_field test on data from chacha.rs" << std::endl;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
@@ -1045,7 +1029,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     ///////////////////////////////////
 
-    std::array<var_ec_point, srs_len> G_var;
+    std::vector<var_ec_point> G_var(srs_len);
 
     curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type current_G;
 
@@ -1062,18 +1046,17 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_g_points.txt");
         if (file) {
-            std::cout << "FILE == TRUE" << std::endl;
-
+            
             std::size_t i = 0;
             while(true) {
                 
         
+                
+                
+                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
                 if (file.eof()) {
                     break;
                 }
-                
-                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
-                
 
                 least_x = least_x_64bits;
                 small_x = small_x_64bits;
@@ -1283,7 +1266,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
 
     
-    std::array<var, bases_size> scalars_var;
+    std::vector<var> scalars_var(bases_size);
 
     typename BlueprintFieldType::integral_type least;
     typename BlueprintFieldType::integral_type small;
@@ -1297,54 +1280,34 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_scalars.txt");
         if (file2) {
-            std::cout << "FILE == TRUE" << std::endl;
-
-        for (std::size_t i = 0; i < bases_size; i++) {
-            unsigned long a, b, c, d;
+            for (std::size_t i = 0; i < bases_size; i++) {
+                unsigned long a, b, c, d;
         
-            // while (true) {
-            file2 >> a >> b >> c >> d;
-            //     if (file.eof()) {
-            //         break;
-            //     }
+                    file2 >> a >> b >> c >> d;
+                    if (file.eof()) {
+                        break;
+                    }
 
-            least = a;
-            small = b;
-            big = c;
-            biggest = d;
+                    least = a;
+                    small = b;
+                    big = c;
+                    biggest = d;
 
-            current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
-
-            if (i%1000 == 0) {
-                std::cout << "i: " << i << std::endl;
-                std::cout << "a = " << a << std::endl;
-                std::cout << "b = " << b << std::endl;
-                std::cout << "c = " << c << std::endl;
-                std::cout << "d = " << d << std::endl;
-                std::cout << std::endl;
-                std::cout << "b << = " << (small <<  64) << std::endl;
-                std::cout << "c << = " << (big << 128) << std::endl;
-                std::cout << "d << = " << (biggest << 192) << std::endl;
-                std::cout << "scalar unshifted: " << current_scalar_field_scalar.data << std::endl;
-                std::cout << std::endl;
-            }
+                    current_scalar_field_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
         
-            if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
-                current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
-            } else {
-                current_scalar_field_scalar = current_scalar_field_scalar - base.pow(255);
-            }
+                    if ((current_scalar_field_scalar != 1) & (current_scalar_field_scalar != 0) & (current_scalar_field_scalar != -1)){
+                        current_scalar_field_scalar = (current_scalar_field_scalar - base.pow(255) - 1) / 2;
+                    } else {
+                        current_scalar_field_scalar = current_scalar_field_scalar - base.pow(255);
+                    }
 
-            integral_scalar = typename curve_type::scalar_field_type::integral_type(current_scalar_field_scalar.data);
-            current_base_field_scalar = integral_scalar;
-            public_input.push_back(current_base_field_scalar);
-            scalars_var[i] = var(0, row++, false, var::column_type::public_input);
-            if (i%1000 == 0) {
-                std::cout << "scalar shifted: " << current_scalar_field_scalar.data << std::endl;
-            }
+                    integral_scalar = typename curve_type::scalar_field_type::integral_type(current_scalar_field_scalar.data);
+                    current_base_field_scalar = integral_scalar;
+                    public_input.push_back(current_base_field_scalar);
+                    scalars_var[i] = var(0, row++, false, var::column_type::public_input);
 
-        }
-    }
+                }
+            }
 
 
 
@@ -1371,8 +1334,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     opening_proof_type o_var = {L_var, R_var, delta_var, op_proof_g_var};
     //transcript_type transcript;
-
-    typename binding::fr_data<var, batch_size> fr_data = {scalars_var, {cip_var}};
 
     std::array<batch_proof_type, batch_size> prepared_proofs; // = {{{comm_var, o_var}}};
 

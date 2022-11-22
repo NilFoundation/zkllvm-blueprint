@@ -35,8 +35,8 @@ namespace nil {
         namespace zk {
             namespace components {
 
-                // index terms for ec test
-                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/chacha.rs#L40
+                // index terms for recursion test
+                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/recursion.rs#L15
                 template<typename ArithmetizationType>
                 class index_terms_scalars_list_chacha_test;
 
@@ -78,11 +78,11 @@ namespace nil {
 
                     constexpr static const std::size_t lookup_columns = 5;
                     constexpr static const bool lookup_runtime = false;
-                    constexpr static const bool joint_lookup = false;
+                    constexpr static const bool joint_lookup = true;
 
                     constexpr static const bool poseidon_gate = false;
                     constexpr static const bool ec_arithmetic_gates = true;
-                    constexpr static const bool generic_gate = true;
+                    constexpr static const bool generic_gate = false;
                     constexpr static const bool chacha_gate = true;
 
                     constexpr static const std::size_t poseidon_gates_count = 15;
@@ -108,7 +108,9 @@ namespace nil {
                         "Cell(Variable { col: Index(Poseidon), row: Curr });Alpha;Pow(14);Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Mul;Mul;\0",
                     };
 
-                    constexpr static const char *lookup_gate_str = "Alpha;Pow(24);VanishesOnLast4Rows;Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Cell(Variable { col: LookupAggreg, row: Curr });Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Gamma;JointCombiner;Pow(2);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Gamma;JointCombiner;Pow(2);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Gamma;JointCombiner;Pow(2);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Literal 0000000000000000000000000000000000000000000000000000000000000001;Beta;Add;Pow(3);Mul;Mul;Literal 0000000000000000000000000000000000000000000000000000000000000001;Beta;Add;Pow(3);Gamma;JointCombiner;Cell(Variable { col: Witness(2), row: Curr });Mul;Cell(Variable { col: Witness(1), row: Curr });Add;JointCombiner;Pow(2);Cell(Variable { col: Witness(0), row: Curr });Mul;Add;Add;Mul;Gamma;JointCombiner;Cell(Variable { col: Witness(4), row: Curr });Mul;Cell(Variable { col: Witness(3), row: Curr });Add;JointCombiner;Pow(2);Cell(Variable { col: Witness(0), row: Curr });Mul;Add;Add;Mul;Gamma;JointCombiner;Cell(Variable { col: Witness(6), row: Curr });Mul;Cell(Variable { col: Witness(5), row: Curr });Add;JointCombiner;Pow(2);Cell(Variable { col: Witness(0), row: Curr });Mul;Add;Add;Mul;Add;Gamma;Beta;Literal 0000000000000000000000000000000000000000000000000000000000000001;Add;Mul;Cell(Variable { col: LookupTable, row: Curr });Add;Beta;Cell(Variable { col: LookupTable, row: Next });Mul;Add;Mul;Mul;Mul;Mul;Mul;\0";
+                    constexpr static const char *lookup_chacha_str = "Alpha;Pow(24);VanishesOnLast4Rows;Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Cell(Variable { col: LookupAggreg, row: Curr });Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Literal 0000000000000000000000000000000000000000000000000000000000000001;Beta;Add;Pow(4);Mul;Mul;Literal 0000000000000000000000000000000000000000000000000000000000000001;Beta;Add;Pow(4);Gamma;JointCombiner;JointCombiner;Cell(Variable { col: Witness(11), row: Curr });Mul;Cell(Variable { col: Witness(7), row: Curr });Add;Mul;Cell(Variable { col: Witness(3), row: Curr });Add;Add;Mul;Gamma;JointCombiner;JointCombiner;Cell(Variable { col: Witness(12), row: Curr });Mul;Cell(Variable { col: Witness(8), row: Curr });Add;Mul;Cell(Variable { col: Witness(4), row: Curr });Add;Add;Mul;Gamma;JointCombiner;JointCombiner;Cell(Variable { col: Witness(13), row: Curr });Mul;Cell(Variable { col: Witness(9), row: Curr });Add;Mul;Cell(Variable { col: Witness(5), row: Curr });Add;Add;Mul;Gamma;JointCombiner;JointCombiner;Cell(Variable { col: Witness(14), row: Curr });Mul;Cell(Variable { col: Witness(10), row: Curr });Add;Mul;Cell(Variable { col: Witness(6), row: Curr });Add;Add;Mul;Add;Gamma;Beta;Literal 0000000000000000000000000000000000000000000000000000000000000001;Add;Mul;Cell(Variable { col: LookupTable, row: Curr });Add;Beta;Cell(Variable { col: LookupTable, row: Next });Mul;Add;Mul;Mul;Mul;Mul;Mul;\0";
+
+                    constexpr static const char *lookup_chacha_final_str = "Alpha;Pow(24);VanishesOnLast4Rows;Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Cell(Variable { col: LookupAggreg, row: Curr });Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Gamma;JointCombiner;Pow(3);Literal 0000000000000000000000000000000000000000000000000000000000000000;Mul;Add;Mul;Literal 0000000000000000000000000000000000000000000000000000000000000001;Beta;Add;Pow(4);Mul;Mul;Literal 0000000000000000000000000000000000000000000000000000000000000001;Beta;Add;Pow(4);Gamma;JointCombiner;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(1), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(5), row: Curr });Mul;Add;Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(1), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(5), row: Curr });Mul;Add;Add;Add;Mul;Gamma;JointCombiner;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(2), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(6), row: Curr });Mul;Add;Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(2), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(6), row: Curr });Mul;Add;Add;Add;Mul;Gamma;JointCombiner;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(3), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(7), row: Curr });Mul;Add;Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(3), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(7), row: Curr });Mul;Add;Add;Add;Mul;Gamma;JointCombiner;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(4), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(8), row: Curr });Mul;Add;Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000001;Cell(Variable { col: Witness(4), row: Curr });Mul;Literal 2000000000000000000000000000000011234C7E04A67C8DCC96987680000000;Cell(Variable { col: Witness(8), row: Curr });Mul;Add;Add;Add;Mul;Add;Gamma;Beta;Literal 0000000000000000000000000000000000000000000000000000000000000001;Add;Mul;Cell(Variable { col: LookupTable, row: Curr });Add;Beta;Cell(Variable { col: LookupTable, row: Next });Mul;Add;Mul;Mul;Mul;Mul;Mul;\0";
 
                     constexpr static const char *var_base_mul_str = "Cell(Variable { col: Witness(5), row: Curr });Cell(Variable { col: Witness(6), row: Next });Cell(Variable { col: Witness(5), row: Next });Cell(Variable { col: Witness(4), row: Next });Cell(Variable { col: Witness(3), row: Next });Cell(Variable { col: Witness(2), row: Next });Cell(Variable { col: Witness(4), row: Curr });Dup;Add;Add;Dup;Add;Add;Dup;Add;Add;Dup;Add;Add;Dup;Add;Add;Sub;Alpha;Pow(1);Cell(Variable { col: Witness(2), row: Next });Cell(Variable { col: Witness(2), row: Next });Mul;Cell(Variable { col: Witness(2), row: Next });Sub;Mul;Add;Alpha;Pow(2);Cell(Variable { col: Witness(2), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Cell(Variable { col: Witness(7), row: Next });Mul;Cell(Variable { col: Witness(3), row: Curr });Cell(Variable { col: Witness(2), row: Next });Cell(Variable { col: Witness(2), row: Next });Add;Literal 0000000000000000000000000000000000000000000000000000000000000001;Sub;Cell(Variable { col: Witness(1), row: Curr });Mul;Sub;Sub;Mul;Add;Alpha;Pow(3);Cell(Variable { col: Witness(3), row: Curr });Cell(Variable { col: Witness(3), row: Curr });Add;Cell(Variable { col: Witness(2), row: Curr });Cell(Variable { col: Witness(7), row: Next });Cell(Variable { col: Witness(7), row: Next });Mul;Store;Cell(Variable { col: Witness(2), row: Curr });Sub;Cell(Variable { col: Witness(0), row: Curr });Sub;Sub;Store;Cell(Variable { col: Witness(7), row: Next });Mul;Sub;Store;Load(2);Mul;Load(1);Load(1);Mul;Cell(Variable { col: Witness(7), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Load(0);Add;Mul;Sub;Mul;Add;Alpha;Pow(4);Cell(Variable { col: Witness(8), row: Curr });Cell(Variable { col: Witness(3), row: Curr });Add;Load(1);Mul;Cell(Variable { col: Witness(2), row: Curr });Cell(Variable { col: Witness(7), row: Curr });Sub;Load(2);Mul;Sub;Mul;Add;Alpha;Pow(5);Cell(Variable { col: Witness(3), row: Next });Cell(Variable { col: Witness(3), row: Next });Mul;Cell(Variable { col: Witness(3), row: Next });Sub;Mul;Add;Alpha;Pow(6);Cell(Variable { col: Witness(7), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Cell(Variable { col: Witness(8), row: Next });Mul;Cell(Variable { col: Witness(8), row: Curr });Cell(Variable { col: Witness(3), row: Next });Cell(Variable { col: Witness(3), row: Next });Add;Literal 0000000000000000000000000000000000000000000000000000000000000001;Sub;Cell(Variable { col: Witness(1), row: Curr });Mul;Sub;Sub;Mul;Add;Alpha;Pow(7);Cell(Variable { col: Witness(8), row: Curr });Cell(Variable { col: Witness(8), row: Curr });Add;Cell(Variable { col: Witness(7), row: Curr });Cell(Variable { col: Witness(8), row: Next });Cell(Variable { col: Witness(8), row: Next });Mul;Store;Cell(Variable { col: Witness(7), row: Curr });Sub;Cell(Variable { col: Witness(0), row: Curr });Sub;Sub;Store;Cell(Variable { col: Witness(8), row: Next });Mul;Sub;Store;Load(5);Mul;Load(4);Load(4);Mul;Cell(Variable { col: Witness(9), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Load(3);Add;Mul;Sub;Mul;Add;Alpha;Pow(8);Cell(Variable { col: Witness(10), row: Curr });Cell(Variable { col: Witness(8), row: Curr });Add;Load(4);Mul;Cell(Variable { col: Witness(7), row: Curr });Cell(Variable { col: Witness(9), row: Curr });Sub;Load(5);Mul;Sub;Mul;Add;Alpha;Pow(9);Cell(Variable { col: Witness(4), row: Next });Cell(Variable { col: Witness(4), row: Next });Mul;Cell(Variable { col: Witness(4), row: Next });Sub;Mul;Add;Alpha;Pow(10);Cell(Variable { col: Witness(9), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Cell(Variable { col: Witness(9), row: Next });Mul;Cell(Variable { col: Witness(10), row: Curr });Cell(Variable { col: Witness(4), row: Next });Cell(Variable { col: Witness(4), row: Next });Add;Literal 0000000000000000000000000000000000000000000000000000000000000001;Sub;Cell(Variable { col: Witness(1), row: Curr });Mul;Sub;Sub;Mul;Add;Alpha;Pow(11);Cell(Variable { col: Witness(10), row: Curr });Cell(Variable { col: Witness(10), row: Curr });Add;Cell(Variable { col: Witness(9), row: Curr });Cell(Variable { col: Witness(9), row: Next });Cell(Variable { col: Witness(9), row: Next });Mul;Store;Cell(Variable { col: Witness(9), row: Curr });Sub;Cell(Variable { col: Witness(0), row: Curr });Sub;Sub;Store;Cell(Variable { col: Witness(9), row: Next });Mul;Sub;Store;Load(8);Mul;Load(7);Load(7);Mul;Cell(Variable { col: Witness(11), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Load(6);Add;Mul;Sub;Mul;Add;Alpha;Pow(12);Cell(Variable { col: Witness(12), row: Curr });Cell(Variable { col: Witness(10), row: Curr });Add;Load(7);Mul;Cell(Variable { col: Witness(9), row: Curr });Cell(Variable { col: Witness(11), row: Curr });Sub;Load(8);Mul;Sub;Mul;Add;Alpha;Pow(13);Cell(Variable { col: Witness(5), row: Next });Cell(Variable { col: Witness(5), row: Next });Mul;Cell(Variable { col: Witness(5), row: Next });Sub;Mul;Add;Alpha;Pow(14);Cell(Variable { col: Witness(11), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Cell(Variable { col: Witness(10), row: Next });Mul;Cell(Variable { col: Witness(12), row: Curr });Cell(Variable { col: Witness(5), row: Next });Cell(Variable { col: Witness(5), row: Next });Add;Literal 0000000000000000000000000000000000000000000000000000000000000001;Sub;Cell(Variable { col: Witness(1), row: Curr });Mul;Sub;Sub;Mul;Add;Alpha;Pow(15);Cell(Variable { col: Witness(12), row: Curr });Cell(Variable { col: Witness(12), row: Curr });Add;Cell(Variable { col: Witness(11), row: Curr });Cell(Variable { col: Witness(10), row: Next });Cell(Variable { col: Witness(10), row: Next });Mul;Store;Cell(Variable { col: Witness(11), row: Curr });Sub;Cell(Variable { col: Witness(0), row: Curr });Sub;Sub;Store;Cell(Variable { col: Witness(10), row: Next });Mul;Sub;Store;Load(11);Mul;Load(10);Load(10);Mul;Cell(Variable { col: Witness(13), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Load(9);Add;Mul;Sub;Mul;Add;Alpha;Pow(16);Cell(Variable { col: Witness(14), row: Curr });Cell(Variable { col: Witness(12), row: Curr });Add;Load(10);Mul;Cell(Variable { col: Witness(11), row: Curr });Cell(Variable { col: Witness(13), row: Curr });Sub;Load(11);Mul;Sub;Mul;Add;Alpha;Pow(17);Cell(Variable { col: Witness(6), row: Next });Cell(Variable { col: Witness(6), row: Next });Mul;Cell(Variable { col: Witness(6), row: Next });Sub;Mul;Add;Alpha;Pow(18);Cell(Variable { col: Witness(13), row: Curr });Cell(Variable { col: Witness(0), row: Curr });Sub;Cell(Variable { col: Witness(11), row: Next });Mul;Cell(Variable { col: Witness(14), row: Curr });Cell(Variable { col: Witness(6), row: Next });Cell(Variable { col: Witness(6), row: Next });Add;Literal 0000000000000000000000000000000000000000000000000000000000000001;Sub;Cell(Variable { col: Witness(1), row: Curr });Mul;Sub;Sub;Mul;Add;Alpha;Pow(19);Cell(Variable { col: Witness(14), row: Curr });Cell(Variable { col: Witness(14), row: Curr });Add;Cell(Variable { col: Witness(13), row: Curr });Cell(Variable { col: Witness(11), row: Next });Cell(Variable { col: Witness(11), row: Next });Mul;Store;Cell(Variable { col: Witness(13), row: Curr });Sub;Cell(Variable { col: Witness(0), row: Curr });Sub;Sub;Store;Cell(Variable { col: Witness(11), row: Next });Mul;Sub;Store;Load(14);Mul;Load(13);Load(13);Mul;Cell(Variable { col: Witness(0), row: Next });Cell(Variable { col: Witness(0), row: Curr });Sub;Load(12);Add;Mul;Sub;Mul;Add;Alpha;Pow(20);Cell(Variable { col: Witness(1), row: Next });Cell(Variable { col: Witness(14), row: Curr });Add;Load(13);Mul;Cell(Variable { col: Witness(13), row: Curr });Cell(Variable { col: Witness(0), row: Next });Sub;Load(14);Mul;Sub;Mul;Add;\0";
 
@@ -152,7 +154,9 @@ namespace nil {
 
                     constexpr static const std::size_t constatnt_term_array_size = count_delimiters(constant_term_str);
 
-                    constexpr static const std::size_t lookup_gate_array_size = count_delimiters(lookup_gate_str);
+                    constexpr static const std::size_t lookup_chacha_array_size = count_delimiters(lookup_chacha_str);
+
+                    constexpr static const std::size_t lookup_chacha_final_array_size = count_delimiters(lookup_chacha_final_str);
 
                     constexpr static const std::size_t chacha0_array_size = count_delimiters(chacha0_str);
 
@@ -161,6 +165,9 @@ namespace nil {
                     constexpr static const std::size_t chacha2_array_size = count_delimiters(chacha2_str);
 
                     constexpr static const std::size_t chacha_final_array_size = count_delimiters(chacha_final_str);
+
+
+                public: 
 
                     constexpr static const std::array<std::size_t, poseidon_gates_count> 
                         coefficient_rows = {
@@ -196,8 +203,11 @@ namespace nil {
                     constexpr static const std::size_t constant_term_rows = 
                         rpn_component_rows<constatnt_term_array_size, ArithmetizationType>(constant_term_str);
 
-                    constexpr static const std::size_t lookup_gate_rows = 
-                        rpn_component_rows<lookup_gate_array_size, ArithmetizationType>(lookup_gate_str);
+                    constexpr static const std::size_t lookup_chacha_rows = 
+                        rpn_component_rows<lookup_chacha_array_size, ArithmetizationType>(lookup_chacha_str);
+
+                    constexpr static const std::size_t lookup_chacha_final_rows = 
+                        rpn_component_rows<lookup_chacha_final_array_size, ArithmetizationType>(lookup_chacha_final_str);
 
                     constexpr static const std::size_t chacha0_gate_rows = 
                         rpn_component_rows<chacha0_array_size, ArithmetizationType>(chacha0_str);
@@ -210,10 +220,8 @@ namespace nil {
 
                     constexpr static const std::size_t chacha_final_gate_rows = 
                         rpn_component_rows<chacha_final_array_size, ArithmetizationType>(chacha_final_str);
-
-                    public: 
                     
-                    constexpr static const std::size_t size = 24;
+                    constexpr static const std::size_t size = 25;
                     constexpr static const std::array<index_term_type, size> terms = {{
                         {column_type::Coefficient, 0, coefficient_str[0], coefficient_rows[0]},
                         {column_type::Coefficient, 1, coefficient_str[1], coefficient_rows[1]},
@@ -234,11 +242,12 @@ namespace nil {
                         {column_type::EndoMul, 0, endo_mul_str, endo_mul_rows},
                         {column_type::EndoMulScalar, 0, endo_mul_scalar_str, endo_mul_scalar_rows},
                         {column_type::CompleteAdd, 0, complete_add_str, complete_add_rows},
-                        {column_type::LookupKindIndex, 2, lookup_gate_str, lookup_gate_rows},
                         {column_type::ChaCha0, 0, chacha0_str, chacha0_gate_rows},
                         {column_type::ChaCha1, 0, chacha1_str, chacha1_gate_rows},
                         {column_type::ChaCha2, 0, chacha2_str, chacha2_gate_rows},
                         {column_type::ChaChaFinal, 0, chacha_final_str, chacha_final_gate_rows},
+                        {column_type::LookupKindIndex, 0, lookup_chacha_str, lookup_chacha_rows},
+                        {column_type::LookupKindIndex, 0, lookup_chacha_final_str, lookup_chacha_final_rows},
                     }};
                 };
             }    // namespace components
@@ -246,4 +255,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_CHACHA_TEST_HPP

@@ -44,6 +44,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/zkpm_evaluate.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/perm_scalars.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/generic_scalars.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/index_terms_scalars.hpp>
@@ -152,7 +153,7 @@ namespace nil {
                     struct result_type {
                         batch_proof prepared_proof;
                         var zeta_to_srs_len;
-                        std::array<var, f_comm_msm_size> f_comm_scalars;
+                        std::vector<var> f_comm_scalars = std::vector<var>(f_comm_msm_size);
                     };
 
                     static result_type
@@ -171,13 +172,13 @@ namespace nil {
 
                         typename oracles_component::params_type oracles_params(params.verifier_index, params.proof,
                                                                                params.fq_output);
-                        auto oracles_output = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
+                        typename oracles_component::result_type oracles_output = oracles_component::generate_circuit(bp, assignment, oracles_params, row);
                         row += oracles_component::rows_amount;
 
-                        std::array<var, f_comm_msm_size> f_comm_scalars;
+                        std::vector<var> f_comm_scalars(f_comm_msm_size);
                         std::size_t f_comm_idx = 0;
 
-                        var zkp = zkpm_evaluate_component::generate_circuit(bp, assignment,
+                        var zkp= zkpm_evaluate_component::generate_circuit(bp, assignment,
                                                                             {params.verifier_index.omega,
                                                                              params.verifier_index.domain_size,
                                                                              oracles_output.oracles.zeta},
@@ -218,14 +219,14 @@ namespace nil {
                             index_terms_scalars_component::generate_circuit(
                                 bp, assignment,
                                 {oracles_output.oracles.zeta, oracles_output.oracles.alpha, params.fq_output.beta,
-                                 params.fq_output.gamma, params.fq_output.joint_combiner, oracles_output.combined_evals,
+                                 params.fq_output.gamma, oracles_output.joint_combiner, oracles_output.combined_evals,
                                  params.verifier_index.omega, params.verifier_index.domain_size},
                                 row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
 
                         for (std::size_t i = 0; i < index_scalars.size(); i++) {
-                            f_comm_scalars[f_comm_idx++] = index_scalars[i];
+                            f_comm_scalars[f_comm_idx + i] = index_scalars[i];
                         }
 
                         var zeta_to_srs_len = oracles_output.powers_of_eval_points_for_chunks[0];
@@ -257,7 +258,7 @@ namespace nil {
                         auto oracles_output = oracles_component::generate_assignments(assignment, oracles_params, row);
                         row += oracles_component::rows_amount;
 
-                        std::array<var, f_comm_msm_size> f_comm_scalars;
+                        std::vector<var> f_comm_scalars(f_comm_msm_size);
                         std::size_t f_comm_idx = 0;
                         var zkp = zkpm_evaluate_component::generate_assignments(assignment,
                                                                                 {params.verifier_index.omega,
@@ -300,13 +301,13 @@ namespace nil {
                             index_terms_scalars_component::generate_assignments(
                                 assignment,
                                 {oracles_output.oracles.zeta, oracles_output.oracles.alpha, params.fq_output.beta,
-                                 params.fq_output.gamma, params.fq_output.joint_combiner, oracles_output.combined_evals,
+                                 params.fq_output.gamma, oracles_output.joint_combiner, oracles_output.combined_evals,
                                  params.verifier_index.omega, params.verifier_index.domain_size},
                                 row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
                         for (std::size_t i = 0; i < index_scalars.size(); i++) {
-                            f_comm_scalars[f_comm_idx] = index_scalars[i];
+                            f_comm_scalars[f_comm_idx + i] = index_scalars[i];
                         }
 
                         var zeta_to_srs_len = oracles_output.powers_of_eval_points_for_chunks[0];

@@ -37,10 +37,6 @@
 #include <nil/crypto3/zk/assignment/plonk.hpp>
 #include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
-#include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
 namespace nil {
     namespace crypto3 {
@@ -50,6 +46,7 @@ namespace nil {
                 template<size_t num_squeezes,
                          typename ArithmetizationType,
                          typename CurveType,
+                         typename KimchiParamsType,
                          std::size_t... WireIndexes>
                 class aux_fr;
 
@@ -57,6 +54,7 @@ namespace nil {
                          size_t num_squeezes,
                          typename ArithmetizationParams,
                          typename CurveType,
+                         typename KimchiParamsType,
                          std::size_t W0,
                          std::size_t W1,
                          std::size_t W2,
@@ -76,6 +74,7 @@ namespace nil {
                     num_squeezes,
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                     CurveType,
+                    KimchiParamsType,
                     W0, W1, W2, W3,
                     W4, W5, W6, W7,
                     W8, W9, W10, W11,
@@ -84,34 +83,16 @@ namespace nil {
                     typedef snark::plonk_constraint_system<BlueprintFieldType,
                         ArithmetizationParams> ArithmetizationType;
 
-                    constexpr static std::size_t public_input_size = 3;
-
-                    constexpr static std::size_t witness_columns = 15;
-                    constexpr static std::size_t perm_size = 7;
-
-                    constexpr static const std::size_t eval_rounds = 1;
-                    constexpr static const std::size_t max_poly_size = 1;
-                    constexpr static const std::size_t srs_len = 1;
-                    constexpr static const std::size_t prev_chal_size = 1; 
-
-                    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size,
-                            srs_len>;
-                    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-
-                    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
-                        witness_columns, perm_size>;
-                    using kimchi_params = zk::components::kimchi_params_type<CurveType, commitment_params, circuit_description,
-                        public_input_size, prev_chal_size>;
-
                     using var = snark::plonk_variable<BlueprintFieldType>;
                     using transcript_type =
-                        zk::components::kimchi_transcript_fr<ArithmetizationType, CurveType, kimchi_params, W0, W1, W2, W3, W4, W5, W6, 
+                        zk::components::kimchi_transcript_fr<ArithmetizationType, CurveType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, 
                                                                             W7, W8, W9, W10, W11, W12, W13, W14>;
 
                 public:
                     constexpr static const std::size_t selector_seed = 0x0fd7;
                     constexpr static const std::size_t rows_amount = 100;
                     constexpr static const std::size_t gates_amount = 0;
+                    constexpr static const std::size_t state_size = transcript_type::state_size;
 
                     struct params_type {
                         std::vector<var> input;
@@ -120,7 +101,8 @@ namespace nil {
 
                     struct result_type {
                         var squeezed = var(0, 0, false);
-                        result_type(var &input) : squeezed(input) {}
+                        std::array<var, transcript_type::state_size> state = {var(0, 1, false), var(0, 2, false), var(0, 3, false)};
+                        result_type(var first, std::array<var, transcript_type::state_size> second) : squeezed(first), state(second) {}
                         // result_type(const params_type &params, const std::size_t &start_row_index) {
                         //     squeezed = var(W6, start_row_index + rows_amount - 1, false, var::column_type::witness);
                         // }
@@ -140,12 +122,13 @@ namespace nil {
                             transcript.absorb_circuit(bp, assignment, params.input[i], row);
                             row += transcript_type::absorb_rows;
                         }
-                        var sq;
+                        var sq = params.zero;
                         for (size_t i = 0; i < num_squeezes; ++i) {
                             sq = transcript.challenge_circuit(bp, assignment, row);
                             row += transcript_type::challenge_rows;
                         }
-                        return {sq};
+                        std::array<var, transcript_type::state_size> state = transcript.state();
+                        return {sq, state};
                     }
 
                     static result_type generate_assignments(
@@ -162,12 +145,13 @@ namespace nil {
                             transcript.absorb_assignment(assignment, params.input[i], row);
                             row += transcript_type::absorb_rows;
                         }
-                        var sq;
+                        var sq = params.zero;
                         for (size_t i = 0; i < num_squeezes; ++i) {
                             sq = transcript.challenge_assignment(assignment, row);
                             row += transcript_type::challenge_rows;
                         }
-                        return {sq};
+                        std::array<var, transcript_type::state_size> state = transcript.state();
+                        return {sq, state};
                     }
 
                     static void generate_gates(

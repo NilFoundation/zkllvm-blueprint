@@ -77,8 +77,8 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<var, PointsAmount> scalars;
-                        std::array<var_ec_point, PointsAmount> bases;
+                        std::vector<var> scalars = std::vector<var>(PointsAmount);
+                        std::vector<var_ec_point> bases = std::vector<var_ec_point>(PointsAmount);
                     };
 
                     struct result_type {
@@ -95,6 +95,10 @@ namespace nil {
                                          const std::size_t start_row_index) {
 
                         std::size_t row = start_row_index;
+
+                        assert(params.scalars.size() == PointsAmount);
+                        assert(params.bases.size() == PointsAmount);
+                        
                         std::array<var, 2> res;
                         for (std::size_t i = 0; i < PointsAmount; i++) {
                             auto multiplied = scalar_mul_component::generate_circuit(

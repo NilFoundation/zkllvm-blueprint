@@ -74,6 +74,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
                                                                             11, 12, 13, 14>;
 
     std::vector<typename BlueprintFieldType::value_type> scalars;
+    std::vector<var> scalars_var(InputSize);
     for (int i = 0; i < InputSize; ++i) {
         if (i == 0) {
             scalars.push_back(1);
@@ -123,17 +124,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     std::vector<typename BlueprintFieldType::value_type> public_input;
     for (int i = 0; i < InputSize; ++i) {
         public_input.push_back(scalars[i]);
-    }
-    for (int i = 0; i < InputSize; ++i) {
-        public_input.push_back(expected_res[i]);
+        scalars_var[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
     }
 
-    typename component_type::params_type params;
-
-    for (std::size_t i = 0; i < InputSize; i++) {
-        params.scalars[i] = var(0, i, false, var::column_type::public_input);
-    }
-
+    typename component_type::params_type params = {
+        scalars_var};
 
     auto result_check = [&expected_res](AssignmentType &assignment,
         component_type::result_type &real_res) {

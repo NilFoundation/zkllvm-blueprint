@@ -1,6 +1,5 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
-// Copyright (c) 2022 Polina Chernyshova <pockvokhbtra@nil.foundation>
 //
 // MIT License
 //
@@ -23,43 +22,46 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PROOF_SYSTEM_CIRCUIT_DESCRIPTION_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PROOF_SYSTEM_CIRCUIT_DESCRIPTION_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_MESSAGES_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_MESSAGES_HPP
+
+#include <nil/marshalling/algorithms/pack.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
+
 namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
-                template<typename IndexTermsList, std::size_t WitnessColumns, std::size_t PermutSize>
-                struct kimchi_circuit_description {
-                    using index_terms_list = IndexTermsList;
 
-                    static const std::size_t witness_columns = WitnessColumns;
-                    static const std::size_t permut_size = PermutSize;
+                // TODO: link
+                template<typename FieldType>
+                struct messages_for_next_step_proof_type {
+                    using var = snark::plonk_variable<FieldType>;
+                    using var_ec_point = typename zk::components::var_ec_point<FieldType>;
 
-                    static const std::size_t alpha_powers_n = index_terms_list::alpha_powers_n;
+                    app_state_type<FieldType> app_state;
+                    std::vector<var> old_bulletproof_challenges; 
+                    std::vector<var_ec_point> challenge_polynomial_commitments;         
+                };
 
-                    static const bool poseidon_gate = index_terms_list::poseidon_gate;
-                    static const bool ec_arithmetic_gates = index_terms_list::ec_arithmetic_gates;
-                    static const bool chacha_gate = index_terms_list::chacha_gate;
-                    static const bool generic_gate = index_terms_list::generic_gate;
+                // TODO: link
+                template<typename FieldType>
+                struct messages_for_next_wrap_proof_type {
+                    using var = snark::plonk_variable<FieldType>;
+                    using var_ec_point = typename zk::components::var_ec_point<FieldType>;
 
-                    static const std::size_t poseidon_gates_count = index_terms_list::poseidon_gates_count;
-                    static const std::size_t ec_arithmetic_gates_count = index_terms_list::ec_arithmetic_gates_count;
-
-                    static const bool use_lookup = index_terms_list::lookup_columns > 0;
-                    static const bool joint_lookup = index_terms_list::joint_lookup;
-                    static const std::size_t lookup_columns = index_terms_list::lookup_columns;
-                    static const bool lookup_runtime = index_terms_list::lookup_runtime;
+                    var_ec_point challenge_polynomial_commitment;
+                    std::vector<var> old_bulletproof_challenges; 
                 };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PROOF_SYSTEM_CIRCUIT_DESCRIPTION_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_MESSAGES_HPP

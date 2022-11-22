@@ -1,6 +1,5 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
-// Copyright (c) 2022 Polina Chernyshova <pockvokhbtra@nil.foundation>
 //
 // MIT License
 //
@@ -23,8 +22,10 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PROOF_SYSTEM_CIRCUIT_DESCRIPTION_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PROOF_SYSTEM_CIRCUIT_DESCRIPTION_HPP
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_PLONK_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_PLONK_HPP
+
+#include <nil/marshalling/algorithms/pack.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
@@ -35,31 +36,28 @@ namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
-                template<typename IndexTermsList, std::size_t WitnessColumns, std::size_t PermutSize>
-                struct kimchi_circuit_description {
-                    using index_terms_list = IndexTermsList;
 
-                    static const std::size_t witness_columns = WitnessColumns;
-                    static const std::size_t permut_size = PermutSize;
+                // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/composition_types/composition_types.ml#L34-L65
+                template<typename FieldType>
+                struct pickles_plonk {
+                    using var = snark::plonk_variable<FieldType>;
 
-                    static const std::size_t alpha_powers_n = index_terms_list::alpha_powers_n;
+                    // { alpha : 'scalar_challenge
+                    // ; beta : 'challenge
+                    // ; gamma : 'challenge
+                    // ; zeta : 'scalar_challenge
+                    // ; joint_combiner : 'scalar_challenge option
+                    // }
 
-                    static const bool poseidon_gate = index_terms_list::poseidon_gate;
-                    static const bool ec_arithmetic_gates = index_terms_list::ec_arithmetic_gates;
-                    static const bool chacha_gate = index_terms_list::chacha_gate;
-                    static const bool generic_gate = index_terms_list::generic_gate;
-
-                    static const std::size_t poseidon_gates_count = index_terms_list::poseidon_gates_count;
-                    static const std::size_t ec_arithmetic_gates_count = index_terms_list::ec_arithmetic_gates_count;
-
-                    static const bool use_lookup = index_terms_list::lookup_columns > 0;
-                    static const bool joint_lookup = index_terms_list::joint_lookup;
-                    static const std::size_t lookup_columns = index_terms_list::lookup_columns;
-                    static const bool lookup_runtime = index_terms_list::lookup_runtime;
+                    var alpha;
+                    var beta;
+                    var gamma;
+                    var zeta;
+                    var joint_combiner;
                 };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PROOF_SYSTEM_CIRCUIT_DESCRIPTION_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_PLONK_HPP

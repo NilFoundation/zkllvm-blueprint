@@ -84,7 +84,7 @@ namespace nil {
                     using index_terms_list = typename KimchiParamsType::circuit_params::index_terms_list;
                     using constant_term_component =
                         zk::components::rpn_expression<ArithmetizationType, KimchiParamsType,
-                                                       index_terms_list::constatnt_term_rows, W0, W1, W2, W3, W4, W5,
+                                                       index_terms_list::constant_term_rows, W0, W1, W2, W3, W4, W5,
                                                        W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     constexpr static const std::size_t selector_seed = 0x0f22;
@@ -242,7 +242,7 @@ namespace nil {
 
                         // ft_eval0 - p_eval[0]
                         if (KimchiParamsType::public_input_size > 0) {
-                            var ft_eval0 = zk::components::generate_circuit<sub_component>(bp, 
+                            ft_eval0 = zk::components::generate_circuit<sub_component>(bp, 
                                 assignment, {ft_eval0, params.public_eval[0]}, row).output;
                             row += sub_component::rows_amount;
                         }
@@ -463,7 +463,7 @@ namespace nil {
 
                         // ft_eval0 - p_eval[0]
                         if (KimchiParamsType::public_input_size > 0) {
-                            var ft_eval0 = sub_component::generate_assignments(
+                            ft_eval0 = sub_component::generate_assignments(
                                 assignment, {ft_eval0, params.public_eval[0]}, row).output;
                             row += sub_component::rows_amount;
                         }
