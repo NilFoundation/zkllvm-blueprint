@@ -280,9 +280,10 @@ namespace nil {
                                                   const params_type params,
                                                   const std::size_t start_row_index) {
 
+                        result_type res = result_type(start_row_index);
                         
-                        bp.add_copy_constraint({{W4, start_row_index + rows_amount - 1, false}, {0, 1, false, var::column_type::constant}});
-                        bp.add_copy_constraint({{W5, start_row_index + rows_amount - 1, false}, {0, 1, false, var::column_type::constant}});
+                        bp.add_copy_constraint({res.output.X, {0, 1, false, var::column_type::constant}});
+                        bp.add_copy_constraint({res.output.Y, {0, 1, false, var::column_type::constant}});
                     }
 
                     static void generate_assignments_constant(
