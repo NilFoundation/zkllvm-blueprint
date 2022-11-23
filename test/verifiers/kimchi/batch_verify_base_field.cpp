@@ -633,13 +633,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     unsigned long least_x_64bits, small_x_64bits, big_x_64bits, biggest_x_64bits, least_y_64bits, small_y_64bits, big_y_64bits, biggest_y_64bits;
 
-    std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_g_points.txt");
-        if (file) {
+    std::ifstream file_ec_g_points("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_g_points.txt");
+        if (file_ec_g_points) {
             std::size_t i = 0;
             while(true) {
                 
-                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
-                if (file.eof()) {
+                file_ec_g_points >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
+                if (file_ec_g_points.eof()) {
                     break;
                 }
 
@@ -836,15 +836,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
     typename curve_type::scalar_field_type::integral_type integral_scalar;
     typename curve_type::base_field_type::value_type current_base_field_scalar;
 
-    std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_scalars.txt");
-        if (file2) {
+    std::ifstream ec_scalars_file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_ec_scalars.txt");
+        if (ec_scalars_file) {
         std::size_t i = 0;
         while(true){
             
             unsigned long a, b, c, d;
         
-            file2 >> a >> b >> c >> d;
-            if (file.eof()) {
+            ec_scalars_file >> a >> b >> c >> d;
+            if (ec_scalars_file.eof()) {
                     break;
                 }
 
@@ -1044,8 +1044,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     unsigned long least_x_64bits, small_x_64bits, big_x_64bits, biggest_x_64bits, least_y_64bits, small_y_64bits, big_y_64bits, biggest_y_64bits;
 
-    std::ifstream file("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_g_points.txt");
-        if (file) {
+    std::ifstream file_chacha_g("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_chacha_g_points.txt");
+        if (file_chacha_g) {
             
             std::size_t i = 0;
             while(true) {
@@ -1053,8 +1053,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
         
                 
                 
-                file >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
-                if (file.eof()) {
+                file_chacha_g >> least_x_64bits >> small_x_64bits >> big_x_64bits >> biggest_x_64bits >> least_y_64bits >> small_y_64bits >> big_y_64bits >> biggest_y_64bits;
+                if (file_chacha_g.eof()) {
                     break;
                 }
 
@@ -1278,13 +1278,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
     typename curve_type::scalar_field_type::integral_type integral_scalar;
     typename curve_type::base_field_type::value_type current_base_field_scalar;
 
-    std::ifstream file2("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_rust_scalars.txt");
-        if (file2) {
+    std::ifstream file_chacha_scalars("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_chacha_scalars.txt");
+        if (file_chacha_scalars) {
             for (std::size_t i = 0; i < bases_size; i++) {
                 unsigned long a, b, c, d;
         
-                    file2 >> a >> b >> c >> d;
-                    if (file.eof()) {
+                    file_chacha_scalars >> a >> b >> c >> d;
+                    if (file_chacha_scalars.eof()) {
                         break;
                     }
 
