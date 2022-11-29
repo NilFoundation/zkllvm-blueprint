@@ -56,7 +56,7 @@ namespace nil {
                     using var = snark::plonk_variable<FieldType>;
                     using var_ec_point = typename zk::components::var_ec_point<FieldType>;
 
-                    var_ec_point challenge_polynomial_commitment;
+                    std::vector<var_ec_point> challenge_polynomial_commitment;
                     std::vector<var> old_bulletproof_challenges; 
                 };
             }    // namespace components
