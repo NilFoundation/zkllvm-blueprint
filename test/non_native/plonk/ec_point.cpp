@@ -56,10 +56,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 //     constexpr std::size_t witness_columns = 9;
 //     constexpr std::size_t public_input_columns = 1;
 //     constexpr std::size_t constant_columns = 1;
-//     constexpr std::size_t selector_columns = 5;
 //     using ArithmetizationParams =
-//         zk::snark::plonk_arithmetization_params<witness_columns, public_input_columns, constant_columns,
-//         selector_columns>;
+//         zk::snark::plonk_arithmetization_params<witness_columns, public_input_columns, constant_columns>;
 //     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 //     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 //     using hash_type = nil::crypto3::hashes::keccak_1600<256>;

@@ -48,10 +48,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_allocat_rows_test_case) {
     constexpr static const std::size_t witness_columns = 3;
     constexpr static const std::size_t public_input_columns = 0;
     constexpr static const std::size_t constant_columns = 3;
-    constexpr static const std::size_t selector_columns = 1;
 
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<witness_columns, public_input_columns,
-                                                                           constant_columns, selector_columns>;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<witness_columns, public_input_columns, constant_columns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
     zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
