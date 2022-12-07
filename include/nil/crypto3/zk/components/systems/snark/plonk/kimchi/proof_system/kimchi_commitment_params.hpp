@@ -49,7 +49,7 @@ namespace nil {
                     // it
                     constexpr static std::size_t shifted_commitment_split = 1;
                     constexpr static std::size_t max_comm_size = 1;
-                    constexpr static std::size_t w_comm_size = 1;
+                    constexpr static std::size_t t_comm_size = 7;
                 };
             }    // namespace components
         }        // namespace zk

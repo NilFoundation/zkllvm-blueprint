@@ -68,7 +68,7 @@ namespace nil {
 
                     constexpr static std::size_t witness_commitment_size = 1;
                     constexpr static std::size_t z_commitment_size = 1;
-                    constexpr static std::size_t t_commitment_size = 1;
+                    constexpr static std::size_t t_commitment_size = CommitmentParamsType::t_comm_size;
                     constexpr static std::size_t lookup_runtime_commitment_size = 1;
                     constexpr static std::size_t lookup_sorted_commitment_size = 1;
                     constexpr static std::size_t lookup_aggregated_commitment_size = 1;

@@ -88,7 +88,7 @@ namespace nil {
 
                     var_ec_point H;
                     std::vector<var_ec_point> G = std::vector<var_ec_point>(commitment_params_type::srs_len);
-                    std::array<var_ec_point, KimchiParamsType::public_input_size> lagrange_bases;
+                    std::vector<var_ec_point> lagrange_bases = std::vector<var_ec_point>(KimchiParamsType::public_input_size);
                     commitments_type comm;
                 };
             }    // namespace components

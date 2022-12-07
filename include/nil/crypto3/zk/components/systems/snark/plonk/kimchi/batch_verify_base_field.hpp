@@ -40,6 +40,7 @@
 #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/multi_scalar_mul_15_wires.hpp>
 
 #include <nil/crypto3/algebra/random_element.hpp>
+#include <fstream>
 
 namespace nil {
     namespace crypto3 {
@@ -152,11 +153,19 @@ namespace nil {
 
                         bases[bases_idx++] = params.verifier_index.H;
 
+                        // std::cout << "started wtiting into file" << std::endl;
+                        // std::ofstream fout("batch_verify_base_field_hpp.txt");
+                        
+                        // fout << "bases.X[" << 10 + bases_idx - 1 << "] | H   " << assignment.var_value(params.verifier_index.H.X).data << std::endl;
+                        
+
                         for (std::size_t i = 0; i < KimchiCommitmentParamsType::srs_len; i++) {
                             bases[bases_idx++] = params.verifier_index.G[i];
+                        //     fout << "bases.X[" << 10 + bases_idx - 1 << "] | G[i]" << assignment.var_value(params.verifier_index.G[i].X).data << std::endl;
                         }
                         for (std::size_t i = 0; i < padding_size; i++) {
                             bases[bases_idx++] = point_at_infinity;
+                        //     fout << "bases.X[" << 10 + bases_idx - 1 << "] |padd?" << assignment.var_value(point_at_infinity.X).data << std::endl;
                         }
 
                         for (std::size_t i = 0; i < params.proofs.size(); i++) {
@@ -174,10 +183,14 @@ namespace nil {
                             // row); params.proofs[i].transcript.absorb_assignment(assignment,
                             // params.proofs[i].o.delta.y, row);
                             bases[bases_idx++] = params.proofs[i].opening_proof.G;
+                            // fout << "bases.X[" << 10 + bases_idx - 1 << "] | op.G" << assignment.var_value(params.proofs[i].opening_proof.G.X).data << std::endl;
                             bases[bases_idx++] = U;
+                            // fout << "bases.X[" << 10 + bases_idx - 1 << "] | U   " << assignment.var_value(U.X).data << std::endl;
                             for (std::size_t j = 0; j < params.proofs[i].opening_proof.L.size(); j++) {
                                 bases[bases_idx++] = params.proofs[i].opening_proof.L[j];
+                            //     fout << "bases.X[" << 10 + bases_idx - 1 << "] | L[i]" << assignment.var_value(params.proofs[i].opening_proof.L[j].X).data << std::endl;
                                 bases[bases_idx++] = params.proofs[i].opening_proof.R[j];
+                            //     fout << "bases.X[" << 10 + bases_idx - 1 << "] | R[i]" << assignment.var_value(params.proofs[i].opening_proof.R[j].X).data << std::endl;
                             }
                             std::size_t unshifted_size = 0;
 
@@ -185,11 +198,24 @@ namespace nil {
                                 unshifted_size = params.proofs[i].comm[j].parts.size();
                                 for (std::size_t k = 0; k < unshifted_size; k++) {
                                     bases[bases_idx++] = params.proofs[i].comm[j].parts[k];
+                            //         fout << "bases.X[" << 10 + bases_idx - 1 << "] | comm" << assignment.var_value(params.proofs[i].comm[j].parts[k].X).data << std::endl;
                                 }
                             }
                             bases[bases_idx++] = U;
+                            // fout << "bases.X[" << 10 + bases_idx - 1 << "] | U   " << assignment.var_value(U.X).data << std::endl;
                             bases[bases_idx++] = params.proofs[i].opening_proof.delta;
+                            // fout << "bases.X[" << 10 + bases_idx - 1 << "] | delt" << assignment.var_value(params.proofs[i].opening_proof.delta.X).data << std::endl;
                         }
+
+                        // std::cout << "assert(bases_idx == final_msm_size);" << std::endl;
+                        // std::cout << "assert(" << bases_idx << " == " << final_msm_size << ");" << std::endl;
+
+                        // for (std::size_t i = 10; i < final_msm_size + 10; i++) {
+                        //     fout << "scalars[" << i << "] |     " << assignment.var_value(params.fr_output.scalars[i - 10]).data << std::endl;
+                        // }
+
+                        // fout.close();
+                        // std::cout << "writing into the file is finisfed" << std::endl;
 
                         assert(bases_idx == final_msm_size);
 

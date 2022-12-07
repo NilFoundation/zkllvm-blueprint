@@ -237,8 +237,11 @@ namespace nil {
 
                         for (std::size_t k = 0; k < comm.parts.size(); k++) {
                             unshifted_commitments[comm_idx].push_back(comm.parts[k]);
+                            std::cout << "parse_commitments[" << comm_idx << "]: var " << comm.parts[k].X.index << " " << comm.parts[k].X.rotation << " | " << comm.parts[k].Y.index << " " << comm.parts[k].Y.rotation << std::endl;
+                            // std::cout << (unshifted_commitments[comm_idx])[([unshifted_commitments[comm_idx]]).size() - 1].X.index << " " << (unshifted_commitments[comm_idx])[([unshifted_commitments[comm_idx]]).size() - 1].X.rotation << std::endl;
                         }
                         comm_idx++;
+                        // std::cout << "unshifted_commitments[" << comm_idx - 1 << "] parsed: " << unshifted_commitments[comm_idx-1][unshifted_commitments.size()-1].parp.index << " " << unshifted_commitments[comm_idx-1][unshifted_commitments.size()-1].rotation << std::endl;
                     }
 
                     static std::array<std::vector<var_ec_point>, f_comm_base_size>
@@ -247,12 +250,13 @@ namespace nil {
                         std::array<std::vector<var_ec_point>, f_comm_base_size> unshifted_commitments;
                         std::size_t comm_idx = 0;
 
-                        typename proof_type::commitments_type comm = params.proofs[batch_idx].comm;
-                        typename verifier_index_type::commitments_type index_comm = params.verifier_index.comm;
+                        typename proof_type::commitments_type comm = params.proofs[batch_idx].comm; // это у нас тот comm, который структура с сигмой и прочим
+                        typename verifier_index_type::commitments_type index_comm = params.verifier_index.comm; // здесь тоже структура, но из верифаер индекса
 
                         parse_commitments(unshifted_commitments,
                                           params.verifier_index.comm.sigma[KimchiParamsType::permut_size - 1],
                                           comm_idx);
+                        std::cout << "arams.verifier_index.comm.sigma[KimchiParamsType::permut_size - 1]: var " << params.verifier_index.comm.sigma[KimchiParamsType::permut_size - 1].parts[0].X.rotation << std::endl;
 
                         // take generic_size coeff_comm
                         std::array<commitment_type, kimchi_constants::ft_generic_size> generic_comm;
@@ -262,85 +266,108 @@ namespace nil {
 
                         for (std::size_t i = 0; i < kimchi_constants::ft_generic_size; i++) {
                             parse_commitments(unshifted_commitments, generic_comm[i], comm_idx);
+                            std::cout << "generic_comm["<<i<<"]" << generic_comm[i].parts[0].X.rotation << std::endl;
                         }
+                        std::cout << "f_comm_base_size = "  << f_comm_base_size << std::endl;
+                        
 
                         for (std::size_t i = 0; i < index_terms_list::size; i++) {
                             index_term_type term = index_terms_list::terms[i];
                             switch (term.type) {
                                 case column_type::Witness:
                                     parse_commitments(unshifted_commitments, comm.witness[term.index], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "comm.witness[term.index == " << term.index << "] " << std::endl;
                                     break;
                                 case column_type::Coefficient:
                                     parse_commitments(unshifted_commitments, index_comm.coefficient[term.index],
                                                       comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.coefficient[term.index == " << term.index << "] " << std::endl;
                                     break;
                                 case column_type::Z:
                                     parse_commitments(unshifted_commitments, comm.z, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "comm.z " << std::endl;
                                     break;
                                 case column_type::LookupSorted:
                                     parse_commitments(unshifted_commitments, comm.lookup_sorted[term.index], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "comm.lookup_sorted[term.index == " << term.index << "] " << std::endl;
                                     break;
                                 case column_type::LookupAggreg: {
                                     parse_commitments(unshifted_commitments, comm.lookup_agg, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "comm.lookup_agg " << std::endl;
                                     break;
                                 }
                                 case column_type::LookupKindIndex: {
                                     parse_commitments(unshifted_commitments, index_comm.lookup_selectors[term.index],
                                                       comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.lookup_selectors[term.index == " << term.index << "] " << std::endl;
                                     break;
                                 }
                                 case column_type::LookupRuntimeSelector: {
                                     parse_commitments(unshifted_commitments, index_comm.runtime_tables_selector,
                                                       comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.runtime_tables_selector " << std::endl;
                                     break;
                                 }
                                 case column_type::CompleteAdd: {
                                     parse_commitments(unshifted_commitments, index_comm.complete_add, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.complete_add " << std::endl;
                                     break;
                                 }
                                 case column_type::VarBaseMul: {
                                     parse_commitments(unshifted_commitments, index_comm.var_base_mul, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.var_base_mul " << std::endl;
                                     break;
                                 }
                                 case column_type::EndoMul: {
                                     parse_commitments(unshifted_commitments, index_comm.endo_mul, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.endo_mul " << std::endl;
                                     break;
                                 }
                                 case column_type::EndoMulScalar: {
                                     parse_commitments(unshifted_commitments, index_comm.endo_mul_scalar, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.endo_mul_scalar " << std::endl;
                                     break;
                                 }
                                 case column_type::Poseidon: {
                                     parse_commitments(unshifted_commitments, index_comm.psm, comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.psm " << std::endl;
                                     break;
                                 }
                                 case column_type::ChaCha0: {
                                     parse_commitments(unshifted_commitments, index_comm.chacha[0], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.chacha[0] " << std::endl;
                                     break;
                                 }
                                 case column_type::ChaCha1: {
                                     parse_commitments(unshifted_commitments, index_comm.chacha[1], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.chacha[1] " << std::endl;
                                     break;
                                 }
                                 case column_type::ChaCha2: {
                                     parse_commitments(unshifted_commitments, index_comm.chacha[2], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.chacha[2] " << std::endl;
                                     break;
                                 }
                                 case column_type::ChaChaFinal: {
                                     parse_commitments(unshifted_commitments, index_comm.chacha[3], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.chacha[3] " << std::endl;
                                     break;
                                 }
                                 case column_type::RangeCheck0: {
                                     parse_commitments(unshifted_commitments, index_comm.range_check[0], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.range_check[0] " << std::endl;
                                     break;
                                 }
                                 case column_type::RangeCheck1: {
                                     parse_commitments(unshifted_commitments, index_comm.range_check[1], comm_idx);
+                                    std::cout << "parse[" << i << "]: " <<  "index_comm.range_check[1] " << std::endl;
                                     break;
                                 }
                                 case column_type::LookupTable:
+                                    std::cout << "break[" << i << "]: " <<  "LookupTable " << std::endl;
                                     break;
                                 case column_type::LookupRuntimeTable:
+                                    std::cout << "break[" << i << "]: " <<  "LookupRuntimeTable " << std::endl;
                                     break;
                             }
                         }
@@ -350,10 +377,11 @@ namespace nil {
                         return unshifted_commitments;
                     }
 
-                public:
+                public://////////////////////
                     static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
                                                             const params_type &params,
                                                             std::size_t start_row_index) {
+                        bool print_evaluations = false;
                         std::size_t row = start_row_index;
                         std::vector<batch_proof_type> batch_proofs(BatchSize);
                         var zero(0, row, false, var::column_type::constant);
@@ -472,29 +500,44 @@ namespace nil {
                                         scalars[k] = zero;
                                     }
                                 }
+/*                                std::cout << "started wtiting f_comm into file" << std::endl;
+                                std::ofstream fout("f_comm_cpp.txt");
+
+                                for (std::size_t i = 0; i < bases.size(); i++) {
+                                    fout << "f_comm_bases.X[" << 10+i << "]: " << assignment.var_value(bases[i].X).data << "\n";
+                                }
+                                
+                                for (std::size_t i = 0; i < scalars.size(); i++) {
+                                    fout << "f_comm_scalars[" << 10+i << "]: " << assignment.var_value(scalars[i]).data << std::endl;
+                                }
+
+                                fout.close();
+                                std::cout << "writing f_comm into the file is finisfed" << std::endl;
+
+*/
                                 auto res = msm_component::generate_assignments(assignment, {scalars, bases}, row);
                                 f_comm[j] = {res.output.X, res.output.Y};
                                 row += msm_component::rows_amount;
                             }
 
-                            // chuncked_f_comm
-                            var_ec_point chuncked_f_comm = {zero, zero};
+                            // chunked_f_comm
+                            var_ec_point chunked_f_comm = {zero, zero};
 
                             for (std::size_t j = 0; j < f_comm.size(); j++) {
                                 auto res0 = scalar_mul_component::generate_assignments(
                                     assignment,
-                                    {{chuncked_f_comm.X, chuncked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
+                                    {{chunked_f_comm.X, chunked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
                                 row += scalar_mul_component::rows_amount;
                                 auto res1 = add_component::generate_assignments(
                                     assignment, {{res0.X, res0.Y}, {f_comm[j].X, f_comm[j].Y}}, row);
                                 row += add_component::rows_amount;
-                                chuncked_f_comm = {res1.X, res1.Y};
+                                chunked_f_comm = {res1.X, res1.Y};
                             }
 
                             // chunked_t_comm
                             var_ec_point chunked_t_comm = {zero, zero};
-                            ;
-                            for (std::size_t j = 0; j < params.proofs[i].comm.t.parts.size(); j++) {
+                            std::size_t t_parts_size = params.proofs[i].comm.t.parts.size();
+                            for (std::size_t j = 0; j < t_parts_size; j++) {
                                 auto res0 = scalar_mul_component::generate_assignments(
                                     assignment,
                                     {{chunked_t_comm.X, chunked_t_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
@@ -503,7 +546,7 @@ namespace nil {
                                 auto res1 = add_component::generate_assignments(
                                     assignment,
                                     {{res0.X, res0.Y},
-                                     {params.proofs[i].comm.t.parts[j].X, params.proofs[i].comm.t.parts[j].Y}},
+                                     {params.proofs[i].comm.t.parts[t_parts_size - 1 - j].X, params.proofs[i].comm.t.parts[t_parts_size - 1 - j].Y}},
                                     row);
                                 row += add_component::rows_amount;
                                 chunked_t_comm = {res1.X, res1.Y};
@@ -527,7 +570,7 @@ namespace nil {
 
                             auto ft_comm_part = add_component::generate_assignments(
                                 assignment,
-                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chuncked_f_comm.X, chuncked_f_comm.Y}},
+                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chunked_f_comm.X, chunked_f_comm.Y}},
                                 row);
                             row += add_component::rows_amount;
                             commitment_type ft_comm = {{{ft_comm_part.X, ft_comm_part.Y}}};
@@ -543,6 +586,7 @@ namespace nil {
                             std::size_t eval_idx = 0;
 
                             for (auto chal : params.proofs[i].comm.prev_challenges) {
+                                if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.proofs[i].comm.prev_challenges" << std::endl;
                                 evaluations[eval_idx++] = chal;
                             }
 
@@ -550,28 +594,39 @@ namespace nil {
                             for (std::size_t j = 1;
                                  j < KimchiParamsType::commitment_params_type::shifted_commitment_split;
                                  j++) {
+                                if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: ft_comm.parts[j]" << std::endl;
                                 ft_comm.parts[j] = {zero, zero};
                             }
+                            if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: p_comm" << std::endl;
                             evaluations[eval_idx++] = p_comm;
+                            if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: ft_comm" << std::endl;
                             evaluations[eval_idx++] = ft_comm;
+                            if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.proofs[i].comm.z" << std::endl;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
+                            if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.verifier_index.comm.generic" << std::endl;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;
+                            if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.verifier_index.comm.psm" << std::endl;
                             evaluations[eval_idx++] = params.verifier_index.comm.psm;
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
+                                if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.proofs[i].comm.witness[j]" << std::endl;
                                 evaluations[eval_idx++] = params.proofs[i].comm.witness[j];
                             }
                             for (std::size_t j = 0; j < params.verifier_index.comm.sigma.size() - 1; j++) {
+                                if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.verifier_index.comm.sigma[j]" << std::endl;
                                 evaluations[eval_idx++] = params.verifier_index.comm.sigma[j];
                             }
 
                             if (KimchiParamsType::circuit_params::use_lookup) {
                                 for (std::size_t j = 0; j < params.proofs[i].comm.lookup_sorted.size(); j++) {
+                                    if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.proofs[i].comm.lookup_sorted[j]" << std::endl;
                                     evaluations[eval_idx++] = params.proofs[i].comm.lookup_sorted[j];
                                 }
 
+                                if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.proofs[i].comm.lookup_agg" << std::endl;
                                 evaluations[eval_idx++] = params.proofs[i].comm.lookup_agg;
 
+                                if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: table_comm" << std::endl;
                                 evaluations[eval_idx++] = {{ table_comm_component::generate_assignments(
                                                               assignment,
                                                               {params.verifier_index.comm.lookup_table, params.fr_data.joint_combiner_powers_prepared,
@@ -579,17 +634,20 @@ namespace nil {
                                                               row)
                                                               .output }};
                                 row += table_comm_component::rows_amount;
+                                std::cout << "table_comm: " << row << std::endl;
 
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {
+                                    if (print_evaluations) std::cout << "evaluations[" << eval_idx << "]: params.proofs[i].comm.lookup_runtime" << std::endl;
                                     evaluations[eval_idx++] = params.proofs[i].comm.lookup_runtime;
                                 }
                             }
 
+                            
                             assert(eval_idx == kimchi_constants::evaluations_in_batch_size);
 
                             batch_proof_type p = {{evaluations}, params.proofs[i].o, transcript};
 
-                            batch_proofs[i] = p;
+                            batch_proofs[i] = p; // вектор длины 1
                         }
                         typename batch_verify_component::params_type batch_params = {
                             batch_proofs, params.verifier_index, params.fr_data};
@@ -599,10 +657,14 @@ namespace nil {
                         typename proof_binding::template fq_data<var> fq_data_recalculated;
                         map_fq_component::generate_assignments(assignment, {params.fq_data, fq_data_recalculated}, row);
                         row += map_fq_component::rows_amount;
+                        std::cout << "map_fq: " << row << std::endl;
 
+                        std::cout << "assert(row == start_row_index + rows_amount);" << std::endl;
+                        std::cout << "assert(" << row << " == " << start_row_index << " + " << rows_amount << ");" << std::endl;
                         assert(row == start_row_index + rows_amount);
+                        std::cout << "row = " << start_row_index << " + " << rows_amount << std::endl;
                         return result_type(start_row_index);
-                    }
+                    }///////////////////////
 
                     static result_type
                         generate_circuit(blueprint<ArithmetizationType> &bp,
@@ -627,8 +689,6 @@ namespace nil {
                                     bp, assignment, {neg_pub, lagrange_bases}, row)
                                     .output;
                             row = row + lagrange_msm_component::rows_amount;
-
-                            std::size_t row_tmp = row;
 
                             // Oracles
                             transcript_type transcript;
@@ -733,24 +793,24 @@ namespace nil {
                                 row += msm_component::rows_amount;
                             }
 
-                            // chuncked_f_comm
-                            var_ec_point chuncked_f_comm = {zero, zero};
+                            // chunked_f_comm
+                            var_ec_point chunked_f_comm = {zero, zero};
 
                             for (std::size_t j = 0; j < f_comm.size(); j++) {
                                 auto res0 = scalar_mul_component::generate_circuit(
                                     bp, assignment,
-                                    {{chuncked_f_comm.X, chuncked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
+                                    {{chunked_f_comm.X, chunked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
                                 row += scalar_mul_component::rows_amount;
                                 auto res1 = zk::components::generate_circuit<add_component>(
                                     bp, assignment, {{res0.X, res0.Y}, {f_comm[j].X, f_comm[j].Y}}, row);
                                 row += add_component::rows_amount;
-                                chuncked_f_comm = {res1.X, res1.Y};
+                                chunked_f_comm = {res1.X, res1.Y};
                             }
 
                             // chunked_t_comm
                             var_ec_point chunked_t_comm = {zero, zero};
-                            ;
-                            for (std::size_t j = 0; j < params.proofs[i].comm.t.parts.size(); j++) {
+                            std::size_t t_parts_size = params.proofs[i].comm.t.parts.size();
+                            for (std::size_t j = 0; j < t_parts_size; j++) {
                                 auto res0 = scalar_mul_component::generate_circuit(
                                     bp, assignment,
                                     {{chunked_t_comm.X, chunked_t_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
@@ -759,7 +819,7 @@ namespace nil {
                                 auto res1 = zk::components::generate_circuit<add_component>(
                                     bp, assignment,
                                     {{res0.X, res0.Y},
-                                     {params.proofs[i].comm.t.parts[j].X, params.proofs[i].comm.t.parts[j].Y}},
+                                     {params.proofs[i].comm.t.parts[t_parts_size - 1 - j].X, params.proofs[i].comm.t.parts[t_parts_size - 1 - j].Y}},
                                     row);
                                 row += add_component::rows_amount;
                                 chunked_t_comm = {res1.X, res1.Y};
@@ -783,7 +843,7 @@ namespace nil {
 
                             auto ft_comm_part = zk::components::generate_circuit<add_component>(
                                 bp, assignment,
-                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chuncked_f_comm.X, chuncked_f_comm.Y}},
+                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chunked_f_comm.X, chunked_f_comm.Y}},
                                 row);
                             row += add_component::rows_amount;
                             commitment_type ft_comm = {{{ft_comm_part.X, ft_comm_part.Y}}};
@@ -839,6 +899,9 @@ namespace nil {
                                 }
                             }
 
+                            std::cout << "assert(eval_idx == kimchi_constants::evaluations_in_batch_size);" << std::endl;
+                            std::cout << "assert(" << eval_idx << " == " << kimchi_constants::evaluations_in_batch_size << ");" << std::endl;
+
                             assert(eval_idx == kimchi_constants::evaluations_in_batch_size);
 
                             batch_proof_type p = {{evaluations}, params.proofs[i].o, transcript};
@@ -853,6 +916,9 @@ namespace nil {
                         typename proof_binding::template fq_data<var> fq_data_recalculated;
                         map_fq_component::generate_circuit(bp, assignment, {params.fq_data, fq_data_recalculated}, row);
                         row += map_fq_component::rows_amount;
+
+                        std::cout << "assert(row == start_row_index + rows_amount);" << std::endl;
+                        std::cout << "assert(" << row << " == " << start_row_index << " + " << rows_amount << ");" << std::endl;
 
                         assert(row == start_row_index + rows_amount);
 
