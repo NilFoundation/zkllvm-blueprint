@@ -79,6 +79,7 @@ set(PLONK_TESTS_FILES
     "algebra/curves/plonk/variable_base_endo_scalar_mul"
     "algebra/curves/plonk/endo_scalar"
     "algebra/curves/plonk/multi_scalar_multiplication"
+    "algebra/curves/plonk/derive_plonk" 
     "hashes/plonk/poseidon"
     "hashes/plonk/sha256"
     "hashes/plonk/sha512"
