@@ -97,8 +97,8 @@ namespace nil {
                         std::vector<var> output = std::vector<var>(InputSize);
 
                         result_type (std::size_t row) {
-                            for (std::size_t i = row; i < InputSize; i++) {
-                                output[i] = var(W2, (rows_amount_if_InputSize_is_1 - 1) + i * rows_amount_if_InputSize_is_1);
+                            for (std::size_t i = 0; i < InputSize; i++) {
+                                output[i] = var(W2, row + (rows_amount_if_InputSize_is_1 - 1) + i * rows_amount_if_InputSize_is_1);
                             }
                         }
                     };
@@ -125,7 +125,7 @@ namespace nil {
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
 
-                           var b_shift_curve_dependent_interm = zk::components::generate_circuit<add_component>(bp, assignment, {params.scalars[i], shift_curve_dependent}, row).output;
+                            var b_shift_curve_dependent_interm = zk::components::generate_circuit<add_component>(bp, assignment, {params.scalars[i], shift_curve_dependent}, row).output;
                             row += add_component::rows_amount;
                             var b_shift_curve_dependent        = zk::components::generate_circuit<mul_component>(bp, assignment, {b_shift_curve_dependent_interm, coef_curve_dependent}, row).output;
                             row += mul_component::rows_amount;
@@ -152,7 +152,6 @@ namespace nil {
                             var true_if_0 = zk::components::generate_circuit<sub_component>(bp, assignment, {one, true_if_not_0}, row).output;
                             row += sub_component::rows_amount;
                             
-
                             var b_minus_neg1 = zk::components::generate_circuit<add_component>(bp, assignment, {params.scalars[i], one}, row).output;
                             row += add_component::rows_amount;
                             var b_minus_neg1_inversed = zk::components::generate_circuit<div_or_zero_component>(bp, assignment, {one, b_minus_neg1}, row).output;

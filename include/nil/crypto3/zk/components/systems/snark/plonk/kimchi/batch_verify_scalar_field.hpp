@@ -78,6 +78,7 @@ namespace nil {
                     using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
                     using add_component = zk::components::addition<ArithmetizationType, W0, W1, W2>;
                     using mul_by_const_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
+                    using division_or_zero_component = zk::components::division_or_zero<ArithmetizationType, W0, W1, W2, W4, W5>;
 
                     using random_component =
                         zk::components::random<ArithmetizationType, KimchiParamsType, BatchSize, W0, W1, W2, W3, W4, W5,
@@ -124,7 +125,7 @@ namespace nil {
                             for (std::size_t j = 0; j < eval_rounds; j++) {
                                 row += endo_scalar_component::rows_amount;
 
-                                row += sub_component::rows_amount;
+                                row += division_or_zero_component::rows_amount;
                             }
 
                             row += endo_scalar_component::rows_amount;
@@ -220,11 +221,9 @@ namespace nil {
 
                         std::vector<var> scalars(scalars_len());
                         std::size_t scalar_idx = KimchiCommitmentParamsType::srs_len
-                            + kimchi_constants::srs_padding_size();
+                            + kimchi_constants::srs_padding_size() + 1;
 
-                        for (std::size_t i = 0;
-                             i < KimchiCommitmentParamsType::srs_len + kimchi_constants::srs_padding_size();
-                             i++) {
+                        for (std::size_t i = 0; i < scalar_idx; i++) {
                             scalars[i] = zero;
                         }
 
@@ -240,7 +239,6 @@ namespace nil {
 
                         for (std::size_t batch_id = 0; batch_id < params.batches.size(); batch_id++) {
                             var cip = params.batches[batch_id].cip;
-
                             std::array<std::array<var, eval_rounds>, 2> challenges;
                             for (std::size_t j = 0; j < eval_rounds; j++) {
                                 challenges[0][j] =
@@ -249,10 +247,8 @@ namespace nil {
                                         .output;
                                 row += endo_scalar_component::rows_amount;
 
-                                challenges[1][j] = zk::components::generate_circuit<sub_component>(
-                                                       bp, assignment, {zero, challenges[0][j]}, row)
-                                                       .output;
-                                row += sub_component::rows_amount;
+                                challenges[1][j] = zk::components::generate_circuit<division_or_zero_component>(bp, assignment, {one, challenges[0][j]}, row).output;
+                                row += division_or_zero_component::rows_amount;
                             }
 
                             var c = endo_scalar_component::generate_circuit(bp, assignment,
@@ -285,8 +281,8 @@ namespace nil {
                                 row += mul_component::rows_amount;
                             }
 
-                            std::vector<var> s = b_poly_coeff_component::generate_circuit(bp, assignment, {challenges[0], one}, row)
-                                         .output;
+                            std::vector<var> s(b_poly_coeff_component::polynomial_len);
+                            s = b_poly_coeff_component::generate_circuit(bp, assignment, {challenges[0], one}, row).output;
                             row += b_poly_coeff_component::rows_amount;
 
                             var neg_rand_base_i = zk::components::generate_circuit<mul_by_const_component>(
@@ -306,10 +302,8 @@ namespace nil {
                             row += sub_component::rows_amount;
                             scalars[scalar_idx++] = tmp;
 
-                            for (std::size_t i = 0; i < s.size(); i++) {
-                                var sg_s = zk::components::generate_circuit<mul_component>(bp, assignment,
-                                                                                           {sg_rand_base_i, s[i]}, row)
-                                               .output;
+                            for (std::size_t i = 1; i < s.size() + 1; i++) {
+                                var sg_s = zk::components::generate_circuit<mul_component>(bp, assignment, {sg_rand_base_i, s[i - 1]}, row).output;
                                 row += mul_component::rows_amount;
 
                                 scalars[i] = zk::components::generate_circuit<add_component>(bp, assignment,
@@ -366,33 +360,30 @@ namespace nil {
 
                                     // rand_base_i_c_i * xi_i
                                     scalars[scalar_idx++] = zk::components::generate_circuit<mul_component>(
-                                                                bp, assignment, {xi_i, c_rand_base_i}, row)
-                                                                .output;
+                                                                                bp, assignment, {xi_i, c_rand_base_i}, row).output;
                                     row += mul_component::rows_amount;
 
-                                    xi_i = zk::components::generate_circuit<mul_component>(
-                                               bp, assignment, {xi_i, params.batches[batch_id].xi}, row)
+                                    xi_i = zk::components::generate_circuit<mul_component>(bp, assignment,
+                                                                               {xi_i, params.batches[batch_id].xi}, row)
                                                .output;
                                     row += mul_component::rows_amount;
                                 }
                             }
 
                             // rand_base_i_c_i * combined_inner_product0
-                            scalars[scalar_idx++] = zk::components::generate_circuit<mul_component>(
-                                                        bp, assignment, {cip, c_rand_base_i}, row)
-                                                        .output;
+                            scalars[scalar_idx++] =
+                                zk::components::generate_circuit<mul_component>(bp, assignment, {cip, c_rand_base_i}, row).output;
                             row += mul_component::rows_amount;
 
                             scalars[scalar_idx++] = rand_base_i;
 
-                            rand_base_i = zk::components::generate_circuit<mul_component>(bp, assignment,
-                                                                                          {rand_base_i, rand_base}, row)
-                                              .output;
+                            rand_base_i =
+                               zk::components::generate_circuit<mul_component>(bp, assignment, {rand_base_i, rand_base}, row).output;
                             row += mul_component::rows_amount;
 
-                            sg_rand_base_i = zk::components::generate_circuit<mul_component>(
-                                                 bp, assignment, {sg_rand_base_i, sg_rand_base}, row)
-                                                 .output;
+                            sg_rand_base_i =
+                                zk::components::generate_circuit<mul_component>(bp,assignment, {sg_rand_base_i, sg_rand_base}, row)
+                                    .output;
                             row += mul_component::rows_amount;
                         }
 
@@ -402,15 +393,14 @@ namespace nil {
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
-                        assert(scalar_idx == scalars.size() - 1);
-                        assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize) - 1);
-
+                        assert(scalar_idx == scalars.size());
+                        assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize));
+                        
                         result_type res(start_row_index);
                         for (std::size_t i = 0; i < scalars.size(); ++i) {
                             res.output.push_back(scalars[i]);
                         }
-                        std::cout << "res: " << res.output.size() << "\n";
-                        std::cout << "scal: " << scalars.size() << "\n";
+
                         return res;
                     }
 
@@ -428,11 +418,9 @@ namespace nil {
 
                         std::vector<var> scalars(scalars_len());
                         std::size_t scalar_idx = KimchiCommitmentParamsType::srs_len
-                            + kimchi_constants::srs_padding_size();
+                            + kimchi_constants::srs_padding_size() + 1;
 
-                        for (std::size_t i = 0;
-                             i < KimchiCommitmentParamsType::srs_len + kimchi_constants::srs_padding_size();
-                             i++) {
+                        for (std::size_t i = 0; i < scalar_idx; i++) {
                             scalars[i] = zero;
                         }
 
@@ -458,9 +446,9 @@ namespace nil {
                                 row += endo_scalar_component::rows_amount;
 
                                 challenges[1][j] =
-                                    sub_component::generate_assignments(assignment, {zero, challenges[0][j]}, row)
+                                    division_or_zero_component::generate_assignments(assignment, {one, challenges[0][j]}, row)
                                         .output;
-                                row += sub_component::rows_amount;
+                                row += division_or_zero_component::rows_amount;
                             }
 
                             var c = endo_scalar_component::generate_assignments(
@@ -490,7 +478,8 @@ namespace nil {
                                 row += mul_component::rows_amount;
                             }
 
-                            auto s = b_poly_coeff_component::generate_assignments(assignment, {challenges[0], one}, row)
+                            std::vector<var> s(b_poly_coeff_component::polynomial_len);
+                            s = b_poly_coeff_component::generate_assignments(assignment, {challenges[0], one}, row)
                                          .output;
                             row += b_poly_coeff_component::rows_amount;
 
@@ -508,9 +497,9 @@ namespace nil {
                             row += sub_component::rows_amount;
                             scalars[scalar_idx++] = tmp;
 
-                            for (std::size_t i = 0; i < s.size(); i++) {
+                            for (std::size_t i = 1; i < s.size() + 1; i++) {
                                 var sg_s =
-                                    mul_component::generate_assignments(assignment, {sg_rand_base_i, s[i]}, row).output;
+                                    mul_component::generate_assignments(assignment, {sg_rand_base_i, s[i - 1]}, row).output;
                                 row += mul_component::rows_amount;
 
                                 scalars[i] =
@@ -596,8 +585,9 @@ namespace nil {
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
-                        assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize) - 1);
-
+                        assert(scalar_idx == scalars.size());
+                        assert(scalar_idx == kimchi_constants::final_msm_size(BatchSize));
+                        
                         result_type res(start_row_index);
                         for (std::size_t i = 0; i < scalars.size(); ++i) {
                             res.output.push_back(scalars[i]);

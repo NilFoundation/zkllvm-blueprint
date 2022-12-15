@@ -359,11 +359,11 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 //     typename BlueprintFieldType::value_type alpha =
 //         0x00000000000000000000000000000000919E7EE06FFBFC7EBBDAD14E68BBE21C_cppui256;
 //     typename BlueprintFieldType::value_type zeta =
-//         0x0000000000000000000000000000000075682BC2C8E8E561028A9B44CB52E0AB_cppui256;
+//         0x24A32849C8B99B6CB2D1A514C0EC7B5F5A15799EA2428C6DCA8B332CEACE9DC0_cppui256;
 //     typename BlueprintFieldType::value_type fq_digest =
 //         0x2C85FCC264A1C8E1082E97E5686196CB1A7EF642F7B162EB21723CCCB6344341_cppui256;
         
-//     typename BlueprintFieldType::value_type cip = 0x3F5E1606E8160D4344DE45AD1E7EE9251BFAF143DC919FD43341EA1AFD34A2E3_cppui256;
+//     typename BlueprintFieldType::value_type cip = 0x388DEEF0601DB0933C25593324191E84942675DA8701B0BB504A064BECAE9525_cppui256;
 //     typename BlueprintFieldType::value_type r = 0x2A4D106C58F5A790D319487554375EDCB75B870A5F585D7FF20EF9D71798EBE0_cppui256;
 //     typename BlueprintFieldType::value_type xi = 0x2C7C286ACD0842FE37DA945A743780DB32AE9A57A9048650AD4DDD0886AE650D_cppui256;
 //     typename BlueprintFieldType::value_type c = 0x000000000000000000000000000000009A74364C89BDD646770B260188701C87_cppui256;
@@ -400,7 +400,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 
 //         // std::array<var, eval_rounds> challenges;
 //         for (std::size_t j = 0; j < eval_rounds; j++) {
-//             public_input.emplace_back(challenges[i]);
+//             public_input.emplace_back(challenges[j]);
 //             fq_output.challenges[j] = var(0, public_input.size() - 1, false, var::column_type::public_input);
 //         }
 //         // fq_output.challenges = challenges;
@@ -424,7 +424,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 //         public_input.push_back(fq_digest);
 //         fq_output.fq_digest = var(0, public_input.size() - 1, false, var::column_type::public_input);
 //         // c
-//         public_input.emplace_back(250);
+//         public_input.emplace_back(c);
 //         fq_output.c = var(0, public_input.size() - 1, false, var::column_type::public_input);
 
 //         batches[i].fq_output = fq_output;
@@ -447,13 +447,50 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 
 //     typename component_type::params_type params = {batches};
 
-//     std::vector<typename BlueprintFieldType::value_type> expected_result = chacha_scalars();
+//     std::vector<typename BlueprintFieldType::value_type> expected_result;
+
+//     std::ifstream file_chacha_scalars("../../../../libs/blueprint/test/verifiers/kimchi/test_data_for_batch_verify_base_field_data/test_data_from_chacha_scalars.txt");
+//         if (file_chacha_scalars) {
+//             std::cout << "FILE OK" << std::endl;
+//             std::size_t i = 0;
+//             while (true) {
+//                     unsigned long a, b, c, d;
+
+//                     typename BlueprintFieldType::value_type current_scalar;
+//                     typename BlueprintFieldType::value_type base = 2;
+//                     BlueprintFieldType::integral_type least;
+//                     BlueprintFieldType::integral_type small;
+//                     BlueprintFieldType::integral_type big;
+//                     BlueprintFieldType::integral_type biggest;
+        
+//                     file_chacha_scalars >> a >> b >> c >> d;
+//                     if (file_chacha_scalars.eof()) {
+//                         break;
+//                     }
+
+//                     least = a;
+//                     small = b;
+//                     big = c;
+//                     biggest = d;
+
+//                     current_scalar = least + (small <<  64) + (big << 128) + (biggest << 192);
+        
+//                     if ((current_scalar != 1) & (current_scalar != 0) & (current_scalar != -1)){
+//                         current_scalar = (current_scalar - base.pow(255) - 1) / 2;
+//                     } else {
+//                         current_scalar = current_scalar - base.pow(255);
+//                     }
+
+//                     expected_result.push_back(current_scalar);
+//                     i++;
+//                 }
+//             }
+
 
 //     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
-//         for (std::size_t i = 0; i < 72; ++i) {
-//             expected_result[i] == assignment.var_value(real_res.output[i]);
+//         for (std::size_t i = 0; i < expected_result.size(); ++i) {
+//             assert(expected_result[i] == assignment.var_value(real_res.output[i]));
 //         }
-//         std::cout << assignment.var_value(real_res.output.back()).data << '\n';
 //     };
 
 //     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
@@ -477,7 +514,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 
 //     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-//     constexpr static std::size_t public_input_size = 0;
+//     constexpr static std::size_t public_input_size = 5;
 //     constexpr static std::size_t max_poly_size = 32;
 //     constexpr static std::size_t eval_rounds = 5;
 
@@ -485,7 +522,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 //     constexpr static std::size_t perm_size = 7;
 
 //     constexpr static std::size_t srs_len = 32;
-//     constexpr static const std::size_t prev_chal_size = 1;
+//     constexpr static const std::size_t prev_chal_size = 0;
 
 //     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
 //     using index_terms_list = zk::components::index_terms_scalars_list_recursion_test<ArithmetizationType>;
@@ -529,7 +566,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 //     typename BlueprintFieldType::value_type alpha =
 //         0x000000000000000000000000000000001AF1BBFDB43BAF883077CB71813712B4_cppui256;
 //     typename BlueprintFieldType::value_type zeta =
-//         0x00000000000000000000000000000000BE221A5AA97523F509569F35A40CF587_cppui256;
+//         0x01751A5CCC6A9B9BDF660296AF5F7C80229DC97F3646FFC3729D827E80DF39DF_cppui256;
 //     typename BlueprintFieldType::value_type fq_digest =
 //         0x2D40D90836130DCC82FDDACBCCA9F17F64C87CE868421AA82A92FF62DA885C45_cppui256;
         
@@ -562,7 +599,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 
 //         // std::array<var, eval_rounds> challenges;
 //         for (std::size_t j = 0; j < eval_rounds; j++) {
-//             public_input.emplace_back(challenges[i]);
+//             public_input.emplace_back(challenges[j]);
 //             fq_output.challenges[j] = var(0, public_input.size() - 1, false, var::column_type::public_input);
 //         }
 //         // fq_output.challenges = challenges;
@@ -612,10 +649,9 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
 //     std::vector<typename BlueprintFieldType::value_type> expected_result = recursion_scalars();
 
 //     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
-//         for (std::size_t i = 0; i < 72; ++i) {
-//             expected_result[i] == assignment.var_value(real_res.output[i]);
+//         for (std::size_t i = 0; i < expected_result.size(); ++i) {
+//             assert(expected_result[i] == assignment.var_value(real_res.output[i]));
 //         }
-//         std::cout << assignment.var_value(real_res.output[72]).data << '\n';
 //     };
 
 //     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
@@ -691,7 +727,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     typename BlueprintFieldType::value_type alpha =
         0x00000000000000000000000000000000F643764B3C004B017222923DE86BC103_cppui256;
     typename BlueprintFieldType::value_type zeta =
-        0x0000000000000000000000000000000098DD898B19D348D4CDA80AE41B836A67_cppui256;
+        0x2F51244846217BCB9DE92C5903AC022FAD29555920E45344407B680D24D550F1_cppui256;
     typename BlueprintFieldType::value_type fq_digest =
         0x11EF8F246F63C43E46E22BC179C7171A3F2A9776AC62E5C488C482403FB00E07_cppui256;
         
@@ -724,7 +760,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
 
         // std::array<var, eval_rounds> challenges;
         for (std::size_t j = 0; j < eval_rounds; j++) {
-            public_input.emplace_back(challenges[i]);
+            public_input.emplace_back(challenges[j]);
             fq_output.challenges[j] = var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
         // fq_output.challenges = challenges;
@@ -748,7 +784,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
         public_input.push_back(fq_digest);
         fq_output.fq_digest = var(0, public_input.size() - 1, false, var::column_type::public_input);
         // c
-        public_input.emplace_back(250);
+        public_input.emplace_back(c);
         fq_output.c = var(0, public_input.size() - 1, false, var::column_type::public_input);
 
         batches[i].fq_output = fq_output;
@@ -774,10 +810,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     std::vector<typename BlueprintFieldType::value_type> expected_result = generic_scalars();
 
     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
-        for (std::size_t i = 0; i < 72; ++i) {
-            expected_result[i] == assignment.var_value(real_res.output[i]);
+        for (std::size_t i = 0; i < expected_result.size(); ++i) {
+            assert(expected_result[i] == assignment.var_value(real_res.output[i]));
         }
-        std::cout << assignment.var_value(real_res.output[72]).data << '\n';
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
