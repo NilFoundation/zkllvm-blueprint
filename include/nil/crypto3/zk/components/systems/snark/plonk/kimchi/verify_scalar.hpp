@@ -138,7 +138,7 @@ namespace nil {
                     };
 
                     struct result_type {
-                        var output;
+                        std::vector<var> output;
                     };
 
                     static result_type
@@ -154,6 +154,7 @@ namespace nil {
 
                         std::array<batch_proof, BatchSize> batches;
                         for (std::size_t i = 0; i < BatchSize; i++) {
+                            std::cout << "prepare_batch_component::generate_circuit({params.verifier_index, params.proof[" << i << "], params.fq_output[" << i << "]}, row);" << std::endl;
                             auto prepare_output = prepare_batch_component::generate_circuit(
                                 bp, assignment, {params.verifier_index, params.proof[i], params.fq_output[i]}, row);
                             batches[i] = prepare_output.prepared_proof;
@@ -168,13 +169,14 @@ namespace nil {
                             row += prepare_scalars_component::rows_amount;
                         }
 
-                        auto res = batch_verify_component::generate_circuit(bp, assignment, {batches}, row);
+                        result_type res;
+                        res.output = batch_verify_component::generate_circuit(bp, assignment, {batches}, row).output;
                         row += batch_verify_component::rows_amount;
 
                         map_fr_component::generate_circuit(bp, assignment, {params.fr_data, fr_data_recalculated}, row);
                         row += map_fr_component::rows_amount;
 
-                        return result_type();
+                        return res;
                     }
 
                     static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
@@ -201,13 +203,14 @@ namespace nil {
                             row += prepare_scalars_component::rows_amount;
                         }
 
-                        auto res = batch_verify_component::generate_assignments(assignment, {batches}, row);
+                        result_type res;
+                        res.output = batch_verify_component::generate_assignments(assignment, {batches}, row).output;
                         row += batch_verify_component::rows_amount;
 
                         map_fr_component::generate_assignments(assignment, {params.fr_data, fr_data_recalculated}, row);
                         row += map_fr_component::rows_amount;
 
-                        return result_type();
+                        return res;
                     }
 
                 private:
