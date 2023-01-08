@@ -28,8 +28,8 @@
 // degrees 4 and 6.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_FINAL_EXPONENTIATION_HPP
-#define CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_FINAL_EXPONENTIATION_HPP
+#ifndef BLUEPRINT_MC_WEIERSTRASS_FINAL_EXPONENTIATION_HPP
+#define BLUEPRINT_MC_WEIERSTRASS_FINAL_EXPONENTIATION_HPP
 
 #include <memory>
 
@@ -339,4 +339,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_FINAL_EXPONENTIATION_HPP
+#endif    // BLUEPRINT_MC_WEIERSTRASS_FINAL_EXPONENTIATION_HPP

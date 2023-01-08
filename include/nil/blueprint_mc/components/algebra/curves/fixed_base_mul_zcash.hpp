@@ -26,8 +26,8 @@
 // @file
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_FIXED_BASE_MUL_ZCASH_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_FIXED_BASE_MUL_ZCASH_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_FIXED_BASE_MUL_ZCASH_COMPONENT_HPP
+#define BLUEPRINT_MC_FIXED_BASE_MUL_ZCASH_COMPONENT_HPP
 
 #include <type_traits>
 #include <vector>
@@ -330,4 +330,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_FIXED_BASE_MUL_ZCASH_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_FIXED_BASE_MUL_ZCASH_COMPONENT_HPP

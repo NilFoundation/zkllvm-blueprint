@@ -24,8 +24,8 @@
 // @file Declaration of interfaces for auxiliary components for the SHA256 component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
+#ifndef BLUEPRINT_MC_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
+#define BLUEPRINT_MC_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -186,4 +186,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
+#endif    // BLUEPRINT_MC_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP

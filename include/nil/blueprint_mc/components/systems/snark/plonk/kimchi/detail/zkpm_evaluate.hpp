@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP
+#ifndef BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP
+#define BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -202,4 +202,4 @@ namespace nil {
     }   // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP
+#endif    // BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP

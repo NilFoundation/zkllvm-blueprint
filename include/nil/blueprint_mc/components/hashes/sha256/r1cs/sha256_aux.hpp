@@ -25,8 +25,8 @@
 // @file Declaration of interfaces for auxiliary components for the SHA256 component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_SHA256_AUX_HPP
-#define CRYPTO3_ZK_BLUEPRINT_SHA256_AUX_HPP
+#ifndef BLUEPRINT_MC_SHA256_AUX_HPP
+#define BLUEPRINT_MC_SHA256_AUX_HPP
 
 #include <nil/blueprint_mc/components/packing.hpp>
 #include <nil/blueprint_mc/blueprint/r1cs.hpp>
@@ -340,4 +340,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_SHA256_AUX_HPP
+#endif    // BLUEPRINT_MC_SHA256_AUX_HPP

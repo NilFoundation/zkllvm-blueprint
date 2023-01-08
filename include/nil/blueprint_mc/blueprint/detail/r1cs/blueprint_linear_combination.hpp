@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_LINEAR_COMBINATION_HPP
-#define CRYPTO3_ZK_BLUEPRINT_LINEAR_COMBINATION_HPP
+#ifndef BLUEPRINT_MC_LINEAR_COMBINATION_HPP
+#define BLUEPRINT_MC_LINEAR_COMBINATION_HPP
 
 #include <vector>
 
@@ -277,4 +277,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_LINEAR_COMBINATION_HPP
+#endif    // BLUEPRINT_MC_LINEAR_COMBINATION_HPP

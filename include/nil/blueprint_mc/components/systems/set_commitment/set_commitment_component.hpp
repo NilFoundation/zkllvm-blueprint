@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_SET_COMMITMENT_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_SET_COMMITMENT_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_SET_COMMITMENT_COMPONENT_HPP
+#define BLUEPRINT_MC_SET_COMMITMENT_COMPONENT_HPP
 
 #include <nil/blueprint_mc/component.hpp>
 #include <nil/blueprint_mc/components/hashes/hash_io.hpp>
@@ -108,4 +108,4 @@ namespace nil {
     }                // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_SET_COMMITMENT_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_SET_COMMITMENT_COMPONENT_HPP

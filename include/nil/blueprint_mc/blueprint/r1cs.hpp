@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_BLUEPRINT_R1CS_HPP
-#define CRYPTO3_ZK_BLUEPRINT_BLUEPRINT_R1CS_HPP
+#ifndef BLUEPRINT_MC_BLUEPRINT_R1CS_HPP
+#define BLUEPRINT_MC_BLUEPRINT_R1CS_HPP
 
 #include <algorithm>
 #include <cassert>
@@ -163,4 +163,4 @@ namespace nil {
             };
     }        // namespace blueprint_mc
 }    // namespace nil
-#endif    // CRYPTO3_ZK_BLUEPRINT_BLUEPRINT_R1CS_HPP
+#endif    // BLUEPRINT_MC_BLUEPRINT_R1CS_HPP

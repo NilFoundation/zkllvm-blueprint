@@ -33,8 +33,8 @@
 // functions.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_R1CS_PPZKSNARK_VERIFIER_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_R1CS_PPZKSNARK_VERIFIER_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_R1CS_PPZKSNARK_VERIFIER_COMPONENT_HPP
+#define BLUEPRINT_MC_R1CS_PPZKSNARK_VERIFIER_COMPONENT_HPP
 
 #include <nil/crypto3/algebra/algorithms/pair.hpp>
 
@@ -712,4 +712,4 @@ namespace nil {
     }                // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_R1CS_PPZKSNARK_VERIFIER_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_R1CS_PPZKSNARK_VERIFIER_COMPONENT_HPP

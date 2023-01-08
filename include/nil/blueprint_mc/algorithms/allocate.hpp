@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
-#define CRYPTO3_ZK_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
+#ifndef BLUEPRINT_MC_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
+#define BLUEPRINT_MC_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
 
 #include <nil/blueprint_mc/blueprint/plonk.hpp>
 
@@ -43,4 +43,4 @@ namespace nil {
     }        // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
+#endif    // BLUEPRINT_MC_COMPONENTS_ALGORITHMS_ALLOCATE_HPP

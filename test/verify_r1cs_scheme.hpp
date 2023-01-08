@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_VERIFY_R1CS_SCHEME_COMPONENT_TEST_HPP
-#define CRYPTO3_ZK_BLUEPRINT_VERIFY_R1CS_SCHEME_COMPONENT_TEST_HPP
+#ifndef BLUEPRINT_MC_VERIFY_R1CS_SCHEME_COMPONENT_TEST_HPP
+#define BLUEPRINT_MC_VERIFY_R1CS_SCHEME_COMPONENT_TEST_HPP
 
 #include <boost/test/unit_test.hpp>
 
@@ -87,4 +87,4 @@ bool verify_component<curves::edwards<183>,
     return false;
 }
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_VERIFY_R1CS_SCHEME_COMPONENT_TEST_HPP
+#endif    // BLUEPRINT_MC_VERIFY_R1CS_SCHEME_COMPONENT_TEST_HPP

@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_SNARK_SET_COMMITMENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_SNARK_SET_COMMITMENT_HPP
+#ifndef BLUEPRINT_MC_SNARK_SET_COMMITMENT_HPP
+#define BLUEPRINT_MC_SNARK_SET_COMMITMENT_HPP
 
 #include <nil/crypto3/zk/snark/merkle_tree.hpp>
 #include <nil/blueprint_mc/components/hashes/hash_io.hpp>
@@ -108,4 +108,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_SNARK_SET_COMMITMENT_HPP
+#endif    // BLUEPRINT_MC_SNARK_SET_COMMITMENT_HPP

@@ -27,8 +27,8 @@
 // @file Declaration of interfaces for auxiliary components for the DECOMPOSITION component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_DECOMPOSITION_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_DECOMPOSITION_HPP
+#ifndef BLUEPRINT_MC_PLONK_DECOMPOSITION_HPP
+#define BLUEPRINT_MC_PLONK_DECOMPOSITION_HPP
 
 #include <nil/blueprint_mc/blueprint/plonk.hpp>
 #include <nil/blueprint_mc/assignment/plonk.hpp>
@@ -168,4 +168,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_DECOMPOSITION_HPP
+#endif    // BLUEPRINT_MC_PLONK_DECOMPOSITION_HPP

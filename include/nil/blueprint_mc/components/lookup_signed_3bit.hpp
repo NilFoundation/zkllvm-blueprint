@@ -26,8 +26,8 @@
 // list of constants `c`
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_LOOKUP_SIGNED_3BIT_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_LOOKUP_SIGNED_3BIT_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_LOOKUP_SIGNED_3BIT_COMPONENT_HPP
+#define BLUEPRINT_MC_LOOKUP_SIGNED_3BIT_COMPONENT_HPP
 
 #include <vector>
 #include <iterator>
@@ -124,4 +124,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_LOOKUP_SIGNED_3BIT_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_LOOKUP_SIGNED_3BIT_COMPONENT_HPP

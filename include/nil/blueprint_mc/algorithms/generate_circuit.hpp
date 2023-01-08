@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_COMPONENTS_ALGORITHMS_GENERATE_CIRCUIT_HPP
-#define CRYPTO3_ZK_COMPONENTS_ALGORITHMS_GENERATE_CIRCUIT_HPP
+#ifndef BLUEPRINT_MC_COMPONENTS_ALGORITHMS_GENERATE_CIRCUIT_HPP
+#define BLUEPRINT_MC_COMPONENTS_ALGORITHMS_GENERATE_CIRCUIT_HPP
 
 #include <boost/type_traits.hpp>
 #include <boost/tti/tti.hpp>
@@ -93,4 +93,4 @@ namespace nil {
     }        // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_COMPONENTS_ALGORITHMS_GENERATE_CIRCUIT_HPP
+#endif    // BLUEPRINT_MC_COMPONENTS_ALGORITHMS_GENERATE_CIRCUIT_HPP

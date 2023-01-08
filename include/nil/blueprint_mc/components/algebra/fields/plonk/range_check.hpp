@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_FIELD_RANGE_CHECK_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_FIELD_RANGE_CHECK_HPP
+#ifndef BLUEPRINT_MC_PLONK_FIELD_RANGE_CHECK_HPP
+#define BLUEPRINT_MC_PLONK_FIELD_RANGE_CHECK_HPP
 
 #include <cmath>
 
@@ -242,4 +242,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_FIELD_RANGE_CHECK_HPP
+#endif    // BLUEPRINT_MC_PLONK_FIELD_RANGE_CHECK_HPP

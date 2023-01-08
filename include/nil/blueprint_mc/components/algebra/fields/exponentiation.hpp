@@ -25,8 +25,8 @@
 // @file Declaration of interfaces for the exponentiation component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_EXPONENTIATION_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_EXPONENTIATION_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_EXPONENTIATION_COMPONENT_HPP
+#define BLUEPRINT_MC_EXPONENTIATION_COMPONENT_HPP
 
 #include <memory>
 #include <vector>
@@ -208,4 +208,4 @@ namespace nil {
     }   // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_EXPONENTIATION_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_EXPONENTIATION_COMPONENT_HPP

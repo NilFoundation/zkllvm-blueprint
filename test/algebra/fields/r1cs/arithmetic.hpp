@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_ELEMENT_FP2_COMPONENT_TEST_HPP
-#define CRYPTO3_ZK_BLUEPRINT_ELEMENT_FP2_COMPONENT_TEST_HPP
+#ifndef BLUEPRINT_MC_ELEMENT_FP2_COMPONENT_TEST_HPP
+#define BLUEPRINT_MC_ELEMENT_FP2_COMPONENT_TEST_HPP
 
 #include <boost/test/unit_test.hpp>
 
@@ -82,4 +82,4 @@ blueprint<typename FieldType::base_field_type> test_field_element_squared(typena
     return bp;
 }
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_ELEMENT_FP2_COMPONENT_TEST_HPP
+#endif    // BLUEPRINT_MC_ELEMENT_FP2_COMPONENT_TEST_HPP

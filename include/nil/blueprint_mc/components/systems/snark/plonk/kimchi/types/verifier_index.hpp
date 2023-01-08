@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_VERIFIER_INDEX_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_VERIFIER_INDEX_HPP
+#ifndef BLUEPRINT_MC_PLONK_KIMCHI_VERIFIER_INDEX_HPP
+#define BLUEPRINT_MC_PLONK_KIMCHI_VERIFIER_INDEX_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -93,4 +93,4 @@ namespace nil {
     }        // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_VERIFIER_INDEX_HPP
+#endif    // BLUEPRINT_MC_PLONK_KIMCHI_VERIFIER_INDEX_HPP

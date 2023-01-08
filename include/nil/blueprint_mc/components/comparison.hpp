@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_COMPARISON_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_COMPARISON_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_COMPARISON_COMPONENT_HPP
+#define BLUEPRINT_MC_COMPARISON_COMPONENT_HPP
 
 #include <cassert>
 #include <memory>
@@ -133,4 +133,4 @@ namespace nil {
         }    // namespace components
     }            // namespace blueprint_mc
 }    // namespace nil
-#endif    // CRYPTO3_ZK_BLUEPRINT_COMPARISON_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_COMPARISON_COMPONENT_HPP

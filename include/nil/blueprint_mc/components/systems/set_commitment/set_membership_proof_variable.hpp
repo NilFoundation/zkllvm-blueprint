@@ -26,8 +26,8 @@
 // prover, then verifier) on a synthetic R1CS instance.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_SET_MEMBERSHIP_PROOF_VARIABLE_HPP
-#define CRYPTO3_ZK_BLUEPRINT_SET_MEMBERSHIP_PROOF_VARIABLE_HPP
+#ifndef BLUEPRINT_MC_SET_MEMBERSHIP_PROOF_VARIABLE_HPP
+#define BLUEPRINT_MC_SET_MEMBERSHIP_PROOF_VARIABLE_HPP
 
 #include <nil/bluepritn_mc/snark/set_commitment.hpp>
 #include <nil/blueprint_mc/component.hpp>
@@ -104,4 +104,4 @@ namespace nil {
     }                // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_SET_MEMBERSHIP_PROOF_VARIABLE_HPP
+#endif    // BLUEPRINT_MC_SET_MEMBERSHIP_PROOF_VARIABLE_HPP

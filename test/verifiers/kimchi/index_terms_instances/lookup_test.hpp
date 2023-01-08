@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
+#ifndef BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
+#define BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
 
 #include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/constraints/rpn_expression.hpp>
 #include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/index_term_type.hpp>
@@ -208,4 +208,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP
+#endif    // BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERMS_INSTANCES_LOOKUP_TEST_HPP

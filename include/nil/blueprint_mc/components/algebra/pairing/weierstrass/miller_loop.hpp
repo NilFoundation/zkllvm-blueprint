@@ -27,8 +27,8 @@
 // The components verify computations of (single or multiple simultaneous) Miller loops.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_MILLER_LOOP_HPP
-#define CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_MILLER_LOOP_HPP
+#ifndef BLUEPRINT_MC_WEIERSTRASS_MILLER_LOOP_HPP
+#define BLUEPRINT_MC_WEIERSTRASS_MILLER_LOOP_HPP
 
 #include <memory>
 
@@ -824,4 +824,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_MILLER_LOOP_HPP
+#endif    // BLUEPRINT_MC_WEIERSTRASS_MILLER_LOOP_HPP

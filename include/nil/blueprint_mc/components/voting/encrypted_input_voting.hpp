@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_VOTING_ENCRYPTED_INPUT_VOTING_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_VOTING_ENCRYPTED_INPUT_VOTING_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_VOTING_ENCRYPTED_INPUT_VOTING_COMPONENT_HPP
+#define BLUEPRINT_MC_VOTING_ENCRYPTED_INPUT_VOTING_COMPONENT_HPP
 
 #include <nil/blueprint_mc/components/merkle_tree/validate.hpp>
 #include <nil/blueprint_mc/components/hashes/pedersen.hpp>
@@ -143,4 +143,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_VOTING_ENCRYPTED_INPUT_VOTING_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_VOTING_ENCRYPTED_INPUT_VOTING_COMPONENT_HPP

@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP
+#ifndef BLUEPRINT_MC_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP
+#define BLUEPRINT_MC_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP
 
 #include <nil/blueprint_mc/blueprint/plonk.hpp>
 #include <nil/blueprint_mc/component.hpp>
@@ -41,4 +41,4 @@ namespace nil {
     }    // namespace bleprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP
+#endif    // BLUEPRINT_MC_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP

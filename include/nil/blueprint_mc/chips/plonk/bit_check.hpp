@@ -25,8 +25,8 @@
 // @file Declaration of interfaces for PLONK unified addition component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_BIT_CHECK_CHIP_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_BIT_CHECK_CHIP_HPP
+#ifndef BLUEPRINT_MC_PLONK_BIT_CHECK_CHIP_HPP
+#define BLUEPRINT_MC_PLONK_BIT_CHECK_CHIP_HPP
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
@@ -64,4 +64,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_BIT_CHECK_CHIP_HPP
+#endif    // BLUEPRINT_MC_PLONK_BIT_CHECK_CHIP_HPP

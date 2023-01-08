@@ -25,8 +25,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TRANSCRIPT_FQ_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TRANSCRIPT_FQ_HPP
+#ifndef BLUEPRINT_MC_PLONK_KIMCHI_TRANSCRIPT_FQ_HPP
+#define BLUEPRINT_MC_PLONK_KIMCHI_TRANSCRIPT_FQ_HPP
 
 #include <vector>
 #include <array>
@@ -283,4 +283,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TRANSCRIPT_FQ_HPP
+#endif    // BLUEPRINT_MC_PLONK_KIMCHI_TRANSCRIPT_FQ_HPP

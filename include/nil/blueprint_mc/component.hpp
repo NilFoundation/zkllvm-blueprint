@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_COMPONENT_HPP
+#define BLUEPRINT_MC_COMPONENT_HPP
 
 namespace nil {
     namespace blueprint_mc {
@@ -48,4 +48,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_COMPONENT_HPP

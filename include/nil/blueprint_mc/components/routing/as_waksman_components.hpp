@@ -28,8 +28,8 @@
 // by use of an AS-Waksman network.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_AS_WAKSMAN_ROUTING_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_AS_WAKSMAN_ROUTING_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_AS_WAKSMAN_ROUTING_COMPONENT_HPP
+#define BLUEPRINT_MC_AS_WAKSMAN_ROUTING_COMPONENT_HPP
 
 #include <nil/crypto3/zk/snark/integer_permutation.hpp>
 #include <nil/crypto3/zk/snark/routing/as_waksman.hpp>
@@ -323,4 +323,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_AS_WAKSMAN_ROUTING_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_AS_WAKSMAN_ROUTING_COMPONENT_HPP

@@ -23,8 +23,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_HASH_IO_HPP
-#define CRYPTO3_ZK_BLUEPRINT_HASH_IO_HPP
+#ifndef BLUEPRINT_MC_HASH_IO_HPP
+#define BLUEPRINT_MC_HASH_IO_HPP
 
 #include <cstddef>
 #include <vector>
@@ -174,4 +174,4 @@ namespace nil {
         }    // namespace components
     }            // namespace blueprint_mc
 }    // namespace nil
-#endif    // CRYPTO3_ZK_BLUEPRINT_HASH_IO_HPP
+#endif    // BLUEPRINT_MC_HASH_IO_HPP

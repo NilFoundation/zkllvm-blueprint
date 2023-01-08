@@ -26,8 +26,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_COMPARE_WITH_CONSTANT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_COMPARE_WITH_CONSTANT_HPP
+#ifndef BLUEPRINT_MC_PLONK_COMPARE_WITH_CONSTANT_HPP
+#define BLUEPRINT_MC_PLONK_COMPARE_WITH_CONSTANT_HPP
 
 #include <vector>
 #include <array>
@@ -386,4 +386,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_CURVE_ELEMENT_ORACLES_DETAIL_COMPONENT_15_WIRES_HPP
+#endif    // BLUEPRINT_MC_PLONK_CURVE_ELEMENT_ORACLES_DETAIL_COMPONENT_15_WIRES_HPP

@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_DETAIL_LOOKUP_1BIT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_DETAIL_LOOKUP_1BIT_HPP
+#ifndef BLUEPRINT_MC_DETAIL_LOOKUP_1BIT_HPP
+#define BLUEPRINT_MC_DETAIL_LOOKUP_1BIT_HPP
 
 #include <nil/blueprint_mc/component.hpp>
 #include <nil/blueprint_mc/blueprint/r1cs.hpp>
@@ -85,4 +85,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_DETAIL_LOOKUP_1BIT_HPP
+#endif    // BLUEPRINT_MC_DETAIL_LOOKUP_1BIT_HPP

@@ -24,8 +24,8 @@
 // @file Declaration of interfaces for auxiliary components for the SHA256 component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_AUXILIARY_SPONGE_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_AUXILIARY_SPONGE_HPP
+#ifndef BLUEPRINT_MC_PLONK_AUXILIARY_SPONGE_HPP
+#define BLUEPRINT_MC_PLONK_AUXILIARY_SPONGE_HPP
 
 #include <iostream>
 
@@ -211,4 +211,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_CURVE_ELEMENT_ENDO_SCALAR_COMPONENT_15_WIRES_HPP
+#endif    // BLUEPRINT_MC_PLONK_CURVE_ELEMENT_ENDO_SCALAR_COMPONENT_15_WIRES_HPP

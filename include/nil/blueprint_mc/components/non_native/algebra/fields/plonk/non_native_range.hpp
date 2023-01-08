@@ -26,8 +26,8 @@
 // @file Declaration of interfaces for auxiliary components for the RANGE component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_RANGE_EDWARD25519_HPP
-#define CRYPTO3_ZK_BLUEPRINT_RANGE_EDWARD25519_HPP
+#ifndef BLUEPRINT_MC_RANGE_EDWARD25519_HPP
+#define BLUEPRINT_MC_RANGE_EDWARD25519_HPP
 
 #include <nil/blueprint_mc/blueprint/plonk.hpp>
 #include <nil/blueprint_mc/assignment/plonk.hpp>
@@ -224,4 +224,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_REDUCTION_HPP
+#endif    // BLUEPRINT_MC_REDUCTION_HPP

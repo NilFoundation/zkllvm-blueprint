@@ -25,8 +25,8 @@
 // @file Declaration of interfaces for auxiliary components for the SHA256 component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_EDDSA_9_WIRES_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_EDDSA_9_WIRES_HPP
+#ifndef BLUEPRINT_MC_PLONK_EDDSA_9_WIRES_HPP
+#define BLUEPRINT_MC_PLONK_EDDSA_9_WIRES_HPP
 
 #include <nil/blueprint_mc/snark/arithmetization/plonk/constraint_system.hpp>
 
@@ -109,4 +109,4 @@ namespace nil {
     }            // namespace blueprint
 }                // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_EDDSA_9_WIRES_HPP
+#endif    // BLUEPRINT_MC_PLONK_EDDSA_9_WIRES_HPP

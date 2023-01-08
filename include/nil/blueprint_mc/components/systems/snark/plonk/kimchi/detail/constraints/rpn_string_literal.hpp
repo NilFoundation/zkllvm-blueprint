@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_RPN_STRING_LITERAL_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_RPN_STRING_LITERAL_HPP
+#ifndef BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_CONSTRAINTS_RPN_STRING_LITERAL_HPP
+#define BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_CONSTRAINTS_RPN_STRING_LITERAL_HPP
 
 #include <nil/crypto3/algebra/curves/vesta.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/vesta.hpp>
@@ -157,4 +157,4 @@ namespace nil {
     }     // namespace blueprint_mc
 } // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_DETAIL_CONSTRAINTS_RPN_STRING_LITERAL_HPP
+#endif    // BLUEPRINT_MC_PLONK_KIMCHI_DETAIL_CONSTRAINTS_RPN_STRING_LITERAL_HPP

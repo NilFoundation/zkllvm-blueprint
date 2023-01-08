@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_HASHES_PEDERSEN_HPP
-#define CRYPTO3_ZK_BLUEPRINT_HASHES_PEDERSEN_HPP
+#ifndef BLUEPRINT_MC_HASHES_PEDERSEN_HPP
+#define BLUEPRINT_MC_HASHES_PEDERSEN_HPP
 
 #include <nil/crypto3/hash/sha2.hpp>
 #include <nil/crypto3/hash/find_group_hash.hpp>
@@ -495,4 +495,4 @@ namespace nil {
         }    // namespace components
     }            // namespace blueprint_mc
 }    // namespace nil
-#endif    // CRYPTO3_ZK_BLUEPRINT_HASHES_PEDERSEN_HPP
+#endif    // BLUEPRINT_MC_HASHES_PEDERSEN_HPP

@@ -26,8 +26,8 @@
 // @file Declaration of affine G1 element component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_G1_AFFINE_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_G1_AFFINE_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_G1_AFFINE_COMPONENT_HPP
+#define BLUEPRINT_MC_G1_AFFINE_COMPONENT_HPP
 
 #include <nil/blueprint_mc/component.hpp>
 #include <nil/blueprint_mc/components/algebra/fields/element_fp.hpp>
@@ -112,4 +112,4 @@ namespace nil {
     }        // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_G1_AFFINE_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_G1_AFFINE_COMPONENT_HPP

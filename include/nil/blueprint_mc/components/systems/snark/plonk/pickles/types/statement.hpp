@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_STATEMENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_STATEMENT_HPP
+#ifndef BLUEPRINT_MC_PLONK_PICKLES_TYPES_STATEMENT_HPP
+#define BLUEPRINT_MC_PLONK_PICKLES_TYPES_STATEMENT_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -51,4 +51,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_TYPES_STATEMENT_HPP
+#endif    // BLUEPRINT_MC_PLONK_PICKLES_TYPES_STATEMENT_HPP

@@ -25,8 +25,8 @@
 // @file Declaration of interfaces for PLONK unified addition component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_TEST_PLONK_COMPONENT_HPP
-#define CRYPTO3_TEST_PLONK_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_TEST_PLONK_COMPONENT_HPP
+#define BLUEPRINT_MC_TEST_PLONK_COMPONENT_HPP
 
 #include <fstream>
 #include <random>
@@ -225,4 +225,4 @@ namespace nil {
     }    // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_TEST_PLONK_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_TEST_PLONK_COMPONENT_HPP

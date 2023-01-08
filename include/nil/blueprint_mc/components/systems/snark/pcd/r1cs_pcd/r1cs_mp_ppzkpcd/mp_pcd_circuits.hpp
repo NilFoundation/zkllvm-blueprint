@@ -38,8 +38,8 @@
 // Alessandro Chiesa, Eran Tromer, Madars Virza
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_MP_PCD_CIRCUITS_HPP
-#define CRYPTO3_ZK_BLUEPRINT_MP_PCD_CIRCUITS_HPP
+#ifndef BLUEPRINT_MC_MP_PCD_CIRCUITS_HPP
+#define BLUEPRINT_MC_MP_PCD_CIRCUITS_HPP
 
 #include <nil/blueprint_mc/component.hpp>
 #include <nil/blueprint_mc/components/component_from_r1cs.hpp>
@@ -794,4 +794,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_MP_PCD_CIRCUITS_HPP
+#endif    // BLUEPRINT_MC_MP_PCD_CIRCUITS_HPP

@@ -24,8 +24,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_FIELD_TO_BITS_COMPONENTS_HPP
-#define CRYPTO3_ZK_BLUEPRINT_FIELD_TO_BITS_COMPONENTS_HPP
+#ifndef BLUEPRINT_MC_FIELD_TO_BITS_COMPONENTS_HPP
+#define BLUEPRINT_MC_FIELD_TO_BITS_COMPONENTS_HPP
 
 #include <cassert>
 #include <memory>
@@ -208,4 +208,4 @@ namespace nil {
             }    // namespace components
     }            // namespace blueprint_mc
 }    // namespace nil
-#endif    // CRYPTO3_ZK_BLUEPRINT_FIELD_TO_BITS_COMPONENTS_HPP
+#endif    // BLUEPRINT_MC_FIELD_TO_BITS_COMPONENTS_HPP

@@ -28,8 +28,8 @@
 // It relies on classes declared in components.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_CP_HANDLER_HPP
-#define CRYPTO3_ZK_BLUEPRINT_CP_HANDLER_HPP
+#ifndef BLUEPRINT_MC_CP_HANDLER_HPP
+#define BLUEPRINT_MC_CP_HANDLER_HPP
 
 #include <numeric>
 
@@ -299,4 +299,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_CP_HANDLER_HPP
+#endif    // BLUEPRINT_MC_CP_HANDLER_HPP

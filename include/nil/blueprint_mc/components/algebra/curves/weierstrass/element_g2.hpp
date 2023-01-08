@@ -28,8 +28,8 @@
 // is an elliptic curve over F^e in short Weierstrass form.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_G2_COMPONENT_HPP
-#define CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_G2_COMPONENT_HPP
+#ifndef BLUEPRINT_MC_WEIERSTRASS_G2_COMPONENT_HPP
+#define BLUEPRINT_MC_WEIERSTRASS_G2_COMPONENT_HPP
 
 #include <nil/crypto3/algebra/algorithms/pair.hpp>
 
@@ -160,4 +160,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_WEIERSTRASS_G2_COMPONENT_HPP
+#endif    // BLUEPRINT_MC_WEIERSTRASS_G2_COMPONENT_HPP

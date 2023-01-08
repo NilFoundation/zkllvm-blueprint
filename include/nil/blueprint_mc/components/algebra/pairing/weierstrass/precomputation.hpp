@@ -27,8 +27,8 @@
 // The components verify correct precomputation of values for the G1 and G2 elements.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_ZK_BLUEPRINT_AS_WAKSMAN_HPP
-#define CRYPTO3_ZK_BLUEPRINT_AS_WAKSMAN_HPP
+#ifndef BLUEPRINT_MC_AS_WAKSMAN_HPP
+#define BLUEPRINT_MC_AS_WAKSMAN_HPP
 
 #include <memory>
 
@@ -572,4 +572,4 @@ namespace nil {
     }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_AS_WAKSMAN_HPP
+#endif    // BLUEPRINT_MC_AS_WAKSMAN_HPP
