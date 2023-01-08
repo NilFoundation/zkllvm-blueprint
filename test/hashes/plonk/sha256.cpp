@@ -38,11 +38,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/hashes/sha256/plonk/sha256.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/hashes/sha256/plonk/sha256.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 #include <chrono>
 
@@ -67,10 +67,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::sha256<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+    using component_type = nil::blueprint_mc::components::sha256<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
     std::array<typename ArithmetizationType::field_type::value_type, 4> public_input = {0, 0, 0, 0};
     std::array<var, 4> input_state_var = {

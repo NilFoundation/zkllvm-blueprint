@@ -36,11 +36,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/compare.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/compare.hpp>
 
-#include "test_plonk_component.hpp"
+#include "test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -59,13 +59,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_compare_0) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::compare_with_const<ArithmetizationType, curve_type, 0, 1, 2>;
+    using component_type = nil::blueprint_mc::components::compare_with_const<ArithmetizationType, curve_type, 0, 1, 2>;
     
     typename component_type::params_type params = {var(0, 0, false, var::column_type::public_input)};
     typename BlueprintFieldType::value_type value = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000002_cppui255;
@@ -98,13 +98,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_compare_1) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::compare_with_const<ArithmetizationType, curve_type, 0, 1, 2>;
+    using component_type = nil::blueprint_mc::components::compare_with_const<ArithmetizationType, curve_type, 0, 1, 2>;
     
     typename component_type::params_type params = {var(0, 0, false, var::column_type::public_input)};
     std::vector<typename BlueprintFieldType::value_type> public_input = {0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000_cppui255};

@@ -35,122 +35,120 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/component.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/component.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace zk {
-            namespace components {
+    namespace blueprint_mc {
+        namespace components {
 
-                template<typename ArithmetizationType,
-                         typename CurveType,
-                         std::size_t... WireIndexes>
-                class component_template;
+            template<typename ArithmetizationType,
+                        typename CurveType,
+                        std::size_t... WireIndexes>
+            class component_template;
 
-                template<typename BlueprintFieldType,
-                         typename ArithmetizationParams,
-                         typename CurveType,
-                         std::size_t W0,
-                         std::size_t W1,
-                         std::size_t W2,
-                         std::size_t W3,
-                         std::size_t W4,
-                         std::size_t W5,
-                         std::size_t W6,
-                         std::size_t W7,
-                         std::size_t W8,
-                         std::size_t W9,
-                         std::size_t W10>
-                class component_template<
-                    snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams>,
-                    CurveType,
-                    W0, W1, W2, W3, W4,
-                    W5, W6, W7, W8, W9,
-                    W10>{
+            template<typename BlueprintFieldType,
+                        typename ArithmetizationParams,
+                        typename CurveType,
+                        std::size_t W0,
+                        std::size_t W1,
+                        std::size_t W2,
+                        std::size_t W3,
+                        std::size_t W4,
+                        std::size_t W5,
+                        std::size_t W6,
+                        std::size_t W7,
+                        std::size_t W8,
+                        std::size_t W9,
+                        std::size_t W10>
+            class component_template<
+                snark::plonk_constraint_system<BlueprintFieldType,
+                    ArithmetizationParams>,
+                CurveType,
+                W0, W1, W2, W3, W4,
+                W5, W6, W7, W8, W9,
+                W10>{
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams> ArithmetizationType;
+                typedef snark::plonk_constraint_system<BlueprintFieldType,
+                    ArithmetizationParams> ArithmetizationType;
 
-                    using var = snark::plonk_variable<BlueprintFieldType>;
+                using var = snark::plonk_variable<BlueprintFieldType>;
 
-                public:
-                    constexpr static const std::size_t rows_amount = 1;
+            public:
+                constexpr static const std::size_t rows_amount = 1;
 
-                    struct params_type {
-                    };
+                struct params_type {
+                };
 
-                    struct result_type {
-                        result_type(params_type &params,
-                            std::size_t component_start_row) {
+                struct result_type {
+                    result_type(params_type &params,
+                        std::size_t component_start_row) {
 
-                        }
-                    };
+                    }
+                };
 
-                    struct allocated_data_type {
-                        allocated_data_type() {
-                            previously_allocated = false;
-                        }
-
-                        // TODO access modifiers
-                        bool previously_allocated;
-                    };
-
-                    static std::size_t allocate_rows (blueprint<ArithmetizationType> &bp,
-                        std::size_t components_amount = 1){
-                        return bp.allocate_rows(rows_amount *
-                            components_amount);
+                struct allocated_data_type {
+                    allocated_data_type() {
+                        previously_allocated = false;
                     }
 
-                    static result_type generate_circuit(
+                    // TODO access modifiers
+                    bool previously_allocated;
+                };
+
+                static std::size_t allocate_rows (blueprint<ArithmetizationType> &bp,
+                    std::size_t components_amount = 1){
+                    return bp.allocate_rows(rows_amount *
+                        components_amount);
+                }
+
+                static result_type generate_circuit(
+                    blueprint<ArithmetizationType> &bp,
+                    blueprint_assignment_table<ArithmetizationType> &assignment,
+                    const params_type &params,
+                    allocated_data_type &allocated_data,
+                    std::size_t component_start_row) {
+
+                    generate_gates(bp, assignment, params, allocated_data, component_start_row);
+                    generate_copy_constraints(bp, assignment, params, component_start_row);
+
+                    return result_type(params, component_start_row);
+                }
+
+                static result_type generate_assignments(
+                        blueprint_assignment_table<ArithmetizationType>
+                            &assignment,
+                        const params_type &params,
+                        std::size_t component_start_row) {
+
+                    return result_type(params, component_start_row);
+                }
+
+                private:
+                static void generate_gates(
+                    blueprint<ArithmetizationType> &bp,
+                    blueprint_assignment_table<ArithmetizationType> &assignment, 
+                    const params_type &params,
+                    allocated_data_type &allocated_data,
+                    const std::size_t start_row_index) {
+
+                    if (!allocated_data.previously_allocated) {
+                    } else { 
+                    }
+
+                }
+
+                static void generate_copy_constraints(
                         blueprint<ArithmetizationType> &bp,
                         blueprint_assignment_table<ArithmetizationType> &assignment,
                         const params_type &params,
-                        allocated_data_type &allocated_data,
-                        std::size_t component_start_row) {
-
-                        generate_gates(bp, assignment, params, allocated_data, component_start_row);
-                        generate_copy_constraints(bp, assignment, params, component_start_row);
-
-                        return result_type(params, component_start_row);
-                    }
-
-                    static result_type generate_assignments(
-                            blueprint_assignment_table<ArithmetizationType>
-                                &assignment,
-                            const params_type &params,
-                            std::size_t component_start_row) {
-
-                        return result_type(params, component_start_row);
-                    }
-
-                    private:
-                    static void generate_gates(
-                        blueprint<ArithmetizationType> &bp,
-                        blueprint_assignment_table<ArithmetizationType> &assignment, 
-                        const params_type &params,
-                        allocated_data_type &allocated_data,
-                        const std::size_t start_row_index) {
-
-                        if (!allocated_data.previously_allocated) {
-                        } else { 
-                        }
-
-                    }
-
-                    static void generate_copy_constraints(
-                            blueprint<ArithmetizationType> &bp,
-                            blueprint_assignment_table<ArithmetizationType> &assignment,
-                            const params_type &params,
-                            std::size_t component_start_row){
-                                5
-                    }
-                };
-            }    // namespace components
-        }        // namespace zk
-    }            // namespace crypto3
+                        std::size_t component_start_row){
+                            5
+                }
+            };
+        }    // namespace components
+    }            // namespace blueprint_mc
 }    // namespace nil
 
 #endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_COMPONENT_TEMPLATE_HPP

@@ -39,11 +39,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/non_native/algebra/fields/plonk/ec_point_edwards25519.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/non_native/algebra/fields/plonk/ec_point_edwards25519.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 // BOOST_AUTO_TEST_CASE(blueprint_ec_point_to_fail) {
 //     auto start = std::chrono::high_resolution_clock::now();
 
-//     using curve_type = algebra::curves::pallas;
-//     using ed25519_type = algebra::curves::ed25519;
+//     using curve_type = nil::crypto3::algebra::curves::pallas;
+//     using ed25519_type = nil::crypto3::algebra::curves::ed25519;
 //     using BlueprintFieldType = typename curve_type::base_field_type;
 //     constexpr std::size_t witness_columns = 9;
 //     constexpr std::size_t public_input_columns = 1;
@@ -63,13 +63,13 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 //         zk::snark::plonk_arithmetization_params<witness_columns, public_input_columns, constant_columns,
 //         selector_columns>;
 //     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-//     using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+//     using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 //     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
 //     constexpr std::size_t Lambda = 1;
 
 //     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-//     using component_type = zk::components::ec_point<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3,
+//     using component_type = nil::blueprint_mc::components::ec_point<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3,
 //                                                                           4, 5, 6, 7, 8>;
 
 //     std::vector<typename BlueprintFieldType::value_type> public_input = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -97,8 +97,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_ec_point_to_work) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::pallas;
-    using ed25519_type = algebra::curves::ed25519;
+    using curve_type = nil::crypto3::algebra::curves::pallas;
+    using ed25519_type = nil::crypto3::algebra::curves::ed25519;
     using BlueprintFieldType = typename curve_type::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 1;
@@ -107,16 +107,16 @@ BOOST_AUTO_TEST_CASE(blueprint_ec_point_to_work) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     using component_type =
-        zk::components::ec_point<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+        nil::blueprint_mc::components::ec_point<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
-    auto value = ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type::one();
+    auto value = ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type::one();
 
     typename ed25519_type::scalar_field_type::integral_type base = 1;
     typename ed25519_type::scalar_field_type::integral_type mask = (base << 66) - 1;

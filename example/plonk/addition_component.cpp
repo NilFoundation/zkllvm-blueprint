@@ -38,11 +38,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
 
 #include "addition_component.hpp"
-#include "../test/test_plonk_component.hpp"
+#include "../test/test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_addition_example) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::addition<ArithmetizationType, 0, 1, 2>;
+    using component_type = nil::blueprint_mc::components::addition<ArithmetizationType, 0, 1, 2>;
 
     // test_component set public input to the first rows of the public_input columns
     typename component_type::params_type params = {

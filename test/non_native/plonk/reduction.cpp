@@ -36,12 +36,12 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
 
-#include <nil/crypto3/zk/components/non_native/algebra/fields/plonk/reduction.hpp>
+#include <nil/blueprint_mc/components/non_native/algebra/fields/plonk/reduction.hpp>
 
-#include "test_plonk_component.hpp"
+#include "test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_variable_base_decomposition_edward25519) {
 
-    using curve_type = algebra::curves::pallas;
+    using curve_type = nil::crypto3::algebra::curves::pallas;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
 
     constexpr std::size_t WitnessColumns = 9;
@@ -64,8 +64,8 @@ BOOST_AUTO_TEST_CASE(blueprint_variable_base_decomposition_edward25519) {
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
-    using component_type = zk::components::reduction<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
+    using component_type = nil::blueprint_mc::components::reduction<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {0, 0, 0, 0, 0, 0, 0, 1};
     std::array<var, 8> input_state_var = {

@@ -31,50 +31,48 @@
 #include <nil/crypto3/algebra/random_element.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace zk {
-            namespace components {
+    namespace blueprint_mc {
+        namespace components {
 
-                template<typename FieldType>
-                r1cs_example<FieldType> gen_r1cs_example_from_blueprint(const std::size_t num_constraints,
-                                                                        const std::size_t num_inputs);
+            template<typename FieldType>
+            r1cs_example<FieldType> gen_r1cs_example_from_blueprint(const std::size_t num_constraints,
+                                                                    const std::size_t num_inputs);
 
-                /* NOTE: all examples here actually generate one constraint less to account for soundness constraint in
-                 * QAP */
+            /* NOTE: all examples here actually generate one constraint less to account for soundness constraint in
+                * QAP */
 
-                template<typename FieldType>
-                r1cs_example<FieldType> gen_r1cs_example_from_blueprint(const std::size_t num_constraints) {
-                    const std::size_t new_num_constraints = num_constraints - 1;
+            template<typename FieldType>
+            r1cs_example<FieldType> gen_r1cs_example_from_blueprint(const std::size_t num_constraints) {
+                const std::size_t new_num_constraints = num_constraints - 1;
 
-                    /* construct dummy example: inner products of two vectors */
-                    blueprint<FieldType> bp;
-                    blueprint_variable_vector<FieldType> A;
-                    blueprint_variable_vector<FieldType> B;
-                    blueprint_variable<FieldType> res;
+                /* construct dummy example: inner products of two vectors */
+                blueprint<FieldType> bp;
+                blueprint_variable_vector<FieldType> A;
+                blueprint_variable_vector<FieldType> B;
+                blueprint_variable<FieldType> res;
 
-                    // the variables on the blueprint are (ONE (constant 1 term), res, A[0], ..., A[num_constraints-1],
-                    // B[0], ..., B[num_constraints-1])
-                    res.allocate(bp);
-                    A.allocate(bp, new_num_constraints);
-                    B.allocate(bp, new_num_constraints);
+                // the variables on the blueprint are (ONE (constant 1 term), res, A[0], ..., A[num_constraints-1],
+                // B[0], ..., B[num_constraints-1])
+                res.allocate(bp);
+                A.allocate(bp, new_num_constraints);
+                B.allocate(bp, new_num_constraints);
 
-                    inner_product<FieldType> compute_inner_product(bp, A, B, res, "compute_inner_product");
-                    compute_inner_product.generate_r1cs_constraints();
+                inner_product<FieldType> compute_inner_product(bp, A, B, res, "compute_inner_product");
+                compute_inner_product.generate_r1cs_constraints();
 
-                    /* fill in random example */
-                    for (std::size_t i = 0; i < new_num_constraints; ++i) {
-                        bp.val(A[i]) = algebra::random_element<FieldType>();
-                        bp.val(B[i]) = algebra::random_element<FieldType>();
-                    }
-
-                    compute_inner_product.generate_r1cs_witness();
-                    return r1cs_example<FieldType>(
-                        bp.get_constraint_system(), bp.primary_input(), bp.auxiliary_input());
+                /* fill in random example */
+                for (std::size_t i = 0; i < new_num_constraints; ++i) {
+                    bp.val(A[i]) = algebra::random_element<FieldType>();
+                    bp.val(B[i]) = algebra::random_element<FieldType>();
                 }
 
-            }    // namespace components
-        }        // namespace zk
-    }            // namespace crypto3
+                compute_inner_product.generate_r1cs_witness();
+                return r1cs_example<FieldType>(
+                    bp.get_constraint_system(), bp.primary_input(), bp.auxiliary_input());
+            }
+
+        }    // namespace components
+    }            // namespace blueprint_mc
 }    // namespace nil
 
 #endif    // CRYPTO3_SIMPLE_EXAMPLE_HPP

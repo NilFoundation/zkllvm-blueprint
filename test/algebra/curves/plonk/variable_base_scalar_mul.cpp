@@ -40,10 +40,10 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/variable_base_scalar_mul_15_wires.hpp>
-#include "test_plonk_component.hpp"
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/variable_base_scalar_mul_15_wires.hpp>
+#include "test_plonk_component_mc.hpp"
 
 #include "../../../profiling.hpp"
 
@@ -58,9 +58,9 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 	constexpr std::size_t witness_columns = 5;
 	using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType>;
 
-	zk::blueprint<ArithmetizationType> bp;
+	nil::blueprint_mc::blueprint<ArithmetizationType> bp;
 
-	using component_type = zk::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4>;
+	using component_type = nil::blueprint_mc::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4>;
 
 	component_type scalar_mul_component(bp);
 
@@ -89,9 +89,9 @@ BOOST_AUTO_TEST_CASE(variable_base_scalar_mul_9_wires_test_case) {
 	constexpr std::size_t witness_columns = 9;
 	using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType>;
 
-	zk::blueprint<ArithmetizationType> bp;
+	nil::blueprint_mc::blueprint<ArithmetizationType> bp;
 
-	using component_type = zk::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+	using component_type = nil::blueprint_mc::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
 	component_type scalar_mul_component = component_type(bp);
 
@@ -127,10 +127,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_random_scalar_pall
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar = algebra::random_element<BlueprintScalarType>();
@@ -190,10 +190,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_one_pallas)
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar =  1;
@@ -254,10 +254,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_zero_pallas
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar =  0;
@@ -318,10 +318,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_minus_one_p
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar =  -1;
@@ -381,10 +381,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_random_scalar_vest
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar = algebra::random_element<BlueprintScalarType>();
@@ -444,10 +444,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_one_vesta) 
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar =  1;
@@ -508,10 +508,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_zero_vesta)
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar =  0;
@@ -572,10 +572,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_minus_one_v
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar =  -1;

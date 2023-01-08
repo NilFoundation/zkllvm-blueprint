@@ -40,11 +40,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/non_native/algebra/fields/plonk/complete_addition_edwards25519.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/non_native/algebra/fields/plonk/complete_addition_edwards25519.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_non_native_complete_addition) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::pallas;
-    using ed25519_type = algebra::curves::ed25519;
+    using curve_type = nil::crypto3::algebra::curves::pallas;
+    using ed25519_type = nil::crypto3::algebra::curves::ed25519;
     using BlueprintFieldType = typename curve_type::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 1;
@@ -63,14 +63,14 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_complete_addition) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     using component_type =
-        zk::components::complete_addition<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+        nil::blueprint_mc::components::complete_addition<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
     std::array<var, 4> input_var_Xa = {
         var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
@@ -90,11 +90,11 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_complete_addition) {
 
     typename component_type::params_type params = {{input_var_Xa, input_var_Xb}, {input_var_Ya, input_var_Yb}};
 
-    ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type T =
-        algebra::random_element<ed25519_type::template g1_type<algebra::curves::coordinates::affine>>();
-    ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type R =
-        algebra::random_element<ed25519_type::template g1_type<algebra::curves::coordinates::affine>>();
-    ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type P = T + R;
+    ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type T =
+        nil::crypto3::algebra::random_element<ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>>();
+    ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type R =
+        nil::crypto3::algebra::random_element<ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>>();
+    ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = T + R;
     ed25519_type::base_field_type::integral_type Tx = ed25519_type::base_field_type::integral_type(T.X.data);
     ed25519_type::base_field_type::integral_type Ty = ed25519_type::base_field_type::integral_type(T.Y.data);
     ed25519_type::base_field_type::integral_type Rx = ed25519_type::base_field_type::integral_type(R.X.data);

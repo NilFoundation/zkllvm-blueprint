@@ -36,11 +36,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/algebra/fields/plonk/field_operations.hpp>
 
-#include "../../../test_plonk_component.hpp"
+#include "../../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -58,13 +58,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multiplication) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::multiplication<ArithmetizationType, 0, 1, 2>;
+    using component_type = nil::blueprint_mc::components::multiplication<ArithmetizationType, 0, 1, 2>;
 
     typename BlueprintFieldType::value_type x = 2;
     typename BlueprintFieldType::value_type y = 12;
@@ -98,13 +98,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_addition) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::addition<ArithmetizationType, 0, 1, 2>;
+    using component_type = nil::blueprint_mc::components::addition<ArithmetizationType, 0, 1, 2>;
 
     typename BlueprintFieldType::value_type x = 2;
     typename BlueprintFieldType::value_type y = 22;
@@ -138,13 +138,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_division) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::division<ArithmetizationType, 0, 1, 2, 3>;
+    using component_type = nil::blueprint_mc::components::division<ArithmetizationType, 0, 1, 2, 3>;
 
     typename BlueprintFieldType::value_type x = 16;
     typename BlueprintFieldType::value_type y = 2;
@@ -178,13 +178,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_subtraction) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::subtraction<ArithmetizationType, 0, 1, 2>;
+    using component_type = nil::blueprint_mc::components::subtraction<ArithmetizationType, 0, 1, 2>;
 
     typename BlueprintFieldType::value_type x = 0x56BC8334B5713726A_cppui256;
     typename BlueprintFieldType::value_type y = 101;
@@ -218,13 +218,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mul_by_constant) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::mul_by_constant<ArithmetizationType, 0, 1>;
+    using component_type = nil::blueprint_mc::components::mul_by_constant<ArithmetizationType, 0, 1>;
 
     typename BlueprintFieldType::value_type x = 2;
     typename BlueprintFieldType::value_type y = 22;
@@ -258,13 +258,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_div_or_zero) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::division_or_zero<ArithmetizationType, 0, 1, 2, 3, 4>;
+    using component_type = nil::blueprint_mc::components::division_or_zero<ArithmetizationType, 0, 1, 2, 3, 4>;
 
     typename BlueprintFieldType::value_type x = 2;
     typename BlueprintFieldType::value_type y = 0;

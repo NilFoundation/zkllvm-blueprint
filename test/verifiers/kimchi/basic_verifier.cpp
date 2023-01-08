@@ -38,23 +38,21 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
-
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/types.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/batch_verify_base_field.hpp>
-
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/binding.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
+#include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/types.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/batch_verify_base_field.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
-#include "test_plonk_component.hpp"
+#include "test_plonk_component_mc.hpp"
 #include "proof_data.hpp"
 
 using namespace nil::crypto3;
@@ -63,7 +61,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_oracles_test_suite)
 
 template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvelRounds>
 void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
-                   zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvelRounds> &circuit_proof,
+                   nil::blueprint_mc::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvelRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
@@ -138,15 +136,15 @@ BOOST_AUTO_TEST_CASE(blueprint_verifiers_kimchi_basic_verifier_test) {
         zk::snark::plonk_arithmetization_params<WitnessColumnsScalar, PublicInputColumnsScalar, ConstantColumnsScalar,
                                                 SelectorColumnsScalar>;
     using ArithmetizationTypeScalar = zk::snark::plonk_constraint_system<ScalarFieldType, ArithmetizationParamsScalar>;
-    using AssignmentTypeScalar = zk::blueprint_assignment_table<ArithmetizationTypeScalar>;
+    using AssignmentTypeScalar = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationTypeScalar>;
 
-    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<AssignmentTypeScalar>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using commitment_params = nil::blueprint_mc::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = nil::blueprint_mc::components::index_terms_scalars_list_ec_test<AssignmentTypeScalar>;
+    using circuit_description = nil::blueprint_mc::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
-    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+    using kimchi_params = nil::blueprint_mc::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
-    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+    using kimchi_constants = nil::blueprint_mc::components::kimchi_inner_constants<kimchi_params>;
 
     // COMMON DATA
     constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
@@ -169,22 +167,22 @@ BOOST_AUTO_TEST_CASE(blueprint_verifiers_kimchi_basic_verifier_test) {
     // SCALAR FIELD
 
     using fq_output_type_scalar =
-        typename zk::components::binding<ArithmetizationTypeScalar, ScalarFieldType, kimchi_params>::fq_sponge_output;
+        typename nil::blueprint_mc::components::binding<ArithmetizationTypeScalar, ScalarFieldType, kimchi_params>::fq_sponge_output;
 
-    using fr_data_type_scalar = typename zk::components::binding<ArithmetizationTypeScalar, ScalarFieldType,
+    using fr_data_type_scalar = typename nil::blueprint_mc::components::binding<ArithmetizationTypeScalar, ScalarFieldType,
                                                                  kimchi_params>::fr_data<var_scalar, batch_size>;
 
-    using fq_data_type_scalar = typename zk::components::binding<ArithmetizationTypeScalar, ScalarFieldType,
+    using fq_data_type_scalar = typename nil::blueprint_mc::components::binding<ArithmetizationTypeScalar, ScalarFieldType,
                                                                  kimchi_params>::fq_data<var_scalar>;
 
-    zk::components::kimchi_verifier_index_scalar<ScalarFieldType> verifier_index_scalar;
+    nil::blueprint_mc::components::kimchi_verifier_index_scalar<ScalarFieldType> verifier_index_scalar;
     typename ScalarFieldType::value_type omega =
         0x1B1A85952300603BBF8DD3068424B64608658ACBB72CA7D2BB9694ADFA504418_cppui256;
     verifier_index_scalar.domain_size = domain_size;
     verifier_index_scalar.omega = var_scalar(0, 0, false, var_scalar::column_type::public_input);
 
     using verify_scalar_component =
-        zk::components::verify_scalar<ArithmetizationTypeScalar, curve_type, kimchi_params, commitment_params,
+        nil::blueprint_mc::components::verify_scalar<ArithmetizationTypeScalar, curve_type, kimchi_params, commitment_params,
                                       batch_size, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     typename ScalarFieldType::value_type joint_combiner = 0;
@@ -197,14 +195,14 @@ BOOST_AUTO_TEST_CASE(blueprint_verifiers_kimchi_basic_verifier_test) {
 
     std::vector<typename ScalarFieldType::value_type> public_input_scalar = {omega};
 
-    std::array<zk::components::kimchi_proof_scalar<ScalarFieldType, kimchi_params, eval_rounds>, batch_size> proofs;
+    std::array<nil::blueprint_mc::components::kimchi_proof_scalar<ScalarFieldType, kimchi_params, eval_rounds>, batch_size> proofs;
 
     std::array<fq_output_type_scalar, batch_size> fq_outputs;
 
     for (std::size_t batch_id = 0; batch_id < batch_size; batch_id++) {
         zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
 
-        zk::components::kimchi_proof_scalar<ScalarFieldType, kimchi_params, eval_rounds> proof;
+        nil::blueprint_mc::components::kimchi_proof_scalar<ScalarFieldType, kimchi_params, eval_rounds> proof;
 
         prepare_proof<curve_type, ScalarFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof,
                                                                                public_input_scalar);
@@ -266,27 +264,27 @@ BOOST_AUTO_TEST_CASE(blueprint_verifiers_kimchi_basic_verifier_test) {
     using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumnsBase, PublicInputColumnsBase,
                                                                           ConstantColumnsBase, SelectorColumnsBase>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BaseFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 
-    using var_ec_point = typename zk::components::var_ec_point<BaseFieldType>;
+    using var_ec_point = typename nil::blueprint_mc::components::var_ec_point<BaseFieldType>;
 
     using verify_base_component =
-        zk::components::base_field<ArithmetizationType, curve_type, kimchi_params, commitment_params, batch_size, 0, 1,
+        nil::blueprint_mc::components::base_field<ArithmetizationType, curve_type, kimchi_params, commitment_params, batch_size, 0, 1,
                                    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     using shifted_commitment_type =
-        typename zk::components::kimchi_shifted_commitment_type<BaseFieldType,
+        typename nil::blueprint_mc::components::kimchi_shifted_commitment_type<BaseFieldType,
                                                                 commitment_params::shifted_commitment_split>;
 
     using opening_proof_type =
-        typename zk::components::kimchi_opening_proof_base<BaseFieldType, commitment_params::eval_rounds>;
+        typename nil::blueprint_mc::components::kimchi_opening_proof_base<BaseFieldType, commitment_params::eval_rounds>;
     using var = zk::snark::plonk_variable<BaseFieldType>;
 
-    using binding = typename zk::components::binding<ArithmetizationType, BaseFieldType, kimchi_params>;
+    using binding = typename nil::blueprint_mc::components::binding<ArithmetizationType, BaseFieldType, kimchi_params>;
 
-    using verifier_index_type = zk::components::kimchi_verifier_index_base<curve_type, kimchi_params>;
+    using verifier_index_type = nil::blueprint_mc::components::kimchi_verifier_index_base<curve_type, kimchi_params>;
 
-    using proof_type = zk::components::kimchi_proof_base<BaseFieldType, kimchi_params>;
+    using proof_type = nil::blueprint_mc::components::kimchi_proof_base<BaseFieldType, kimchi_params>;
 
     std::vector<typename BaseFieldType::value_type> public_input;
     std::vector<var_ec_point> shifted_var;

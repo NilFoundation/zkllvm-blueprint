@@ -31,11 +31,9 @@
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 #include <nil/crypto3/algebra/random_element.hpp>
 
-// #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/fixed_base_scalar_mul_5_wires.hpp>
-// #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/fixed_base_scalar_mul_9_wires.hpp>
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/fixed_base_scalar_mul_15_wires.hpp>
+#include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/fixed_base_scalar_mul_15_wires.hpp>
 
-#include "../../../test_plonk_component.hpp"
+#include "../../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -53,7 +51,7 @@ BOOST_AUTO_TEST_CASE(fixed_base_scalar_mul_15_wires_test_case) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
 	using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
-	using component_type = zk::components::element_g1_fixed_base_scalar_mul<ArithmetizationType,
+	using component_type = nil::blueprint_mc::components::element_g1_fixed_base_scalar_mul<ArithmetizationType,
 		curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
 	typename curve_type::template g1_type<>::value_type B =

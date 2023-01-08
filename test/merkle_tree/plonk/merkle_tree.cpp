@@ -38,11 +38,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/merkle_tree/plonk/merkle_tree.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/merkle_tree/plonk/merkle_tree.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_merkle_tree) {
                 ArithmetizationParams>;
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::merkle_tree<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::merkle_tree<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
     std::array<typename ArithmetizationType::field_type::value_type, 2048> hash_input;

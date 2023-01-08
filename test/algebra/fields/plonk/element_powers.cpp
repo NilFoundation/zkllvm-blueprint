@@ -35,11 +35,11 @@
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include "../../../test_plonk_component.hpp"
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include "../../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3,
+    using component_type = nil::blueprint_mc::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3,
                                                                           4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     var one(0, 0, false, var::column_type::public_input);

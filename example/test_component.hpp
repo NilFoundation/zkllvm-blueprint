@@ -26,12 +26,12 @@
 #ifndef CRYPTO3_BLUEPRINT_EXAMPLE_TEST_COMPONENT_HPP
 #define CRYPTO3_BLUEPRINT_EXAMPLE_TEST_COMPONENT_HPP
 
-#include <nil/crypto3/zk/component.hpp>
-
-#include <nil/crypto3/zk/blueprint/r1cs.hpp>
+#include <nil/blueprint_mc/component.hpp>
+#include <nil/blueprint_mc/blueprint/r1cs.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/constraint_satisfaction_problems/r1cs.hpp>
 
+using namespace nil::blueprint_mc;
 using namespace nil::crypto3::zk;
 using namespace nil::crypto3::algebra;
 

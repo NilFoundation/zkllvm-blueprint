@@ -39,11 +39,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/non_native/algebra/fields/plonk/fixed_base_multiplication_edwards25519.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/non_native/algebra/fields/plonk/fixed_base_multiplication_edwards25519.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_non_native_fixed_base_mul) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::pallas;
-    using ed25519_type = algebra::curves::ed25519;
+    using curve_type = nil::crypto3::algebra::curves::pallas;
+    using ed25519_type = nil::crypto3::algebra::curves::ed25519;
     using BlueprintFieldType = typename curve_type::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 1;
@@ -62,24 +62,24 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_fixed_base_mul) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = zk::components::
+    using component_type = nil::blueprint_mc::components::
         fixed_base_multiplication<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
     var var_b = var(0, 0, false, var::column_type::public_input);
 
-    ed25519_type::scalar_field_type::value_type b = algebra::random_element<ed25519_type::scalar_field_type>();
+    ed25519_type::scalar_field_type::value_type b = nil::crypto3::algebra::random_element<ed25519_type::scalar_field_type>();
 
     typename component_type::params_type params = {{var_b}};
 
-    ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type B =
-        ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type::one();
-    ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type P = b * B;
+    ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type B =
+        ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type::one();
+    ed25519_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = b * B;
     ed25519_type::base_field_type::integral_type Px = ed25519_type::base_field_type::integral_type(P.X.data);
     ed25519_type::base_field_type::integral_type Py = ed25519_type::base_field_type::integral_type(P.Y.data);
     typename ed25519_type::base_field_type::integral_type base = 1;

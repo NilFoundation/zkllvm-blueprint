@@ -37,16 +37,16 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/oracles_cip.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/oracles_scalar/oracles_cip.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/proof.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms_cip.hpp"
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
-#include "../../../test_plonk_component.hpp"
+#include "../../../test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test2) 
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
@@ -81,15 +81,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test2) 
 
     constexpr static const std::size_t eval_points_amount = 2;
 
-    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_cip_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
+    using commitment_params = nil::blueprint_mc::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = nil::blueprint_mc::components::index_terms_scalars_cip_list_ec_test<ArithmetizationType>;
+    using circuit_description = nil::blueprint_mc::components::kimchi_circuit_description<index_terms_list,
                                                                            witness_columns, perm_size>;
-    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+    using kimchi_params = nil::blueprint_mc::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
                                                              public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::oracles_cip<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4,
+        nil::blueprint_mc::components::oracles_cip<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4,
                                     5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test2) 
             std::array<var, commitment_params::split_poly_eval_size>,
             eval_points_amount>> polys(kimchi_params::prev_challenges_size);
     std::array<var,eval_points_amount> p_eval;
-    std::array<zk::components::kimchi_proof_evaluations<BlueprintFieldType, kimchi_params>,
+    std::array<nil::blueprint_mc::components::kimchi_proof_evaluations<BlueprintFieldType, kimchi_params>,
                eval_points_amount> evals;
     typename BlueprintFieldType::value_type expected_result = 0x354a5816578a0f9d8d9ddb7fa580573882cb771454a716e4838c1b29e24034a2_cppui255;
 
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
@@ -283,15 +283,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test) {
 
     constexpr static const std::size_t eval_points_amount = 2;
 
-    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
+    using commitment_params = nil::blueprint_mc::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = nil::blueprint_mc::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using circuit_description = nil::blueprint_mc::components::kimchi_circuit_description<index_terms_list,
                                                                            witness_columns, perm_size>;
-    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+    using kimchi_params = nil::blueprint_mc::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
                                                              public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::oracles_cip<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4,
+        nil::blueprint_mc::components::oracles_cip<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4,
                                     5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test) {
             std::array<var, commitment_params::split_poly_eval_size>,
             eval_points_amount>> polys(kimchi_params::prev_challenges_size);
     std::array<var,eval_points_amount> p_eval;
-    std::array<zk::components::kimchi_proof_evaluations<BlueprintFieldType, kimchi_params>,
+    std::array<nil::blueprint_mc::components::kimchi_proof_evaluations<BlueprintFieldType, kimchi_params>,
                eval_points_amount> evals;
     typename BlueprintFieldType::value_type expected_result = 0x092931C57CBF91630B192C9BB166864F5D3F7E3D2C9217FDB382DB82564D4607_cppui255;
 
