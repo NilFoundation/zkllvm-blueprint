@@ -40,22 +40,22 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/subtraction.hpp>
+#include <nil/blueprint/basic_non_native_policy.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/subtraction.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../../../test_plonk_component.hpp"
 
 using namespace nil;
 
-template <typename BlueprintFieldType>
-void test_field_sub(std::vector<typename BlueprintFieldType::value_type> public_input){
-    
+template<typename BlueprintFieldType>
+void test_field_sub(std::vector<typename BlueprintFieldType::value_type> public_input) {
+
     using ed25519_type = crypto3::algebra::curves::ed25519;
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 2;
     using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
@@ -63,8 +63,9 @@ void test_field_sub(std::vector<typename BlueprintFieldType::value_type> public_
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::subtraction<ArithmetizationType,
-        typename ed25519_type::base_field_type, 9>;
+    using component_type =
+        blueprint::components::subtraction<ArithmetizationType, typename ed25519_type::base_field_type, 9,
+                                           blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
     std::array<var, 4> input_var_a = {
         var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
@@ -75,11 +76,9 @@ void test_field_sub(std::vector<typename BlueprintFieldType::value_type> public_
 
     typename component_type::input_type instance_input = {input_var_a, input_var_b};
 
-    auto result_check = [](AssignmentType &assignment, 
-        typename component_type::result_type &real_res) {
-    };
+    auto result_check = [](AssignmentType &assignment, typename component_type::result_type &real_res) {};
 
-    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8},{},{});
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {}, {});
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
@@ -89,13 +88,13 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_subtraction_test0) {
     test_field_sub<typename crypto3::algebra::curves::pallas::base_field_type>(
-        {0x2BCA8C5A0FDF3D53E_cppui253, 0x39840DDF4C421B2D5_cppui253, 0x24FCE5728D26931CA_cppui253, 0xFBD6153B4CE63_cppui253,
-         0x3CD7BA9506A76AA1C_cppui253, 0x15C58810F101DDB2F_cppui253, 0x1AA5750251F6DA658_cppui253, 0x1323F61B67242F_cppui253});
+        {0x2BCA8C5A0FDF3D53E_cppui253, 0x39840DDF4C421B2D5_cppui253, 0x24FCE5728D26931CA_cppui253,
+         0xFBD6153B4CE63_cppui253, 0x3CD7BA9506A76AA1C_cppui253, 0x15C58810F101DDB2F_cppui253,
+         0x1AA5750251F6DA658_cppui253, 0x1323F61B67242F_cppui253});
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_subtraction_test1) {
-    test_field_sub<typename crypto3::algebra::curves::pallas::base_field_type>(
-        {1, 0, 0, 0, 1, 0, 0, 0});
+    test_field_sub<typename crypto3::algebra::curves::pallas::base_field_type>({1, 0, 0, 0, 1, 0, 0, 0});
 }
 
 BOOST_AUTO_TEST_SUITE_END()
