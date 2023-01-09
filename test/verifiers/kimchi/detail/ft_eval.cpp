@@ -48,7 +48,7 @@
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
 #include "test_plonk_component_mc.hpp"
-#include "../proof_data.hpp"
+#include "../proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_ft_eval_test) {
         assert(expected_result == assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 }
 

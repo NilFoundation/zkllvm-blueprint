@@ -46,7 +46,7 @@
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
 #include "test_plonk_component_mc.hpp"
-#include "verifiers/kimchi/proof_data.hpp"
+#include "verifiers/kimchi/proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

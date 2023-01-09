@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 //         component_type::result_type &real_res) {
 //     };
 
-//     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params,
+//     nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params,
 //     public_input, result_check);
 
 //     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(blueprint_ec_point_to_work) {
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =

@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_double) {
         assert(expected_res.Y == assignment.var_value(real_res.Y));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "unified_addition: " << duration.count() << "ms" << std::endl;
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
         assert(expected_res.Y == assignment.var_value(real_res.Y));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "unified_addition: " << duration.count() << "ms" << std::endl;

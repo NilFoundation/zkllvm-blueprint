@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_publuc_evaluations) {
         assert(expected_result[1] == assignment.var_value(real_res.output[1]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =
@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_real_data) {
         assert(expected_result[1] == assignment.var_value(real_res.output[1]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =
@@ -324,7 +324,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_no_public_input) {
         assert(expected_result[1] == assignment.var_value(real_res.output[1]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =

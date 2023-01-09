@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_0) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_1) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_2) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_3) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_4) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_5) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -333,7 +333,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_double_squeeze) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;

@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_addition_example) {
 
     using component_type = nil::blueprint_mc::components::addition<ArithmetizationType, 0, 1, 2>;
 
-    // test_component set public input to the first rows of the public_input columns
+    // nil::blueprint_mc::test_component set public input to the first rows of the public_input columns
     typename component_type::params_type params = {
         var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
         var(0, 2, false, var::column_type::public_input)};
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_addition_example) {
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {x, y, sum};
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

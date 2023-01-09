@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_var_base_mul_per_bit) {
                    assignment.var_value(real_res.output.y[i]));
         }
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 
     auto duration =

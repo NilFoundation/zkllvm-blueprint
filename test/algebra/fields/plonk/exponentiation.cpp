@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_exponentiation) {
         assert(expected_result== assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "exponentiation_component: " << duration.count() << "ms" << std::endl;
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_exponentiation_2) {
         assert(expected_result== assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "exponentiation_component: " << duration.count() << "ms" << std::endl;
@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_exponentiation_3) {
         assert(expected_result== assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "exponentiation_component: " << duration.count() << "ms" << std::endl;

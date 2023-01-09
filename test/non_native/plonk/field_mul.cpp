@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_multiplication) {
                   << assignment.var_value(real_res.output[3]).data << " " << std::endl;
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =

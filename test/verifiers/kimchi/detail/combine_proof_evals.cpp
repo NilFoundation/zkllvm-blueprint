@@ -49,7 +49,7 @@
 #include "verifiers/kimchi/index_terms_instances/chacha_test.hpp"
 
 #include "test_plonk_component_mc.hpp"
-#include "../proof_data.hpp"
+#include "../proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
         assert(kimchi_proof.evals[0].poseidon_selector[0] * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

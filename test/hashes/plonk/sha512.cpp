@@ -134,7 +134,7 @@ ed25519_type::template g1_type<algebra::curves::coordinates::affine>::value_type
     };*/
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);

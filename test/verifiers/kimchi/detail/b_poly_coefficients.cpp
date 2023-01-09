@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_b_poly_coefficients) {
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 
     auto duration =

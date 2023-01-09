@@ -55,7 +55,7 @@
 #include "verifiers/kimchi/index_terms_instances/generic_index_terms.hpp"
 
 #include "test_plonk_component_mc.hpp"
-#include "proof_data.hpp"
+#include "proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_test) {
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 
@@ -399,7 +399,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_chacha) {
         assert(expected_result.eval_points[1] == assignment.var_value(real_res.eval_points[1]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_test_recursion) {
         assert(expected_result.eval_points[1] == assignment.var_value(real_res.eval_points[1]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 
@@ -666,7 +666,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_generic) {
         assert(expected_result.eval_points[1] == assignment.var_value(real_res.eval_points[1]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

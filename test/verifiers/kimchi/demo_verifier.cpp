@@ -56,7 +56,7 @@
 
 #include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/unified_addition.hpp>
 
-#include "proof_data.hpp"
+#include "proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 

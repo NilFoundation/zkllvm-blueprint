@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_merkle_tree) {
     }
 
     typename component_type::params_type params = {input_state_var};
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, hash_input);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, hash_input);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_ec_test_su
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 
@@ -499,7 +499,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_lookup_tes
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

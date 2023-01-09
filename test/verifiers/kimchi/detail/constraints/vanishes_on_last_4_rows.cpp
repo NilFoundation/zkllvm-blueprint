@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_zkpm) {
         assert(expected_res == assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "vanishes_on_last_4_rows: " << duration.count() << "ms" << std::endl;

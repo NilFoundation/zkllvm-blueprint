@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_decomposed_variable_base_scalar_mul) {
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;

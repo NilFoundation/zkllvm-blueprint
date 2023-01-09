@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 //             // assert(state[i] == assignment.var_value(real_res.state[i]));
 //         }
 //     };
-//     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+//     nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
 //     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
 //     std::cout << "kimchi transcript_fr: " << duration.count() << "ms" << std::endl;
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_1) {
             state[i] == assignment.var_value(real_res.state[i]);
         }
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi transcript_fr: " << duration.count() << "ms" << std::endl;

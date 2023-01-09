@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_constraints_generic_scalars_g
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

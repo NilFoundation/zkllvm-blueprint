@@ -50,11 +50,6 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
 
-#include <nil/blueprint_mc/blueprint/plonk.hpp>
-#include <nil/blueprint_mc/assignment/plonk.hpp>
-#include <nil/blueprint_mc/algorithms/allocate.hpp>
-#include <nil/blueprint_mc/algorithms/generate_circuit.hpp>
-
 #include <boost/test/unit_test.hpp>
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
@@ -62,6 +57,11 @@
 
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/ed25519.hpp>
+
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/algorithms/allocate.hpp>
+#include <nil/blueprint_mc/algorithms/generate_circuit.hpp>
 
 #include <nil/blueprint_mc/components/non_native/algebra/fields/plonk/variable_base_multiplication_edwards25519.hpp>
 #include <nil/blueprint_mc/components/hashes/sha256/plonk/sha256_process.hpp>

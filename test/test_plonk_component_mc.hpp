@@ -44,7 +44,7 @@
 
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 
-#include "profiling_plonk_circuit.hpp"
+#include "profiling_plonk_circuit_mc.hpp"
 #include "profiling.hpp"
 
 #include <nil/marshalling/status_type.hpp>
@@ -52,7 +52,9 @@
 #include <nil/marshalling/endianness.hpp>
 
 namespace nil {
-    namespace crypto3 {
+    namespace blueprint_mc {
+        using namespace nil::crypto3;
+        
         inline std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
             using dist_type = std::uniform_int_distribution<int>;
             static std::random_device random_engine;
@@ -103,10 +105,10 @@ namespace nil {
         auto prepare_component(typename ComponentType::params_type params, const PublicInput &public_input,
                                const FunctorResultCheck &result_check) {
 
-            using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+            using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
             using component_type = ComponentType;
 
-            zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
+            nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
 
             blueprint_mc::blueprint<ArithmetizationType> bp(desc);
             blueprint_mc::blueprint_private_assignment_table<ArithmetizationType> private_assignment(desc);
@@ -132,15 +134,15 @@ namespace nil {
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
 
-            zk::snark::plonk_assignment_table<BlueprintFieldType, ArithmetizationParams> assignments(private_assignment,
+            nil::crypto3::zk::snark::plonk_assignment_table<BlueprintFieldType, ArithmetizationParams> assignments(private_assignment,
                                                                                                      public_assignment);
 
             using placeholder_params =
-                zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
-            using types = zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
+                nil::crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
+            using types = nil::crypto3::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
 
             using fri_type =
-                typename zk::commitments::fri<BlueprintFieldType, typename placeholder_params::merkle_hash_type,
+                typename nil::crypto3::zk::commitments::fri<BlueprintFieldType, typename placeholder_params::merkle_hash_type,
                                               typename placeholder_params::transcript_hash_type, 2, 1>;
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
@@ -149,13 +151,13 @@ namespace nil {
 
             std::size_t permutation_size = desc.witness_columns + desc.public_input_columns + desc.constant_columns;
 
-            typename zk::snark::placeholder_public_preprocessor<
+            typename nil::crypto3::zk::snark::placeholder_public_preprocessor<
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type public_preprocessed_data =
-                zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::process(
+                nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::process(
                     bp, public_assignment, desc, fri_params, permutation_size);
-            typename zk::snark::placeholder_private_preprocessor<
+            typename nil::crypto3::zk::snark::placeholder_private_preprocessor<
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type private_preprocessed_data =
-                zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
+                nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
                     bp, private_assignment, desc, fri_params);
 
             return std::make_tuple(desc, bp, fri_params, assignments, public_preprocessed_data,
@@ -171,16 +173,16 @@ namespace nil {
                            FunctorResultCheck result_check, bool verification_result = true) {
 
             using placeholder_params =
-                zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
+                nil::crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
 
             auto [desc, bp, fri_params, assignments, public_preprocessed_data, private_preprocessed_data] =
                 prepare_component<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
                                   FunctorResultCheck>(params, public_input, result_check);
 
-            auto proof = zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
+            auto proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, private_preprocessed_data, desc, bp, assignments, fri_params);
 
-            bool verifier_res = zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
+            bool verifier_res = nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
               public_preprocessed_data, proof, bp, fri_params);
 
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
@@ -204,16 +206,16 @@ namespace nil {
                                     const FunctorResultCheck &result_check, bool verification_result = true) {
 
             using placeholder_params =
-                zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
+                nil::crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
 
             auto [desc, bp, fri_params, assignments, public_preprocessed_data, private_preprocessed_data] =
                 prepare_component<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda>(
                     params, public_input, result_check);
 
-            auto proof = zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
+            auto proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, private_preprocessed_data, desc, bp, assignments, fri_params);
 
-            bool verifier_res = zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
+            bool verifier_res = nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, proof, bp, fri_params);
             if (verification_result) {
                 BOOST_CHECK(verifier_res);
@@ -222,7 +224,7 @@ namespace nil {
             }
             return std::make_tuple(proof, fri_params, public_preprocessed_data, bp);
         }
-    }    // namespace crypto3
+    }    // namespace blueprint_mc
 }    // namespace nil
 
 #endif    // BLUEPRINT_MC_TEST_PLONK_COMPONENT_HPP

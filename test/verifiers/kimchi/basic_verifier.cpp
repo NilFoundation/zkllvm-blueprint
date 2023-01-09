@@ -53,7 +53,7 @@
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
 #include "test_plonk_component_mc.hpp"
-#include "proof_data.hpp"
+#include "proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(blueprint_verifiers_kimchi_basic_verifier_test) {
 
     auto result_check_scalar = [](AssignmentTypeScalar &assignment, verify_scalar_component::result_type &real_res) {};
 
-    test_component<verify_scalar_component, ScalarFieldType, ArithmetizationParamsScalar, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<verify_scalar_component, ScalarFieldType, ArithmetizationParamsScalar, hash_type, Lambda>(
         params_scalar, public_input_scalar, result_check_scalar);
 
     //////////////////////////////////////////////////
@@ -455,7 +455,7 @@ BOOST_AUTO_TEST_CASE(blueprint_verifiers_kimchi_basic_verifier_test) {
 
     auto result_check = [](AssignmentType &assignment, verify_base_component::result_type &real_res) {};
 
-    test_component<verify_base_component, BaseFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<verify_base_component, BaseFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                    result_check);
 }
 

@@ -36,7 +36,7 @@ using namespace nil::crypto3::zk;
 using namespace nil::crypto3::algebra;
 
 template<typename FieldType>
-class test_component : public components::component<FieldType> {
+class nil::blueprint_mc::test_component : public components::component<FieldType> {
     using field_type = FieldType;
     components::blueprint_variable<field_type> sym_1;
     components::blueprint_variable<field_type> y;
@@ -45,7 +45,7 @@ public:
     const components::blueprint_variable<field_type> out;
     const components::blueprint_variable<field_type> x;
 
-    test_component(blueprint<field_type> &bp,
+    nil::blueprint_mc::test_component(blueprint<field_type> &bp,
                 const components::blueprint_variable<field_type> &out,
                 const components::blueprint_variable<field_type> &x) : 
       components::component<field_type>(bp), out(out), x(x) {

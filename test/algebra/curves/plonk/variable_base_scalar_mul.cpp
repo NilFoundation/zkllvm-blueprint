@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_random_scalar_pall
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_one_pallas)
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_zero_pallas
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -361,7 +361,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_minus_one_p
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_random_scalar_vest
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -488,7 +488,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_one_vesta) 
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -552,7 +552,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_zero_vesta)
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
@@ -616,7 +616,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul_scalar_minus_one_v
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;

@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prev_chal_evals) {
         assert(expected_result[3] == assignment.var_value(real_res.output[1][0]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =

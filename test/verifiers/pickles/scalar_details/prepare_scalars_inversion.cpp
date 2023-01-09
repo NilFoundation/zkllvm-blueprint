@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_inversion_vesta) {
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "prepare scalars inversion vesta test: " << duration.count() << "ms" << std::endl;
@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_inversion_pallas) {
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "prepare scalars inversion pallas test: " << duration.count() << "ms" << std::endl;

@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.output));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

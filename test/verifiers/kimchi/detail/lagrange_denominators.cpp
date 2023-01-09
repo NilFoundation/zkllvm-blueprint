@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_lagrange_denominators) {
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_lagrange_denominators_real_data) {
         }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 
     auto duration =

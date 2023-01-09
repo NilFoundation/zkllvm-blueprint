@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_poseidon_test_case1) {
     auto result_check = [](AssignmentType &assignment, 
         component_type::result_type &real_res) {
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params,
                                                                                                  input_state, result_check);
 }
 

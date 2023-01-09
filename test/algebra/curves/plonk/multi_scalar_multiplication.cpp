@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multi_scalar_mul) {
         assert(sum.Y == assignment.var_value(real_res.output.Y));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, 
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, 
         public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);

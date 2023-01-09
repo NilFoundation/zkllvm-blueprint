@@ -18,7 +18,7 @@
 #include <nil/crypto3/algebra/fields/detail/element/fp.hpp>
 #include <nil/crypto3/algebra/fields/detail/element/fp2.hpp>
 
-#include "test_component.hpp"
+#include "nil::blueprint_mc::test_component.hpp"
 
 using namespace nil::crypto3::zk;
 using namespace nil::crypto3::algebra;
@@ -47,7 +47,7 @@ int main(){
 
     // Initialize component
 
-    test_component<field_type> g(bp, out, x);
+    nil::blueprint_mc::test_component<field_type> g(bp, out, x);
     g.generate_r1cs_constraints();
     
     // Add witness values

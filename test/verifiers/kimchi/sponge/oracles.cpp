@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_from_limbs) {
         assert(expected_res == assignment.var_value(real_res.result));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "multiplication: " << duration.count() << "ms" << std::endl;
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_to_limbs_1) {
 	   }
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "multiplication: " << duration.count() << "ms" << std::endl;
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_to_limbs_2) {
 	   assert(expected_res[3] == assignment.var_value(real_res.result[3]));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "multiplication: " << duration.count() << "ms" << std::endl;

@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sqrt_qr_test) {
         assert(expected_res == assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "square root: " << duration.count() << "ms" << std::endl;
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sqrt_qnr_test) {
         assert(expected_res == assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "square root: " << duration.count() << "ms" << std::endl;
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sqrt_zero_test) {
         assert(expected_res == assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "square root: " << duration.count() << "ms" << std::endl;

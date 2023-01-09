@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_table_commitment_test) {
         assert(expected_result[3] == assignment.var_value(real_res.output.Y)); // expected x = real x
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 };
 BOOST_AUTO_TEST_SUITE_END()

@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(fixed_base_scalar_mul_15_wires_test_case) {
 	typename component_type::public_params_type init_params = {B};
 	typename component_type::private_params_type assignment_params = {a, s, P};
 
-	test_component<component_type, BlueprintFieldType, ArithmetizationParams> (init_params, assignment_params);
+	nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams> (init_params, assignment_params);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
