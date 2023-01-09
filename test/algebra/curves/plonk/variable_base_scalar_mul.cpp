@@ -40,10 +40,10 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/algebra/curves/pasta/plonk/variable_base_scalar_mul_15_wires.hpp>
-#include "test_plonk_component.hpp"
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/variable_base_scalar_mul_15_wires.hpp>
+#include "test_plonk_component_mc.hpp"
 
 #include "../../../profiling.hpp"
 
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 	zk::blueprint<ArithmetizationType> bp;
 
-	using component_type = zk::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4>;
+	using component_type = nil::blueprint_mc::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4>;
 
 	component_type scalar_mul_component(bp);
 
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(variable_base_scalar_mul_9_wires_test_case) {
 
 	zk::blueprint<ArithmetizationType> bp;
 
-	using component_type = zk::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+	using component_type = nil::blueprint_mc::components::element_g1_variable_base_scalar_mul<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
 	component_type scalar_mul_component = component_type(bp);
 
@@ -127,10 +127,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-    using component_type = zk::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
     typename BlueprintScalarType::value_type b_scalar = algebra::random_element<BlueprintScalarType>();
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul) {
 			assert(expected.X == assignment.var_value(real_res.X));
 			assert(expected.Y == assignment.var_value(real_res.Y));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;

@@ -32,20 +32,23 @@
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 #include <nil/crypto3/algebra/random_element.hpp>
 
+#include <nil/crypto3/hash/algorithm/hash.hpp>
+#include <nil/crypto3/hash/sha2.hpp>
 #include <nil/crypto3/hash/keccak.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/hashes/sha256/plonk/sha512.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/hashes/sha256/plonk/sha512.hpp>
 
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/ed25519.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 using namespace nil;
+using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
@@ -64,10 +67,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha512) {
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::sha512<ArithmetizationType, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
+    using component_type = nil::blueprint_mc::components::sha512<ArithmetizationType, curve_type, 0, 1, 2, 3, 4, 5, 6, 7, 8>;
 
     using ed25519_type = algebra::curves::ed25519;
 
@@ -121,7 +124,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha512) {
     typename component_type::params_type params = {{e_R_x, e_R_y}, {pk_x, pk_y}, M};
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

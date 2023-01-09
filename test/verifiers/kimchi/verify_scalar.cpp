@@ -39,21 +39,203 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/binding.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/binding.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
-#include "test_plonk_component.hpp"
-#include "proof_data.hpp"
+#include "test_plonk_component_mc.hpp"
+#include "proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
+BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_verify_scalar_field_test_suite)
+
+template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
+void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
+                   nil::blueprint_mc::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds> &circuit_proof,
+                   std::vector<typename BlueprintFieldType::value_type> &public_input) {
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+
+    // eval_proofs
+    for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
+        // w
+        for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
+            public_input.push_back(original_proof.evals[point_idx].w[i][0]);
+            circuit_proof.proof_evals[point_idx].w[i] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+        // z
+        public_input.push_back(original_proof.evals[point_idx].z[0]);
+        circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // s
+        for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
+            public_input.push_back(original_proof.evals[point_idx].s[i][0]);
+            circuit_proof.proof_evals[point_idx].s[i] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+        // lookup
+        if (KimchiParamsType::use_lookup) {
+            // TODO
+        }
+        // generic_selector
+        public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
+        circuit_proof.proof_evals[point_idx].generic_selector =
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // poseidon_selector
+        public_input.push_back(original_proof.evals[point_idx].poseidon_selector[0]);
+        circuit_proof.proof_evals[point_idx].poseidon_selector =
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+    }
+
+    for (std::size_t i = 0; i < KimchiParamsType::public_input_size; i++) {
+        public_input.push_back(original_proof.public_input[i]);
+        circuit_proof.public_input[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+    }
+
+    for (std::size_t i = 0; i < KimchiParamsType::prev_challenges_size; i++) {
+        for (std::size_t j = 0; j < EvalRounds; j++) {
+            public_input.push_back(original_proof.prev_challenges[i].first[j]);
+            circuit_proof.prev_challenges[i][j] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+    }
+
+    // ft_eval
+    public_input.push_back(original_proof.ft_eval1);
+    circuit_proof.ft_eval = var(0, public_input.size() - 1, false, var::column_type::public_input);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_verify_scalar_field_test_suite) {
+
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::scalar_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 30;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+
+    constexpr static std::size_t public_input_size = 3;
+    constexpr static std::size_t max_poly_size = 32;
+    constexpr static std::size_t eval_rounds = 5;
+
+    constexpr static std::size_t witness_columns = 15;
+    constexpr static std::size_t perm_size = 7;
+
+    constexpr static std::size_t srs_len = 32;
+    constexpr static std::size_t batch_size = 1;
+
+    constexpr static const std::size_t prev_chal_size = 1;
+
+    using commitment_params = nil::blueprint_mc::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = nil::blueprint_mc::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using circuit_description = nil::blueprint_mc::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = nil::blueprint_mc::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+
+    using fq_output_type =
+        typename nil::blueprint_mc::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>::fq_sponge_output;
+
+    using fr_data_type = typename nil::blueprint_mc::components::binding<ArithmetizationType, BlueprintFieldType,
+                                                          kimchi_params>::fr_data<var, batch_size>;
+
+    using fq_data_type =
+        typename nil::blueprint_mc::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>::fq_data<var>;
+
+    nil::blueprint_mc::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
+    typename BlueprintFieldType::value_type omega =
+        0x1B1A85952300603BBF8DD3068424B64608658ACBB72CA7D2BB9694ADFA504418_cppui256;
+    std::size_t domain_size = 128;
+    verifier_index.domain_size = domain_size;
+    verifier_index.omega = var(0, 0, false, var::column_type::public_input);
+
+    using component_type =
+        nil::blueprint_mc::components::verify_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, batch_size, 0,
+                                      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+
+    typename BlueprintFieldType::value_type joint_combiner = 0;
+    typename BlueprintFieldType::value_type beta = 0;
+    typename BlueprintFieldType::value_type gamma = 0;
+    typename BlueprintFieldType::value_type alpha =
+        0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256;
+    typename BlueprintFieldType::value_type zeta =
+        0x0000000000000000000000000000000062F9AE3696EA8F0A85043221DE133E32_cppui256;
+    typename BlueprintFieldType::value_type fq_digest =
+        0x01D4E77CCD66755BDDFDBB6E4E8D8D17A6708B9CB56654D12070BD7BF4A5B33B_cppui256;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {omega};
+
+    std::array<nil::blueprint_mc::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds>, batch_size> proofs;
+
+    std::array<fq_output_type, batch_size> fq_outputs;
+
+    for (std::size_t batch_id = 0; batch_id < batch_size; batch_id++) {
+        zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
+
+        nil::blueprint_mc::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
+
+        prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
+
+        fq_output_type fq_output;
+        std::array<var, eval_rounds> challenges;
+        for (std::size_t j = 0; j < eval_rounds; j++) {
+            public_input.emplace_back(10);
+            challenges[j] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+        fq_output.challenges = challenges;
+
+        // joint_combiner
+        public_input.emplace_back(0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256);
+        fq_output.joint_combiner = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // beta
+        public_input.emplace_back(0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256);
+        fq_output.beta = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // gamma
+        public_input.emplace_back(0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256);
+        fq_output.gamma = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // alpha
+        public_input.push_back(alpha);
+        fq_output.alpha = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // zeta
+        public_input.push_back(zeta);
+        fq_output.zeta = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // fq_digest
+        public_input.push_back(fq_digest);
+        fq_output.fq_digest = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        // c
+        public_input.emplace_back(250);
+        fq_output.c = var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        fq_outputs[batch_id] = fq_output;
+    }
+
+    fr_data_type fr_data_public;
+    fq_data_type fq_data_public;
+
+    typename component_type::params_type params = {fr_data_public, fq_data_public, verifier_index, proofs, fq_outputs};
+
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
+
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+                                                                                                 result_check);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+/*
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_verify_scalar_field_test_suite)
 
 template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
@@ -235,3 +417,5 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_verify_scalar_field_test_suite) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+*/
+

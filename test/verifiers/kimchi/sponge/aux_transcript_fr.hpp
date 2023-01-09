@@ -24,8 +24,8 @@
 // @file Declaration of interfaces for auxiliary components for the SHA256 component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_AUXILIARY_SPONGE_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_AUXILIARY_SPONGE_HPP
+#ifndef BLUEPRINT_MC_PLONK_AUXILIARY_SPONGE_HPP
+#define BLUEPRINT_MC_PLONK_AUXILIARY_SPONGE_HPP
 
 #include <iostream>
 
@@ -33,160 +33,142 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
-#include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/algorithms/generate_circuit.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint_mc {
+        namespace components {
 
-                template<size_t num_squeezes,
-                         typename ArithmetizationType,
-                         typename CurveType,
-                         std::size_t... WireIndexes>
-                class aux_fr;
+            template<size_t num_squeezes,
+                        typename ArithmetizationType,
+                        typename CurveType,
+                        typename KimchiParamsType,
+                        std::size_t... WireIndexes>
+            class aux_fr;
 
-                template<typename BlueprintFieldType,
-                         size_t num_squeezes,
-                         typename ArithmetizationParams,
-                         typename CurveType,
-                         std::size_t W0,
-                         std::size_t W1,
-                         std::size_t W2,
-                         std::size_t W3,
-                         std::size_t W4,
-                         std::size_t W5,
-                         std::size_t W6,
-                         std::size_t W7,
-                         std::size_t W8,
-                         std::size_t W9,
-                         std::size_t W10,
-                         std::size_t W11,
-                         std::size_t W12,
-                         std::size_t W13,
-                         std::size_t W14>
-                class aux_fr<
-                    num_squeezes,
-                    snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    CurveType,
-                    W0, W1, W2, W3,
-                    W4, W5, W6, W7,
-                    W8, W9, W10, W11,
-                    W12, W13, W14> {
+            template<typename BlueprintFieldType,
+                        size_t num_squeezes,
+                        typename ArithmetizationParams,
+                        typename CurveType,
+                        typename KimchiParamsType,
+                        std::size_t W0,
+                        std::size_t W1,
+                        std::size_t W2,
+                        std::size_t W3,
+                        std::size_t W4,
+                        std::size_t W5,
+                        std::size_t W6,
+                        std::size_t W7,
+                        std::size_t W8,
+                        std::size_t W9,
+                        std::size_t W10,
+                        std::size_t W11,
+                        std::size_t W12,
+                        std::size_t W13,
+                        std::size_t W14>
+            class aux_fr<
+                num_squeezes,
+                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                CurveType,
+                KimchiParamsType,
+                W0, W1, W2, W3,
+                W4, W5, W6, W7,
+                W8, W9, W10, W11,
+                W12, W13, W14> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams> ArithmetizationType;
+                typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    ArithmetizationParams> ArithmetizationType;
 
-                    constexpr static std::size_t public_input_size = 3;
+                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using transcript_type =
+                    components::kimchi_transcript_fr<ArithmetizationType, CurveType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, 
+                                                                        W7, W8, W9, W10, W11, W12, W13, W14>;
 
-                    constexpr static std::size_t witness_columns = 15;
-                    constexpr static std::size_t perm_size = 7;
+            public:
+                constexpr static const std::size_t selector_seed = 0x0fd7;
+                constexpr static const std::size_t rows_amount = 100;
+                constexpr static const std::size_t gates_amount = 0;
+                constexpr static const std::size_t state_size = transcript_type::state_size;
 
-                    constexpr static const std::size_t eval_rounds = 1;
-                    constexpr static const std::size_t max_poly_size = 1;
-                    constexpr static const std::size_t srs_len = 1;
-                    constexpr static const std::size_t prev_chal_size = 1; 
+                struct params_type {
+                    std::vector<var> input;
+                    var zero;
+                };
 
-                    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size,
-                            srs_len>;
-                    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+                struct result_type {
+                    var squeezed = var(0, 0, false);
+                    std::array<var, transcript_type::state_size> state = {var(0, 1, false), var(0, 2, false), var(0, 3, false)};
+                    result_type(var first, std::array<var, transcript_type::state_size> second) : squeezed(first), state(second) {}
+                    // result_type(const params_type &params, const std::size_t &start_row_index) {
+                    //     squeezed = var(W6, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                    // }
+                };
 
-                    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
-                        witness_columns, perm_size>;
-                    using kimchi_params = zk::components::kimchi_params_type<CurveType, commitment_params, circuit_description,
-                        public_input_size, prev_chal_size>;
+                static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
+                    blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                    const params_type &params,
+                    const std::size_t start_row_index){
 
-                    using var = snark::plonk_variable<BlueprintFieldType>;
-                    using transcript_type =
-                        zk::components::kimchi_transcript_fr<ArithmetizationType, CurveType, kimchi_params, W0, W1, W2, W3, W4, W5, W6, 
-                                                                            W7, W8, W9, W10, W11, W12, W13, W14>;
+                    std::size_t row = start_row_index;
 
-                public:
-                    constexpr static const std::size_t selector_seed = 0x0fd7;
-                    constexpr static const std::size_t rows_amount = 100;
-                    constexpr static const std::size_t gates_amount = 0;
+                    transcript_type transcript;
+                    transcript.init_circuit(bp, assignment, params.zero, row);
+                    row += transcript_type::init_rows;
+                    for (std::size_t i = 0; i < params.input.size(); ++i) {
+                        transcript.absorb_circuit(bp, assignment, params.input[i], row);
+                        row += transcript_type::absorb_rows;
+                    }
+                    var sq = params.zero;
+                    for (size_t i = 0; i < num_squeezes; ++i) {
+                        sq = transcript.challenge_circuit(bp, assignment, row);
+                        row += transcript_type::challenge_rows;
+                    }
+                    std::array<var, transcript_type::state_size> state = transcript.state();
+                    return {sq, state};
+                }
 
-                    struct params_type {
-                        std::vector<var> input;
-                        var zero;
-                    };
-
-                    struct result_type {
-                        var squeezed = var(0, 0, false);
-                        result_type(var &input) : squeezed(input) {}
-                        // result_type(const params_type &params, const std::size_t &start_row_index) {
-                        //     squeezed = var(W6, start_row_index + rows_amount - 1, false, var::column_type::witness);
-                        // }
-                    };
-
-                    static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                static result_type generate_assignments(
+                        blueprint_assignment_table<ArithmetizationType>
+                            &assignment,
                         const params_type &params,
                         const std::size_t start_row_index){
+                    std::size_t row = start_row_index;
 
-                        std::size_t row = start_row_index;
-
-                        transcript_type transcript;
-                        transcript.init_circuit(bp, assignment, params.zero, row);
-                        row += transcript_type::init_rows;
-                        for (std::size_t i = 0; i < params.input.size(); ++i) {
-                            transcript.absorb_circuit(bp, assignment, params.input[i], row);
-                            row += transcript_type::absorb_rows;
-                        }
-                        var sq;
-                        for (size_t i = 0; i < num_squeezes; ++i) {
-                            sq = transcript.challenge_circuit(bp, assignment, row);
-                            row += transcript_type::challenge_rows;
-                        }
-                        return {sq};
+                    transcript_type transcript;
+                    transcript.init_assignment(assignment, params.zero, row);
+                    row += transcript_type::init_rows;
+                    for (std::size_t i = 0; i < params.input.size(); ++i) {
+                        transcript.absorb_assignment(assignment, params.input[i], row);
+                        row += transcript_type::absorb_rows;
                     }
-
-                    static result_type generate_assignments(
-                            blueprint_assignment_table<ArithmetizationType>
-                                &assignment,
-                            const params_type &params,
-                            const std::size_t start_row_index){
-                        std::size_t row = start_row_index;
-
-                        transcript_type transcript;
-                        transcript.init_assignment(assignment, params.zero, row);
-                        row += transcript_type::init_rows;
-                        for (std::size_t i = 0; i < params.input.size(); ++i) {
-                            transcript.absorb_assignment(assignment, params.input[i], row);
-                            row += transcript_type::absorb_rows;
-                        }
-                        var sq;
-                        for (size_t i = 0; i < num_squeezes; ++i) {
-                            sq = transcript.challenge_assignment(assignment, row);
-                            row += transcript_type::challenge_rows;
-                        }
-                        return {sq};
+                    var sq = params.zero;
+                    for (size_t i = 0; i < num_squeezes; ++i) {
+                        sq = transcript.challenge_assignment(assignment, row);
+                        row += transcript_type::challenge_rows;
                     }
+                    std::array<var, transcript_type::state_size> state = transcript.state();
+                    return {sq, state};
+                }
 
-                    static void generate_gates(
+                static void generate_gates(
+                    blueprint<ArithmetizationType> &bp,
+                    blueprint_public_assignment_table<ArithmetizationType> &assignment, 
+                    const params_type &params,
+                    const std::size_t first_selector_index) {}
+
+                static void generate_copy_constraints(
                         blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &assignment, 
+                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
                         const params_type &params,
-                        const std::size_t first_selector_index) {}
-
-                    static void generate_copy_constraints(
-                            blueprint<ArithmetizationType> &bp,
-                            blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                            const params_type &params,
-                            const std::size_t start_row_index) {
-                                
-                            }
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                        const std::size_t start_row_index) {
+                            
+                        }
+            };
+        }    // namespace components
+    }            // namespace blueprint_mc
 }    // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_CURVE_ELEMENT_ENDO_SCALAR_COMPONENT_15_WIRES_HPP
+#endif    // BLUEPRINT_MC_PLONK_AUXILIARY_SPONGE_HPP

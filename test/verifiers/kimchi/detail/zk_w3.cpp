@@ -36,18 +36,17 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/zk_w3.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/binding.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
-
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/zk_w3.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/binding.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
-#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
 
-#include "test_plonk_component.hpp"
+#include "test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -64,7 +63,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_zk_w3_test_suite) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
@@ -80,18 +79,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_zk_w3_test_suite) {
     constexpr static std::size_t srs_len = 10;
     constexpr static const std::size_t prev_chal_size = 1;
 
-    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using commitment_params = nil::blueprint_mc::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = nil::blueprint_mc::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using circuit_description = nil::blueprint_mc::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
-    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+    using kimchi_params = nil::blueprint_mc::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::zk_w3<ArithmetizationType, 0, 1, 2,
+        nil::blueprint_mc::components::zk_w3<ArithmetizationType, 0, 1, 2,
                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    zk::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
+    nil::blueprint_mc::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
 
     typename BlueprintFieldType::value_type omega_val = 0x0CB8102D0128EBB25343154773101EAF1A9DAEF679667EB4BD1E06B973E985E4_cppui256;
     std::size_t domain_size = 512;
@@ -112,7 +111,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_zk_w3_test_suite) {
         assert(expected_result == assignment.var_value(real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
                                                                                                  result_check);
 }
 

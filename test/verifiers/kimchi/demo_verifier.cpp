@@ -48,14 +48,15 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/crypto3/zk/algorithms/allocate.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 
-#include <nil/blueprint/components/algebra/curves/pasta/plonk/unified_addition.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/algorithms/allocate.hpp>
+#include <nil/blueprint_mc/algorithms/generate_circuit.hpp>
 
-#include "proof_data.hpp"
+#include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/unified_addition.hpp>
+
+#include "proof_data_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -128,9 +129,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_demo_verifier_test) {
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
-    nil::crypto3::zk::snark::pickles_proof<curve_type> kimchi_proof = test_proof();
+    auto kimchi_proof = test_proof();
 
-    using component_type = zk::components::curve_element_unified_addition<ArithmetizationType, curve_type, 0, 1, 2, 3,
+    using component_type = nil::blueprint_mc::components::curve_element_unified_addition<ArithmetizationType, curve_type, 0, 1, 2, 3,
                                                                           4, 5, 6, 7, 8, 9, 10>;
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
@@ -143,12 +144,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_demo_verifier_test) {
 
     zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
 
-    zk::blueprint<ArithmetizationType> bp(desc);
-    zk::blueprint_private_assignment_table<ArithmetizationType> private_assignment(desc);
-    zk::blueprint_public_assignment_table<ArithmetizationType> public_assignment(desc);
-    blueprint::assignment<ArithmetizationType> assignment_bp(private_assignment, public_assignment);
+    nil::blueprint_mc::blueprint<ArithmetizationType> bp(desc);
+    nil::blueprint_mc::blueprint_private_assignment_table<ArithmetizationType> private_assignment(desc);
+    nil::blueprint_mc::blueprint_public_assignment_table<ArithmetizationType> public_assignment(desc);
+    nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType> assignment_bp(private_assignment, public_assignment);
 
-    std::size_t start_row = zk::components::allocate<component_type>(bp, complexity);
+    std::size_t start_row = nil::blueprint_mc::components::allocate<component_type>(bp, complexity);
 
     std::vector<component_type::result_type> result(complexity);
 
@@ -162,7 +163,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_demo_verifier_test) {
         std::size_t row = start_row + i * component_type::rows_amount;
         result[i] = component_type::result_type(component_params, row);
 
-        zk::components::generate_circuit<component_type>(bp, public_assignment, component_params, row);
+        nil::blueprint_mc::components::generate_circuit<component_type>(bp, public_assignment, component_params, row);
 
         component_type::generate_assignments(assignment_bp, component_params, row);
     }

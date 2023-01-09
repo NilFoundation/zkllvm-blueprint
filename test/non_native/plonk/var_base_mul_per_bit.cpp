@@ -38,13 +38,14 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/variable_base_multiplication_per_bit_edwards25519.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
+#include <nil/blueprint_mc/components/non_native/algebra/fields/plonk/variable_base_multiplication_per_bit_edwards25519.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../../test_plonk_component_mc.hpp"
 
 using namespace nil;
+using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
@@ -62,14 +63,14 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_var_base_mul_per_bit) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     using component_type =
-        zk::components::variable_base_multiplication_per_bit<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3,
+        nil::blueprint_mc::components::variable_base_multiplication_per_bit<ArithmetizationType, curve_type, ed25519_type, 0, 1, 2, 3,
                                                              4, 5, 6, 7, 8>;
 
     std::array<var, 4> input_var_Xa = {
@@ -135,7 +136,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_var_base_mul_per_bit) {
         }
     };
     
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

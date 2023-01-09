@@ -38,11 +38,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint_mc/blueprint/plonk.hpp>
+#include <nil/blueprint_mc/assignment/plonk.hpp>
 #include <../test/verifiers/kimchi/sponge/aux_transcript_fq.hpp>
 
-#include "test_plonk_component.hpp"
+#include "test_plonk_component_mc.hpp"
 
 using namespace nil::crypto3;
 
@@ -61,13 +61,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_0) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 
     constexpr size_t num_absorb = 15; 
     constexpr size_t num_challenges = 1;        //works
     constexpr size_t num_challenges_fq = 0;     //works
     constexpr bool digest = false;               //works
-    using component_type = zk::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_0) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi transcript_fq: " << duration.count() << "ms" << std::endl;
@@ -160,13 +160,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_1) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 
     constexpr size_t num_absorb = 0; 
     constexpr size_t num_challenges = 0;        //works
     constexpr size_t num_challenges_fq = 0;     //works
     constexpr bool digest = true;              //works
-    using component_type = zk::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_1) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi transcript_fq: " << duration.count() << "ms" << std::endl;
@@ -201,13 +201,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_2) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 
     constexpr size_t num_absorb = 0; 
     constexpr size_t num_challenges = 3;        //works
     constexpr size_t num_challenges_fq = 0;     //works
     constexpr bool digest = false;               //works
-    using component_type = zk::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_2) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi transcript_fq: " << duration.count() << "ms" << std::endl;
@@ -243,13 +243,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_3) {
         PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
 
     constexpr size_t num_absorb = 1; 
     constexpr size_t num_challenges = 1;        //works
     constexpr size_t num_challenges_fq = 0;     //works
     constexpr bool digest = false;              //works
-    using component_type = zk::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
+    using component_type = nil::blueprint_mc::components::aux_fq<num_absorb, num_challenges, num_challenges_fq, digest, ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_3) {
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi transcript_fq: " << duration.count() << "ms" << std::endl;
