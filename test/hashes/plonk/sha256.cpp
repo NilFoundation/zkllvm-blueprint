@@ -43,8 +43,8 @@
 
 using namespace nil;
 
-template <typename BlueprintFieldType>
-void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_input){
+template<typename BlueprintFieldType>
+void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_input) {
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 5;
     constexpr std::size_t ConstantColumns = 2;
@@ -52,8 +52,8 @@ void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_inp
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationParams = crypto3::zk::snark::
+        plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
@@ -65,13 +65,11 @@ void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_inp
         var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input)};
 
     typename component_type::input_type instance_input = {input_state_var};
-    auto result_check = [](AssignmentType &assignment, 
-        typename component_type::result_type &real_res) {
-    };
+    auto result_check = [](AssignmentType &assignment, typename component_type::result_type &real_res) {};
 
-    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8},{0},{});
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {});
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    blueprint::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
 }
 
