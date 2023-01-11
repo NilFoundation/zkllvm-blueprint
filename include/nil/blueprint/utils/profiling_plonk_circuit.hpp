@@ -38,6 +38,17 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
 
 namespace nil {
+    namespace crypto3 {
+        namespace zk {
+            namespace snark {
+
+                template<typename FieldType, typename ArithmetizationParams>
+                struct air_constraint_system;
+
+            }    // namespace snark
+        }        // namespace zk
+    }            // namespace crypto3
+
     namespace blueprint {
 
         template<typename ArithmetizationType, typename Hash, std::size_t Lambda>
@@ -196,6 +207,186 @@ namespace nil {
                 const crypto3::zk::snark::plonk_gate<FieldType, crypto3::zk::snark::plonk_constraint<FieldType>> &gate,
                 const preprocessed_data_type &public_preprocessed_data) {
                 os << "mstore(add(gate_params, GATE_EVAL_OFFSET), 0)" << std::endl;
+                for (auto &constraint : gate.constraints) {
+                    print_constraint(os, constraint, public_preprocessed_data);
+                    print_gate_evaluation(os);
+                    print_theta_acc(os);
+                }
+                print_selector(os, gate);
+                print_argument_evaluation(os);
+            }
+
+            static void process(std::ostream &os, const ArithmetizationType &bp,
+                                const preprocessed_data_type &public_preprocessed_data) {
+                for (const auto &gate : bp.gates()) {
+                    print_gate(os, gate, public_preprocessed_data);
+                }
+            }
+
+            static void process_split(const ArithmetizationType &bp,
+                                      const preprocessed_data_type &public_preprocessed_data,
+                                      const std::string &circuit_name) {
+                for (const auto &gate : bp.gates()) {
+                    std::ofstream gate_out;
+                    gate_out.open("gate" + std::to_string(gate.selector_index) + circuit_name + ".txt");
+                    print_gate(gate_out, gate, public_preprocessed_data);
+                }
+            }
+        };
+
+        template<typename FieldType, typename ArithmetizationParams, typename Hash, std::size_t Lambda>
+        struct profiling_plonk_circuit<crypto3::zk::snark::air_constraint_system<FieldType, ArithmetizationParams>,
+                                       Hash, Lambda> {
+            using placeholder_params =
+                crypto3::zk::snark::placeholder_params<FieldType, ArithmetizationParams, Hash, Hash, Lambda>;
+            using types = crypto3::zk::snark::detail::placeholder_policy<FieldType, placeholder_params>;
+            using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+            using preprocessed_data_type = typename crypto3::zk::snark::placeholder_public_preprocessor<
+                FieldType, placeholder_params>::preprocessed_data_type;
+
+            template<typename Container, typename ContainerIt>
+            static bool is_last_element(const Container &c, ContainerIt it) {
+                return it == (std::cend(c) - 1);
+            }
+
+            static void print_variable(std::ostream &os,
+                                       const crypto3::zk::snark::plonk_variable<FieldType> &var,
+                                       const preprocessed_data_type &public_preprocessed_data) {
+                std::size_t rotation_idx =
+                    std::find(std::cbegin(public_preprocessed_data.common_data.columns_rotations.at(var.index)),
+                              std::cend(public_preprocessed_data.common_data.columns_rotations.at(var.index)),
+                              var.rotation) -
+                    std::begin(public_preprocessed_data.common_data.columns_rotations.at(var.index));
+                os << "get_W_i_by_rotation_idx(" << var.index << "," << rotation_idx
+                   << ","
+                      "memory_bytes_pop(gate_params + WITNESS_EVALUATIONS_OFFSETS_INDEX)"
+                      ")";
+            }
+
+            template<typename Vars, typename VarsIt>
+            static typename std::enable_if<
+                std::is_same<crypto3::zk::snark::plonk_variable<FieldType>,
+                             typename std::iterator_traits<typename Vars::iterator>::value_type>::value>::type
+                print_term(std::ostream &os,
+                           const Vars &vars,
+                           VarsIt it,
+                           const preprocessed_data_type &public_preprocessed_data) {
+                if (it != std::cend(vars)) {
+                    if (!is_last_element(vars, it)) {
+                        os << "mulmod(";
+                    }
+                    print_variable(os, *it, public_preprocessed_data);
+                    if (!is_last_element(vars, it)) {
+                        os << ",";
+                        print_term(os, vars, it + 1, public_preprocessed_data);
+                        os << ","
+                              "modulus"
+                              ")";
+                    }
+                }
+            }
+
+            template<typename Terms, typename TermsIt>
+            static typename std::enable_if<
+                std::is_same<crypto3::math::non_linear_term<crypto3::zk::snark::plonk_variable<FieldType>>,
+                             typename std::iterator_traits<typename Terms::iterator>::value_type>::value>::type
+                print_terms(std::ostream &os,
+                            const Terms &terms,
+                            TermsIt it,
+                            const preprocessed_data_type &public_preprocessed_data) {
+                if (it != std::cend(terms)) {
+                    os << "memory_bytes_push("
+                          "gate_params + CONSTRAINT_EVAL_INDEX,"
+                          "addmod("
+                          "memory_bytes_pop(gate_params + CONSTRAINT_EVAL_INDEX),";
+                    if (it->coeff != FieldType::value_type::one()) {
+                        if (it->vars.size()) {
+                            os << "mulmod(0x" << std::hex << it->coeff.data << std::dec << ",";
+                        } else {
+                            os << "0x" << std::hex << it->coeff.data << std::dec;
+                        }
+                    }
+                    print_term(os, it->vars, std::cbegin(it->vars), public_preprocessed_data);
+                    if (it->coeff != FieldType::value_type::one()) {
+                        if (it->vars.size()) {
+                            os << ","
+                                  "modulus"
+                                  ")";
+                        }
+                    }
+                    os << ","
+                          "modulus"
+                          "))"
+                       << std::endl;
+                    print_terms(os, terms, it + 1, public_preprocessed_data);
+                }
+            }
+
+            static void print_constraint(std::ostream &os,
+                                         const typename crypto3::zk::snark::plonk_constraint<FieldType> &constraint,
+                                         const preprocessed_data_type &public_preprocessed_data) {
+                os << "memory_bytes_push(gate_params + CONSTRAINT_EVAL_INDEX, 0)" << std::endl;
+                print_terms(os, constraint.terms, std::cbegin(constraint.terms), public_preprocessed_data);
+            }
+
+            static void print_gate_evaluation(std::ostream &os) {
+                os << "memory_bytes_push("
+                      "gate_params + GATE_EVAL_INDEX,"
+                      "addmod("
+                      "memory_bytes_pop(gate_params + GATE_EVAL_INDEX),"
+                      "mulmod("
+                      "memory_bytes_pop(gate_params + CONSTRAINT_EVAL_INDEX),"
+                      "theta_acc,"
+                      "modulus"
+                      "),"
+                      "modulus"
+                      ")"
+                      ")"
+                   << std::endl;
+            }
+
+            static void print_theta_acc(std::ostream &os) {
+                os << "let (theta_acc) = mulmod("
+                      "theta_acc,"
+                      "memory_bytes_pop(gate_params + THETA_INDEX),"
+                      "modulus"
+                      ")"
+                   << std::endl;
+            }
+
+            static void print_selector(
+                std::ostream &os,
+                const crypto3::zk::snark::plonk_gate<FieldType, crypto3::zk::snark::plonk_constraint<FieldType>>
+                    &gate) {
+                os << "memory_bytes_push("
+                      "gate_params + GATE_EVAL_INDEX,"
+                      "mulmod("
+                      "memory_bytes_pop(gate_params + GATE_EVAL_INDEX),"
+                      "get_selector_i("
+                   << gate.selector_index
+                   << ","
+                      "memory_bytes_pop(gate_params + SELECTOR_EVALUATIONS_INDEX)"
+                      "),"
+                      "modulus"
+                      ")"
+                      ")"
+                   << std::endl;
+            }
+
+            static void print_argument_evaluation(std::ostream &os) {
+                os << "let (gates_evaluation) = addmod("
+                      "gates_evaluation,"
+                      "memory_bytes_pop(gate_params + GATE_EVAL_INDEX),"
+                      "modulus"
+                      ")"
+                   << std::endl;
+            }
+
+            static void print_gate(
+                std::ostream &os,
+                const crypto3::zk::snark::plonk_gate<FieldType, crypto3::zk::snark::plonk_constraint<FieldType>> &gate,
+                const preprocessed_data_type &public_preprocessed_data) {
+                os << "memory_bytes_push(gate_params + GATE_EVAL_INDEX, 0)" << std::endl;
                 for (auto &constraint : gate.constraints) {
                     print_constraint(os, constraint, public_preprocessed_data);
                     print_gate_evaluation(os);

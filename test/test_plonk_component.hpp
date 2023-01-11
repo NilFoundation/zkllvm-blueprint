@@ -152,7 +152,6 @@ namespace nil {
                 prepare_component<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
                                   FunctorResultCheck>(component_instance, public_input, result_check, instance_input);
 
-#ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using placeholder_params =
                 crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
             using types = crypto3::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
@@ -179,9 +178,10 @@ namespace nil {
 
             std::string test_circuit_name = "test_circuit";
             profiling_plonk_circuit<
-                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, Hash,
+                crypto3::zk::snark::air_constraint_system<BlueprintFieldType, ArithmetizationParams>, Hash,
                 Lambda>::process_split(bp, public_preprocessed_data, test_circuit_name);
 
+#ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             auto proof = crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, private_preprocessed_data, desc, bp, assignments, fri_params);
 
