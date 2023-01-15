@@ -1,7 +1,5 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2021-2022 Mikhail Komarov <nemo@nil.foundation>
-// Copyright (c) 2021-2022 Nikita Kaskov <nbering@nil.foundation>
-// Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
+// Copyright (c) 2022 Polina Chernyshova <pockvokhbtra@nil.foundation>
 //
 // MIT License
 //
@@ -24,7 +22,7 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#define BOOST_TEST_MODULE blueprint_plonk_non_native_field_test
+#define BOOST_TEST_MODULE blueprint_plonk_non_native_scalar_range_test
 
 #include <boost/test/unit_test.hpp>
 
@@ -33,21 +31,20 @@
 
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/ed25519.hpp>
+#include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/hash/keccak.hpp>
 
-#include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
-
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/multiplication.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/scalar_non_native_range.hpp>
 
 #include "../../test_plonk_component.hpp"
 
 using namespace nil;
 
 template <typename BlueprintFieldType>
-void test_field_mul(std::vector<typename BlueprintFieldType::value_type> public_input){
+void test_scalar_non_native_range_add(std::vector<typename BlueprintFieldType::value_type> public_input){
     
     using ed25519_type = crypto3::algebra::curves::ed25519;
     constexpr std::size_t WitnessColumns = 9;
@@ -63,17 +60,10 @@ void test_field_mul(std::vector<typename BlueprintFieldType::value_type> public_
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::multiplication<ArithmetizationType,
-        typename ed25519_type::base_field_type, 9>;
+    using component_type = blueprint::components::scalar_non_native_range<ArithmetizationType,
+        ed25519_type, 9>;
 
-    std::array<var, 4> input_var_a = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
-        var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input)};
-    std::array<var, 4> input_var_b = {
-        var(0, 4, false, var::column_type::public_input), var(0, 5, false, var::column_type::public_input),
-        var(0, 6, false, var::column_type::public_input), var(0, 7, false, var::column_type::public_input)};
-
-    typename component_type::input_type instance_input = {input_var_a, input_var_b};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
     auto result_check = [](AssignmentType &assignment, 
         typename component_type::result_type &real_res) {
@@ -87,10 +77,9 @@ void test_field_mul(std::vector<typename BlueprintFieldType::value_type> public_
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_multiplication_test0) {
-    test_field_mul<typename crypto3::algebra::curves::pallas::base_field_type>(
-        {0xc801afd_cppui255, 0xc801afd_cppui255, 0xc801afd_cppui255, 0xc801afd_cppui255,
-        0xc801afd_cppui255, 0xc801afd_cppui255, 0xc801afd_cppui255, 0xc801afd_cppui255});
+BOOST_AUTO_TEST_CASE(blueprint_non_native_scalar_range_test0) {
+    test_scalar_non_native_range_add<typename crypto3::algebra::curves::pallas::base_field_type>(
+        {45524});
 }
 
 BOOST_AUTO_TEST_SUITE_END()

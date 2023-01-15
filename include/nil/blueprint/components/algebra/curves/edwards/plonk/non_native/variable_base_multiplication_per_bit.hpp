@@ -31,9 +31,9 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/doubling_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/complete_addition_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/bool_scalar_multiplication.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/doubling_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/complete_addition_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/bool_scalar_multiplication.hpp>
 
 namespace nil {
     namespace blueprint {

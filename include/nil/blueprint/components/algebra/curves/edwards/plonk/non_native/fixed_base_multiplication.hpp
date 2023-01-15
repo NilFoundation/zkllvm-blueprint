@@ -29,8 +29,8 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/scalar_non_native_range.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/complete_addition_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/scalar_non_native_range.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/complete_addition_edwards25519.hpp>
 
 
 namespace nil {

@@ -29,8 +29,8 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/bit_decomposition.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/variable_base_multiplication_per_bit_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_decomposition.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/variable_base_multiplication_per_bit_edwards25519.hpp>
 
 namespace nil {
     namespace blueprint {

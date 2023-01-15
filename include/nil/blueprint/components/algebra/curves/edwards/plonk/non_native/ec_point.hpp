@@ -29,11 +29,11 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/multiplication.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/addition.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/subtraction.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/variable_base_multiplication_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/non_native_range.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/multiplication.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/addition.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/subtraction.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/variable_base_multiplication_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/non_native_range.hpp>
 
 namespace nil {
     namespace blueprint {

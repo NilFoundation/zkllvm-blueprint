@@ -24,19 +24,19 @@
 // @file Declaration of interfaces for auxiliary components for the EDDSA25519 component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_EDDSA25519_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_EDDSA25519_HPP
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PUBKEY_EDDSA_PLONK_NON_NATIVE_VERIFICATION_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_PUBKEY_EDDSA_PLONK_NON_NATIVE_VERIFICATION_HPP
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/variable_base_multiplication_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/fixed_base_multiplication_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/complete_addition_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/reduction.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/non_native_range.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/scalar_non_native_range.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/ec_point_edwards25519.hpp>
-#include <nil/blueprint/components/non_native/algebra/fields/plonk/addition.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/variable_base_multiplication_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/fixed_base_multiplication_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/complete_addition_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/reduction.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/non_native_range.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/scalar_non_native_range.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/ec_point_edwards25519.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/addition.hpp>
 #include <nil/blueprint/components/hashes/sha256/plonk/sha512.hpp>
 
 namespace nil {
@@ -45,7 +45,7 @@ namespace nil {
 
             template<typename ArithmetizationType, typename CurveType, typename Ed25519Type,
                  std::size_t... WireIndexes>
-            class eddsa25519;
+            class verification;
 
             template<typename BlueprintFieldType,
                      typename ArithmetizationParams,
@@ -60,7 +60,7 @@ namespace nil {
                      std::size_t W6,
                      std::size_t W7,
                      std::size_t W8>
-            class eddsa25519<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+            class verification<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                                                    CurveType,
                                                    Ed25519Type,
                                                    W0,
@@ -256,4 +256,4 @@ namespace nil {
     }        // namespace blueprint
 }    // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_VARIABLE_BASE_MULTIPLICATION_EDWARD25519_HPP
+#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PUBKEY_EDDSA_PLONK_NON_NATIVE_VERIFICATION_HPP
