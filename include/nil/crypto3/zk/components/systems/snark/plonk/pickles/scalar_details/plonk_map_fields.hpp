@@ -140,7 +140,7 @@ namespace nil {
                     // [TODO] get InputSize from result_type struct / Any other method ?
                     constexpr static std::size_t InputSize() {
                         // 19 kimchi scalars - 15 we don't need + 2 (zeta2domain, zeta2srs_len)
-                        return KimchiParamsType::index_term_size() - 15 + 2;
+                        return KimchiParamsType::index_term_size() - 15 + 3;
                     }
                     using prepare_scalars_component = zk::components::prepare_scalars<ArithmetizationType,
                                                                                       CurveType,
@@ -160,15 +160,15 @@ namespace nil {
                                                                                       W12,
                                                                                       W13,
                                                                                       W14>;
+                    using mul_by_const_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
 
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
                         row += exponentiation_component::rows_amount;
-                        row += sub_component::rows_amount;
-                        row += add_component::rows_amount;
                         row += exponentiation_component::rows_amount;
                         row += index_terms_scalars_component::rows_amount;
                         row += prepare_scalars_component::rows_amount;
+                        row += mul_by_const_component::rows_amount;
 
                         return row;
                     }
@@ -193,6 +193,8 @@ namespace nil {
 
                         var one;     // could be optional here
                         var zero;    // the same for this
+
+                        var permutation_scalars;
                     };
 
                     struct result_type {
@@ -212,22 +214,10 @@ namespace nil {
                         std::size_t row = start_row_index;
 
                         // zeta_to_n  = zeta**n
-                        auto zeta_to_n = exponentiation_component::generate_circuit(
-                                             bp, assignment, {params.zeta, params.domain_expo_var}, row)
-                                             .output;
-                        row += exponentiation_component::rows_amount;
-
-                        // zeta_to_n_minus_1
-                        auto zeta_to_n_minus_1 = zk::components::generate_circuit<sub_component>(
-                                                     bp, assignment, {zeta_to_n, params.one}, row)
-                                                     .output;
-                        row += sub_component::rows_amount;
-
-                        // ; zeta_to_domain_size = env.zeta_to_n_minus_1 + F.one
-                        auto zeta_to_domain_size = zk::components::generate_circuit<add_component>(
-                                                       bp, assignment, {zeta_to_n_minus_1, params.one}, row)
+                        auto zeta_to_domain_size = exponentiation_component::generate_circuit(
+                                                       bp, assignment, {params.zeta, params.domain_expo_var}, row)
                                                        .output;
-                        row += add_component::rows_amount;
+                        row += exponentiation_component::rows_amount;
 
                         // zeta_to_srs_length = zeta^max_poly_size
                         auto zeta_to_srs_len = exponentiation_component::generate_circuit(
@@ -251,9 +241,18 @@ namespace nil {
                         std::vector<var> index_scalars_unprepared;
                         index_scalars_unprepared.push_back(zeta_to_domain_size);
                         index_scalars_unprepared.push_back(zeta_to_srs_len);
+
                         for (size_t i = 15; i < index_terms_scalars.size(); i++) {
                             index_scalars_unprepared.push_back(index_terms_scalars[i]);
                         }
+                        // mul_by_const_component -1
+                        // permutation scalars * -1
+                        var perm_scalar = zk::components::generate_circuit<mul_by_const_component>(
+                                              bp, assignment, {params.permutation_scalars, -1}, row)
+                                              .output;
+                        row += mul_by_const_component::rows_amount;
+
+                        index_scalars_unprepared.push_back(perm_scalar);
 
                         auto prepared_scalars =
                             prepare_scalars_component::generate_circuit(bp, assignment, {index_scalars_unprepared}, row)
@@ -273,21 +272,10 @@ namespace nil {
 
                         std::size_t row = start_row_index;
                         // zeta_pow_n = zeta**n
-                        var zeta_to_n = exponentiation_component::generate_assignments(
-                                            assignment, {params.zeta, params.domain_expo_var}, row)
-                                            .output;
+                        var zeta_to_domain_size = exponentiation_component::generate_assignments(
+                                                      assignment, {params.zeta, params.domain_expo_var}, row)
+                                                      .output;
                         row += exponentiation_component::rows_amount;
-
-                        // zeta_to_n_minus_1
-                        var zeta_to_n_minus_1 =
-                            sub_component::generate_assignments(assignment, {zeta_to_n, params.one}, row).output;
-                        row += sub_component::rows_amount;
-
-                        // ; zeta_to_domain_size = env.zeta_to_n_minus_1 + F.one
-                        var zeta_to_domain_size =
-                            add_component::generate_assignments(assignment, {zeta_to_n_minus_1, params.one}, row)
-                                .output;
-                        row += add_component::rows_amount;
 
                         // zeta_to_srs_length = zeta^max_poly_size
                         var zeta_to_srs_len = exponentiation_component::generate_assignments(
@@ -313,11 +301,12 @@ namespace nil {
                             index_scalars_unprepared.push_back(index_terms_scalars[i]);
                         }
 
-                        // for (size_t i = 0; i < index_scalars_unprepared.size(); i++) {
-                        //     std::cout << "index_scalars_unprepared [ " << i
-                        //               << "]=" << assignment.var_value(index_scalars_unprepared[i]).data << std::endl;
-                        //     // index_scalars_unprepared.push_back(index_terms_scalars[i]);
-                        // }
+                        var perm_scalar = mul_by_const_component::generate_assignments(
+                                              assignment, {params.permutation_scalars, -1}, row)
+                                              .output;
+                        row += mul_by_const_component::rows_amount;
+
+                        index_scalars_unprepared.push_back(perm_scalar);
 
                         auto prepared_scalars =
                             prepare_scalars_component::generate_assignments(assignment, {index_scalars_unprepared}, row)
