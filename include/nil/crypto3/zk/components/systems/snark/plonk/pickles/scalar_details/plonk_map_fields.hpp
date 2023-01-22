@@ -45,15 +45,15 @@ namespace nil {
 
                 // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/plonk_checks/plonk_checks.ml#L409
                 template<typename ArithmetizationType,
-                         typename CurveType,
                          typename KimchiParamsType,
+                         typename CurveType,
                          std::size_t... WireIndexes>
                 class plonk_map_fields;
 
                 template<typename BlueprintFieldType,
                          typename ArithmetizationParams,
-                         typename CurveType,
                          typename KimchiParamsType,
+                         typename CurveType,
                          std::size_t W0,
                          std::size_t W1,
                          std::size_t W2,
@@ -70,8 +70,8 @@ namespace nil {
                          std::size_t W13,
                          std::size_t W14>
                 class plonk_map_fields<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                       CurveType,
                                        KimchiParamsType,
+                                       CurveType,
                                        W0,
                                        W1,
                                        W2,
@@ -94,53 +94,12 @@ namespace nil {
                     using var = snark::plonk_variable<BlueprintFieldType>;
                     // constexpr static const std::size_t eval_points_amount = 2;
 
-                    // ; zeta_to_domain_size = env.zeta_to_n_minus_1 + F.one
-                    using exponentiation_component = zk::components::exponentiation<ArithmetizationType,
-                                                                                    256,
-                                                                                    W0,
-                                                                                    W1,
-                                                                                    W2,
-                                                                                    W3,
-                                                                                    W4,
-                                                                                    W5,
-                                                                                    W6,
-                                                                                    W7,
-                                                                                    W8,
-                                                                                    W9,
-                                                                                    W10,
-                                                                                    W11,
-                                                                                    W12,
-                                                                                    W13,
-                                                                                    W14>;
-                    using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
-                    using add_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
-
-                    //    index_terms_scalars
-                    using index_terms_scalars_component = zk::components::index_terms_scalars<ArithmetizationType,
-                                                                                              KimchiParamsType,
-                                                                                              W0,
-                                                                                              W1,
-                                                                                              W2,
-                                                                                              W3,
-                                                                                              W4,
-                                                                                              W5,
-                                                                                              W6,
-                                                                                              W7,
-                                                                                              W8,
-                                                                                              W9,
-                                                                                              W10,
-                                                                                              W11,
-                                                                                              W12,
-                                                                                              W13,
-                                                                                              W14>;
-                    using evaluations_type =
-                        typename zk::components::kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>;
-
                     // constexpr std::size_t InputSize = 2;
                     // [TODO] get InputSize from result_type struct / Any other method ?
                     constexpr static std::size_t InputSize() {
-                        // 19 kimchi scalars - 15 we don't need + 2 (zeta2domain, zeta2srs_len)
-                        return KimchiParamsType::index_term_size() - 15 + 3;
+                        // 19 kimchi scalars - 15 we don't need + 3 (zeta2domain, zeta2srs_len,permutation_scalar_inv)
+                        // return KimchiParamsType::index_term_size() - 15 + 3;
+                        return 7;
                     }
                     using prepare_scalars_component = zk::components::prepare_scalars<ArithmetizationType,
                                                                                       CurveType,
@@ -160,45 +119,46 @@ namespace nil {
                                                                                       W12,
                                                                                       W13,
                                                                                       W14>;
-                    using mul_by_const_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
+                    // using proof_binding =
+                    //     typename zk::components::binding<ArithmetizationType, BlueprintFieldType, KimchiParamsType>;
+
+                    // using mul_by_const_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
+                    // using add_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
 
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
-                        row += exponentiation_component::rows_amount;
-                        row += exponentiation_component::rows_amount;
-                        row += index_terms_scalars_component::rows_amount;
+
+                        // row += 2 * exponentiation_component::rows_amount;
+                        // row += add_component::rows_amount;
                         row += prepare_scalars_component::rows_amount;
-                        row += mul_by_const_component::rows_amount;
+                        // row += mul_by_const_component::rows_amount;
 
                         return row;
                     }
 
                 public:
                     constexpr static const std::size_t rows_amount = rows();
-                    constexpr static const std::size_t gates_amount = 0;
+                    // constexpr static const std::size_t gates_amount = 0;
+                    // constexpr static const std::size_t BatchSize = 1;
 
                     struct params_type {
                         var alpha;
                         var beta;
                         var gamma;
-                        var zeta;     // eval_point
-                        var omega;    // group_gen
-                        // [TODO] create var domain_size from size_t using constant columns
-                        var domain_expo_var;    // creates problem/error in index_terms_scalars_component... (must be
-                                                // field element)
-                        std::size_t domain_size_scalars_sizet;    // try to use domain size as var
-                        var joint_combiner;
-                        var max_poly_size;
-                        std::array<evaluations_type, KimchiParamsType::eval_points_amount> evaluations;
+                        var zeta;    // eval_point
 
-                        var one;     // could be optional here
-                        var zero;    // the same for this
+                        var zeta_to_domain_size;
+                        var zeta_to_srs_len;
 
+                        //
+                        // std::vector<var> index_terms_scalars;
+                        std::array<var, 4> index_terms_scalars;
                         var permutation_scalars;
+                        // // var generic
                     };
 
                     struct result_type {
-                        std::vector<var> output = std::vector<var>(InputSize());
+                        std::vector<var> output;
                         result_type(std::size_t start_row_index) {
                         }
 
@@ -212,57 +172,48 @@ namespace nil {
                                          const params_type &params,
                                          const std::size_t start_row_index) {
                         std::size_t row = start_row_index;
+                        // generate_assignments_constant(bp, assignment, params, start_row_index);
+                        // var one = var(0, start_row_index, false, var::column_type::constant);
+                        // var one = var(0, start_row_index, false, var::column_type::public_input);
+                        // typename BlueprintFieldType::value_type one = 1;
 
-                        // zeta_to_n  = zeta**n
-                        auto zeta_to_domain_size = exponentiation_component::generate_circuit(
-                                                       bp, assignment, {params.zeta, params.domain_expo_var}, row)
-                                                       .output;
-                        row += exponentiation_component::rows_amount;
+                        // zeta_to_domain_size_minus_1 + F.one
+                        // var zeta_to_domain_size = zk::components::generate_circuit<add_component>(
+                        //                               bp, assignment, {params.zeta_to_domain_size, one}, row)
+                        //                               .output;
+                        // row += add_component::rows_amount;
 
-                        // zeta_to_srs_length = zeta^max_poly_size
-                        auto zeta_to_srs_len = exponentiation_component::generate_circuit(
-                                                   bp, assignment, {params.zeta, params.max_poly_size}, row)
-                                                   .output;
-                        row += exponentiation_component::rows_amount;
-
-                        auto index_terms_scalars =
-                            index_terms_scalars_component::generate_circuit(
-                                bp,
-                                assignment,
-                                {params.zeta, params.alpha, params.beta, params.gamma, params.joint_combiner,
-                                 params.evaluations, params.omega, params.domain_size_scalars_sizet},
-                                row)
-                                .output;
-                        row += index_terms_scalars_component::rows_amount;
-
-                        // prepare scalars for multiplication
-                        // [TODO] : use domain_size as var
-                        // [TODO] get the size of the input params -> result of index_terms_scalars size
                         std::vector<var> index_scalars_unprepared;
-                        index_scalars_unprepared.push_back(zeta_to_domain_size);
-                        index_scalars_unprepared.push_back(zeta_to_srs_len);
 
-                        for (size_t i = 15; i < index_terms_scalars.size(); i++) {
-                            index_scalars_unprepared.push_back(index_terms_scalars[i]);
+                        result_type res;
+                        // res.output;
+
+                        res.output.push_back(params.alpha);
+                        res.output.push_back(params.beta);
+                        res.output.push_back(params.gamma);
+                        res.output.push_back(params.zeta);
+
+                        // prepare for multiplication
+                        index_scalars_unprepared.push_back(params.zeta_to_domain_size);
+                        index_scalars_unprepared.push_back(params.zeta_to_srs_len);
+
+                        for (size_t i = 0; i < params.index_terms_scalars.size(); i++) {
+                            index_scalars_unprepared.push_back(params.index_terms_scalars[i]);
                         }
-                        // mul_by_const_component -1
-                        // permutation scalars * -1
-                        var perm_scalar = zk::components::generate_circuit<mul_by_const_component>(
-                                              bp, assignment, {params.permutation_scalars, -1}, row)
-                                              .output;
-                        row += mul_by_const_component::rows_amount;
 
-                        index_scalars_unprepared.push_back(perm_scalar);
+                        index_scalars_unprepared.push_back(params.permutation_scalars);
 
-                        auto prepared_scalars =
+                        auto to_field =
                             prepare_scalars_component::generate_circuit(bp, assignment, {index_scalars_unprepared}, row)
                                 .output;
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
 
-                        result_type res;
-                        res.output = prepared_scalars;
+                        for (size_t i = 4; i < params.index_terms_scalars.size(); i++) {
+                            res.output.push_back(to_field[i]);
+                        }
+
                         return res;
                     }
 
@@ -271,52 +222,48 @@ namespace nil {
                                                             const std::size_t start_row_index) {
 
                         std::size_t row = start_row_index;
+                        // var one = var(0, start_row_index, false, var::column_type::public_input);
+                        // typename BlueprintFieldType::value_type one = 1;
                         // zeta_pow_n = zeta**n
-                        var zeta_to_domain_size = exponentiation_component::generate_assignments(
-                                                      assignment, {params.zeta, params.domain_expo_var}, row)
-                                                      .output;
-                        row += exponentiation_component::rows_amount;
+                        // var zeta_to_domain_size =
+                        //     add_component::generate_assignments(
+                        //         assignment, {params.fr_data.zeta_to_domain_size_minus_1, one}, row)
+                        //         .output;
+                        // row += add_component::rows_amount;
 
-                        // zeta_to_srs_length = zeta^max_poly_size
-                        var zeta_to_srs_len = exponentiation_component::generate_assignments(
-                                                  assignment, {params.zeta, params.max_poly_size}, row)
-                                                  .output;
-                        row += exponentiation_component::rows_amount;
-
-                        auto index_terms_scalars =
-                            index_terms_scalars_component::generate_assignments(
-                                assignment,
-                                {params.zeta, params.alpha, params.beta, params.gamma, params.joint_combiner,
-                                 params.evaluations, params.omega, params.domain_size_scalars_sizet},
-                                row)
-                                .output;
-                        row += index_terms_scalars_component::rows_amount;
-
-                        // prepare scalars for multiplication
                         std::vector<var> index_scalars_unprepared;
-                        index_scalars_unprepared.push_back(zeta_to_domain_size);
-                        index_scalars_unprepared.push_back(zeta_to_srs_len);
 
-                        for (size_t i = 15; i < index_terms_scalars.size(); i++) {
-                            index_scalars_unprepared.push_back(index_terms_scalars[i]);
+                        result_type res;
+                        // res.output;
+
+                        res.output.push_back(params.alpha);
+                        res.output.push_back(params.beta);
+                        res.output.push_back(params.gamma);
+                        res.output.push_back(params.zeta);
+
+                        // prepare for multiplication
+                        index_scalars_unprepared.push_back(params.zeta_to_domain_size);
+                        index_scalars_unprepared.push_back(params.zeta_to_srs_len);
+
+                        for (size_t i = 0; i < params.index_terms_scalars.size(); i++) {
+                            index_scalars_unprepared.push_back(params.index_terms_scalars[i]);
+                            // std::cout << " params.index_terms_scalars[i] "
+                            //           << assignment.var_value(params.index_terms_scalars[i]).data << " " << std::endl;
                         }
 
-                        var perm_scalar = mul_by_const_component::generate_assignments(
-                                              assignment, {params.permutation_scalars, -1}, row)
-                                              .output;
-                        row += mul_by_const_component::rows_amount;
+                        index_scalars_unprepared.push_back(params.permutation_scalars);
 
-                        index_scalars_unprepared.push_back(perm_scalar);
-
-                        auto prepared_scalars =
+                        auto to_field =
                             prepare_scalars_component::generate_assignments(assignment, {index_scalars_unprepared}, row)
                                 .output;
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
 
-                        result_type res;
-                        res.output = prepared_scalars;
+                        for (size_t i = 4; i < params.index_terms_scalars.size(); i++) {
+                            res.output.push_back(to_field[i]);
+                        }
+
                         return res;
                     }
 
@@ -326,30 +273,17 @@ namespace nil {
                                                const params_type &params,
                                                std::size_t component_start_row = 0) {
                     }
-
-                    // static void
-                    //     generate_copy_constraints(blueprint<ArithmetizationType> &bp,
-                    //                               blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                    //                               const params_type &params,
-                    //                               std::size_t component_start_row = 0) {
-                    // }
-
                     // static void generate_assignments_constant(
                     //     blueprint<ArithmetizationType> &bp,
                     //     blueprint_public_assignment_table<ArithmetizationType> &assignment,
                     //     const params_type &params,
                     //     std::size_t component_start_row) {
-
-                    //     // assignment.constant(0)[row] = ArithmetizationType::field_type::value_type::zero();
-                    //     std::size_t row = component_start_row;
-                    //     assignment.constant(0)[row] = 0;
-                    //     row++;
-                    //     assignment.constant(0)[row] = 1;
-                    //     row++;
-
-                    //     // assignment.constant(0)[row] = params.verifier_index.domain_size;
+                    //     // std::size_t row = component_start_row;
+                    //     //// one
+                    //     // assignment.constant(0)[row] = 1;
                     //     // row++;
-                    //     // assignment.constant(0)[row] = KimchiCommitmentParamsType::max_poly_size;
+                    //     // assignment.constant(0)[row] = params.verifier_index.domain_size;
+                    //     // // assignment.constant(0)[row] = KimchiCommitmentParamsType::max_poly_size;
                     // }
                 };
             }    // namespace components
