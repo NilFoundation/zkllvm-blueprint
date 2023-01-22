@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
-//
+// Copyright (c) 2022 Abdel Ali Harchaoui <harchaoui@nil.foundation>
 // MIT License
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,30 +26,30 @@
 #define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_DERIVE_PLONK_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
-
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
-
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
+#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/zkpm_evaluate.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/index_terms_scalars.hpp>
+// #include <nil/crypto3/zk/components/algebra/fields/plonk/element_powers.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/perm_scalars.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/generic_scalars.hpp>
+
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
+
+#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/alpha_argument_type.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/pickles/verifier_index.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
-
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/plonk_map_fields.hpp>
-
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 
 namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
 
-                // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/plonk_checks/plonk_checks.ml#L380
+                // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/plonk_checks/plonk_checks.ml#L409
                 template<typename ArithmetizationType, typename KimchiParamsType, std::size_t... WireIndexes>
                 class derive_plonk;
 
@@ -58,76 +58,72 @@ namespace nil {
                          std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10,
                          std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
                 class derive_plonk<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                          KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13,
-                                          W14> {
+                                   KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
 
                     using var = snark::plonk_variable<BlueprintFieldType>;
 
+                    //   let zkp = env.zk_polynomial in
                     using zkpm_evaluate_component = zkpm_evaluate<ArithmetizationType, W0, W1, W2, W3, W4, W5, W6, W7,
                                                                   W8, W9, W10, W11, W12, W13, W14>;
+                    //   let index_terms = Sc.index_terms env in
+                    //    index_terms_scalars
+                    using index_terms_scalars_component =
+                        zk::components::index_terms_scalars<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4,
+                                                            W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                    //   let alpha_pow = env.alpha_pow in
+                    // [TODO] implement element_powers component
+                    // using alpha_powers_component =
+                    //     zk::components::element_powers<ArithmetizationType, KimchiParamsType::alpha_powers_n, W0, W1,
+                    //                                    W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using perm_scalars_component = perm_scalars<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3,
                                                                 W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                    using mul_by_const_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
 
-                    using generic_scalars_component =
-                        generic_scalars<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
-                                        W10, W11, W12, W13, W14>;
-
-                    using index_terms_scalars_component =
-                        index_terms_scalars<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8,
-                                            W9, W10, W11, W12, W13, W14>;
-
-                    using alpha_powers_component = zk::components::element_powers<ArithmetizationType, KimchiParamsType::alpha_powers_n, W0, W1, W2, W3,
-                                                                          W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
-
-                    using plonk_map_fields_component =
-                        plobk_map_fields<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8,
-                                            W9, W10, W11, W12, W13, W14>;
+                    using evaluations_type =
+                        typename zk::components::kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>;
 
                     using verifier_index_type = kimchi_verifier_index_scalar<BlueprintFieldType>;
                     using index_terms_list = typename KimchiParamsType::circuit_params::index_terms_list;
 
-                    constexpr static const std::size_t lookup_rows() {
-                        std::size_t rows = 0;
-                        if (KimchiParamsType::circuit_params::lookup_columns > 0) {
-
-                            if (KimchiParamsType::circuit_params::lookup_runtime) {
-                            }
-                        }
-
-                        return rows;
-                    }
-
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
+                        row += zkpm_evaluate_component::rows_amount;
+                        row += index_terms_scalars_component::rows_amount;
+                        row += perm_scalars_component::rows_amount;
+                        row += mul_by_const_component::rows_amount;
+
                         return row;
                     }
 
                 public:
                     constexpr static const std::size_t rows_amount = rows();
-                    constexpr static const std::size_t gates_amount = 0;
-
+                    //   let e1 field = snd (field e) in
+                    //   let w0 = Vector.map e.w ~f:fst in
                     struct params_type {
                         verifier_index_type verifier_index;
                         var zeta;
                         var alpha;
                         var beta;
-                        var gamma; 
+                        var gamma;
                         var joint_combiner;
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>,
-                            KimchiParamsType::eval_points_amount> combined_evals;
+                        std::array<var, KimchiParamsType::alpha_powers_n> alphas;
+
+                        std::array<evaluations_type, KimchiParamsType::eval_points_amount>
+                            combined_evals;    // evaluations
                     };
 
                     struct result_type {
-                        var output;
+                        std::vector<var> index_scalars;
+                        var permutation_scalars;
 
-                        result_type(std::size_t component_start_row) {
-                            std::size_t row = component_start_row;
+                        result_type(std::size_t start_row_index) {
+                        }
 
-                            
+                        result_type() {
                         }
                     };
 
@@ -136,65 +132,73 @@ namespace nil {
                                          blueprint_public_assignment_table<ArithmetizationType> &assignment,
                                          const params_type &params,
                                          const std::size_t start_row_index) {
-
-                        generate_assignments_constant(assignment, params, start_row_index);
-
                         std::size_t row = start_row_index;
 
-                        var one(0, start_row_index, false, var::column_type::public_input);
-
-                        std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers =
-                            alpha_powers_component::generate_circuit(bp, assignment, {params.alpha, one}, row).output;
-                        row += alpha_powers_component::rows_amount;
-
+                        // zkp
                         var zkp = zkpm_evaluate_component::generate_circuit(bp, assignment,
-                                                                                {params.verifier_index.omega,
-                                                                                 params.verifier_index.domain_size,
-                                                                                 params.zeta},
-                                                                                row)
+                                                                            {
+                                                                                params.verifier_index.omega,
+                                                                                params.verifier_index.domain_size,
+                                                                                params.zeta,
+                                                                            },
+                                                                            row)
                                       .output;
                         row += zkpm_evaluate_component::rows_amount;
 
-
+                        // index_terms_scalars
                         auto index_scalars =
-                            index_terms_scalars_component::generate_circuit(bp, 
-                                assignment,
-                                {params.zeta, params.alpha, params.beta,
-                                 params.gamma, params.joint_combiner, params.combined_evals,
-                                 params.verifier_index.omega, params.verifier_index.domain_size},
-                                row)
+                            index_terms_scalars_component::generate_circuit(bp,
+                                                                            assignment,
+                                                                            {
+                                                                                params.zeta,
+                                                                                params.alpha,
+                                                                                params.beta,
+                                                                                params.gamma,
+                                                                                params.joint_combiner,
+                                                                                params.combined_evals,
+                                                                                params.verifier_index.omega,
+                                                                                params.verifier_index.domain_size,
+                                                                            },
+                                                                            row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
 
+                        // alpha_indx permutation
                         std::pair<std::size_t, std::size_t> alpha_idxs =
                             index_terms_list::alpha_map(argument_type::Permutation);
-                        var perm_scalar =
-                            perm_scalars_component::generate_circuit(bp, 
-                                assignment,
-                                {params.combined_evals, alpha_powers, alpha_idxs.first,
-                                 params.fq_output.beta, params.fq_output.gamma, zkp},
-                                row)
-                                .output;
+                        // permutation scalar
+                        var perm_scalar = perm_scalars_component::generate_circuit(bp,
+                                                                                   assignment,
+                                                                                   {
+                                                                                       params.combined_evals,
+                                                                                       params.alphas,
+                                                                                       alpha_idxs.first,
+                                                                                       params.beta,
+                                                                                       params.gamma,
+                                                                                       zkp,
+                                                                                   },
+                                                                                   row)
+                                              .output;
                         row += perm_scalars_component::rows_amount;
 
-                        alpha_idxs = index_terms_list::alpha_map(argument_type::Generic);
-                        std::array<var, generic_scalars_component::output_size> generic_scalars =
-                            generic_scalars_component::generate_circuit(bp, 
-                                assignment,
-                                {params.combined_evals, alpha_powers, alpha_idxs.first}, row)
-                                .output;
-                        row += generic_scalars_component::rows_amount;
-
-                        var output = plonk_map_fields_component::generate_circuit(bp, 
-                            assignment,
-                            {params.alpha, params.beta, params.gamma, params.joint_combiner,
-                             index_scalars, perm_scalar, generic_scalars},
-                            row).output;
-                        row += plonk_map_fields_component::rows_amount;
+                        // multiplication by - 1
+                        typename BlueprintFieldType::value_type minus_1 = -1;
+                        var perm_scalar_inv = zk::components::generate_circuit<mul_by_const_component>(
+                                                  bp, assignment, {perm_scalar, minus_1}, row)
+                                                  .output;
+                        row += mul_by_const_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
 
-                        return result_type(start_row_index);
+                        result_type res;
+
+                        // get the last 4 scalars
+                        for (size_t i = 15; i < index_scalars.size(); i++) {
+                            res.index_scalars.push_back(index_scalars[i]);
+                        }
+
+                        res.permutation_scalars = perm_scalar_inv;
+                        return res;
                     }
 
                     static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
@@ -202,71 +206,79 @@ namespace nil {
                                                             const std::size_t start_row_index) {
 
                         std::size_t row = start_row_index;
-
-                        var one(0, start_row_index, false, var::column_type::public_input);
-
-                        std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers =
-                            alpha_powers_component::generate_assignments(assignment, {params.alpha, one}, row).output;
-                        row += alpha_powers_component::rows_amount;
-
-                        var zkp = zkpm_evaluate_component::generate_assignments(assignment,
-                                                                                {params.verifier_index.omega,
-                                                                                 params.verifier_index.domain_size,
-                                                                                 params.zeta},
-                                                                                row)
+                        // zkp
+                        var zkp = zkpm_evaluate_component::generate_assignments(
+                                      assignment,
+                                      {params.verifier_index.omega, params.verifier_index.domain_size, params.zeta},
+                                      row)
                                       .output;
                         row += zkpm_evaluate_component::rows_amount;
 
-
+                        // index_terms
                         auto index_scalars =
-                            index_terms_scalars_component::generate_assignments(
-                                assignment,
-                                {params.zeta, params.alpha, params.beta,
-                                 params.gamma, params.joint_combiner, params.combined_evals,
-                                 params.verifier_index.omega, params.verifier_index.domain_size},
-                                row)
+                            index_terms_scalars_component::generate_assignments(assignment,
+                                                                                {
+                                                                                    params.zeta,
+                                                                                    params.alpha,
+                                                                                    params.beta,
+                                                                                    params.gamma,
+                                                                                    params.joint_combiner,
+                                                                                    params.combined_evals,
+                                                                                    params.verifier_index.omega,
+                                                                                    params.verifier_index.domain_size,
+                                                                                },
+                                                                                row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
 
+                        // alpha_idxs Permutation
                         std::pair<std::size_t, std::size_t> alpha_idxs =
                             index_terms_list::alpha_map(argument_type::Permutation);
-                        var perm_scalar =
-                            perm_scalars_component::generate_assignments(
-                                assignment,
-                                {params.combined_evals, alpha_powers, alpha_idxs.first,
-                                 params.fq_output.beta, params.fq_output.gamma, zkp},
-                                row)
-                                .output;
+
+                        // permutation scalars
+                        var perm_scalar = perm_scalars_component::generate_assignments(assignment,
+                                                                                       {
+                                                                                           params.combined_evals,
+                                                                                           params.alphas,
+                                                                                           alpha_idxs.first,
+                                                                                           params.beta,
+                                                                                           params.gamma,
+                                                                                           zkp,
+                                                                                       },
+                                                                                       row)
+                                              .output;
                         row += perm_scalars_component::rows_amount;
 
-                        alpha_idxs = index_terms_list::alpha_map(argument_type::Generic);
-                        std::array<var, generic_scalars_component::output_size> generic_scalars =
-                            generic_scalars_component::generate_assignments(
-                                assignment,
-                                {params.combined_evals, alpha_powers, alpha_idxs.first}, row)
+                        typename BlueprintFieldType::value_type minus_1 = -1;
+                        var perm_scalar_inv =
+                            mul_by_const_component::generate_assignments(assignment, {perm_scalar, minus_1}, row)
                                 .output;
-                        row += generic_scalars_component::rows_amount;
-
-                        var output = plonk_map_fields_component::generate_assignments(
-                            assignment,
-                            {params.alpha, params.beta, params.gamma, params.joint_combiner,
-                             index_scalars, perm_scalar, generic_scalars},
-                            row).output;
-                        row += plonk_map_fields_component::rows_amount;
+                        row += mul_by_const_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
 
-                        return result_type(start_row_index);
+                        result_type res;
+                        // get the last 4 scalars
+                        for (size_t i = 15; i < index_scalars.size(); i++) {
+                            res.index_scalars.push_back(index_scalars[i]);
+                        }
+                        // res.index_scalars = index_scalars;
+                        res.permutation_scalars = perm_scalar_inv;
+                        return res;
                     }
 
-                    private:
-
+                private:
                     static void generate_assignments_constant(
-                            blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                            const params_type &params,
-                            std::size_t component_start_row) {
-                        std::size_t row = component_start_row;
-                        assignment.constant(0)[row] = 1;
+                        blueprint<ArithmetizationType> &bp,
+                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                        const params_type &params,
+                        std::size_t component_start_row) {
+                        // std::size_t row = component_start_row;
+                        // one var
+                        // assignment.constant(0)[row] = 1;
+                        // row++;
+                        // assignment.constant(0)[row] = params.verifier_index.domain_size;
+                        // // assignment.constant(0)[row] = KimchiCommitmentParamsType::max_poly_size;
                     }
                 };
             }    // namespace components
@@ -274,4 +286,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_EVALS_OF_SPLIT_EVALS_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_DERIVE_PLONK_HPP
