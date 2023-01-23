@@ -97,8 +97,8 @@ namespace nil {
                         std::vector<var> output = std::vector<var>(InputSize);
 
                         result_type (std::size_t row) {
-                            for (std::size_t i = row; i < InputSize; i++) {
-                                output[i] = var(W2, (rows_amount_if_InputSize_is_1 - 1) + i * rows_amount_if_InputSize_is_1);
+                            for (std::size_t i = 0; i < InputSize; i++) {
+                                output[i] = var(W2, row + (rows_amount_if_InputSize_is_1 - 1) + i * rows_amount_if_InputSize_is_1);
                             }
                         }
                     };
