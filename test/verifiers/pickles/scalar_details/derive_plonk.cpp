@@ -1,6 +1,5 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
-// Copyright (c) 2022 Abdel Ali Harchaoui <harchaoui@nil.foundation>
 //
 // MIT License
 //
@@ -49,7 +48,7 @@
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/alpha_argument_type.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-// #include "test_plonk_component.hpp"
+
 #include "../../../test_plonk_component.hpp"
 
 using namespace nil::crypto3;
@@ -91,8 +90,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
                                                              public_input_size, prev_chal_size>;
 
-    using component_type = zk::components::derive_plonk<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4, 5, 6, 7, 8,
-                                                        9, 10, 11, 12, 13, 14>;
+    using component_type = zk::components::derive_plonk<ArithmetizationType, kimchi_params, curve_type, 0, 1, 2, 3, 4,
+                                                        5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     std::array<typename BlueprintFieldType::value_type, witness_columns> eval0_w = {
         0x0C2F522FB163AE4A8D2890C57ABF95E55EF7DDD27A928EFAD0D3FA447D40BC29_cppui256,
@@ -154,6 +153,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     std::array<std::array<typename BlueprintFieldType::value_type, witness_columns>, 2> eval_w = {eval0_w, eval1_w};
     std::array<typename BlueprintFieldType::value_type, 2> eval_z = {eval0_z, eval1_z};
     std::array<std::array<typename BlueprintFieldType::value_type, perm_size>, 2> eval_s = {eval0_s, eval1_s};
+
     typename BlueprintFieldType::value_type alpha_val =
         0x322D5D64C86AFB168AC57D2D8AB3512647B4802C8DC4DE07DB2C51E094C4D9B7_cppui256;
     typename BlueprintFieldType::value_type beta_val =
@@ -169,14 +169,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     typename BlueprintFieldType::value_type omega_val =
         0x0CB8102D0128EBB25343154773101EAF1A9DAEF679667EB4BD1E06B973E985E4_cppui256;
 
-    typename BlueprintFieldType::value_type perm_scalar =
+    typename BlueprintFieldType::value_type perm_scalar_val =
         0x0E7F540B2F6CE243D4F603210A7EF55620EEC89679E894777E34D1AA3A33C689_cppui256;
-
-    typename BlueprintFieldType::value_type minus_1 = -1;
-    typename BlueprintFieldType::integral_type integral_minus_1 =
-        typename BlueprintFieldType::integral_type(minus_1.data);
-    BlueprintFieldType::value_type minus_one_scalar = integral_minus_1;
-    typename BlueprintFieldType::value_type expected_permutation_scalar_inv = perm_scalar * minus_one_scalar;
 
     // using verifier_index_type = zk::components::kimchi_verifier_index_scalar<curve_type, kimchi_params>;
     using verifier_index_type = zk::components::kimchi_verifier_index_scalar<BlueprintFieldType>;
@@ -184,6 +178,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     verifier_index_type verifier_index;
 
     std::size_t domain_size = 512;
+
+    std::array<typename BlueprintFieldType::value_type, 4> index_scalars = {
+        0x017EEEF7695889AFB5311D7B36B31455AFF02B103BDA9BABF5BC29107B8F3AB7_cppui256,    // varBaseMul
+        0x259D030170979C4754D0CEBF9E6AE529563BEB3A27C7003F57CCD4F80F875E4B_cppui256,    // endoMul
+        0x0F297E2FA4E61DD377911C6B14C03F5CABC1114813C5D5C4CDCBDFBE84C526DB_cppui256,    // endoMulScalar
+        0x0EF5278F0AD55CDE149D4E396A01E9B72A0D73FB4CF033C570B1B7E0C24C5FCE_cppui256,    // completeAdd
+    };
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
@@ -239,27 +240,106 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     verifier_index.domain_size = domain_size;
     verifier_index.omega = omega;
 
+    //
+    std::vector<typename BlueprintFieldType::value_type> index_scalars_unprepared;
+    // compute zeta_to_domain_size & zeta_to_srs_length
+    typename BlueprintFieldType::value_type zeta_to_domain_size;
+    typename BlueprintFieldType::value_type zeta_to_srs_length;
+    zeta_to_domain_size = zeta_val.pow(domain_size);
+    zeta_to_srs_length = zeta_val.pow(max_poly_size);
+    // add zeta_to_domain_size & zeta_to_srs_length to the unprepared vector
+    index_scalars_unprepared.push_back(
+        typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(zeta_to_domain_size.data)));
+
+    index_scalars_unprepared.push_back(
+        typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(zeta_to_srs_length.data)));
+
+    // add index_terms_scalars to the unprepared vector
+    for (size_t i = 0; i < index_scalars.size(); i++) {
+        index_scalars_unprepared.push_back(index_scalars[i]);
+    }
+
+    // negate permutation scalar
+    typename BlueprintFieldType::value_type minus_1 = -1;
+    typename BlueprintFieldType::integral_type integral_minus_1 =
+        typename BlueprintFieldType::integral_type(minus_1.data);
+    BlueprintFieldType::value_type minus_one_scalar = integral_minus_1;
+    typename BlueprintFieldType::value_type expected_permutation_scalar_inv = perm_scalar_val * minus_one_scalar;
+
+    // add permutation_scalar_inv to unprepared vector
+    index_scalars_unprepared.push_back(typename BlueprintFieldType::value_type(
+        typename BlueprintFieldType::integral_type(expected_permutation_scalar_inv.data)));
+
+    public_input.push_back(zeta_to_domain_size);
+    var zeta_to_domain_size_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+    public_input.push_back(zeta_to_srs_length);
+    var zeta_to_srs_length_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
+    // add index_terms_scalars to the unprepared vector
+    // for (size_t i = 0; i < index_scalars.size(); i++) {
+    //     index_scalars_unprepared.push_back(index_scalars[i]);
+    // }
+
+    // START test prepare scalars
+    typename BlueprintFieldType::value_type base = 2;
+    typename BlueprintFieldType::value_type shift;
+    typename BlueprintFieldType::value_type denominator;
+    constexpr typename BlueprintFieldType::value_type vesta_base_field_modulus =
+        0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001_cppui256;
+    constexpr typename BlueprintFieldType::value_type pallas_base_field_modulus =
+        0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001_cppui256;
+
+    if (curve_type::base_field_type::modulus - vesta_base_field_modulus == 0) {
+        shift = base.pow(255);
+        denominator = 1;
+    }
+    if (curve_type::base_field_type::modulus - pallas_base_field_modulus == 0) {
+        shift = base.pow(255) + 1;
+        denominator = base;
+    }
+
+    std::vector<typename BlueprintFieldType::value_type> expected_res;
+    expected_res.push_back(alpha_val);
+    expected_res.push_back(beta_val);
+    expected_res.push_back(gamma_val);
+    expected_res.push_back(zeta_val);
+
+    for (int i = 0; i < index_scalars_unprepared.size(); ++i) {
+        typename BlueprintFieldType::value_type expected;
+        if ((index_scalars_unprepared[i] != 1) & (index_scalars_unprepared[i] != 0) &
+            (index_scalars_unprepared[i] != -1)) {
+            expected = (index_scalars_unprepared[i] - base.pow(255) - 1) / 2;
+        } else {
+            expected = (index_scalars_unprepared[i] - shift) / denominator;
+        }
+        expected_res.push_back(expected);
+        // std::cout << "expected_res [" << i << "]=" << expected_res[i].data << std::endl;
+    }
+
     params.verifier_index = verifier_index;
     params.zeta = zeta;
     params.alpha = alpha;
     params.beta = beta;
     params.gamma = gamma;
+
+    params.zeta_to_domain_size = zeta_to_domain_size_var;
+    params.zeta_to_srs_len = zeta_to_srs_length_var;
+
     params.joint_combiner = joint_combiner;
     params.alphas = alpha_powers;
     params.combined_evals = evals;
-    std::array<typename BlueprintFieldType::value_type, 4> expected_index_scalars = {
-        0x017EEEF7695889AFB5311D7B36B31455AFF02B103BDA9BABF5BC29107B8F3AB7_cppui256,    // varBaseMul
-        0x259D030170979C4754D0CEBF9E6AE529563BEB3A27C7003F57CCD4F80F875E4B_cppui256,    // endoMul
-        0x0F297E2FA4E61DD377911C6B14C03F5CABC1114813C5D5C4CDCBDFBE84C526DB_cppui256,    // endoMulScalar
-        0x0EF5278F0AD55CDE149D4E396A01E9B72A0D73FB4CF033C570B1B7E0C24C5FCE_cppui256,    // completeAdd
-    };
 
-    auto result_check = [&expected_permutation_scalar_inv,
-                         &expected_index_scalars](AssignmentType &assignment, component_type::result_type &real_res) {
-        for (int i = 0; i < 4; ++i) {
-            assert(expected_index_scalars[i] == assignment.var_value(real_res.index_scalars[i]));
+    // for (int i = 0; i < expected_res.size(); ++i) {
+    //     std::cout << "raw_expected [" << i << "]=" << expected_res[i].data << std::endl;
+    // }
+
+    auto result_check = [&expected_res](AssignmentType &assignment, component_type::result_type &real_res) {
+        for (int i = 0; i < real_res.output.size(); ++i) {
+            // std::cout << "raw_expected [" << i << "]=" << raw_expected[i].data << std::endl;
+            // std::cout << "from_hpp [" << i << "]=" << assignment.var_value(real_res.output[i]).data << std::endl;
+            assert(expected_res[i] == assignment.var_value(real_res.output[i]));
         }
-        assert(expected_permutation_scalar_inv == assignment.var_value(real_res.permutation_scalars));
+        // assert(expected_permutation_scalar_inv == assignment.var_value(real_res.permutation_scalars));
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,

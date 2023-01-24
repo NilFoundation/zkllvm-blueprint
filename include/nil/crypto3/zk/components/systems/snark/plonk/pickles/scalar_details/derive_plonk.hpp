@@ -1,6 +1,5 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
-// Copyright (c) 2022 Abdel Ali Harchaoui <harchaoui@nil.foundation>
 // MIT License
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -41,8 +40,11 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/alpha_argument_type.hpp>
+
 #include <nil/crypto3/zk/snark/systems/plonk/pickles/verifier_index.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/plonk_map_fields.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -50,15 +52,17 @@ namespace nil {
             namespace components {
 
                 // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/plonk_checks/plonk_checks.ml#L409
-                template<typename ArithmetizationType, typename KimchiParamsType, std::size_t... WireIndexes>
+                template<typename ArithmetizationType, typename KimchiParamsType, typename CurveType,
+                         std::size_t... WireIndexes>
                 class derive_plonk;
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams, typename KimchiParamsType,
-                         std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5,
-                         std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10,
-                         std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
+                         typename CurveType, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3,
+                         std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9,
+                         std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
                 class derive_plonk<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                   KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+                                   KimchiParamsType, CurveType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12,
+                                   W13, W14> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
@@ -88,6 +92,11 @@ namespace nil {
 
                     using verifier_index_type = kimchi_verifier_index_scalar<BlueprintFieldType>;
                     using index_terms_list = typename KimchiParamsType::circuit_params::index_terms_list;
+                    using curve_type = CurveType;
+                    using plonk_map_fields_component_type =
+                        zk::components::plonk_map_fields<ArithmetizationType, KimchiParamsType, CurveType, W0, W1, W2,
+                                                         W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                    // using nil::crypto3::zk::components::curve_type;
 
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
@@ -95,12 +104,16 @@ namespace nil {
                         row += index_terms_scalars_component::rows_amount;
                         row += perm_scalars_component::rows_amount;
                         row += mul_by_const_component::rows_amount;
+                        row += plonk_map_fields_component_type::rows_amount;
 
                         return row;
                     }
 
                 public:
                     constexpr static const std::size_t rows_amount = rows();
+                    constexpr static const std::size_t gates_amount = 0;
+                    constexpr static const std::size_t permScalarsInputSize = 11;
+
                     //   let e1 field = snd (field e) in
                     //   let w0 = Vector.map e.w ~f:fst in
                     struct params_type {
@@ -109,6 +122,10 @@ namespace nil {
                         var alpha;
                         var beta;
                         var gamma;
+
+                        var zeta_to_domain_size;
+                        var zeta_to_srs_len;
+
                         var joint_combiner;
                         std::array<var, KimchiParamsType::alpha_powers_n> alphas;
 
@@ -117,8 +134,7 @@ namespace nil {
                     };
 
                     struct result_type {
-                        std::vector<var> index_scalars;
-                        var permutation_scalars;
+                        std::vector<var> output = std::vector<var>(permScalarsInputSize);
 
                         result_type(std::size_t start_row_index) {
                         }
@@ -143,6 +159,7 @@ namespace nil {
                                                                             },
                                                                             row)
                                       .output;
+
                         row += zkpm_evaluate_component::rows_amount;
 
                         // index_terms_scalars
@@ -162,6 +179,12 @@ namespace nil {
                                                                             row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
+
+                        // take 4 last rows , varBaseMul , endoMul , endoMulScalar , completeAdd
+                        std::array<var, 4> index_scalars_4_last;
+                        for (size_t i = 15; i < index_scalars.size(); i++) {
+                            index_scalars_4_last[i - 15] = index_scalars[i];
+                        }
 
                         // alpha_indx permutation
                         std::pair<std::size_t, std::size_t> alpha_idxs =
@@ -186,18 +209,37 @@ namespace nil {
                         var perm_scalar_inv = zk::components::generate_circuit<mul_by_const_component>(
                                                   bp, assignment, {perm_scalar, minus_1}, row)
                                                   .output;
+
                         row += mul_by_const_component::rows_amount;
 
+                        // plonk_map_fields
+                        auto to_fields =
+                            plonk_map_fields_component_type::generate_circuit(bp,
+                                                                              assignment,
+                                                                              {
+                                                                                  params.zeta,
+                                                                                  params.alpha,
+                                                                                  params.beta,
+                                                                                  params.gamma,
+                                                                                  params.zeta_to_domain_size,
+                                                                                  params.zeta_to_srs_len,
+                                                                                  //   index_terms_scalars
+                                                                                  index_scalars_4_last,
+                                                                                  //   perm_scalars
+                                                                                  perm_scalar_inv,
+                                                                              },
+                                                                              row)
+                                .output;
+                        row += plonk_map_fields_component_type::rows_amount;
+
                         assert(row == start_row_index + rows_amount);
+                        assert(permScalarsInputSize == to_fields.size());
 
                         result_type res;
-
-                        // get the last 4 scalars
-                        for (size_t i = 15; i < index_scalars.size(); i++) {
-                            res.index_scalars.push_back(index_scalars[i]);
+                        for (size_t i = 0; i < to_fields.size(); i++) {
+                            res.output[i] = to_fields[i];
                         }
 
-                        res.permutation_scalars = perm_scalar_inv;
                         return res;
                     }
 
@@ -207,10 +249,13 @@ namespace nil {
 
                         std::size_t row = start_row_index;
                         // zkp
-                        var zkp = zkpm_evaluate_component::generate_assignments(
-                                      assignment,
-                                      {params.verifier_index.omega, params.verifier_index.domain_size, params.zeta},
-                                      row)
+                        var zkp = zkpm_evaluate_component::generate_assignments(assignment,
+                                                                                {
+                                                                                    params.verifier_index.omega,
+                                                                                    params.verifier_index.domain_size,
+                                                                                    params.zeta,
+                                                                                },
+                                                                                row)
                                       .output;
                         row += zkpm_evaluate_component::rows_amount;
 
@@ -230,6 +275,14 @@ namespace nil {
                                                                                 row)
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
+
+                        // 4 last rows
+                        std::array<var, 4> index_scalars_4_last;
+                        for (size_t i = 15; i < index_scalars.size(); i++) {
+                            index_scalars_4_last[i - 15] = index_scalars[i];
+                            // std::cout << "index_scalars_4_last [" << i
+                            //           << "]=" << assignment.var_value(index_scalars[i]).data << std::endl;
+                        }
 
                         // alpha_idxs Permutation
                         std::pair<std::size_t, std::size_t> alpha_idxs =
@@ -255,15 +308,32 @@ namespace nil {
                                 .output;
                         row += mul_by_const_component::rows_amount;
 
+                        // plonk_map_fields
+                        auto to_fields =
+                            plonk_map_fields_component_type::generate_assignments(assignment,
+                                                                                  {
+                                                                                      params.alpha,
+                                                                                      params.beta,
+                                                                                      params.gamma,
+                                                                                      params.zeta,
+                                                                                      params.zeta_to_domain_size,
+                                                                                      params.zeta_to_srs_len,
+                                                                                      //   index_terms_scalars
+                                                                                      index_scalars_4_last,
+                                                                                      //   perm_scalars
+                                                                                      perm_scalar_inv,
+                                                                                  },
+                                                                                  row)
+                                .output;
+                        row += plonk_map_fields_component_type::rows_amount;
                         assert(row == start_row_index + rows_amount);
+                        assert(permScalarsInputSize == to_fields.size());
 
                         result_type res;
-                        // get the last 4 scalars
-                        for (size_t i = 15; i < index_scalars.size(); i++) {
-                            res.index_scalars.push_back(index_scalars[i]);
+                        for (size_t i = 0; i < to_fields.size(); i++) {
+                            res.output[i] = to_fields[i];
                         }
-                        // res.index_scalars = index_scalars;
-                        res.permutation_scalars = perm_scalar_inv;
+
                         return res;
                     }
 
@@ -273,6 +343,7 @@ namespace nil {
                         blueprint_public_assignment_table<ArithmetizationType> &assignment,
                         const params_type &params,
                         std::size_t component_start_row) {
+                            
                         // std::size_t row = component_start_row;
                         // one var
                         // assignment.constant(0)[row] = 1;
