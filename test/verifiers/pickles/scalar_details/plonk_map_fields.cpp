@@ -42,7 +42,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/batch_scalar/prepare_scalars.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/plonk_map_fields.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/perm_scalars.hpp>
-// #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+
 #include "test_plonk_component.hpp"
 
 using namespace nil::crypto3;
@@ -52,10 +52,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
     auto start = std::chrono::high_resolution_clock::now();
 
     using curve_type = algebra::curves::pallas;
-    // using BlueprintFieldType = typename curve_type::scalar_field_type;
     using BlueprintFieldType = typename curve_type::base_field_type;
-    // using ScalarFieldType = typename curve_type::scalar_field_type;
-    // using BlueprintFieldType = typename curve_type::base_field_type;
 
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
@@ -131,21 +128,17 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
     typename BlueprintFieldType::value_type perm_scalar_val =
         0x0E7F540B2F6CE243D4F603210A7EF55620EEC89679E894777E34D1AA3A33C689_cppui256;
 
-    // compute zeta_to_domain_size & zeta_to_srs_length
     typename BlueprintFieldType::value_type zeta_to_domain_size;
     typename BlueprintFieldType::value_type zeta_to_srs_length;
     zeta_to_domain_size = zeta_val.pow(domain_size);
     zeta_to_srs_length = zeta_val.pow(max_poly_size);
 
-    // zero_var
     public_input.push_back(0);
     var zero = var(0, public_input.size() - 1, false, var::column_type::public_input);
 
-    // one_var
     public_input.push_back(1);
     var one = var(0, public_input.size() - 1, false, var::column_type::public_input);
 
-    //
     public_input.push_back(alpha_val);
     var alpha_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
 
@@ -169,23 +162,19 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
 
     std::vector<typename BlueprintFieldType::value_type> index_scalars_unprepared;
 
-    // add zeta_to_domain_size & zeta_to_srs_length to the unprepared vector
     index_scalars_unprepared.push_back(
         typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(zeta_to_domain_size.data)));
 
     index_scalars_unprepared.push_back(
         typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(zeta_to_srs_length.data)));
 
-    // add index_terms_scalars to the unprepared vector
     for (size_t i = 0; i < index_scalars.size(); i++) {
         index_scalars_unprepared.push_back(index_scalars[i]);
     }
 
-    // add permutation_scalar to unprepared vector
     index_scalars_unprepared.push_back(
         typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(perm_scalar_val.data)));
 
-    // START test prepare scalars
     typename BlueprintFieldType::value_type base = 2;
     typename BlueprintFieldType::value_type shift;
     typename BlueprintFieldType::value_type denominator;
@@ -214,26 +203,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
             expected = (index_scalars_unprepared[i] - shift) / denominator;
         }
         expected_res.push_back(expected);
-        // std::cout << "expected_res [" << i << "]=" << expected_res[i].data << std::endl;
     }
     expected_res.push_back(perm_scalar_val);
 
     typename component_type::params_type params = {};
-
-    // typename proof_binding::template fr_data<var, BatchSize> fr_data;
-
     params.alpha = alpha_var;
     params.beta = beta_var;
     params.gamma = gamma_var;
     params.zeta = zeta_var;
-    // std::cout << "zeta_to_srs_len .size []=" << params.fr_data.zeta_to_srs_len.size() << std::endl;
-    // std::cout << "zeta_to_srs_len .value []=" << params.fr_data.zeta_to_srs_len[0] << std::endl;
 
     params.zeta_to_domain_size = zeta_to_domain_size_var;
     params.zeta_to_srs_len = zeta_to_srs_length_var;
 
-    // target of type var
-    // index of typename BlueprintFieldType
     std::array<var, 4> index_scalars_var;
     for (std::size_t i = 0; i < index_scalars.size(); i++) {
         public_input.push_back(index_scalars[i]);

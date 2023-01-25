@@ -92,9 +92,8 @@ namespace nil {
 
                     using var = snark::plonk_variable<BlueprintFieldType>;
 
-                    // [TODO] get InputSize from result_type struct / Any other method ?
+                    // [TODO] get InputSize from result_type
                     constexpr static std::size_t InputSize() {
-                        // 19 kimchi scalars - 15 we don't need + 3 (zeta2domain, zeta2srs_len,permutation_scalar_inv)
                         // return KimchiParamsType::index_term_size() - 15 + 3;
                         return 7;
                     }
@@ -138,12 +137,12 @@ namespace nil {
 
                         std::array<var, 4> index_terms_scalars;
                         var permutation_scalars;
-                        // // var generic; //[TODO]
+                        // var generic; //[TODO]
                     };
 
                     struct result_type {
                         std::vector<var> output = std::vector<var>(InputSize());
-                        // std::vector<var> output;
+
                         result_type(std::size_t start_row_index) {
                         }
 
@@ -159,14 +158,7 @@ namespace nil {
                         std::size_t row = start_row_index;
 
                         std::vector<var> index_scalars_unprepared = std::vector<var>(7);
-                        result_type res;
 
-                        res.output[0] = params.alpha;
-                        res.output[1] = params.beta;
-                        res.output[2] = params.gamma;
-                        res.output[3] = params.zeta;
-
-                        // prepare for multiplication
                         index_scalars_unprepared[0] = params.zeta_to_domain_size;
                         index_scalars_unprepared[1] = params.zeta_to_srs_len;
 
@@ -182,6 +174,12 @@ namespace nil {
 
                         assert(row == start_row_index + rows_amount);
 
+                        result_type res;
+
+                        res.output[0] = params.alpha;
+                        res.output[1] = params.beta;
+                        res.output[2] = params.gamma;
+                        res.output[3] = params.zeta;
                         for (size_t i = 4; i < to_field.size(); i++) {
                             res.output[i] = to_field[i - 4];
                         }
@@ -196,15 +194,6 @@ namespace nil {
 
                         std::vector<var> index_scalars_unprepared = std::vector<var>(7);
 
-                        result_type res;
-                        // res.output;
-
-                        res.output[0] = params.alpha;
-                        res.output[1] = params.beta;
-                        res.output[2] = params.gamma;
-                        res.output[3] = params.zeta;
-
-                        // prepare for multiplication
                         index_scalars_unprepared[0] = params.zeta_to_domain_size;
                         index_scalars_unprepared[1] = params.zeta_to_srs_len;
 
@@ -219,6 +208,13 @@ namespace nil {
                         row += prepare_scalars_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
+
+                        result_type res;
+
+                        res.output[0] = params.alpha;
+                        res.output[1] = params.beta;
+                        res.output[2] = params.gamma;
+                        res.output[3] = params.zeta;
 
                         for (size_t i = 4; i < to_field.size(); i++) {
                             res.output[i] = to_field[i - 4];
@@ -239,4 +235,4 @@ namespace nil {
     }            // namespace crypto3
 }    // namespace nil
 
-#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_EVALS_OF_SPLIT_EVALS_HPP
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_SCALAR_DETAILS_PLONK_MAP_FIELDS_HPP
