@@ -172,7 +172,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     typename BlueprintFieldType::value_type perm_scalar_val =
         0x0E7F540B2F6CE243D4F603210A7EF55620EEC89679E894777E34D1AA3A33C689_cppui256;
 
-    // using verifier_index_type = zk::components::kimchi_verifier_index_scalar<curve_type, kimchi_params>;
     using verifier_index_type = zk::components::kimchi_verifier_index_scalar<BlueprintFieldType>;
 
     verifier_index_type verifier_index;
@@ -240,33 +239,29 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     verifier_index.domain_size = domain_size;
     verifier_index.omega = omega;
 
-    //
     std::vector<typename BlueprintFieldType::value_type> index_scalars_unprepared;
-    // compute zeta_to_domain_size & zeta_to_srs_length
+
     typename BlueprintFieldType::value_type zeta_to_domain_size;
     typename BlueprintFieldType::value_type zeta_to_srs_length;
     zeta_to_domain_size = zeta_val.pow(domain_size);
     zeta_to_srs_length = zeta_val.pow(max_poly_size);
-    // add zeta_to_domain_size & zeta_to_srs_length to the unprepared vector
+
     index_scalars_unprepared.push_back(
         typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(zeta_to_domain_size.data)));
 
     index_scalars_unprepared.push_back(
         typename BlueprintFieldType::value_type(typename BlueprintFieldType::integral_type(zeta_to_srs_length.data)));
 
-    // add index_terms_scalars to the unprepared vector
     for (size_t i = 0; i < index_scalars.size(); i++) {
         index_scalars_unprepared.push_back(index_scalars[i]);
     }
 
-    // negate permutation scalar
     typename BlueprintFieldType::value_type minus_1 = -1;
     typename BlueprintFieldType::integral_type integral_minus_1 =
         typename BlueprintFieldType::integral_type(minus_1.data);
     BlueprintFieldType::value_type minus_one_scalar = integral_minus_1;
     typename BlueprintFieldType::value_type expected_permutation_scalar_inv = perm_scalar_val * minus_one_scalar;
 
-    // add permutation_scalar_inv to unprepared vector
     index_scalars_unprepared.push_back(typename BlueprintFieldType::value_type(
         typename BlueprintFieldType::integral_type(expected_permutation_scalar_inv.data)));
 
@@ -275,12 +270,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
 
     public_input.push_back(zeta_to_srs_length);
     var zeta_to_srs_length_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
-    // add index_terms_scalars to the unprepared vector
-    // for (size_t i = 0; i < index_scalars.size(); i++) {
-    //     index_scalars_unprepared.push_back(index_scalars[i]);
-    // }
 
-    // START test prepare scalars
     typename BlueprintFieldType::value_type base = 2;
     typename BlueprintFieldType::value_type shift;
     typename BlueprintFieldType::value_type denominator;
@@ -313,7 +303,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
             expected = (index_scalars_unprepared[i] - shift) / denominator;
         }
         expected_res.push_back(expected);
-        // std::cout << "expected_res [" << i << "]=" << expected_res[i].data << std::endl;
     }
 
     params.verifier_index = verifier_index;
@@ -329,17 +318,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_v2_vesta_scalar_fields
     params.alphas = alpha_powers;
     params.combined_evals = evals;
 
-    // for (int i = 0; i < expected_res.size(); ++i) {
-    //     std::cout << "raw_expected [" << i << "]=" << expected_res[i].data << std::endl;
-    // }
-
     auto result_check = [&expected_res](AssignmentType &assignment, component_type::result_type &real_res) {
         for (int i = 0; i < real_res.output.size(); ++i) {
-            // std::cout << "raw_expected [" << i << "]=" << raw_expected[i].data << std::endl;
-            // std::cout << "from_hpp [" << i << "]=" << assignment.var_value(real_res.output[i]).data << std::endl;
+
             assert(expected_res[i] == assignment.var_value(real_res.output[i]));
         }
-        // assert(expected_permutation_scalar_inv == assignment.var_value(real_res.permutation_scalars));
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,

@@ -73,7 +73,6 @@ namespace nil {
                     using zkpm_evaluate_component = zkpm_evaluate<ArithmetizationType, W0, W1, W2, W3, W4, W5, W6, W7,
                                                                   W8, W9, W10, W11, W12, W13, W14>;
                     //   let index_terms = Sc.index_terms env in
-                    //    index_terms_scalars
                     using index_terms_scalars_component =
                         zk::components::index_terms_scalars<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4,
                                                             W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
@@ -96,7 +95,6 @@ namespace nil {
                     using plonk_map_fields_component_type =
                         zk::components::plonk_map_fields<ArithmetizationType, KimchiParamsType, CurveType, W0, W1, W2,
                                                          W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
-                    // using nil::crypto3::zk::components::curve_type;
 
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
@@ -150,7 +148,6 @@ namespace nil {
                                          const std::size_t start_row_index) {
                         std::size_t row = start_row_index;
 
-                        // zkp
                         var zkp = zkpm_evaluate_component::generate_circuit(bp, assignment,
                                                                             {
                                                                                 params.verifier_index.omega,
@@ -162,7 +159,6 @@ namespace nil {
 
                         row += zkpm_evaluate_component::rows_amount;
 
-                        // index_terms_scalars
                         auto index_scalars =
                             index_terms_scalars_component::generate_circuit(bp,
                                                                             assignment,
@@ -186,10 +182,9 @@ namespace nil {
                             index_scalars_4_last[i - 15] = index_scalars[i];
                         }
 
-                        // alpha_indx permutation
                         std::pair<std::size_t, std::size_t> alpha_idxs =
                             index_terms_list::alpha_map(argument_type::Permutation);
-                        // permutation scalar
+
                         var perm_scalar = perm_scalars_component::generate_circuit(bp,
                                                                                    assignment,
                                                                                    {
@@ -204,7 +199,6 @@ namespace nil {
                                               .output;
                         row += perm_scalars_component::rows_amount;
 
-                        // multiplication by - 1
                         typename BlueprintFieldType::value_type minus_1 = -1;
                         var perm_scalar_inv = zk::components::generate_circuit<mul_by_const_component>(
                                                   bp, assignment, {perm_scalar, minus_1}, row)
@@ -212,7 +206,6 @@ namespace nil {
 
                         row += mul_by_const_component::rows_amount;
 
-                        // plonk_map_fields
                         auto to_fields =
                             plonk_map_fields_component_type::generate_circuit(bp,
                                                                               assignment,
@@ -223,9 +216,7 @@ namespace nil {
                                                                                   params.gamma,
                                                                                   params.zeta_to_domain_size,
                                                                                   params.zeta_to_srs_len,
-                                                                                  //   index_terms_scalars
                                                                                   index_scalars_4_last,
-                                                                                  //   perm_scalars
                                                                                   perm_scalar_inv,
                                                                               },
                                                                               row)
@@ -248,7 +239,7 @@ namespace nil {
                                                             const std::size_t start_row_index) {
 
                         std::size_t row = start_row_index;
-                        // zkp
+
                         var zkp = zkpm_evaluate_component::generate_assignments(assignment,
                                                                                 {
                                                                                     params.verifier_index.omega,
@@ -259,7 +250,6 @@ namespace nil {
                                       .output;
                         row += zkpm_evaluate_component::rows_amount;
 
-                        // index_terms
                         auto index_scalars =
                             index_terms_scalars_component::generate_assignments(assignment,
                                                                                 {
@@ -276,19 +266,15 @@ namespace nil {
                                 .output;
                         row += index_terms_scalars_component::rows_amount;
 
-                        // 4 last rows
+                        // take 4 last rows , varBaseMul , endoMul , endoMulScalar , completeAdd
                         std::array<var, 4> index_scalars_4_last;
                         for (size_t i = 15; i < index_scalars.size(); i++) {
                             index_scalars_4_last[i - 15] = index_scalars[i];
-                            // std::cout << "index_scalars_4_last [" << i
-                            //           << "]=" << assignment.var_value(index_scalars[i]).data << std::endl;
                         }
 
-                        // alpha_idxs Permutation
                         std::pair<std::size_t, std::size_t> alpha_idxs =
                             index_terms_list::alpha_map(argument_type::Permutation);
 
-                        // permutation scalars
                         var perm_scalar = perm_scalars_component::generate_assignments(assignment,
                                                                                        {
                                                                                            params.combined_evals,
@@ -308,7 +294,6 @@ namespace nil {
                                 .output;
                         row += mul_by_const_component::rows_amount;
 
-                        // plonk_map_fields
                         auto to_fields =
                             plonk_map_fields_component_type::generate_assignments(assignment,
                                                                                   {
@@ -318,9 +303,7 @@ namespace nil {
                                                                                       params.zeta,
                                                                                       params.zeta_to_domain_size,
                                                                                       params.zeta_to_srs_len,
-                                                                                      //   index_terms_scalars
                                                                                       index_scalars_4_last,
-                                                                                      //   perm_scalars
                                                                                       perm_scalar_inv,
                                                                                   },
                                                                                   row)
@@ -343,7 +326,7 @@ namespace nil {
                         blueprint_public_assignment_table<ArithmetizationType> &assignment,
                         const params_type &params,
                         std::size_t component_start_row) {
-                            
+
                         // std::size_t row = component_start_row;
                         // one var
                         // assignment.constant(0)[row] = 1;
