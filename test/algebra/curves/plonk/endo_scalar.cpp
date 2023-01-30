@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
-    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t PublicInputColumns = 2;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 2;
     using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
