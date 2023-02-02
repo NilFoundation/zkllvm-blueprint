@@ -53,6 +53,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
 
     using curve_type = algebra::curves::pallas;
     using BlueprintFieldType = typename curve_type::base_field_type;
+    // curve_type::base_field_type::integral_type
 
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
@@ -65,10 +66,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    constexpr typename BlueprintFieldType::value_type vesta_base_field_modulus =
-        0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001_cppui256;
-    constexpr typename BlueprintFieldType::value_type pallas_base_field_modulus =
-        0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001_cppui256;
+    constexpr typename BlueprintFieldType::integral_type vesta_base_field_modulus =
+        0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001_cppui255;
+    constexpr typename BlueprintFieldType::integral_type pallas_base_field_modulus =
+        0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001_cppui255;
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     constexpr static std::size_t public_input_size = 3;
@@ -178,12 +179,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_map_fields_pallas) {
     typename BlueprintFieldType::value_type base = 2;
     typename BlueprintFieldType::value_type shift;
     typename BlueprintFieldType::value_type denominator;
-
-    if (curve_type::base_field_type::modulus - vesta_base_field_modulus == 0) {
+    // typename
+    if (typename BlueprintFieldType::integral_type(curve_type::base_field_type::modulus) - vesta_base_field_modulus == 0) {
         shift = base.pow(255);
         denominator = 1;
     }
-    if (curve_type::base_field_type::modulus - pallas_base_field_modulus == 0) {
+    if (typename BlueprintFieldType::integral_type(curve_type::base_field_type::modulus) - pallas_base_field_modulus == 0) {
         shift = base.pow(255) + 1;
         denominator = base;
     }
