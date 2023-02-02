@@ -44,6 +44,7 @@ namespace nil {
             namespace components {
 
                 // TODO: link
+                // https://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/verify.ml#L10
                 template<typename BlueprintFieldType, typename CurveType, typename KimchiParamsType>
                 struct instance_type {
                     private:
