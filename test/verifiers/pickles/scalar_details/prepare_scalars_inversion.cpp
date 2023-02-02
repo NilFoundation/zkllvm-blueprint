@@ -159,8 +159,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_inversion_pallas) {
     using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
-    constexpr typename BlueprintFieldType::value_type  vesta_base_field_modulus = 0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001_cppui256;
-    constexpr typename BlueprintFieldType::value_type pallas_base_field_modulus = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001_cppui256;
+
+   constexpr typename BlueprintFieldType::integral_type vesta_base_field_modulus =
+         0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001_cppui255;
+     constexpr typename BlueprintFieldType::integral_type pallas_base_field_modulus =
+         0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001_cppui255;
+    
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     constexpr typename BlueprintFieldType::value_type  shifted_neg1 = 0x224698fc0994a8dd8c46eb2100000000_cppui255;

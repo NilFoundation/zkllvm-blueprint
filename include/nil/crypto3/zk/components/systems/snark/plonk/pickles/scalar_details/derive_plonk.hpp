@@ -91,7 +91,7 @@ namespace nil {
 
                     using verifier_index_type = kimchi_verifier_index_scalar<BlueprintFieldType>;
                     using index_terms_list = typename KimchiParamsType::circuit_params::index_terms_list;
-                    using curve_type = CurveType;
+
                     using plonk_map_fields_component_type =
                         zk::components::plonk_map_fields<ArithmetizationType, KimchiParamsType, CurveType, W0, W1, W2,
                                                          W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
