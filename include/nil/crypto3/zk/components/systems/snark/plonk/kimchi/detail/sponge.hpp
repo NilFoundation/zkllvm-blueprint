@@ -69,7 +69,6 @@ namespace nil {
                     std::size_t state_count = 0;
                     bool state_absorbed = true;
 
-                    std::array<var, poseidon_component::state_size> state = {var(W0, 0), var(W1, 0), var(W2, 0)};
 
                     void permute_assignment(blueprint_assignment_table<ArithmetizationType> &assignment,
                                             const std::size_t &component_start_row) {
@@ -125,6 +124,8 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     constexpr static const std::size_t state_size = poseidon_component::state_size;
+
+                    std::array<var, poseidon_component::state_size> state = {var(W0, 0), var(W1, 0), var(W2, 0)};
 
                     std::array<var, state_size> _inner_state() {
                         return state;

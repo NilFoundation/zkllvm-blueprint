@@ -90,16 +90,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_constraints_perm_scalars_ec_i
         zk::components::perm_scalars<ArithmetizationType, kimchi_params, 0, 1, 2,
                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    // params:
-    // std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>,
-    //     KimchiParamsType::eval_points_amount> evals;
-    // std::array<var, KimchiParamsType::alpha_powers_n> alphas;
-    // std::size_t start_idx;
-
-    // var beta;
-    // var gamma;
-    // var zkp_zeta;
-
     std::array<typename BlueprintFieldType::value_type, witness_columns>
         eval0_w = {
             0x0C2F522FB163AE4A8D2890C57ABF95E55EF7DDD27A928EFAD0D3FA447D40BC29_cppui256,

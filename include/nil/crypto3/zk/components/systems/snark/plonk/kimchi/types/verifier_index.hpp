@@ -75,7 +75,6 @@ namespace nil {
                         std::array<commitment_type, KimchiParamsType::witness_columns> coefficient;
                         commitment_type generic;
                         commitment_type psm;
-                        std::vector<commitment_type> selectors;
                         std::vector<commitment_type> lookup_selectors;
                         commitment_type runtime_tables_selector;
                         std::vector<commitment_type> lookup_table;
@@ -89,7 +88,7 @@ namespace nil {
 
                     var_ec_point H;
                     std::vector<var_ec_point> G = std::vector<var_ec_point>(commitment_params_type::srs_len);
-                    std::array<var_ec_point, KimchiParamsType::public_input_size> lagrange_bases;
+                    std::vector<var_ec_point> lagrange_bases = std::vector<var_ec_point>(KimchiParamsType::public_input_size);
                     commitments_type comm;
                 };
             }    // namespace components

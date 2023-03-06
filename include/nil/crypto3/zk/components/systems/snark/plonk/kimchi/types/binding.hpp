@@ -58,7 +58,7 @@ namespace nil {
                         std::vector<std::vector<VarType>> f_comm_scalars = std::vector<std::vector<VarType>>(BatchSize, std::vector<VarType>(f_comm_msm_size));
                         std::vector<VarType> cip_shifted = std::vector<VarType>(BatchSize);
 
-                        std::array<var, KimchiParamsType::public_input_size> neg_pub;
+                        std::vector<var> neg_pub         = std::vector<var>(KimchiParamsType::public_input_size);
                         std::vector<var> zeta_to_srs_len = std::vector<var>(BatchSize);
                         var zeta_to_domain_size_minus_1;
 

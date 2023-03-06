@@ -151,106 +151,106 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
     circuit_proof.ft_eval = var(0, public_input.size() - 1, false, var::column_type::public_input);
 }
 
-// BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_suite) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_suite) {
 
-//     using curve_type = algebra::curves::vesta;
-//     using BlueprintFieldType = typename curve_type::scalar_field_type;
-//     constexpr std::size_t WitnessColumns = 15;
-//     constexpr std::size_t PublicInputColumns = 1;
-//     constexpr std::size_t ConstantColumns = 1;
-//     constexpr std::size_t SelectorColumns = 30;
-//     using ArithmetizationParams =
-//         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-//     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-//     using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
-//     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-//     constexpr std::size_t Lambda = 40;
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::scalar_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 30;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
 
-//     using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-//     constexpr static std::size_t public_input_size = 3;
-//     constexpr static std::size_t max_poly_size = 32;
-//     constexpr static std::size_t eval_rounds = 5;
+    constexpr static std::size_t public_input_size = 3;
+    constexpr static std::size_t max_poly_size = 32;
+    constexpr static std::size_t eval_rounds = 5;
 
-//     constexpr static std::size_t witness_columns = 15;
-//     constexpr static std::size_t perm_size = 7;
+    constexpr static std::size_t witness_columns = 15;
+    constexpr static std::size_t perm_size = 7;
 
-//     constexpr static std::size_t srs_len = 10;
-//     constexpr static const std::size_t prev_chal_size = 1;
+    constexpr static std::size_t srs_len = 10;
+    constexpr static const std::size_t prev_chal_size = 1;
 
-//     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-//     using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-//     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
-//         witness_columns, perm_size>;
-//     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
-//         public_input_size, prev_chal_size>;
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
 
-//     zk::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
-//     typename BlueprintFieldType::value_type omega =
-//         0x1B1A85952300603BBF8DD3068424B64608658ACBB72CA7D2BB9694ADFA504418_cppui256;
-//     // verifier_index.zkpm = {0x2C46205451F6C3BBEA4BABACBEE609ECF1039A903C42BFF639EDC5BA33356332_cppui256,
-//     //     0x1764D9CB4C64EBA9A150920807637D458919CB6948821F4D15EB1994EADF9CE3_cppui256,
-//     //     0x0140117C8BBC4CE4644A58F7007148577782213065BB9699BF5C391FBE1B3E6D_cppui256,
-//     //     0x0000000000000000000000000000000000000000000000000000000000000001_cppui256};
-//     std::size_t domain_size = 128;
-//     verifier_index.domain_size = domain_size;
-//     verifier_index.omega = var(0, 6, false, var::column_type::public_input);
+    zk::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
+    typename BlueprintFieldType::value_type omega =
+        0x1B1A85952300603BBF8DD3068424B64608658ACBB72CA7D2BB9694ADFA504418_cppui256;
+    // verifier_index.zkpm = {0x2C46205451F6C3BBEA4BABACBEE609ECF1039A903C42BFF639EDC5BA33356332_cppui256,
+    //     0x1764D9CB4C64EBA9A150920807637D458919CB6948821F4D15EB1994EADF9CE3_cppui256,
+    //     0x0140117C8BBC4CE4644A58F7007148577782213065BB9699BF5C391FBE1B3E6D_cppui256,
+    //     0x0000000000000000000000000000000000000000000000000000000000000001_cppui256};
+    std::size_t domain_size = 128;
+    verifier_index.domain_size = domain_size;
+    verifier_index.omega = var(0, 6, false, var::column_type::public_input);
 
-//     using component_type =
-//         zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
-//                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type =
+        zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
+                                             3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-//     zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
+    zk::snark::proof_type<curve_type> kimchi_proof = test_proof();
 
-//     typename BlueprintFieldType::value_type joint_combiner = 0;
-//     typename BlueprintFieldType::value_type beta = 0;
-//     typename BlueprintFieldType::value_type gamma = 0;
-//     typename BlueprintFieldType::value_type alpha =
-//         0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256;
-//     typename BlueprintFieldType::value_type zeta =
-//         0x0000000000000000000000000000000062F9AE3696EA8F0A85043221DE133E32_cppui256;
-//     typename BlueprintFieldType::value_type fq_digest =
-//         0x01D4E77CCD66755BDDFDBB6E4E8D8D17A6708B9CB56654D12070BD7BF4A5B33B_cppui256;
+    typename BlueprintFieldType::value_type joint_combiner = 0;
+    typename BlueprintFieldType::value_type beta = 0;
+    typename BlueprintFieldType::value_type gamma = 0;
+    typename BlueprintFieldType::value_type alpha =
+        0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256;
+    typename BlueprintFieldType::value_type zeta =
+        0x0000000000000000000000000000000062F9AE3696EA8F0A85043221DE133E32_cppui256;
+    typename BlueprintFieldType::value_type fq_digest =
+        0x01D4E77CCD66755BDDFDBB6E4E8D8D17A6708B9CB56654D12070BD7BF4A5B33B_cppui256;
 
-//     zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
-//     std::array<var, eval_rounds> challenges;
-//     typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>::fq_sponge_output
-//         fq_output = {var(0, 0, false, var::column_type::public_input),
-//                      var(0, 1, false, var::column_type::public_input),
-//                      var(0, 2, false, var::column_type::public_input),
-//                      var(0, 3, false, var::column_type::public_input),
-//                      var(0, 4, false, var::column_type::public_input),
-//                      var(0, 5, false, var::column_type::public_input),
-//                      challenges};
+    zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
+    std::array<var, eval_rounds> challenges;
+    typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>::fq_sponge_output
+        fq_output = {var(0, 0, false, var::column_type::public_input),
+                     var(0, 1, false, var::column_type::public_input),
+                     var(0, 2, false, var::column_type::public_input),
+                     var(0, 3, false, var::column_type::public_input),
+                     var(0, 4, false, var::column_type::public_input),
+                     var(0, 5, false, var::column_type::public_input),
+                     challenges};
 
-//     std::vector<typename BlueprintFieldType::value_type> public_input = {joint_combiner, beta, gamma, alpha, zeta,
-//                                                                          fq_digest,
-//                                                                          // verifier_index (6+)
-//                                                                          omega};
+    std::vector<typename BlueprintFieldType::value_type> public_input = {joint_combiner, beta, gamma, alpha, zeta,
+                                                                         fq_digest,
+                                                                         // verifier_index (6+)
+                                                                         omega};
 
-//     for (std::size_t i = 0; i < public_input_size; i++) {
-//         typename BlueprintFieldType::value_type tmp = algebra::random_element<BlueprintFieldType>();
-//         public_input.push_back(tmp);
-//         proof.public_input[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
-//     }
+    for (std::size_t i = 0; i < public_input_size; i++) {
+        typename BlueprintFieldType::value_type tmp = algebra::random_element<BlueprintFieldType>();
+        public_input.push_back(tmp);
+        proof.public_input[i] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+    }
 
-//     for (std::size_t i = 0; i < kimchi_params::prev_challenges_size; i++) {
-//         for (std::size_t j = 0; j < eval_rounds; j++) {
-//             typename BlueprintFieldType::value_type tmp = algebra::random_element<BlueprintFieldType>();
-//             public_input.push_back(tmp);
-//             proof.prev_challenges[i][j] = var(0, public_input.size() - 1, false, var::column_type::public_input);
-//         }
-//     }
+    for (std::size_t i = 0; i < kimchi_params::prev_challenges_size; i++) {
+        for (std::size_t j = 0; j < eval_rounds; j++) {
+            typename BlueprintFieldType::value_type tmp = algebra::random_element<BlueprintFieldType>();
+            public_input.push_back(tmp);
+            proof.prev_challenges[i][j] = var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+    }
 
-//     prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
+    prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
 
-//     typename component_type::params_type params = {verifier_index, proof, fq_output};
+    typename component_type::params_type params = {verifier_index, proof, fq_output};
 
-//     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
-//     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
-//                                                                                                  result_check);
-// }
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+                                                                                                 result_check);
+}
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_chacha) {
 
@@ -523,141 +523,141 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_recursion)
                                                                                                  result_check);
 }
 
-// BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_generic) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_prepare_batch_scalar_test_generic) {
 
-//     using curve_type = algebra::curves::vesta;
-//     using BlueprintFieldType = typename curve_type::scalar_field_type;
-//     constexpr std::size_t WitnessColumns = 15;
-//     constexpr std::size_t PublicInputColumns = 1;
-//     constexpr std::size_t ConstantColumns = 1;
-//     constexpr std::size_t SelectorColumns = 30;
-//     using ArithmetizationParams =
-//         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-//     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-//     using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
-//     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-//     constexpr std::size_t Lambda = 40;
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::scalar_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 30;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
 
-//     using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-//     constexpr static std::size_t public_input_size = 5;
-//     constexpr static std::size_t max_poly_size = 32;
-//     constexpr static std::size_t eval_rounds = 0;
+    constexpr static std::size_t public_input_size = 5;
+    constexpr static std::size_t max_poly_size = 32;
+    constexpr static std::size_t eval_rounds = 0;
 
-//     constexpr static std::size_t witness_columns = 15;
-//     constexpr static std::size_t perm_size = 7;
+    constexpr static std::size_t witness_columns = 15;
+    constexpr static std::size_t perm_size = 7;
 
-//     constexpr static std::size_t srs_len = 32;
-//     constexpr static const std::size_t prev_chal_size = 0;
+    constexpr static std::size_t srs_len = 32;
+    constexpr static const std::size_t prev_chal_size = 0;
 
-//     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-//     using index_terms_list = zk::components::index_terms_scalars_list_generic_test<ArithmetizationType>;
-//     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
-//         witness_columns, perm_size>;
-//     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
-//         public_input_size, prev_chal_size>;
-//     using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_scalars_list_generic_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
 
-//     zk::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
-//     typename BlueprintFieldType::value_type omega =
-//         0x0CC3380DC616F2E1DAF29AD1560833ED3BAEA3393ECEB7BC8FA36376929B78CC_cppui256;
-//     std::array<typename BlueprintFieldType::value_type, perm_size> ver_ind_shift = 
-//         {0x0000000000000000000000000000000000000000000000000000000000000001_cppui256,
-//         0x00B9CDC8FD0BD4B27E2A74AF7AEBD5734D52D75BDF85EBF1CAD03413E914A2E3_cppui256,
-//         0x0033BFCF8112720332825BD83D44D92CADC0C30466E8102C419C30FA2665695A_cppui256,
-//         0x0087F4BB29954E16960F2DE3A1FA5AC7B62146DB348C7C9F0E8BF10B2C8E8411_cppui256,
-//         0x00EC71373B9F6CF15ED1949647365DB60B2E26C3A8ABBA5BB06BF23E9DBE5893_cppui256,
-//         0x00F39197CC4C55084C68D31F64F1A172406B585CB86445F00C248C721C496D10_cppui256,
-//         0x00B8DD039799DBEE12D2E6A4299A83E067353C0143C5DFD203190C239159EEA3_cppui256};
-//     std::size_t domain_size = 32;
-//     verifier_index.domain_size = domain_size;
-//     verifier_index.omega = var(0, 6, false, var::column_type::public_input);
-//     verifier_index.shift = {var(0, 7, false, var::column_type::public_input),
-//                      var(0, 8, false, var::column_type::public_input),
-//                      var(0, 9, false, var::column_type::public_input),
-//                      var(0, 10, false, var::column_type::public_input),
-//                      var(0, 11, false, var::column_type::public_input),
-//                      var(0, 12, false, var::column_type::public_input),
-//                      var(0, 13, false, var::column_type::public_input)};
+    zk::components::kimchi_verifier_index_scalar<BlueprintFieldType> verifier_index;
+    typename BlueprintFieldType::value_type omega =
+        0x0CC3380DC616F2E1DAF29AD1560833ED3BAEA3393ECEB7BC8FA36376929B78CC_cppui256;
+    std::array<typename BlueprintFieldType::value_type, perm_size> ver_ind_shift = 
+        {0x0000000000000000000000000000000000000000000000000000000000000001_cppui256,
+        0x00B9CDC8FD0BD4B27E2A74AF7AEBD5734D52D75BDF85EBF1CAD03413E914A2E3_cppui256,
+        0x0033BFCF8112720332825BD83D44D92CADC0C30466E8102C419C30FA2665695A_cppui256,
+        0x0087F4BB29954E16960F2DE3A1FA5AC7B62146DB348C7C9F0E8BF10B2C8E8411_cppui256,
+        0x00EC71373B9F6CF15ED1949647365DB60B2E26C3A8ABBA5BB06BF23E9DBE5893_cppui256,
+        0x00F39197CC4C55084C68D31F64F1A172406B585CB86445F00C248C721C496D10_cppui256,
+        0x00B8DD039799DBEE12D2E6A4299A83E067353C0143C5DFD203190C239159EEA3_cppui256};
+    std::size_t domain_size = 32;
+    verifier_index.domain_size = domain_size;
+    verifier_index.omega = var(0, 6, false, var::column_type::public_input);
+    verifier_index.shift = {var(0, 7, false, var::column_type::public_input),
+                     var(0, 8, false, var::column_type::public_input),
+                     var(0, 9, false, var::column_type::public_input),
+                     var(0, 10, false, var::column_type::public_input),
+                     var(0, 11, false, var::column_type::public_input),
+                     var(0, 12, false, var::column_type::public_input),
+                     var(0, 13, false, var::column_type::public_input)};
 
-//     using component_type =
-//         zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
-//                                              3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type =
+        zk::components::prepare_batch_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params, 0, 1, 2,
+                                             3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-//     zk::snark::proof_type<curve_type> kimchi_proof = test_proof_generic();
+    zk::snark::proof_type<curve_type> kimchi_proof = test_proof_generic();
 
-//     typename BlueprintFieldType::value_type joint_combiner = 0;
-//     typename BlueprintFieldType::value_type beta = 0x0000000000000000000000000000000070A593FE2201A0520B51FB2131B0EC50_cppui256;
-//     typename BlueprintFieldType::value_type gamma = 0x00000000000000000000000000000000C19F7BFFF732734AB7E1461DB30B4098_cppui256;
-//     typename BlueprintFieldType::value_type alpha =
-//         0x00000000000000000000000000000000F643764B3C004B017222923DE86BC103_cppui256;
-//     typename BlueprintFieldType::value_type zeta =
-//         0x0000000000000000000000000000000098DD898B19D348D4CDA80AE41B836A67_cppui256;
-//     typename BlueprintFieldType::value_type fq_digest =
-//         0x11EF8F246F63C43E46E22BC179C7171A3F2A9776AC62E5C488C482403FB00E07_cppui256;
+    typename BlueprintFieldType::value_type joint_combiner = 0;
+    typename BlueprintFieldType::value_type beta = 0x0000000000000000000000000000000070A593FE2201A0520B51FB2131B0EC50_cppui256;
+    typename BlueprintFieldType::value_type gamma = 0x00000000000000000000000000000000C19F7BFFF732734AB7E1461DB30B4098_cppui256;
+    typename BlueprintFieldType::value_type alpha =
+        0x00000000000000000000000000000000F643764B3C004B017222923DE86BC103_cppui256;
+    typename BlueprintFieldType::value_type zeta =
+        0x0000000000000000000000000000000098DD898B19D348D4CDA80AE41B836A67_cppui256;
+    typename BlueprintFieldType::value_type fq_digest =
+        0x11EF8F246F63C43E46E22BC179C7171A3F2A9776AC62E5C488C482403FB00E07_cppui256;
 
-//     zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
-//     std::array<var, eval_rounds> challenges;
-//     typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>::fq_sponge_output
-//         fq_output = {var(0, 0, false, var::column_type::public_input),
-//                      var(0, 1, false, var::column_type::public_input),
-//                      var(0, 2, false, var::column_type::public_input),
-//                      var(0, 3, false, var::column_type::public_input),
-//                      var(0, 4, false, var::column_type::public_input),
-//                      var(0, 5, false, var::column_type::public_input),
-//                      challenges};
+    zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds> proof;
+    std::array<var, eval_rounds> challenges;
+    typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>::fq_sponge_output
+        fq_output = {var(0, 0, false, var::column_type::public_input),
+                     var(0, 1, false, var::column_type::public_input),
+                     var(0, 2, false, var::column_type::public_input),
+                     var(0, 3, false, var::column_type::public_input),
+                     var(0, 4, false, var::column_type::public_input),
+                     var(0, 5, false, var::column_type::public_input),
+                     challenges};
 
-//     std::vector<typename BlueprintFieldType::value_type> public_input = {joint_combiner, beta,      gamma, alpha,
-//                                                                          zeta,           fq_digest, omega};
-//     for (std::size_t i = 0; i < perm_size; ++i) {
-//         public_input.push_back(ver_ind_shift[i]);
-//     }
+    std::vector<typename BlueprintFieldType::value_type> public_input = {joint_combiner, beta,      gamma, alpha,
+                                                                         zeta,           fq_digest, omega};
+    for (std::size_t i = 0; i < perm_size; ++i) {
+        public_input.push_back(ver_ind_shift[i]);
+    }
 
-//     prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
+    prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
 
-//     typename component_type::params_type params = {verifier_index, proof, fq_output};
+    typename component_type::params_type params = {verifier_index, proof, fq_output};
 
-//     expected_result_type<BlueprintFieldType, kimchi_params, kimchi_constants::f_comm_msm_size> expected_result;
-//     expected_result.prepared_proof.cip = 0x10EFC44BEF0B125C23172AEA94C4BE39BC7CD8F0A353D72BB74680F668796273_cppui256;
-//     expected_result.prepared_proof.eval_points = 
-//        {0x2F51244846217BCB9DE92C5903AC022FAD29555920E45344407B680D24D550F1_cppui256, 
-//        0x0246EF2FEB792F5373089629FF28E70F0086933E6FD61172905B184D6363DD4C_cppui256};
-//     expected_result.prepared_proof.r = 0x02F09286E0F4EA5B8C2DA4C966DC23D900A5DD4D65F805202EF0D38FC8791C37_cppui256;
-//     expected_result.prepared_proof.xi = 0x38F378C3A58670C0526EECA358159AF2BCD782EA23FA6E7DCC1235220D533C48_cppui256;
-//     expected_result.zeta_to_srs_len = 0x1F4391D29EFCBC00A2981CA4E752890900F18CBF88DC808F272ED3692FBF28C7_cppui256;
-//     expected_result.f_comm_scalars[0] = 0x354A5E9D1113DB9A61A8B1F105148045DE624D1E09D3CCE6F80B637082907FCD_cppui256; //perm scalars
-//     expected_result.f_comm_scalars[1] = 0x102189A38856DF1C80CCC6E048EA1F33E4495EF54A783D19F482EC8A708E70AB_cppui256;
-//     expected_result.f_comm_scalars[2] = 0x29E241A370EA03A19B3FC89F8B00A030FA0AC2A53B6CB174F2E6968BC870430F_cppui256;
-//     expected_result.f_comm_scalars[3] = 0x0336BFE3285C7D82EBFBEDB9A6545CFBC4661D2B4B1D39907F76DD2E27DE72BC_cppui256;
-//     expected_result.f_comm_scalars[4] = 0x30B8AC4EB559474DF430378433021444A0C48D8256A82993B45535B360AAC3CC_cppui256;
-//     expected_result.f_comm_scalars[5] = 0x07E90390ACAD4FB257163C8CA544C86AD4D73FA726B15006ED59A37DC2BF6108_cppui256;
-//     expected_result.f_comm_scalars[6] = 0x282C0645A98FEA8094A7797D3AC9D8F86952C25CAD103158159DE68DA8FE9F03_cppui256;
-//     expected_result.f_comm_scalars[7] = 0x224FEF91C9E1DDE076B8F6C3FED3C33F4EB220B842E30EA9A409B0DAF77D7B22_cppui256;
-//     expected_result.f_comm_scalars[8] = 0x31B66A275CAE9248610E9AA68B908E9AF097B79EF554E5FC53F5AECA98882847_cppui256;
-//     expected_result.f_comm_scalars[9] = 0x268F3640CE20E01285383CC2E7C4D5F0610C0A096D2047601354E0D2EDA3DE13_cppui256;
-//     expected_result.f_comm_scalars[10] = 0x0332ABC485130A37F59B28386F756ED121830BBD8DA6A6990E3AB60827459B98_cppui256;
-//     for (std::size_t i = 11; i < 26; ++i) {
-//         expected_result.f_comm_scalars[i] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-//     }
-//     expected_result.f_comm_scalars[26] = 0x2C0CCC7F2781B61E088910F08194DFBB3123CD76B3DC0A754CD1605CB50E9AD1_cppui256;
-//     expected_result.f_comm_scalars[27] = 0x397CD2769BCB3531F9488A76AFBEBDD45080BBF8718C96FB7C98EC16265364E4_cppui256;
-//     expected_result.f_comm_scalars[28] = 0x1E8DB028363CB1CAB03F5BF13ADABB80F5D31F919C6C6C8FC59C11A23FEBA5D4_cppui256;
-//     expected_result.f_comm_scalars[29] = 0x055D55F201B5DB8A035428340707FA56C69BF24E8AE468272A6BF1F3F4E47C11_cppui256;
+    expected_result_type<BlueprintFieldType, kimchi_params, kimchi_constants::f_comm_msm_size> expected_result;
+    expected_result.prepared_proof.cip = 0x10EFC44BEF0B125C23172AEA94C4BE39BC7CD8F0A353D72BB74680F668796273_cppui256;
+    expected_result.prepared_proof.eval_points = 
+       {0x2F51244846217BCB9DE92C5903AC022FAD29555920E45344407B680D24D550F1_cppui256, 
+       0x0246EF2FEB792F5373089629FF28E70F0086933E6FD61172905B184D6363DD4C_cppui256};
+    expected_result.prepared_proof.r = 0x02F09286E0F4EA5B8C2DA4C966DC23D900A5DD4D65F805202EF0D38FC8791C37_cppui256;
+    expected_result.prepared_proof.xi = 0x38F378C3A58670C0526EECA358159AF2BCD782EA23FA6E7DCC1235220D533C48_cppui256;
+    expected_result.zeta_to_srs_len = 0x1F4391D29EFCBC00A2981CA4E752890900F18CBF88DC808F272ED3692FBF28C7_cppui256;
+    expected_result.f_comm_scalars[0] = 0x354A5E9D1113DB9A61A8B1F105148045DE624D1E09D3CCE6F80B637082907FCD_cppui256; //perm scalars
+    expected_result.f_comm_scalars[1] = 0x102189A38856DF1C80CCC6E048EA1F33E4495EF54A783D19F482EC8A708E70AB_cppui256;
+    expected_result.f_comm_scalars[2] = 0x29E241A370EA03A19B3FC89F8B00A030FA0AC2A53B6CB174F2E6968BC870430F_cppui256;
+    expected_result.f_comm_scalars[3] = 0x0336BFE3285C7D82EBFBEDB9A6545CFBC4661D2B4B1D39907F76DD2E27DE72BC_cppui256;
+    expected_result.f_comm_scalars[4] = 0x30B8AC4EB559474DF430378433021444A0C48D8256A82993B45535B360AAC3CC_cppui256;
+    expected_result.f_comm_scalars[5] = 0x07E90390ACAD4FB257163C8CA544C86AD4D73FA726B15006ED59A37DC2BF6108_cppui256;
+    expected_result.f_comm_scalars[6] = 0x282C0645A98FEA8094A7797D3AC9D8F86952C25CAD103158159DE68DA8FE9F03_cppui256;
+    expected_result.f_comm_scalars[7] = 0x224FEF91C9E1DDE076B8F6C3FED3C33F4EB220B842E30EA9A409B0DAF77D7B22_cppui256;
+    expected_result.f_comm_scalars[8] = 0x31B66A275CAE9248610E9AA68B908E9AF097B79EF554E5FC53F5AECA98882847_cppui256;
+    expected_result.f_comm_scalars[9] = 0x268F3640CE20E01285383CC2E7C4D5F0610C0A096D2047601354E0D2EDA3DE13_cppui256;
+    expected_result.f_comm_scalars[10] = 0x0332ABC485130A37F59B28386F756ED121830BBD8DA6A6990E3AB60827459B98_cppui256;
+    for (std::size_t i = 11; i < 26; ++i) {
+        expected_result.f_comm_scalars[i] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
+    }
+    expected_result.f_comm_scalars[26] = 0x2C0CCC7F2781B61E088910F08194DFBB3123CD76B3DC0A754CD1605CB50E9AD1_cppui256;
+    expected_result.f_comm_scalars[27] = 0x397CD2769BCB3531F9488A76AFBEBDD45080BBF8718C96FB7C98EC16265364E4_cppui256;
+    expected_result.f_comm_scalars[28] = 0x1E8DB028363CB1CAB03F5BF13ADABB80F5D31F919C6C6C8FC59C11A23FEBA5D4_cppui256;
+    expected_result.f_comm_scalars[29] = 0x055D55F201B5DB8A035428340707FA56C69BF24E8AE468272A6BF1F3F4E47C11_cppui256;
 
-//     auto result_check = [expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
-//         assert(expected_result.prepared_proof.cip == assignment.var_value(real_res.prepared_proof.cip));
-//         assert(expected_result.prepared_proof.eval_points[0] == assignment.var_value(real_res.prepared_proof.eval_points[0]));
-//         assert(expected_result.prepared_proof.eval_points[1] == assignment.var_value(real_res.prepared_proof.eval_points[1]));
-//         assert(expected_result.prepared_proof.r == assignment.var_value(real_res.prepared_proof.r));
-//         assert(expected_result.prepared_proof.xi == assignment.var_value(real_res.prepared_proof.xi));
-//         assert(expected_result.zeta_to_srs_len == assignment.var_value(real_res.zeta_to_srs_len));
-//         for (std::size_t i = 0; i < 30; ++i) {
-//             assert(expected_result.f_comm_scalars[i] == assignment.var_value(real_res.f_comm_scalars[i]));
-//         }
-//     };
+    auto result_check = [expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
+        assert(expected_result.prepared_proof.cip == assignment.var_value(real_res.prepared_proof.cip));
+        assert(expected_result.prepared_proof.eval_points[0] == assignment.var_value(real_res.prepared_proof.eval_points[0]));
+        assert(expected_result.prepared_proof.eval_points[1] == assignment.var_value(real_res.prepared_proof.eval_points[1]));
+        assert(expected_result.prepared_proof.r == assignment.var_value(real_res.prepared_proof.r));
+        assert(expected_result.prepared_proof.xi == assignment.var_value(real_res.prepared_proof.xi));
+        assert(expected_result.zeta_to_srs_len == assignment.var_value(real_res.zeta_to_srs_len));
+        for (std::size_t i = 0; i < 30; ++i) {
+            assert(expected_result.f_comm_scalars[i] == assignment.var_value(real_res.f_comm_scalars[i]));
+        }
+    };
 
-//     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
-//                                                                                                  result_check);
-// }
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
+                                                                                                 result_check);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

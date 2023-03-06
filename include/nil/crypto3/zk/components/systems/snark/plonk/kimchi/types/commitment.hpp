@@ -45,6 +45,11 @@ namespace nil {
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
                     std::array<var_ec_point, SplitSize> parts;
                 };
+                template<typename BlueprintFieldType, std::size_t t_size>
+                struct kimchi_commitment_t_type {
+                    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+                    std::array<var_ec_point, t_size> parts;
+                };
             }    // namespace components
         }        // namespace zk
     }            // namespace crypto3

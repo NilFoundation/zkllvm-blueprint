@@ -248,7 +248,7 @@ namespace nil {
                         std::size_t comm_idx = 0;
 
                         typename proof_type::commitments_type comm = params.proofs[batch_idx].comm;
-                        typename verifier_index_type::commitments_type index_comm = params.verifier_index.comm;
+                        typename verifier_index_type::commitments_type index_comm = params.verifier_index.comm; 
 
                         parse_commitments(unshifted_commitments,
                                           params.verifier_index.comm.sigma[KimchiParamsType::permut_size - 1],
@@ -263,6 +263,7 @@ namespace nil {
                         for (std::size_t i = 0; i < kimchi_constants::ft_generic_size; i++) {
                             parse_commitments(unshifted_commitments, generic_comm[i], comm_idx);
                         }
+                        
 
                         for (std::size_t i = 0; i < index_terms_list::size; i++) {
                             index_term_type term = index_terms_list::terms[i];
@@ -472,29 +473,30 @@ namespace nil {
                                         scalars[k] = zero;
                                     }
                                 }
+
                                 auto res = msm_component::generate_assignments(assignment, {scalars, bases}, row);
                                 f_comm[j] = {res.output.X, res.output.Y};
                                 row += msm_component::rows_amount;
                             }
 
-                            // chuncked_f_comm
-                            var_ec_point chuncked_f_comm = {zero, zero};
+                            // chunked_f_comm
+                            var_ec_point chunked_f_comm = {zero, zero};
 
                             for (std::size_t j = 0; j < f_comm.size(); j++) {
                                 auto res0 = scalar_mul_component::generate_assignments(
                                     assignment,
-                                    {{chuncked_f_comm.X, chuncked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
+                                    {{chunked_f_comm.X, chunked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
                                 row += scalar_mul_component::rows_amount;
                                 auto res1 = add_component::generate_assignments(
                                     assignment, {{res0.X, res0.Y}, {f_comm[j].X, f_comm[j].Y}}, row);
                                 row += add_component::rows_amount;
-                                chuncked_f_comm = {res1.X, res1.Y};
+                                chunked_f_comm = {res1.X, res1.Y};
                             }
 
                             // chunked_t_comm
                             var_ec_point chunked_t_comm = {zero, zero};
-                            ;
-                            for (std::size_t j = 0; j < params.proofs[i].comm.t.parts.size(); j++) {
+                            std::size_t t_parts_size = params.proofs[i].comm.t.parts.size();
+                            for (std::size_t j = 0; j < t_parts_size; j++) {
                                 auto res0 = scalar_mul_component::generate_assignments(
                                     assignment,
                                     {{chunked_t_comm.X, chunked_t_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
@@ -503,7 +505,7 @@ namespace nil {
                                 auto res1 = add_component::generate_assignments(
                                     assignment,
                                     {{res0.X, res0.Y},
-                                     {params.proofs[i].comm.t.parts[j].X, params.proofs[i].comm.t.parts[j].Y}},
+                                     {params.proofs[i].comm.t.parts[t_parts_size - 1 - j].X, params.proofs[i].comm.t.parts[t_parts_size - 1 - j].Y}},
                                     row);
                                 row += add_component::rows_amount;
                                 chunked_t_comm = {res1.X, res1.Y};
@@ -527,7 +529,7 @@ namespace nil {
 
                             auto ft_comm_part = add_component::generate_assignments(
                                 assignment,
-                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chuncked_f_comm.X, chuncked_f_comm.Y}},
+                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chunked_f_comm.X, chunked_f_comm.Y}},
                                 row);
                             row += add_component::rows_amount;
                             commitment_type ft_comm = {{{ft_comm_part.X, ft_comm_part.Y}}};
@@ -556,7 +558,9 @@ namespace nil {
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;
-                            evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            if (KimchiParamsType::circuit_params::use_psm) {
+                                evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            }
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
                                 evaluations[eval_idx++] = params.proofs[i].comm.witness[j];
@@ -579,12 +583,13 @@ namespace nil {
                                                               row)
                                                               .output }};
                                 row += table_comm_component::rows_amount;
-
+                        
                                 if (KimchiParamsType::circuit_params::lookup_runtime) {
                                     evaluations[eval_idx++] = params.proofs[i].comm.lookup_runtime;
                                 }
                             }
 
+                            
                             assert(eval_idx == kimchi_constants::evaluations_in_batch_size);
 
                             batch_proof_type p = {{evaluations}, params.proofs[i].o, transcript};
@@ -599,7 +604,6 @@ namespace nil {
                         typename proof_binding::template fq_data<var> fq_data_recalculated;
                         map_fq_component::generate_assignments(assignment, {params.fq_data, fq_data_recalculated}, row);
                         row += map_fq_component::rows_amount;
-
                         assert(row == start_row_index + rows_amount);
                         return result_type(start_row_index);
                     }
@@ -627,8 +631,6 @@ namespace nil {
                                     bp, assignment, {neg_pub, lagrange_bases}, row)
                                     .output;
                             row = row + lagrange_msm_component::rows_amount;
-
-                            std::size_t row_tmp = row;
 
                             // Oracles
                             transcript_type transcript;
@@ -733,24 +735,24 @@ namespace nil {
                                 row += msm_component::rows_amount;
                             }
 
-                            // chuncked_f_comm
-                            var_ec_point chuncked_f_comm = {zero, zero};
+                            // chunked_f_comm
+                            var_ec_point chunked_f_comm = {zero, zero};
 
                             for (std::size_t j = 0; j < f_comm.size(); j++) {
                                 auto res0 = scalar_mul_component::generate_circuit(
                                     bp, assignment,
-                                    {{chuncked_f_comm.X, chuncked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
+                                    {{chunked_f_comm.X, chunked_f_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
                                 row += scalar_mul_component::rows_amount;
                                 auto res1 = zk::components::generate_circuit<add_component>(
                                     bp, assignment, {{res0.X, res0.Y}, {f_comm[j].X, f_comm[j].Y}}, row);
                                 row += add_component::rows_amount;
-                                chuncked_f_comm = {res1.X, res1.Y};
+                                chunked_f_comm = {res1.X, res1.Y};
                             }
 
                             // chunked_t_comm
                             var_ec_point chunked_t_comm = {zero, zero};
-                            ;
-                            for (std::size_t j = 0; j < params.proofs[i].comm.t.parts.size(); j++) {
+                            std::size_t t_parts_size = params.proofs[i].comm.t.parts.size();
+                            for (std::size_t j = 0; j < t_parts_size; j++) {
                                 auto res0 = scalar_mul_component::generate_circuit(
                                     bp, assignment,
                                     {{chunked_t_comm.X, chunked_t_comm.Y}, params.fr_data.zeta_to_srs_len[i]}, row);
@@ -759,7 +761,7 @@ namespace nil {
                                 auto res1 = zk::components::generate_circuit<add_component>(
                                     bp, assignment,
                                     {{res0.X, res0.Y},
-                                     {params.proofs[i].comm.t.parts[j].X, params.proofs[i].comm.t.parts[j].Y}},
+                                     {params.proofs[i].comm.t.parts[t_parts_size - 1 - j].X, params.proofs[i].comm.t.parts[t_parts_size - 1 - j].Y}},
                                     row);
                                 row += add_component::rows_amount;
                                 chunked_t_comm = {res1.X, res1.Y};
@@ -783,7 +785,7 @@ namespace nil {
 
                             auto ft_comm_part = zk::components::generate_circuit<add_component>(
                                 bp, assignment,
-                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chuncked_f_comm.X, chuncked_f_comm.Y}},
+                                {{neg_scaled_t_comm.X, neg_scaled_t_comm.Y}, {chunked_f_comm.X, chunked_f_comm.Y}},
                                 row);
                             row += add_component::rows_amount;
                             commitment_type ft_comm = {{{ft_comm_part.X, ft_comm_part.Y}}};
@@ -810,7 +812,9 @@ namespace nil {
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;
-                            evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            if (KimchiParamsType::circuit_params::use_psm) {
+                                evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            }
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
                                 evaluations[eval_idx++] = params.proofs[i].comm.witness[j];

@@ -47,13 +47,15 @@ namespace nil {
                     constexpr static std::size_t ft_generic_size = 2 * 5;
                     constexpr static std::size_t permutation_constraints = 3;
 
+                    constexpr static const std::size_t psm_len = KimchiParamsType::circuit_params::use_lookup ? 1 : 0;
+
                     constexpr static std::size_t evaluations_in_batch_size =
                         KimchiParamsType::prev_challenges_size    // recursion
                         + 1                                       // p_comm
                         + 1                                       // ft_comm
                         + 1                                       // z_comm
                         + 1                                       // generic_comm
-                        + 1                                       // psm_comm
+                        + psm_len                                 // psm_comm
                         + KimchiParamsType::witness_columns       // w_comm
                         + KimchiParamsType::permut_size - 1 + KimchiParamsType::lookup_comm_size;
 

@@ -66,6 +66,11 @@ namespace nil {
                     std::vector<std::array<var, EvalRounds>> prev_challenges;
 
                     kimchi_opening_proof_scalar<BlueprintFieldType> opening;
+
+                    kimchi_proof_scalar() {
+                        public_input.resize(KimchiParamsType::public_input_size);
+                        prev_challenges.resize(KimchiParamsType::prev_challenges_size);
+                    }
                 };
 
                 template<typename BlueprintFieldType, typename ArithmetizationType, typename KimchiParamsType,
@@ -110,6 +115,9 @@ namespace nil {
                     using commitment_type = typename zk::components::kimchi_commitment_type<
                         BlueprintFieldType, commitment_params_type::shifted_commitment_split>;
 
+                    using commitment_t_type = typename zk::components::kimchi_commitment_t_type<
+                        BlueprintFieldType, commitment_params_type::t_comm_size>;
+
                     using opening_proof_type =
                         typename zk::components::kimchi_opening_proof_base<BlueprintFieldType,
                                                                            commitment_params_type::eval_rounds>;
@@ -123,7 +131,7 @@ namespace nil {
                         std::vector<commitment_type> lookup_sorted;
                         commitment_type lookup_agg;
                         commitment_type z;
-                        commitment_type t;
+                        commitment_t_type t;
                         std::array<commitment_type,
                                    KimchiParamsType::prev_challenges_size>
                             prev_challenges;    // to-do: get in the component from oracles
