@@ -242,6 +242,7 @@ namespace nil {
                     constexpr static const bool lookup_runtime = false;
                     constexpr static const bool lookup_table_ids = false;
                     constexpr static const bool joint_lookup = false;
+                    constexpr static const bool use_psm = false;
 
                     constexpr static const bool poseidon_gate = false;
                     constexpr static const bool ec_arithmetic_gates = true;

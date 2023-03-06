@@ -558,7 +558,9 @@ namespace nil {
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;
-                            evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            if (KimchiParamsType::circuit_params::use_psm) {
+                                evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            }
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
                                 evaluations[eval_idx++] = params.proofs[i].comm.witness[j];
@@ -810,7 +812,9 @@ namespace nil {
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;
-                            evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            if (KimchiParamsType::circuit_params::use_psm) {
+                                evaluations[eval_idx++] = params.verifier_index.comm.psm;
+                            }
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
                                 evaluations[eval_idx++] = params.proofs[i].comm.witness[j];
