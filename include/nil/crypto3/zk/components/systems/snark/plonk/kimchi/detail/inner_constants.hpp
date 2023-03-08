@@ -47,7 +47,7 @@ namespace nil {
                     constexpr static std::size_t ft_generic_size = 2 * 5;
                     constexpr static std::size_t permutation_constraints = 3;
 
-                    constexpr static const std::size_t psm_len = KimchiParamsType::circuit_params::use_lookup ? 1 : 0;
+                    constexpr static const std::size_t psm_len = KimchiParamsType::circuit_params::poseidon_gate ? 1 : 0;
 
                     constexpr static std::size_t evaluations_in_batch_size =
                         KimchiParamsType::prev_challenges_size    // recursion
@@ -73,8 +73,9 @@ namespace nil {
                                + srs_padding_size() +
                                (1      // opening.G
                                 + 1    // U
-                                + 2 * commitment_params_type::eval_rounds +
-                                evaluations_in_batch_size * commitment_params_type::shifted_commitment_split + 1    // U
+                                + 2 * commitment_params_type::eval_rounds + // L and R
+                                evaluations_in_batch_size * commitment_params_type::shifted_commitment_split //comm
+                                + 1    // U
                                 + 1)    // opening.delta
                                    * batch_size;
                     }

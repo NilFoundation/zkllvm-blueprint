@@ -48,6 +48,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
+#include "verifiers/kimchi/index_terms_instances/generic_index_terms.hpp"
 
 #include "test_plonk_component.hpp"
 
@@ -82,13 +83,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
     constexpr static std::size_t max_poly_size = 32;
 
     constexpr static std::size_t witness_columns = 15;
-    constexpr static std::size_t perm_size = 5;
+    constexpr static std::size_t perm_size = 7;
 
     constexpr static std::size_t srs_len = 32;
-    constexpr static const std::size_t prev_chal_size = 1;
+    constexpr static const std::size_t prev_chal_size = 0;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_generic_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,

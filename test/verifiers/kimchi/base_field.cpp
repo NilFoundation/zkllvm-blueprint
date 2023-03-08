@@ -54,7 +54,7 @@ using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_kimchi_base_field_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_generic) {
 
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::base_field_type;
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
     constexpr static const std::size_t prev_chal_size = 0;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_base_list_generic_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_generic_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
