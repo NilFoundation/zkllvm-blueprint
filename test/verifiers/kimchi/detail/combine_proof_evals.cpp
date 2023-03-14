@@ -2,6 +2,7 @@
 // Copyright (c) 2021-2022 Mikhail Komarov <nemo@nil.foundation>
 // Copyright (c) 2021-2022 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -62,72 +63,52 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     // eval_proofs
-    for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
-        // w
-        for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
-            public_input.push_back(original_proof.evals[point_idx].w[i][0]);
-            circuit_proof.proof_evals[point_idx].w[i] =
-                var(0, public_input.size() - 1, false, var::column_type::public_input);
-        }
-        // z
-        public_input.push_back(original_proof.evals[point_idx].z[0]);
-        circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
-        // s
-        for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
-            public_input.push_back(original_proof.evals[point_idx].s[i][0]);
-            circuit_proof.proof_evals[point_idx].s[i] =
-                var(0, public_input.size() - 1, false, var::column_type::public_input);
-        }
-        // lookup
-        if (KimchiParamsType::use_lookup) {
-            for (std::size_t i = 0; i < KimchiParamsType::circuit_params::lookup_columns; i++) {
-                public_input.push_back(original_proof.evals[point_idx].lookup.sorted[i][0]);
-                circuit_proof.proof_evals[point_idx].lookup.sorted[i] =
-                    var(0, public_input.size() - 1, false, var::column_type::public_input);
-            }
-
-            public_input.push_back(original_proof.evals[point_idx].lookup.aggreg[0]);
-            circuit_proof.proof_evals[point_idx].lookup.aggreg = 
-                var(0, public_input.size() - 1, false, var::column_type::public_input);
-
-            public_input.push_back(original_proof.evals[point_idx].lookup.table[0]);
-            circuit_proof.proof_evals[point_idx].lookup.table = 
-                var(0, public_input.size() - 1, false, var::column_type::public_input);
-
-            if (KimchiParamsType::circuit_params::lookup_runtime) {
-                public_input.push_back(original_proof.evals[point_idx].lookup.runtime[0]);
-                circuit_proof.proof_evals[point_idx].lookup.runtime = 
-                    var(0, public_input.size() - 1, false, var::column_type::public_input);
-            }
-        }
-        // generic_selector
-        public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
-        circuit_proof.proof_evals[point_idx].generic_selector =
-            var(0, public_input.size() - 1, false, var::column_type::public_input);
-        // poseidon_selector
-        public_input.push_back(original_proof.evals[point_idx].poseidon_selector[0]);
-        circuit_proof.proof_evals[point_idx].poseidon_selector =
+    std::size_t point_idx = 0;
+    // w
+    for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
+        public_input.push_back(original_proof.evals[point_idx].w[i][0]);
+        circuit_proof.proof_evals[point_idx].w[i] =
             var(0, public_input.size() - 1, false, var::column_type::public_input);
     }
-    // public_input
-    circuit_proof.public_input.resize(KimchiParamsType::public_input_size);
-    for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {
-        public_input.push_back(original_proof.public_input[i]);
-        circuit_proof.public_input[i] =
+    // z
+    public_input.push_back(original_proof.evals[point_idx].z[0]);
+    circuit_proof.proof_evals[point_idx].z = var(0, public_input.size() - 1, false, var::column_type::public_input);
+    // s
+    for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
+        public_input.push_back(original_proof.evals[point_idx].s[i][0]);
+        circuit_proof.proof_evals[point_idx].s[i] =
             var(0, public_input.size() - 1, false, var::column_type::public_input);
     }
-    // prev_chal
-    circuit_proof.prev_challenges.resize(KimchiParamsType::prev_challenges_size);
-    for (std::size_t i = 0; i < KimchiParamsType::prev_challenges_size; ++i) {
-        for (std::size_t j = 0; j < EvalRounds; ++j) {
-            public_input.push_back(original_proof.prev_challenges[i].first[j]);
-            circuit_proof.prev_challenges[i][j] =
+    // lookup
+    if (KimchiParamsType::use_lookup) {
+        for (std::size_t i = 0; i < KimchiParamsType::circuit_params::lookup_columns; i++) {
+            public_input.push_back(original_proof.evals[point_idx].lookup.sorted[i][0]);
+            circuit_proof.proof_evals[point_idx].lookup.sorted[i] =
+                var(0, public_input.size() - 1, false, var::column_type::public_input);
+        }
+
+        public_input.push_back(original_proof.evals[point_idx].lookup.aggreg[0]);
+        circuit_proof.proof_evals[point_idx].lookup.aggreg = 
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        public_input.push_back(original_proof.evals[point_idx].lookup.table[0]);
+        circuit_proof.proof_evals[point_idx].lookup.table = 
+            var(0, public_input.size() - 1, false, var::column_type::public_input);
+
+        if (KimchiParamsType::circuit_params::lookup_runtime) {
+            public_input.push_back(original_proof.evals[point_idx].lookup.runtime[0]);
+            circuit_proof.proof_evals[point_idx].lookup.runtime = 
                 var(0, public_input.size() - 1, false, var::column_type::public_input);
         }
     }
-    // ft_eval
-    public_input.push_back(original_proof.ft_eval1);
-    circuit_proof.ft_eval = var(0, public_input.size() - 1, false, var::column_type::public_input);
+    // generic_selector
+    public_input.push_back(original_proof.evals[point_idx].generic_selector[0]);
+    circuit_proof.proof_evals[point_idx].generic_selector =
+        var(0, public_input.size() - 1, false, var::column_type::public_input);
+    // poseidon_selector
+    public_input.push_back(original_proof.evals[point_idx].poseidon_selector[0]);
+    circuit_proof.proof_evals[point_idx].poseidon_selector =
+        var(0, public_input.size() - 1, false, var::column_type::public_input);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
@@ -182,7 +163,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
     prepare_proof<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proof, proof, public_input);
 
     typename component_type::params_type params = {proof.proof_evals[0], zeta};
-
+    
     auto result_check = [&kimchi_proof, &zeta_value](AssignmentType &assignment,
                                                      component_type::result_type &real_res) {
         // w
@@ -207,9 +188,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combine_proof_evals_test) {
             }
         }
         // generic_selector
-        assert(kimchi_proof.evals[0].generic_selector[0] * zeta_value == assignment.var_value(real_res.output.generic_selector));
+        if (kimchi_params::generic_gate) {
+            assert(kimchi_proof.evals[0].generic_selector[0] * zeta_value == assignment.var_value(real_res.output.generic_selector));
+        }
         // poseidon_selector
-        assert(kimchi_proof.evals[0].poseidon_selector[0] * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
+        if (kimchi_params::poseidon_gate) {
+            assert(kimchi_proof.evals[0].poseidon_selector[0] * zeta_value == assignment.var_value(real_res.output.poseidon_selector));
+        }
     };
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
