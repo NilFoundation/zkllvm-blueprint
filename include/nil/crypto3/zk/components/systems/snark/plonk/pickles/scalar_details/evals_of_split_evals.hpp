@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -72,12 +73,13 @@ namespace nil {
 
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
+                        row += 1;
 
                         for (std::size_t i = 0; i < KimchiParamsType::eval_points_amount; i++) {
                             row += exponentiation_component::rows_amount;
 
                             // accumulation
-                            for (int j = SplitSize - 2; j >= 0; j--) {
+                            for (int j = 1; j < SplitSize; j++) {
                                 row += combined_proof_evals_component::rows_amount;
 
                                 for (std::size_t k = 0; k < KimchiParamsType::witness_columns; k++) {
@@ -103,10 +105,12 @@ namespace nil {
                                         row += add_component::rows_amount;
                                     }
                                 }
-
-                                row += add_component::rows_amount;
-
-                                row += add_component::rows_amount;
+                                if (KimchiParamsType::circuit_params::generic_gate) {
+                                    row += add_component::rows_amount;
+                                }
+                                if (KimchiParamsType::circuit_params::poseidon_gate) {
+                                    row += add_component::rows_amount;
+                                }
                             }
                         }
 
@@ -118,7 +122,7 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, SplitSize> split_evals;
+                        std::array<std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, SplitSize>, KimchiParamsType::eval_points_amount> split_evals;
                         std::array<var, KimchiParamsType::eval_points_amount> points;
                     };
 
@@ -127,12 +131,13 @@ namespace nil {
 
                         result_type(std::size_t component_start_row) {
                             std::size_t row = component_start_row;
+                            row += 1;
 
                             for (std::size_t i = 0; i < KimchiParamsType::eval_points_amount; i++) {
                                 row += exponentiation_component::rows_amount;
 
                                 // accumulation
-                                for (int j = SplitSize - 2; j >= 0; j--) {
+                                for (int j = 1; j < SplitSize; j++) {
                                     row += combined_proof_evals_component::rows_amount;
 
                                     for (std::size_t k = 0; k < output[i].w.size(); k++) {
@@ -165,12 +170,14 @@ namespace nil {
                                             row += add_component::rows_amount;
                                         }
                                     }
-
-                                    output[i].generic_selector = typename add_component::result_type(row).output;
-                                    row += add_component::rows_amount;
-
-                                    output[i].poseidon_selector = typename add_component::result_type(row).output;
-                                    row += add_component::rows_amount;
+                                    if (KimchiParamsType::circuit_params::generic_gate) {
+                                        output[i].generic_selector = typename add_component::result_type(row).output;
+                                        row += add_component::rows_amount;
+                                    }
+                                    if (KimchiParamsType::circuit_params::poseidon_gate) { 
+                                        output[i].poseidon_selector = typename add_component::result_type(row).output;
+                                        row += add_component::rows_amount;
+                                    }
                                 }
                             }
                         }
@@ -186,7 +193,8 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        var exponent(0, start_row_index, false, var::column_type::public_input);
+                        var exponent(0, start_row_index, false, var::column_type::constant);
+                        row += 1;
 
                         for (std::size_t i = 0; i < KimchiParamsType::eval_points_amount; i++) {
                             var point_exp =
@@ -197,23 +205,22 @@ namespace nil {
                             
                             // init
                             for (std::size_t j = 0; j < evals_acc.w.size(); j++) {
-                                evals_acc.w[j] = params.split_evals[SplitSize - 1].w[j];
+                                evals_acc.w[j] = params.split_evals[i][0].w[j];
                             }
-                            evals_acc.z = params.split_evals[SplitSize - 1].z;
+                            evals_acc.z = params.split_evals[i][0].z;
                             for (std::size_t j = 0; j < evals_acc.s.size(); j++) {
-                                evals_acc.s[j] = params.split_evals[SplitSize - 1].s[j];
+                                evals_acc.s[j] = params.split_evals[i][0].s[j];
                             }
                             for (std::size_t j = 0; j < evals_acc.lookup.sorted.size(); j++) {
-                                evals_acc.lookup.sorted[j] = params.split_evals[SplitSize - 1].lookup.sorted[j];
+                                evals_acc.lookup.sorted[j] = params.split_evals[i][0].lookup.sorted[j];
                             }
-                            evals_acc.lookup.aggreg = params.split_evals[SplitSize - 1].lookup.aggreg;
-                            evals_acc.lookup.table = params.split_evals[SplitSize - 1].lookup.table;
-                            evals_acc.lookup.runtime = params.split_evals[SplitSize - 1].lookup.runtime;
-                            evals_acc.generic_selector = params.split_evals[SplitSize - 1].generic_selector;
-                            evals_acc.poseidon_selector = params.split_evals[SplitSize - 1].poseidon_selector;
-
+                            evals_acc.lookup.aggreg = params.split_evals[i][0].lookup.aggreg;
+                            evals_acc.lookup.table = params.split_evals[i][0].lookup.table;
+                            evals_acc.lookup.runtime = params.split_evals[i][0].lookup.runtime;
+                            evals_acc.generic_selector = params.split_evals[i][0].generic_selector;
+                            evals_acc.poseidon_selector = params.split_evals[i][0].poseidon_selector;
                             // accumulation
-                            for (int j = SplitSize - 2; j >= 0; j--) {
+                            for (int j = 1; j < SplitSize; j++) {
                                 evals_acc =
                                     combined_proof_evals_component::generate_circuit(bp, 
                                         assignment, {evals_acc, point_exp},
@@ -222,41 +229,43 @@ namespace nil {
                                 row += combined_proof_evals_component::rows_amount;
 
                                 for (std::size_t k = 0; k < evals_acc.w.size(); k++) {
-                                    evals_acc.w[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.w[k], params.split_evals[j].w[k]}, row).output;
+                                    evals_acc.w[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.w[k], params.split_evals[i][j].w[k]}, row).output;
                                     row += add_component::rows_amount;
                                 }
 
-                                evals_acc.z = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.z, params.split_evals[j].z}, row).output;
+                                evals_acc.z = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.z, params.split_evals[i][j].z}, row).output;
                                 row += add_component::rows_amount;
 
                                 for (std::size_t k = 0; k < evals_acc.s.size(); k++) {
-                                    evals_acc.s[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.s[k], params.split_evals[j].s[k]}, row).output;
+                                    evals_acc.s[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.s[k], params.split_evals[i][j].s[k]}, row).output;
                                     row += add_component::rows_amount;
                                 }
 
                                 if (KimchiParamsType::circuit_params::lookup_columns > 0) {
                                     for (std::size_t k = 0; k < evals_acc.lookup.sorted.size(); k++) {
-                                        evals_acc.lookup.sorted[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.sorted[k], params.split_evals[j].lookup.sorted[k]}, row).output;
+                                        evals_acc.lookup.sorted[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.sorted[k], params.split_evals[i][j].lookup.sorted[k]}, row).output;
                                         row += add_component::rows_amount;
                                     }
                                     
-                                    evals_acc.lookup.aggreg = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.aggreg, params.split_evals[j].lookup.aggreg}, row).output;
+                                    evals_acc.lookup.aggreg = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.aggreg, params.split_evals[i][j].lookup.aggreg}, row).output;
                                     row += add_component::rows_amount;
 
-                                    evals_acc.lookup.table = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.table, params.split_evals[j].lookup.table}, row).output;
+                                    evals_acc.lookup.table = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.table, params.split_evals[i][j].lookup.table}, row).output;
                                     row += add_component::rows_amount;
 
                                     if (KimchiParamsType::circuit_params::lookup_runtime) {
-                                        evals_acc.lookup.runtime = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.runtime, params.split_evals[j].lookup.runtime}, row).output;
+                                        evals_acc.lookup.runtime = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.runtime, params.split_evals[i][j].lookup.runtime}, row).output;
                                         row += add_component::rows_amount;
                                     }
                                 }
-
-                                evals_acc.generic_selector = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.generic_selector, params.split_evals[j].generic_selector}, row).output;
-                                row += add_component::rows_amount;
-
-                                evals_acc.poseidon_selector = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.poseidon_selector, params.split_evals[j].poseidon_selector}, row).output;
-                                row += add_component::rows_amount;
+                                if (KimchiParamsType::circuit_params::generic_gate) {
+                                    evals_acc.generic_selector = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.generic_selector, params.split_evals[i][j].generic_selector}, row).output;
+                                    row += add_component::rows_amount;
+                                }
+                                if (KimchiParamsType::circuit_params::poseidon_gate) {
+                                    evals_acc.poseidon_selector = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.poseidon_selector, params.split_evals[i][j].poseidon_selector}, row).output;
+                                    row += add_component::rows_amount;
+                                }
                             }
                         }
 
@@ -271,7 +280,8 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        var exponent(0, start_row_index, false, var::column_type::public_input);
+                        var exponent(0, start_row_index, false, var::column_type::constant);
+                        row += 1;
 
                         for (std::size_t i = 0; i < KimchiParamsType::eval_points_amount; i++) {
                             var point_exp =
@@ -282,23 +292,23 @@ namespace nil {
                             
                             // init
                             for (std::size_t j = 0; j < evals_acc.w.size(); j++) {
-                                evals_acc.w[j] = params.split_evals[SplitSize - 1].w[j];
+                                evals_acc.w[j] = params.split_evals[i][0].w[j];
                             }
-                            evals_acc.z = params.split_evals[SplitSize - 1].z;
+                            evals_acc.z = params.split_evals[i][0].z;
                             for (std::size_t j = 0; j < evals_acc.s.size(); j++) {
-                                evals_acc.s[j] = params.split_evals[SplitSize - 1].s[j];
+                                evals_acc.s[j] = params.split_evals[i][0].s[j];
                             }
                             for (std::size_t j = 0; j < evals_acc.lookup.sorted.size(); j++) {
-                                evals_acc.lookup.sorted[j] = params.split_evals[SplitSize - 1].lookup.sorted[j];
+                                evals_acc.lookup.sorted[j] = params.split_evals[i][0].lookup.sorted[j];
                             }
-                            evals_acc.lookup.aggreg = params.split_evals[SplitSize - 1].lookup.aggreg;
-                            evals_acc.lookup.table = params.split_evals[SplitSize - 1].lookup.table;
-                            evals_acc.lookup.runtime = params.split_evals[SplitSize - 1].lookup.runtime;
-                            evals_acc.generic_selector = params.split_evals[SplitSize - 1].generic_selector;
-                            evals_acc.poseidon_selector = params.split_evals[SplitSize - 1].poseidon_selector;
+                            evals_acc.lookup.aggreg = params.split_evals[i][0].lookup.aggreg;
+                            evals_acc.lookup.table = params.split_evals[i][0].lookup.table;
+                            evals_acc.lookup.runtime = params.split_evals[i][0].lookup.runtime;
+                            evals_acc.generic_selector = params.split_evals[i][0].generic_selector;
+                            evals_acc.poseidon_selector = params.split_evals[i][0].poseidon_selector;
 
                             // accumulation
-                            for (int j = SplitSize - 2; j >= 0; j--) {
+                            for (int j = 1; j < SplitSize; j++) {
                                 evals_acc =
                                     combined_proof_evals_component::generate_assignments(
                                         assignment, {evals_acc, point_exp},
@@ -307,41 +317,43 @@ namespace nil {
                                 row += combined_proof_evals_component::rows_amount;
 
                                 for (std::size_t k = 0; k < evals_acc.w.size(); k++) {
-                                    evals_acc.w[k] = add_component::generate_assignments(assignment, {evals_acc.w[k], params.split_evals[j].w[k]}, row).output;
+                                    evals_acc.w[k] = add_component::generate_assignments(assignment, {evals_acc.w[k], params.split_evals[i][j].w[k]}, row).output;
                                     row += add_component::rows_amount;
                                 }
 
-                                evals_acc.z = add_component::generate_assignments(assignment, {evals_acc.z, params.split_evals[j].z}, row).output;
+                                evals_acc.z = add_component::generate_assignments(assignment, {evals_acc.z, params.split_evals[i][j].z}, row).output;
                                 row += add_component::rows_amount;
 
                                 for (std::size_t k = 0; k < evals_acc.s.size(); k++) {
-                                    evals_acc.s[k] = add_component::generate_assignments(assignment, {evals_acc.s[k], params.split_evals[j].s[k]}, row).output;
+                                    evals_acc.s[k] = add_component::generate_assignments(assignment, {evals_acc.s[k], params.split_evals[i][j].s[k]}, row).output;
                                     row += add_component::rows_amount;
                                 }
 
                                 if (KimchiParamsType::circuit_params::lookup_columns > 0) {
                                     for (std::size_t k = 0; k < evals_acc.lookup.sorted.size(); k++) {
-                                        evals_acc.lookup.sorted[k] = add_component::generate_assignments(assignment, {evals_acc.lookup.sorted[k], params.split_evals[j].lookup.sorted[k]}, row).output;
+                                        evals_acc.lookup.sorted[k] = add_component::generate_assignments(assignment, {evals_acc.lookup.sorted[k], params.split_evals[i][j].lookup.sorted[k]}, row).output;
                                         row += add_component::rows_amount;
                                     }
                                     
-                                    evals_acc.lookup.aggreg = add_component::generate_assignments(assignment, {evals_acc.lookup.aggreg, params.split_evals[j].lookup.aggreg}, row).output;
+                                    evals_acc.lookup.aggreg = add_component::generate_assignments(assignment, {evals_acc.lookup.aggreg, params.split_evals[i][j].lookup.aggreg}, row).output;
                                     row += add_component::rows_amount;
 
-                                    evals_acc.lookup.table = add_component::generate_assignments(assignment, {evals_acc.lookup.table, params.split_evals[j].lookup.table}, row).output;
+                                    evals_acc.lookup.table = add_component::generate_assignments(assignment, {evals_acc.lookup.table, params.split_evals[i][j].lookup.table}, row).output;
                                     row += add_component::rows_amount;
 
                                     if (KimchiParamsType::circuit_params::lookup_runtime) {
-                                        evals_acc.lookup.runtime = add_component::generate_assignments(assignment, {evals_acc.lookup.runtime, params.split_evals[j].lookup.runtime}, row).output;
+                                        evals_acc.lookup.runtime = add_component::generate_assignments(assignment, {evals_acc.lookup.runtime, params.split_evals[i][j].lookup.runtime}, row).output;
                                         row += add_component::rows_amount;
                                     }
                                 }
-
-                                evals_acc.generic_selector = add_component::generate_assignments(assignment, {evals_acc.generic_selector, params.split_evals[j].generic_selector}, row).output;
-                                row += add_component::rows_amount;
-
-                                evals_acc.poseidon_selector = add_component::generate_assignments(assignment, {evals_acc.poseidon_selector, params.split_evals[j].poseidon_selector}, row).output;
-                                row += add_component::rows_amount;
+                                if (KimchiParamsType::circuit_params::generic_gate) {
+                                    evals_acc.generic_selector = add_component::generate_assignments(assignment, {evals_acc.generic_selector, params.split_evals[i][j].generic_selector}, row).output;
+                                    row += add_component::rows_amount;
+                                }
+                                if (KimchiParamsType::circuit_params::poseidon_gate) {
+                                    evals_acc.poseidon_selector = add_component::generate_assignments(assignment, {evals_acc.poseidon_selector, params.split_evals[i][j].poseidon_selector}, row).output;
+                                    row += add_component::rows_amount;
+                                }
                             }
                         }
 
