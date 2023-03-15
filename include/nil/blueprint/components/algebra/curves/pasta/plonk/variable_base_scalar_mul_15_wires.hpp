@@ -65,7 +65,7 @@ namespace nil {
                         zk::components::curve_element_unified_addition<ArithmetizationType, CurveType, W0, W1, W2, W3,
                                                                        W4, W5, W6, W7, W8, W9, W10>;
 
-                    constexpr static const std::size_t mul_rows_amount = 102;
+                    constexpr static const std::size_t mul_rows_amount = 108;
 
                 public:
                     constexpr static const std::size_t selector_seed = 0x0f03;
@@ -75,6 +75,7 @@ namespace nil {
                     constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = 0x224698fc0994a8dd8c46eb2100000000_cppui255;
                     constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero = 0x200000000000000000000000000000003369e57a0e5efd4c526a60b180000001_cppui255;
                     constexpr static const typename ArithmetizationType::field_type::value_type shifted_one = 0x224698fc0994a8dd8c46eb2100000001_cppui255;
+                    constexpr static const typename ArithmetizationType::field_type::value_type t_q = 0x224698fc094cf91b992d30ed00000001_cppui255;
 
                     struct params_type {
                         struct var_ec_point {
@@ -115,6 +116,18 @@ namespace nil {
                         nil::marshalling::status_type status;
                         std::array<bool, scalar_size> bits =
                             nil::marshalling::pack<nil::marshalling::option::big_endian>(integral_b, status);
+
+                        assignment.witness(W6)[i] = 0;
+                        typename BlueprintFieldType::value_type u = 0;
+                        if (bits[0] == 1) {
+                            typename curve_type::scalar_field_type::value_type two = 2;
+                            u = b - two.pow(254) - t_q + two.pow(130);
+                        }
+                        typename CurveType::scalar_field_type::integral_type integral_u =
+                            typename CurveType::scalar_field_type::integral_type(u.data);
+                        std::array<bool, scalar_size> bits_u = nil::marshalling::pack<nil::marshalling::option::big_endian>(
+                            integral_u, status);
+                        std::cout << "u: " << u.data << std::endl;
 
                         typename ArithmetizationType::field_type::value_type n = 0;
                         typename ArithmetizationType::field_type::value_type n_next = 0;
@@ -217,6 +230,7 @@ namespace nil {
                                          blueprint_public_assignment_table<ArithmetizationType> &assignment,
                                          const params_type &params,
                                          const std::size_t start_row_index) {
+                        std::cout << "circuit\n";
 
                         generate_assignments_constant(bp, assignment, params, start_row_index);
 

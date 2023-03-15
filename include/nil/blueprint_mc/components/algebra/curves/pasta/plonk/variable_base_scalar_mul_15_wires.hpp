@@ -70,8 +70,9 @@ namespace nil {
                 using FieldType = nil::crypto3::algebra::fields::pallas_base_field;
 
                 constexpr static const typename FieldType::value_type shifted_minus_one = 0x224698fc0994a8dd8c46eb2100000000_cppui255;
-                constexpr static const typename FieldType::value_type shifted_zero = 0x200000000000000000000000000000003369e57a0e5efd4c526a60b180000001_cppui255;
-                constexpr static const typename FieldType::value_type shifted_one = 0x224698fc0994a8dd8c46eb2100000001_cppui255;
+                constexpr static const typename FieldType::value_type shifted_zero =      0x200000000000000000000000000000003369e57a0e5efd4c526a60b180000001_cppui255;
+                constexpr static const typename FieldType::value_type shifted_one =       0x224698fc0994a8dd8c46eb2100000001_cppui255;
+                constexpr static const typename FieldType::value_type t_q =               0x224698fc094cf91b992d30ed00000001_cppui255;
             };
 
             template<>
@@ -81,6 +82,7 @@ namespace nil {
                 constexpr static const typename FieldType::value_type shifted_minus_one = 0x448d31f81299f237325a61da00000001_cppui255;
                 constexpr static const typename FieldType::value_type shifted_zero =      0x448d31f81299f237325a61da00000002_cppui255;
                 constexpr static const typename FieldType::value_type shifted_one =       0x448d31f81299f237325a61da00000003_cppui255;
+                constexpr static const typename FieldType::value_type t_q =               0x224698fc094cf91b992d30ed00000001_cppui255;
             };
             ////////////////////////////////
 
@@ -113,6 +115,7 @@ namespace nil {
                 constexpr static const typename ArithmetizationType::field_type::value_type shifted_minus_one = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::shifted_minus_one;
                 constexpr static const typename ArithmetizationType::field_type::value_type shifted_zero = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::shifted_zero;
                 constexpr static const typename ArithmetizationType::field_type::value_type shifted_one = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::shifted_one;
+                constexpr static const typename ArithmetizationType::field_type::value_type t_q = variable_base_scalar_mul_shifted_consts<typename ArithmetizationType::field_type>::t_q;
 
 
                 struct params_type {
@@ -154,6 +157,43 @@ namespace nil {
                     nil::marshalling::status_type status;
                     std::array<bool, scalar_size> bits =
                         nil::marshalling::pack<nil::marshalling::option::big_endian>(integral_b, status);
+
+                    assignment.witness(W6)[start_row_index] = 0;
+                    typename BlueprintFieldType::value_type u = 0;
+                    if (bits[0] == 1) {
+                        typename BlueprintFieldType::value_type two = 2;
+                        u = b - two.pow(254) - t_q + two.pow(130);
+                    }
+                    typename CurveType::scalar_field_type::integral_type integral_u =
+                        typename CurveType::scalar_field_type::integral_type(u.data);
+                    std::array<bool, scalar_size> bits_u = nil::marshalling::pack<nil::marshalling::option::big_endian>(
+                        integral_u, status);
+                    std::cout << "u: " << u.data << std::endl;
+
+                    typename CurveType::scalar_field_type::integral_type accum_u = 0;
+                    for (std::size_t j = 1; j < 43; j += 2) {
+                        typename CurveType::scalar_field_type::integral_type byte = 4 * bits_u[3 * j] + 2 * bits_u[3 * j + 1] +
+                                                                                    bits_u[3 * j + 2];
+                        assignment.witness(W12)[j + start_row_index] = byte;
+                        accum_u = accum_u * 8 + byte;
+                        byte = 4 * bits_u[3 * j + 3] + 2 * bits_u[3 * j + 4] + bits_u[3 * j + 5];
+                        assignment.witness(W13)[j + start_row_index] = byte;
+                        accum_u = accum_u * 8 + byte;
+                        assignment.witness(W14)[j + start_row_index] = accum_u;
+                        assignment.witness(W6)[j + 1 + start_row_index] = accum_u;
+                    }
+                    assignment.witness(W12)[43 + start_row_index] = 4 * bits_u[126] + 2 * bits_u[127] + bits_u[128];
+                    assignment.witness(W13)[43 + start_row_index] = bits_u[129];
+                    accum_u = accum_u * 8 + 4 * bits_u[126] + 2 * bits_u[127] + bits_u[128] + bits_u[129];
+                    assignment.witness(W14)[43 + start_row_index] = accum_u;
+                    assignment.witness(W6)[44 + start_row_index] = accum_u;
+
+                    assignment.witness(W12)[45 + start_row_index] = bits[0];
+                    typename CurveType::scalar_field_type::integral_type accum_e = 0;
+                    for (int j = 254; j > 129; j--) {
+                        accum_e = accum_e * 2 + bits[254 - j];
+                    }
+                    assignment.witness(W13)[45 + start_row_index] = accum_e;
 
                     typename ArithmetizationType::field_type::value_type n = 0;
                     typename ArithmetizationType::field_type::value_type n_next = 0;
@@ -492,6 +532,20 @@ namespace nil {
 
                     bp.add_copy_constraint({{W2, (std::int32_t)(j), false}, addition_res.X});
                     bp.add_copy_constraint({{W3, (std::int32_t)(j), false}, addition_res.Y});
+
+                    // q < p
+
+                    // bp.add_copy_constraint({{W6, (std::int32_t)(start_row_index), false},
+                    //                         {0, (std::int32_t)(j), false, var::column_type::constant}});
+                    // for (int z = start_row_index + 1; z < start_row_index + 43; z += 2) {
+                    //     bp.add_copy_constraint({{W6, (std::int32_t)(z + 1), false}, {W12, (std::int32_t)(z), false}});
+                    // }
+                    bp.add_copy_constraint({{W6, (std::int32_t)(start_row_index + 44), false},
+                                            {W6, (std::int32_t)(start_row_index + 42), false}});
+                    bp.add_copy_constraint({{W2, (std::int32_t)(start_row_index + 1), false},
+                                            {W12, (std::int32_t)(start_row_index + 45), false}});
+                    bp.add_copy_constraint({{W5, (std::int32_t)(start_row_index + 48), false},
+                                            {W13, (std::int32_t)(start_row_index + 45), false}});
 
                     // main algorithm
 
