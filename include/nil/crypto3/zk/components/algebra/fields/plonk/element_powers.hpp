@@ -103,12 +103,11 @@ namespace nil {
                     };
 
                     struct result_type {
-                        std::vector<var> output;
+                        std::array<var, n> output;
 
                         result_type(const params_type &params,
                                     const std::size_t start_row_index) {
                             size_t row = start_row_index;
-                            output.resize(n);
                             if (n > 0) {
                                 output[0] = var(0, start_row_index, false, var::column_type::constant);
                             }
