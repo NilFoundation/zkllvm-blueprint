@@ -35,7 +35,7 @@
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
+#include <nil/crypto3/zk/components/algebra/fields/plonk/element_powers.hpp>
 
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
@@ -63,16 +63,14 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
     constexpr std::size_t Lambda = 1;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using component_type = zk::components::element_powers<ArithmetizationType, BlueprintFieldType, n, 0, 1, 2, 3,
+                                                          4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    using component_type = zk::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3,
-                                                                          4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
-
-    var one(0, 0, false, var::column_type::public_input);
-    var base(0, 1, false, var::column_type::public_input);
+    var base(0, 0, false, var::column_type::public_input);
     typename BlueprintFieldType::value_type base_value = algebra::random_element<BlueprintFieldType>();
-    std::vector<typename BlueprintFieldType::value_type> public_input = {1, base_value};
+    std::vector<typename BlueprintFieldType::value_type> public_input = {base_value};
 
-    typename component_type::params_type params = {base, one};
+    typename component_type::params_type params = {base};
 
     std::vector<typename BlueprintFieldType::value_type> expected_result(n);
     typename BlueprintFieldType::value_type last_value = base_value;
@@ -82,7 +80,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
     if (expected_result.size() > 1) {
         expected_result[1] = base_value;
     }
-    for (std::size_t i =2; i < n; i++) {
+    for (std::size_t i = 2; i < n; i++) {
         last_value = last_value * base_value;
         expected_result[i] = last_value;
     }
