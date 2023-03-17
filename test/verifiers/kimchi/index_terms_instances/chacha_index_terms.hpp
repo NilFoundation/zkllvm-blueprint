@@ -35,14 +35,14 @@ namespace nil {
         namespace zk {
             namespace components {
 
-                // index terms for recursion test
-                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/recursion.rs#L15
+                // index terms for chacha test
+                // https://github.com/NilFoundation/o1-labs-proof-systems/blob/master/kimchi/src/tests/chacha.rs/#L40
                 template<typename ArithmetizationType>
-                class index_terms_scalars_list_chacha_test;
+                class index_terms_list_chacha_test;
 
                 template<typename BlueprintFieldType, 
                          typename ArithmetizationParams>
-                class index_terms_scalars_list_chacha_test<
+                class index_terms_list_chacha_test<
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
@@ -248,6 +248,34 @@ namespace nil {
                         {column_type::ChaChaFinal, 0, chacha_final_str, chacha_final_gate_rows},
                         {column_type::LookupKindIndex, 0, lookup_chacha_str, lookup_chacha_rows},
                         {column_type::LookupKindIndex, 0, lookup_chacha_final_str, lookup_chacha_final_rows},
+
+                        ///
+//                         scalar (at column LookupKindIndex(ChaChaFinal)): Fp256 "(3CED547992CD8F8EF47A192267706C163700AA20940A0C07E5F750AEE8B1B22A)"
+// scalar (at column Coefficient(9)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(6)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(3)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(8)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(13)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column LookupKindIndex(ChaCha)): Fp256 "(171D8F459023B125DC92B64C54190124CA4390C701160D8DA6F34192B1B6E1A0)"
+// scalar (at column Coefficient(1)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(11)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Index(EndoMulScalar)): Fp256 "(286EA1A7988F5A539931084343EAEE000B15A66C68FB3B7BBC1D9D9E3492ED1B)"
+// scalar (at column Index(ChaCha0)): Fp256 "(17CA18D044FC81FBBB4B556CAC08B9A38C6D91F34A4B23257DB025AA0683C6D4)"
+// scalar (at column Index(VarBaseMul)): Fp256 "(2F74D1A6F09A87CDA24497E47BEF1A7F528D6665D31C00CABC07EC49006DAEE2)"
+// scalar (at column Coefficient(10)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(4)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(14)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(12)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(2)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(7)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Index(ChaCha2)): Fp256 "(10290005E5485E20C7DE79A15D2DE1FF68EB0250222477D82D3B6FAC76755064)"
+// scalar (at column Coefficient(5)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Coefficient(0)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
+// scalar (at column Index(ChaCha1)): Fp256 "(10C0A5DF76067315530D03B8E9CA008A56423EB003BE7047E9CE28F627BD8B48)"
+// scalar (at column Index(EndoMul)): Fp256 "(3CB8DBE5DEE36BD6F83537ABB729CA1290AE1D6CF19803721193FA9539BB652F)"
+// scalar (at column Index(CompleteAdd)): Fp256 "(16630430885D86B28EBF247E4D5CD190972EC1D551FA238A05CDFCB44BEF9CC9)"
+// scalar (at column Index(ChaChaFinal)): Fp256 "(10E4E2D7B5B995EEA148E232168F38AB5E95E77CDB081BA77D57EE9EEB1EC94D)"
+///
                     }};
                 };
             }    // namespace components

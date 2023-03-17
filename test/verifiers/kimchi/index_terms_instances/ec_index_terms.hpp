@@ -40,11 +40,11 @@ namespace nil {
                 // index terms for ec test
                 // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/ec.rs#L15
                 template<typename ArithmetizationType>
-                class index_terms_scalars_list_ec_test;
+                class index_terms_list_ec_test;
 
                 template<typename BlueprintFieldType, 
                          typename ArithmetizationParams>
-                class index_terms_scalars_list_ec_test<
+                class index_terms_list_ec_test<
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
