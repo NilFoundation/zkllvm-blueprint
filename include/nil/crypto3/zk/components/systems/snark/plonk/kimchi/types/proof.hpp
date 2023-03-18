@@ -62,7 +62,7 @@ namespace nil {
 
                     std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, 2> proof_evals;
                     var ft_eval;
-                    std::vector<var> public_input;
+                    std::vector<var> public_input = std::vector<var> (KimchiParamsType::public_input_size);
                     std::vector<std::array<var, EvalRounds>> prev_challenges;
 
                     kimchi_opening_proof_scalar<BlueprintFieldType> opening;
