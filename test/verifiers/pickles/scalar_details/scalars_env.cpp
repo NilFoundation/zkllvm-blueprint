@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
-    constexpr std::size_t PublicInputColumns = 7;
+    constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 4;
     using ArithmetizationParams =
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr static std::size_t public_input_size = 7;
+    constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
     constexpr static std::size_t eval_rounds = 5;
 

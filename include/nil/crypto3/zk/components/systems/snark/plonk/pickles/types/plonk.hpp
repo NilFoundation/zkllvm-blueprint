@@ -97,7 +97,7 @@ namespace nil {
                     var endomul;
                     var endomul_scalar;
                     var perm;
-                    var generic;
+                    std::array<var, 9> generic;
                     struct lookup {
                         var joint_combiner;
                         var lookup_gate;
