@@ -131,6 +131,7 @@ set(PLONK_TESTS_FILES
     "verifiers/pickles/base_details/batch_dlog_accumulator_check_base"
     "verifiers/pickles/scalar_details/evals_of_split_evals"
     "verifiers/pickles/scalar_details/prepare_scalars_inversion"
+    "verifiers/pickles/scalar_details/scalars_env"
     )
 
 set(FIELDS_TESTS_FILES

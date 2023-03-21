@@ -93,6 +93,8 @@ namespace nil {
 
                         result_type(std::size_t start_row_index) {
                             std::size_t row = start_row_index;
+                            output = typename mul_component::result_type(
+                                start_row_index + rows_amount - mul_component::rows_amount).output;
                         }
                     };
 
@@ -108,8 +110,6 @@ namespace nil {
 
                         std::size_t row = start_row_index;
                         row++;    // skip row for constants in exp_component
-
-                        result_type result(row);
 
                         var w1 = exp_component::generate_circuit(bp, assignment, {params.group_gen, domain_size}, row)
                                      .output;
@@ -136,11 +136,11 @@ namespace nil {
                         var ans1 =
                             zk::components::generate_circuit<mul_component>(bp, assignment, {a1, a2}, row).output;
                         row += mul_component::rows_amount;
-                        result.output =
-                            zk::components::generate_circuit<mul_component>(bp, assignment, {ans1, a3}, row).output;
+                        // output
+                        zk::components::generate_circuit<mul_component>(bp, assignment, {ans1, a3}, row);
                         row += mul_component::rows_amount;
 
-                        return result;
+                        return result_type(start_row_index);
                     }
 
                     static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
@@ -151,8 +151,6 @@ namespace nil {
 
                         std::size_t row = start_row_index;
                         row++;    // skip row for constants in exp_component
-
-                        result_type result(row);
 
                         var w1 = exp_component::generate_assignments(assignment, {params.group_gen, domain_size}, row)
                                      .output;
@@ -171,10 +169,11 @@ namespace nil {
 
                         var ans1 = mul_component::generate_assignments(assignment, {a1, a2}, row).output;
                         row += mul_component::rows_amount;
-                        result.output = mul_component::generate_assignments(assignment, {ans1, a3}, row).output;
+                        // output
+                        mul_component::generate_assignments(assignment, {ans1, a3}, row);
                         row += mul_component::rows_amount;
 
-                        return result;
+                        return result_type(start_row_index);
                     }
 
                 private:
