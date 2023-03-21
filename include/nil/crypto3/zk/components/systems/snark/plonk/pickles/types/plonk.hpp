@@ -37,9 +37,9 @@ namespace nil {
         namespace zk {
             namespace components {
 
-                // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/composition_types/composition_types.ml#L34-L65
+                // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/composition_types/composition_types.ml#L34-L65
                 template<typename FieldType>
-                struct pickles_plonk {
+                struct pickles_plonk_min {
                     using var = snark::plonk_variable<FieldType>;
 
                     // { alpha : 'scalar_challenge
@@ -54,6 +54,54 @@ namespace nil {
                     var gamma;
                     var zeta;
                     var joint_combiner;
+                };
+
+                // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/composition_types/composition_types.ml#L100-L124
+                template<typename FieldType>
+                struct pickles_plonk_circuit {
+                    using var = snark::plonk_variable<FieldType>;
+
+                    // { alpha : 'scalar_challenge
+                    // ; beta : 'challenge
+                    // ; gamma : 'challenge
+                    // ; zeta : 'scalar_challenge
+                    //     (* TODO: zeta_to_srs_length is kind of unnecessary.
+                    //         Try to get rid of it when you can.
+                    //     *)
+                    // ; zeta_to_srs_length : 'fp
+                    // ; zeta_to_domain_size : 'fp
+                    // ; poseidon_selector : 'fp
+                    //     (** scalar used on the poseidon selector *)
+                    // ; vbmul : 'fp  (** scalar used on the vbmul selector *)
+                    // ; complete_add : 'fp
+                    //     (** scalar used on the complete_add selector *)
+                    // ; endomul : 'fp  (** scalar used on the endomul selector *)
+                    // ; endomul_scalar : 'fp
+                    //     (** scalar used on the endomul_scalar selector *)
+                    // ; perm : 'fp
+                    //     (** scalar used on one of the permutation polynomial commitments. *)
+                    // ; generic : 'fp Generic_coeffs_vec.t
+                    //     (** scalars used on the coefficient column commitments. *)
+                    // ; lookup : 'lookup_opt
+                    // }
+                    var alpha;
+                    var beta;
+                    var gamma;
+                    var zeta;
+                    
+                    var zeta_to_srs_length;
+                    var zeta_to_domain_size;
+                    var poseidon_selector;
+                    var vbmul;
+                    var complete_add;
+                    var endomul;
+                    var endomul_scalar;
+                    var perm;
+                    var generic;
+                    struct lookup {
+                        var joint_combiner;
+                        var lookup_gate;
+                    } lookup;
                 };
             }    // namespace components
         }        // namespace zk
