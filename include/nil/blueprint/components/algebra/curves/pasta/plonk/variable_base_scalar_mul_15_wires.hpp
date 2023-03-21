@@ -468,6 +468,9 @@ namespace nil {
                         bp.add_copy_constraint({{W2, (std::int32_t)(j), false}, addition_res.X});
                         bp.add_copy_constraint({{W3, (std::int32_t)(j), false}, addition_res.Y});
 
+                        // q < p
+                        
+
                         // main algorithm
 
                         for (int z = 0; z < mul_rows_amount - 2; z += 2) {

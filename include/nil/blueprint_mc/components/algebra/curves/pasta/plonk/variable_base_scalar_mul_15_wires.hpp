@@ -51,11 +51,20 @@ namespace nil {
             // _______________________________________________________________________________________________________________________________________________________                             
             //|           | W0     | W1     | W2      |  W3     |  W4     |  W5     | W6      |   W7   |   W8   |   W9   |  W10   |  W11   |  W12   |  W13   |  W14   |
             //|‾row‾0‾‾‾‾‾|‾‾ calculating 2T ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|
-            //| row 1     |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
-            //| row 2     | P[5].X | P[5].Y | bits[0] | bits[1] | bits[2] | bits[3] | bits[4] |   s0   |   s1   |   s2   |  s3    |  s4    |        |        |        | 
+            //| row 1     |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n = 0  | n_next  | u' = 0  | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
+            //| row 2     | P[5].X | P[5].Y | bits[0] | bits[1] | bits[2] | bits[3] | bits[4] |   s0   |   s1   |   s2   |  s3    |  s4    |   u0   |   u1   |   u''  | 
             //| row 3     |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
             //| row 4     | P[5].X | P[5].Y | bits[5] | bits[6] | bits[7] | bits[8] | bits[9] |   s0   |   s1   |   s2   |  s3    |  s4    |        |        |        |
+            //|           | ...                                                                                                                                       | 
+            //| row 45    |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |    u    | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
+            //| row 46    | P[5].X | P[5].Y | bits[0] | bits[1] | bits[2] | bits[3] | bits[4] |   s0   |   s1   |   s2   |  s3    |  s4    |   e1   |   e2   |        |
+            //| row 47    |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
             //|           | ...                                                                                                                                       |
+            //| row 99    |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y | P[3].X | P[3].Y | P[4].X | P[4].Y |
+            //| row 100   | P[5].X | P[5].Y | bits[0] | bits[1] | bits[2] | bits[3] | bits[4] |   s0   |   s1   |   s2   |  s3    |  s4    |        |        |        |
+            //| row 101   |  T.X   |  T.Y   | P[0].X  | p[0].Y  |  n      | n_next  |         | P[1].X | P[1].Y | P[2].X | P[2].Y |        |        |        |        |
+            //| row 102   |        |        | bits[0] | bits[1] | bits[2] | bits[3] | bits[4] |   s0   |   s1   |        |        |        |        |        |        |
+            //| rows 103-108 : calculating complete additions for last 3 bits                                                                                                                                     |
             //| final row |    x   |    y   |   t0    |   t1    |   t2    |  n_next |   T.X   |  T.Y   |   m    |        |        |        |        |        |        |
             // ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
                             
@@ -102,6 +111,9 @@ namespace nil {
 
                 using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
                 using add_component =
+                    components::curve_element_unified_addition<ArithmetizationType, CurveType, W0, W1, W2, W3,
+                                                                    W4, W5, W6, W7, W8, W9, W10>;
+                using complete_add_component =
                     components::curve_element_unified_addition<ArithmetizationType, CurveType, W0, W1, W2, W3,
                                                                     W4, W5, W6, W7, W8, W9, W10>;
 
