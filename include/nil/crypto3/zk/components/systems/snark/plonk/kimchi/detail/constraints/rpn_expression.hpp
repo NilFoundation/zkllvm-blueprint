@@ -773,6 +773,8 @@ namespace nil {
                                     row += unnormalized_lagrange_basis_component::rows_amount;
                                     break;
                                 }
+                                default:
+                                    break;
                             }
                         }
                     }

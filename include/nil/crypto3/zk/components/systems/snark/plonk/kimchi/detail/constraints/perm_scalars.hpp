@@ -104,13 +104,11 @@ namespace nil {
 
                         std::size_t row = start_row_index;
                         std::array<var, KimchiParamsType::witness_columns> w;
-                        for (std::size_t i = 0; i < KimchiParamsType::witness_columns; i++) {
-                            w[i] = params.evals[0].w[i];
-                        }
+                        std::copy(params.evals[0].w.begin(), params.evals[0].w.end(), w.begin());
+
                         std::array<var, KimchiParamsType::permut_size - 1> s;
-                        for (std::size_t i = 0; i < KimchiParamsType::permut_size - 1; i++) {
-                            s[i] = params.evals[0].s[i];
-                        }
+                        std::copy(params.evals[0].s.begin(), params.evals[0].s.end(), s.begin());
+
                         var z = params.evals[1].z;
                         std::size_t size = KimchiParamsType::permut_size - 1;
 
@@ -163,7 +161,6 @@ namespace nil {
                         }
                         var z = params.evals[1].z;
                         std::size_t size = KimchiParamsType::permut_size - 1;
-
                         auto res = mul_component::generate_assignments(assignment, {z, params.beta}, row);
                         row += mul_component::rows_amount;
                         res = mul_component::generate_assignments(

@@ -60,7 +60,7 @@ namespace nil {
                     //     (** Data specific to which step branch of the proof-system was verified *)
                     // }
 
-                    pickles_plonk<FieldType> plonk;
+                    pickles_plonk_min<FieldType> plonk;
                     var combined_inner_product;
                     var b;
                     var xi;

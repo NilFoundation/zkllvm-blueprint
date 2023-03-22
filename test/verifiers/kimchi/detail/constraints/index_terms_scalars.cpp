@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_ec_test_su
     
     typename BlueprintFieldType::value_type eval0_z = 0x1480D3E4FD095CEC3688F88B105EE6F2365DCFAAA28CCB6B87DAB7E71E58010B_cppui256;
 
-    std::array<typename BlueprintFieldType::value_type, perm_size> eval0_s = {
+    std::array<typename BlueprintFieldType::value_type, perm_size - 1> eval0_s = {
         0x03D8C35D2E1466E8514E20A8E658F4E2B1116AB123F7BF53F9A1C7376F788EB1_cppui256,
         0x05EDDC1E6C268DF398F068F06C51794D6F672E27FB800DFF6C5C35E5C3D84207_cppui256,
         0x1B03A1DBEA987367FDEF97CC27F7441C4845E93AD1583167DA4A1A9CCFFB1E71_cppui256,
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_ec_test_su
     
     typename BlueprintFieldType::value_type eval1_z = 0x1635A182C3B5623D5E7CF31D244F389FB478B0612B27937A39D48B473DB68931_cppui256;
 
-    std::array<typename BlueprintFieldType::value_type, perm_size> eval1_s = {
+    std::array<typename BlueprintFieldType::value_type, perm_size - 1> eval1_s = {
         0x069DE7D0EBB1985B05DAB9E13348C12530D374BAD474C76C4AB9FAC8EB557332_cppui256,
         0x177B2B5F39976BE667F5D6768480F1555F52395613AF100529C99844DA28DCC9_cppui256,
         0x2941C2A82AC0067D3DD6A2C47EDD675D5B7BA071414A8324BA4CFAA1816B163F_cppui256,
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_ec_test_su
 
     std::array<std::array<typename BlueprintFieldType::value_type, witness_columns>, 2> eval_w = {eval0_w, eval1_w};
     std::array<typename BlueprintFieldType::value_type, 2> eval_z = {eval0_z, eval1_z};
-    std::array<std::array<typename BlueprintFieldType::value_type, perm_size>, 2> eval_s = {eval0_s, eval1_s};
+    std::array<std::array<typename BlueprintFieldType::value_type, perm_size - 1>, 2> eval_s = {eval0_s, eval1_s};
 
     typename BlueprintFieldType::value_type alpha_val =
         0x322D5D64C86AFB168AC57D2D8AB3512647B4802C8DC4DE07DB2C51E094C4D9B7_cppui256;
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_ec_test_su
         var z = var(0, public_input.size() - 1, false, var::column_type::public_input);
         evals[i].z = z;
 
-        for (std::size_t j = 0; j < perm_size; j++) {
+        for (std::size_t j = 0; j < perm_size - 1; j++) {
             public_input.push_back(eval_s[i][j]);
             var s = var(0, public_input.size() - 1, false, var::column_type::public_input);
             evals[i].s[j] = s;
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_lookup_tes
     
     typename BlueprintFieldType::value_type eval0_z = 0x134EBAD0F9C35BE923C101FBDDE3E6223FE9688D939FD620137F2BA1473CEE2E_cppui256;
 
-    std::array<typename BlueprintFieldType::value_type, perm_size> eval0_s = {
+    std::array<typename BlueprintFieldType::value_type, perm_size - 1> eval0_s = {
         0x38F09DAE5B20B0CE58B9146FA85FBD460B0560AC4A84C269A6B116B90CAD9930_cppui256,
         0x14D2BCE16FBE86ADC87964FCB51A1D5DE50D20EFE036FE5CD1AC1A3CA30F0CFE_cppui256,
         0x00EE6F2F707C48EB45BEB0B8DB361BBD7E965362E0CE8EF02A86C61942B6EC34_cppui256,
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_lookup_tes
     
     typename BlueprintFieldType::value_type eval1_z = 0x3C6E48DF402AA8AD73AEE593E6A45E617A6FA5F0FD6537195830BDFAD5007FB2_cppui256;
 
-    std::array<typename BlueprintFieldType::value_type, perm_size> eval1_s = {
+    std::array<typename BlueprintFieldType::value_type, perm_size - 1> eval1_s = {
         0x2FB75D341DB2B66FD0065443D9B82C300A41DC7634D6F22B42A202C7C6EF6CFC_cppui256,
         0x1BF54A529308426DC3223933D80FA71FD9D5D5BFE3FB24B003B0D136BCF81505_cppui256,
         0x0757119D804CFB7B01FDF885E9FC678171B8F91B10D9D04496074912E139823D_cppui256,
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_lookup_tes
 
     std::array<std::array<typename BlueprintFieldType::value_type, witness_columns>, 2> eval_w = {eval0_w, eval1_w};
     std::array<typename BlueprintFieldType::value_type, 2> eval_z = {eval0_z, eval1_z};
-    std::array<std::array<typename BlueprintFieldType::value_type, perm_size>, 2> eval_s = {eval0_s, eval1_s};
+    std::array<std::array<typename BlueprintFieldType::value_type, perm_size - 1>, 2> eval_s = {eval0_s, eval1_s};
     std::array<std::array<typename BlueprintFieldType::value_type, lookup_size>, 2> eval_lookup_sorted = {eval0_lookup_sorted, eval1_lookup_sorted};
     std::array<typename BlueprintFieldType::value_type, 2> eval_lookup_aggregated = {eval0_lookup_aggregated, eval1_lookup_aggregated};
     std::array<typename BlueprintFieldType::value_type, 2> eval_lookup_table = {eval0_lookup_table, eval1_lookup_table};
@@ -448,7 +448,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_index_terms_scalar_lookup_tes
         var z = var(0, public_input.size() - 1, false, var::column_type::public_input);
         evals[i].z = z;
 
-        for (std::size_t j = 0; j < perm_size; j++) {
+        for (std::size_t j = 0; j < perm_size - 1; j++) {
             public_input.push_back(eval_s[i][j]);
             var s = var(0, public_input.size() - 1, false, var::column_type::public_input);
             evals[i].s[j] = s;
