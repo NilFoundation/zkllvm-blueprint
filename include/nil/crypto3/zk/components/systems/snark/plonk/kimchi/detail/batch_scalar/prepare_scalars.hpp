@@ -83,7 +83,11 @@ namespace nil {
                     }
 
                 public:
-                    constexpr static const std::size_t rows_amount_if_InputSize_is_1 = add_component::rows_amount * 6 + mul_component::rows_amount * 9  + sub_component::rows_amount * 4 +  div_or_zero_component::rows_amount * 3;
+                    constexpr static const std::size_t rows_amount_if_InputSize_is_1 = 
+                        add_component::rows_amount * 6 + 
+                        mul_component::rows_amount * 9 + 
+                        sub_component::rows_amount * 4 +  
+                        div_or_zero_component::rows_amount * 3;
                     constexpr static const std::size_t rows_amount = InputSize * rows_amount_if_InputSize_is_1;
 
 
@@ -96,10 +100,13 @@ namespace nil {
                     struct result_type {
                         std::vector<var> output = std::vector<var>(InputSize);
 
-                        result_type (std::size_t row) {
+                        result_type (const std::size_t start_row_index) {
+                            size_t row = start_row_index;
                             for (std::size_t i = 0; i < InputSize; i++) {
-                                output[i] = var(W2, row + (rows_amount_if_InputSize_is_1 - 1) + i * rows_amount_if_InputSize_is_1);
+                                row += rows_amount_if_InputSize_is_1;
+                                output[i] = typename add_component::result_type(row - add_component::rows_amount).output;
                             }
+                            assert(row == start_row_index + rows_amount);
                         }
                     };
 
@@ -118,9 +125,8 @@ namespace nil {
                         var coef_pallas = var(0, start_row_index + 3, false, var::column_type::constant);
                         var one = var(0, start_row_index + 4, false, var::column_type::constant);
 
-
                         std::size_t row = start_row_index;
-                        std::vector<var> shifted(InputSize);
+
                         assert(params.scalars.size() == InputSize);
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
@@ -180,7 +186,8 @@ namespace nil {
                         }
 
                         generate_copy_constraints(bp, assignment, params, start_row_index);
-                        
+
+                        assert(row == start_row_index + rows_amount);
                         return result_type(start_row_index);
                     }
 
@@ -194,10 +201,8 @@ namespace nil {
                         var coef_pallas = var(0, start_row_index + 3, false, var::column_type::constant);
                         var one = var(0, start_row_index + 4, false, var::column_type::constant);
                         
-
                         std::size_t row = start_row_index;
 
-                        std::vector<var> shifted(InputSize);
                         assert(params.scalars.size() == InputSize);
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
@@ -256,6 +261,7 @@ namespace nil {
                             row += add_component::rows_amount;
                         }
 
+                        assert(row == start_row_index + rows_amount);
                         return result_type(start_row_index);
                     }
 
