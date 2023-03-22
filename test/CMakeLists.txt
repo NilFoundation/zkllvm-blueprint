@@ -50,6 +50,18 @@ macro(define_blueprint_test test)
     endif()
 endmacro()
 
+set(BLUEPRINT_MC_TESTS_FILES
+    "algebra_mc/curves/plonk/decomposed_variable_base_scalar_mul"
+    "algebra_mc/curves/plonk/endo_scalar"
+    "algebra_mc/curves/plonk/unified_addition"
+    "algebra_mc/curves/plonk/variable_base_scalar_mul"
+    "algebra_mc/fields/plonk/combined_inner_product"
+    "algebra_mc/fields/plonk/element_powers"
+    "algebra_mc/fields/plonk/exponentiation"
+    "algebra_mc/fields/plonk/range_check"
+    "algebra_mc/fields/plonk/sqrt"
+    )
+
 set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/multiplication"
     "algebra/fields/plonk/non_native/addition"
@@ -186,6 +198,7 @@ SET(ALGEBRA_TESTS_FILES
     ${PAIRING_TESTS_FILES})
 
 SET(ALL_TESTS_FILES
+    ${BLUEPRINT_MC_TESTS_FILES}
     ${NON_NATIVE_TESTS_FILES}
     ${BLUEPRINT_TESTS_FILES}
     ${PLONK_TESTS_FILES}
