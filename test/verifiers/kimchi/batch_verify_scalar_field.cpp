@@ -139,6 +139,7 @@ void prepare_proof(zk::snark::proof_type<CurveType> &original_proof,
     public_input.push_back(original_proof.ft_eval1);
     circuit_proof.ft_eval = var(0, public_input.size() - 1, false, var::column_type::public_input);
 }
+
 BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_suite_ec) {
 
     using curve_type = algebra::curves::vesta;
@@ -165,6 +166,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
 
     constexpr static std::size_t srs_len = ec_constants.srs_len;
     constexpr static const std::size_t prev_chal_size = ec_constants.prev_chal_size;
+    constexpr static const std::size_t batch_size = ec_constants.batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
@@ -177,8 +179,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
 
     std::size_t domain_size = 512;
     verifier_index.domain_size = domain_size;
-
-    constexpr std::size_t batch_size = 2;
 
     using component_type = zk::components::batch_verify_scalar_field<ArithmetizationType,
                                                                      curve_type,
@@ -301,26 +301,26 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     std::vector<typename BlueprintFieldType::value_type> expected_result;
 
     std::string scalars_filename = "../../../../libs/blueprint/test/verifiers/kimchi/data/ec/scalars.txt";
+
     std::ifstream scalars_fstream(scalars_filename);
         if (scalars_fstream) {
-            std::size_t i = 0;
             while (true) {
                 std::string input_string;
-
+        
                 scalars_fstream >> input_string;
                 if (input_string.empty()) {
                     std::cerr << "empty line in " << scalars_filename << "!" << std::endl;
                     break;
                 }
 
+                typename curve_type::base_field_type::extended_integral_type number(input_string);
+                assert(number < curve_type::scalar_field_type::modulus && "input does not fit into BlueprintFieldType");
+                expected_result.push_back(shift_scalar_scalar<curve_type>(number));
+
                 if (scalars_fstream.eof()) {
                     break;
                 }
 
-                typename curve_type::base_field_type::extended_integral_type number(input_string);
-                assert(number < curve_type::scalar_field_type::modulus && "input does not fit into BlueprintFieldType");
-                expected_result.push_back(shift_scalar_scalar<curve_type>(number));
-                i++;
             }
         }
     else {
@@ -329,12 +329,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     }
     scalars_fstream.close();
     std::cout << "scalars amount: " << expected_result.size() << std::endl;
+    
 
     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
         for (std::size_t i = 0; i < real_res.output.size(); i++) {
             if (!(expected_result[i] == assignment.var_value(real_res.output[i]))) {
                     std::cout << "ASSERTION[" << i <<"] FAILED!\n";
-                    std::cout <<  expected_result[i].data << " != " << assignment.var_value(real_res.output[i]).data <<  "\n";
+                    std::cout << std::hex << "assert" << expected_result[i].data << " == " << assignment.var_value(real_res.output[i]).data << std::dec << "\n";
                 }
             assert(expected_result[i] == assignment.var_value(real_res.output[i]));
         }
@@ -369,6 +370,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
 
     constexpr static std::size_t srs_len = chacha_constants.srs_len;
     constexpr static const std::size_t prev_chal_size = chacha_constants.prev_chal_size;
+    constexpr static const std::size_t batch_size = chacha_constants.batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_chacha_test<ArithmetizationType>;
@@ -377,11 +379,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
     using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
-
-    typename BlueprintFieldType::value_type omega =
-        0x03B402C2CBD0A0660626F1948867533CFD2A80ABD33D0E808075A3EFC92D52D2_cppui256;
-
-    constexpr std::size_t batch_size = 1;
 
     using component_type = zk::components::batch_verify_scalar_field<ArithmetizationType,
                                                                      curve_type,
@@ -414,6 +411,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
         0x00000000000000000000000000000000919E7EE06FFBFC7EBBDAD14E68BBE21C_cppui256;
     typename BlueprintFieldType::value_type zeta =
         0x24A32849C8B99B6CB2D1A514C0EC7B5F5A15799EA2428C6DCA8B332CEACE9DC0_cppui256;
+    typename BlueprintFieldType::value_type omega =
+        0x03B402C2CBD0A0660626F1948867533CFD2A80ABD33D0E808075A3EFC92D52D2_cppui256;
+
     typename BlueprintFieldType::value_type fq_digest =
         0x2C85FCC264A1C8E1082E97E5686196CB1A7EF642F7B162EB21723CCCB6344341_cppui256;
         
@@ -515,13 +515,14 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
                     break;
                 }
 
-                if (scalars_fstream.eof()) {
-                    break;
-                }
 
                 typename curve_type::base_field_type::extended_integral_type number(input_string);
                 assert(number < curve_type::scalar_field_type::modulus && "input does not fit into BlueprintFieldType");
                 expected_result.push_back(shift_scalar_scalar<curve_type>(number));
+
+                if (scalars_fstream.eof()) {
+                    break;
+                }
             }
         }
     else {
@@ -573,6 +574,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     constexpr static std::size_t srs_len = recursion_constants.srs_len;
     constexpr static const std::size_t prev_chal_size = recursion_constants.prev_chal_size;
 
+    constexpr static const std::size_t batch_size = recursion_constants.batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_scalars_list_recursion_test<ArithmetizationType>;
@@ -581,8 +583,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
     using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
-
-    constexpr std::size_t batch_size = 1;
 
     using component_type = zk::components::batch_verify_scalar_field<ArithmetizationType,
                                                                      curve_type,
@@ -706,13 +706,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
                     break;
                 }
 
-                if (scalars_fstream.eof()) {
-                    break;
-                }
-
                 typename curve_type::base_field_type::extended_integral_type number(input_string);
                 assert(number < curve_type::scalar_field_type::modulus && "input does not fit into BlueprintFieldType");
                 expected_result.push_back(shift_scalar_scalar<curve_type>(number));
+
+                if (scalars_fstream.eof()) {
+                    break;
+                }
             }
         }
     else {
@@ -763,6 +763,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     constexpr static std::size_t srs_len = generic_constants.srs_len;
     constexpr static const std::size_t prev_chal_size = generic_constants.prev_chal_size;
 
+    constexpr static const std::size_t batch_size = generic_constants.batch_size;
+
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_generic_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
@@ -770,8 +772,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
     using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
-
-    constexpr std::size_t batch_size = 1;
 
     using component_type = zk::components::batch_verify_scalar_field<ArithmetizationType,
                                                                      curve_type,
@@ -803,8 +803,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
         0x00000000000000000000000000000000F643764B3C004B017222923DE86BC103_cppui256;
     typename BlueprintFieldType::value_type zeta =
         0x2F51244846217BCB9DE92C5903AC022FAD29555920E45344407B680D24D550F1_cppui256;
-        typename BlueprintFieldType::value_type omega =
-    0x0CC3380DC616F2E1DAF29AD1560833ED3BAEA3393ECEB7BC8FA36376929B78CC_cppui256;
+    typename BlueprintFieldType::value_type omega =
+        0x0CC3380DC616F2E1DAF29AD1560833ED3BAEA3393ECEB7BC8FA36376929B78CC_cppui256;
 
     typename BlueprintFieldType::value_type fq_digest =
         0x11EF8F246F63C43E46E22BC179C7171A3F2A9776AC62E5C488C482403FB00E07_cppui256;
@@ -897,14 +897,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
                     break;
                 }
 
-                if (scalars_fstream.eof()) {
-                    break;
-                }
-
                 typename curve_type::base_field_type::extended_integral_type number(input_string);
                 assert(number < curve_type::scalar_field_type::modulus && "input does not fit into BlueprintFieldType");
                 expected_result.push_back(shift_scalar_scalar<curve_type>(number));
-                i++;
+
+                if (scalars_fstream.eof()) {
+                    break;
+                }
             }
         }
     else {
@@ -915,7 +914,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     std::cout << "scalars amount: " << expected_result.size() << std::endl;
 
     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
-        for (std::size_t i = 0; i < expected_result.size(); ++i) {
+        for (std::size_t i = 0; i < real_res.output.size(); ++i) {
             if (!(expected_result[i] == assignment.var_value(real_res.output[i]))) {
                 std::cout << "ASSERTION[" << i <<"] FAILED!\n";
                 std::cout <<  expected_result[i].data << " != " << assignment.var_value(real_res.output[i]).data <<  "\n";

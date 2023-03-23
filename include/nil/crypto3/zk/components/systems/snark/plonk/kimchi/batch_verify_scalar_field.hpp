@@ -78,7 +78,7 @@ namespace nil {
                     using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
                     using add_component = zk::components::addition<ArithmetizationType, W0, W1, W2>;
                     using mul_by_const_component = zk::components::mul_by_constant<ArithmetizationType, W0, W1>;
-                    using division_or_zero_component = zk::components::division_or_zero<ArithmetizationType, W0, W1, W2, W4, W5>;
+                    using division_or_zero_component = zk::components::division_or_zero<ArithmetizationType, W0, W1, W2, W3, W4>;
 
                     using random_component =
                         zk::components::random<ArithmetizationType, KimchiParamsType, BatchSize, W0, W1, W2, W3, W4, W5,
