@@ -50,8 +50,8 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
-#include "verifiers/kimchi/index_terms_instances/recursion_test.hpp"
-#include "verifiers/kimchi/index_terms_instances/chacha_test.hpp"
+#include "verifiers/kimchi/index_terms_instances/recursion_index_terms.hpp"
+#include "verifiers/kimchi/index_terms_instances/chacha_index_terms.hpp"
 #include "verifiers/kimchi/index_terms_instances/generic_index_terms.hpp"
 
 #include "test_plonk_component.hpp"
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_test) {
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_chacha) {
     constexpr static const std::size_t batch_size = chacha_constants.batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_chacha_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_chacha_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,

@@ -63,8 +63,10 @@ namespace nil {
                     pickles_plonk_min<FieldType> plonk;
                     var combined_inner_product;
                     var b;
+                    // this might need preprocessing before being passed to prover
                     var xi;
-                    std::vector<var> bulletproof_challenges;
+                    // challenges need preprocessing before being passed to prover
+                    std::array<var, 16> bulletproof_challenges;
                     branch_data_type<FieldType> branch_data;
                 };
             }    // namespace components

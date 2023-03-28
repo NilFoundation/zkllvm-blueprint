@@ -3,6 +3,7 @@
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
 // Copyright (c) 2022 Polina Chernyshova <pockvokhbtra@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -42,6 +43,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/limbs.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/sponge.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/proof.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -82,6 +84,9 @@ namespace nil {
                     using pack = from_limbs<ArithmetizationType, W0, W1, W2>;
                     using unpack =
                         to_limbs<ArithmetizationType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+
+                    using evals_type = typename zk::components::proof_type<BlueprintFieldType, KimchiParamsType>
+                                                  ::prev_evals_type;
 
                     std::vector<var> last_squeezed;
 
@@ -138,15 +143,47 @@ namespace nil {
                         }
                         return res;
                     }
-                    
+
+                    constexpr static std::size_t absorb_split_evals_rows() {
+                        std::size_t res = 0;
+                        std::size_t split_size = KimchiParamsType::split_size;
+                        res += 3 * sponge_component::absorb_rows;
+                        // z
+                        res += 2 * split_size * sponge_component::absorb_rows;
+                        // generic_selector
+                        res += 2 * split_size * sponge_component::absorb_rows;
+                        // poseidon_selector
+                        res += 2 * split_size * sponge_component::absorb_rows;
+                        // w
+                        res += 2 * split_size * KimchiParamsType::witness_columns * sponge_component::absorb_rows;
+                        // s
+                        res += 2 * split_size * (KimchiParamsType::permut_size - 1) * sponge_component::absorb_rows;
+
+                        if (KimchiParamsType::use_lookup) {
+                            // aggreg
+                            res += 2 * split_size * sponge_component::absorb_rows;
+                            // table
+                            res += 2 * split_size * sponge_component::absorb_rows;
+                            // sorted
+                            res += 2 * split_size * KimchiParamsType::circuit_params::lookup_columns
+                                     * sponge_component::absorb_rows;
+                            if (KimchiParamsType::lookup_runtime) {
+                                res += 2 * split_size * sponge_component::absorb_rows;
+                            }
+                        }
+
+                        return res;
+                    }
+
                 public:
                     constexpr static const std::size_t rows_amount = 0;
                     constexpr static const std::size_t init_rows = sponge_component::init_rows;
                     constexpr static const std::size_t absorb_rows = sponge_component::absorb_rows;
-                    constexpr static const std::size_t challenge_rows = 
-                        sponge_component::squeeze_rows + unpack::rows_amount 
+                    constexpr static const std::size_t challenge_rows =
+                        sponge_component::squeeze_rows + unpack::rows_amount
                         + pack::rows_amount;
                     constexpr static const std::size_t absorb_evaluations_rows = absorb_evals_rows();
+                    constexpr static const std::size_t absorb_split_evaluations_rows = absorb_split_evals_rows();
 
                     constexpr static const std::size_t state_size = sponge_component::state_size;
 
@@ -259,7 +296,7 @@ namespace nil {
                             sponge.absorb_circuit(bp, assignment, private_eval.poseidon_selector, row);
                             row += sponge_component::absorb_rows;
                         }
-                        
+
                         std::vector<var> points = {private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
                                                 private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
                                                 private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
@@ -324,6 +361,188 @@ namespace nil {
                             last_squeezed.push_back(x[i]);
                         }
                         return challenge_circuit(bp, assignment, row);
+                    }
+
+                    void absorb_split_evaluations_assignment(
+                                        blueprint_assignment_table<ArithmetizationType> &assignment,
+                                        const evals_type &evals,
+                                        const std::size_t component_start_row) {
+                        last_squeezed = {};
+                        size_t row = component_start_row;
+
+                        sponge.absorb_assignment(assignment, evals.ft_eval1, row);
+                        row += sponge_component::absorb_rows;
+
+                        sponge.absorb_assignment(assignment, evals.evals.public_input[0], row);
+                        row += sponge_component::absorb_rows;
+                        sponge.absorb_assignment(assignment, evals.evals.public_input[1], row);
+                        row += sponge_component::absorb_rows;
+
+                        for (auto eval_arr : evals.evals.evals) {
+                            for (auto eval : eval_arr) {
+                                sponge.absorb_assignment(assignment, eval.z, row);
+                                row += sponge_component::absorb_rows;
+                            }
+                        }
+
+                        for (auto eval_arr : evals.evals.evals) {
+                            for (auto eval : eval_arr) {
+                                sponge.absorb_assignment(assignment, eval.generic_selector, row);
+                                row += sponge_component::absorb_rows;
+                            }
+                        }
+
+                        for (auto eval_arr : evals.evals.evals) {
+                            for (auto eval : eval_arr) {
+                                sponge.absorb_assignment(assignment, eval.poseidon_selector, row);
+                                row += sponge_component::absorb_rows;
+                            }
+                        }
+
+                        for (size_t j = 0; j < KimchiParamsType::witness_columns; j++) {
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_assignment(assignment, eval.w[j], row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+                        }
+
+                        for (size_t j = 0; j < KimchiParamsType::permut_size - 1; j++) {
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_assignment(assignment, eval.s[j], row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+                        }
+
+                        if (KimchiParamsType::use_lookup) {
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_assignment(assignment, eval.lookup.aggreg, row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_assignment(assignment, eval.lookup.table, row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+
+                            for (size_t j = 0; j < KimchiParamsType::circuit_params::lookup_columns; j++) {
+                                for (auto eval_arr : evals.evals.evals) {
+                                    for (auto eval : eval_arr) {
+                                        sponge.absorb_assignment(assignment, eval.lookup.sorted[j], row);
+                                        row += sponge_component::absorb_rows;
+                                    }
+                                }
+                            }
+
+                            if (KimchiParamsType::lookup_runtime) {
+                                for (auto eval_arr : evals.evals.evals) {
+                                    for (auto eval : eval_arr) {
+                                        sponge.absorb_assignment(assignment, eval.lookup.runtime, row);
+                                        row += sponge_component::absorb_rows;
+                                    }
+                                }
+                            }
+                        }
+
+                        assert(row == component_start_row + absorb_split_evaluations_rows);
+                    }
+
+                    void absorb_split_evaluations_circuit(blueprint<ArithmetizationType> &bp,
+                                       blueprint_public_assignment_table<ArithmetizationType> &assignment,
+                                       const evals_type &evals,
+                                       const std::size_t component_start_row) {
+                        last_squeezed = {};
+                        size_t row = component_start_row;
+
+                        sponge.absorb_circuit(bp, assignment, evals.ft_eval1, row);
+                        row += sponge_component::absorb_rows;
+
+                        sponge.absorb_circuit(bp, assignment, evals.evals.public_input[0], row);
+                        row += sponge_component::absorb_rows;
+                        sponge.absorb_circuit(bp, assignment, evals.evals.public_input[1], row);
+                        row += sponge_component::absorb_rows;
+
+                        for (auto eval_arr : evals.evals.evals) {
+                            for (auto eval : eval_arr) {
+                                sponge.absorb_circuit(bp, assignment, eval.z, row);
+                                row += sponge_component::absorb_rows;
+                            }
+                        }
+
+                        for (auto eval_arr : evals.evals.evals) {
+                            for (auto eval : eval_arr) {
+                                sponge.absorb_circuit(bp, assignment, eval.generic_selector, row);
+                                row += sponge_component::absorb_rows;
+                            }
+                        }
+
+                        for (auto eval_arr : evals.evals.evals) {
+                            for (auto eval : eval_arr) {
+                                sponge.absorb_circuit(bp, assignment, eval.poseidon_selector, row);
+                                row += sponge_component::absorb_rows;
+                            }
+                        }
+
+                        for (size_t j = 0; j < KimchiParamsType::witness_columns; j++) {
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_circuit(bp, assignment, eval.w[j], row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+                        }
+
+                        for (size_t j = 0; j < KimchiParamsType::permut_size - 1; j++) {
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_circuit(bp, assignment, eval.s[j], row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+                        }
+
+                        if (KimchiParamsType::use_lookup) {
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_circuit(bp, assignment, eval.lookup.aggreg, row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+
+                            for (auto eval_arr : evals.evals.evals) {
+                                for (auto eval : eval_arr) {
+                                    sponge.absorb_circuit(bp, assignment, eval.lookup.table, row);
+                                    row += sponge_component::absorb_rows;
+                                }
+                            }
+
+                            for (size_t j = 0; j < KimchiParamsType::circuit_params::lookup_columns; j++) {
+                                for (auto eval_arr : evals.evals.evals) {
+                                    for (auto eval : eval_arr) {
+                                        sponge.absorb_circuit(bp, assignment, eval.lookup.sorted[j], row);
+                                        row += sponge_component::absorb_rows;
+                                    }
+                                }
+                            }
+
+                            if (KimchiParamsType::lookup_runtime) {
+                                for (auto eval_arr : evals.evals.evals) {
+                                    for (auto eval : eval_arr) {
+                                        sponge.absorb_circuit(bp, assignment, eval.lookup.runtime, row);
+                                        row += sponge_component::absorb_rows;
+                                    }
+                                }
+                            }
+                        }
+
+                        assert(row == component_start_row + absorb_split_evaluations_rows);
                     }
                 };
             }    // namespace components

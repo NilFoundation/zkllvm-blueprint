@@ -92,7 +92,7 @@ namespace nil {
 
                     constexpr static const std::size_t alpha_powers_n = 24;
 
-                    constexpr static const std::array<char*, poseidon_gates_count> coefficient_str = {
+                    constexpr static const std::array<const char*, poseidon_gates_count> coefficient_str = {
                         "Cell(Variable { col: Index(Poseidon), row: Curr });Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Mul;\0",
                         "Cell(Variable { col: Index(Poseidon), row: Curr });Alpha;Pow(1);Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Mul;Mul;\0",
                         "Cell(Variable { col: Index(Poseidon), row: Curr });Alpha;Pow(2);Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Mul;Mul;\0",

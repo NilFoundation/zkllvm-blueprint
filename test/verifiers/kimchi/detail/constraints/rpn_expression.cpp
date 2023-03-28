@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_lag
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
                                                                            witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_van
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
                                                                            witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -346,7 +346,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_dup
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_sub
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -522,7 +522,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_add
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -609,7 +609,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_mul
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -697,7 +697,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_pow
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -785,7 +785,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_loa
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -874,7 +874,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_com
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -1049,7 +1049,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_end
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,

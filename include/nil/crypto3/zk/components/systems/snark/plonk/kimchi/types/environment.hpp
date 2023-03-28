@@ -29,6 +29,9 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
+#ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TYPES_ENVIRONMENT_HPP
+#define CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TYPES_ENVIRONMENT_HPP
+
 namespace nil {
     namespace crypto3 {
         namespace zk {
@@ -38,7 +41,6 @@ namespace nil {
                     using var = snark::plonk_variable<BlueprintFieldType>;
                     
                     var zeta_to_n_minus_1;
-                    var srs_length_log2;
                     var zk_polynomial;
                     var domain_generator;
                     // unsure if we need both domain_size and it's log
@@ -52,3 +54,5 @@ namespace nil {
         }        // namespace zk
     }            // namespace crypto3
 }    // namespace nil
+
+#endif    // CRYPTO3_ZK_BLUEPRINT_PLONK_KIMCHI_TYPES_ENVIRONMENT_HPP

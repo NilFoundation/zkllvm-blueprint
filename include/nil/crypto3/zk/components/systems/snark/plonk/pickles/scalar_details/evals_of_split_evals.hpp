@@ -46,17 +46,16 @@ namespace nil {
             namespace components {
 
                 // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/plonk_checks/plonk_checks.ml#L83
-                template<typename ArithmetizationType, typename KimchiParamsType, std::size_t SplitSize, std::size_t... WireIndexes>
+                template<typename ArithmetizationType, typename KimchiParamsType, std::size_t... WireIndexes>
                 class evals_of_split_evals;
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams, typename KimchiParamsType,
-                         std::size_t SplitSize,
                          std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5,
                          std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10,
                          std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
                 class evals_of_split_evals<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                          KimchiParamsType, SplitSize, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13,
-                                          W14> {
+                                           KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13,
+                                           W14> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
@@ -71,6 +70,9 @@ namespace nil {
                         zk::components::combine_proof_evals<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4,
                                                             W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
+                    using kimchi_proof_evaluations = zk::components::kimchi_proof_evaluations<BlueprintFieldType,
+                                                                                              KimchiParamsType>;
+
                     constexpr static const std::size_t rows() {
                         std::size_t row = 0;
                         row += 1;
@@ -79,7 +81,7 @@ namespace nil {
                             row += exponentiation_component::rows_amount;
 
                             // accumulation
-                            for (int j = 1; j < SplitSize; j++) {
+                            for (int j = 1; j < KimchiParamsType::split_size; j++) {
                                 row += combined_proof_evals_component::rows_amount;
 
                                 for (std::size_t k = 0; k < KimchiParamsType::witness_columns; k++) {
@@ -122,12 +124,14 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        std::array<std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, SplitSize>, KimchiParamsType::eval_points_amount> split_evals;
+                        std::array<std::array<kimchi_proof_evaluations,
+                                              KimchiParamsType::split_size>,
+                                   KimchiParamsType::eval_points_amount> split_evals;
                         std::array<var, KimchiParamsType::eval_points_amount> points;
                     };
 
                     struct result_type {
-                        std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, KimchiParamsType::eval_points_amount> output;
+                        std::array<kimchi_proof_evaluations, KimchiParamsType::eval_points_amount> output;
 
                         result_type(std::size_t component_start_row) {
                             std::size_t row = component_start_row;
@@ -137,7 +141,7 @@ namespace nil {
                                 row += exponentiation_component::rows_amount;
 
                                 // accumulation
-                                for (int j = 1; j < SplitSize; j++) {
+                                for (int j = 1; j < KimchiParamsType::split_size; j++) {
                                     row += combined_proof_evals_component::rows_amount;
 
                                     for (std::size_t k = 0; k < output[i].w.size(); k++) {
@@ -158,7 +162,7 @@ namespace nil {
                                             output[i].lookup.sorted[k] = typename add_component::result_type(row).output;
                                             row += add_component::rows_amount;
                                         }
-                                        
+
                                         output[i].lookup.aggreg = typename add_component::result_type(row).output;
                                         row += add_component::rows_amount;
 
@@ -174,7 +178,7 @@ namespace nil {
                                         output[i].generic_selector = typename add_component::result_type(row).output;
                                         row += add_component::rows_amount;
                                     }
-                                    if (KimchiParamsType::circuit_params::poseidon_gate) { 
+                                    if (KimchiParamsType::circuit_params::poseidon_gate) {
                                         output[i].poseidon_selector = typename add_component::result_type(row).output;
                                         row += add_component::rows_amount;
                                     }
@@ -201,8 +205,8 @@ namespace nil {
                                 exponentiation_component::generate_circuit(bp, assignment, {params.points[i], exponent}, row).output;
                             row += exponentiation_component::rows_amount;
 
-                            kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType> evals_acc;
-                            
+                            kimchi_proof_evaluations evals_acc;
+
                             // init
                             for (std::size_t j = 0; j < evals_acc.w.size(); j++) {
                                 evals_acc.w[j] = params.split_evals[i][0].w[j];
@@ -220,9 +224,9 @@ namespace nil {
                             evals_acc.generic_selector = params.split_evals[i][0].generic_selector;
                             evals_acc.poseidon_selector = params.split_evals[i][0].poseidon_selector;
                             // accumulation
-                            for (int j = 1; j < SplitSize; j++) {
+                            for (int j = 1; j < KimchiParamsType::split_size; j++) {
                                 evals_acc =
-                                    combined_proof_evals_component::generate_circuit(bp, 
+                                    combined_proof_evals_component::generate_circuit(bp,
                                         assignment, {evals_acc, point_exp},
                                         row)
                                         .output;
@@ -246,7 +250,7 @@ namespace nil {
                                         evals_acc.lookup.sorted[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.sorted[k], params.split_evals[i][j].lookup.sorted[k]}, row).output;
                                         row += add_component::rows_amount;
                                     }
-                                    
+
                                     evals_acc.lookup.aggreg = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.aggreg, params.split_evals[i][j].lookup.aggreg}, row).output;
                                     row += add_component::rows_amount;
 
@@ -288,8 +292,8 @@ namespace nil {
                                 exponentiation_component::generate_assignments(assignment, {params.points[i], exponent}, row).output;
                             row += exponentiation_component::rows_amount;
 
-                            kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType> evals_acc;
-                            
+                            kimchi_proof_evaluations evals_acc;
+
                             // init
                             for (std::size_t j = 0; j < evals_acc.w.size(); j++) {
                                 evals_acc.w[j] = params.split_evals[i][0].w[j];
@@ -308,7 +312,7 @@ namespace nil {
                             evals_acc.poseidon_selector = params.split_evals[i][0].poseidon_selector;
 
                             // accumulation
-                            for (int j = 1; j < SplitSize; j++) {
+                            for (int j = 1; j < KimchiParamsType::split_size; j++) {
                                 evals_acc =
                                     combined_proof_evals_component::generate_assignments(
                                         assignment, {evals_acc, point_exp},
@@ -334,7 +338,7 @@ namespace nil {
                                         evals_acc.lookup.sorted[k] = add_component::generate_assignments(assignment, {evals_acc.lookup.sorted[k], params.split_evals[i][j].lookup.sorted[k]}, row).output;
                                         row += add_component::rows_amount;
                                     }
-                                    
+
                                     evals_acc.lookup.aggreg = add_component::generate_assignments(assignment, {evals_acc.lookup.aggreg, params.split_evals[i][j].lookup.aggreg}, row).output;
                                     row += add_component::rows_amount;
 

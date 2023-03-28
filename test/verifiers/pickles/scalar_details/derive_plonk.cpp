@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
     constexpr static const std::size_t prev_chal_size = 0;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description =
         zk::components::kimchi_circuit_description<index_terms_list, WitnessColumns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -256,10 +256,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
     BlueprintFieldType::value_type minus_one_scalar = integral_minus_1;
     value_type expected_permutation_scalar_inv = perm_scalar_val * minus_one_scalar;
 
-    var srs_length_log2 = var(0, public_input.size(), false, var::column_type::public_input);
-    value_type srs_length_log2_val = 9;
-    public_input.push_back(srs_length_log2_val);
-
     var zeta_to_n_minus_1 = var(0, public_input.size(), false, var::column_type::public_input);
     value_type zeta_to_n_minus_1_val = algebra::random_element<BlueprintFieldType>();
     public_input.push_back(zeta_to_n_minus_1_val);
@@ -272,7 +268,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
 
     params.env.domain_size = domain_size;
     params.env.zeta_to_n_minus_1 = zeta_to_n_minus_1;
-    params.env.srs_length_log2 = srs_length_log2;
     params.env.zk_polynomial = zkp_zeta;
     params.env.domain_generator = omega;
     params.env.alphas = alpha_powers;
@@ -305,7 +300,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
     value_type expected_res_alpha = prepare(alpha_val);
     value_type expected_res_beta = prepare(beta_val);
     value_type expected_res_gamma = prepare(gamma_val);
-    //value_type expected_res_zeta_to_srs_length = prepare(zeta_val.pow(srs_length_log2_val), base, shift, denominator);
+    value_type expected_res_zeta_to_srs_length = prepare(
+        zeta_val.pow(1 << kimchi_params::commitment_params_type::eval_rounds)
+    );
     value_type expected_res_zeta_to_domain_size = prepare(zeta_to_n_minus_1_val + 1);
     std::array<value_type, 9> expected_generic = {
         prepare(generic_selector_val),
@@ -336,7 +333,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
 
     auto result_check = [expected_res_zeta, expected_res_alpha,
                          expected_res_beta, expected_res_gamma,
-                         /*expected_res_zeta_to_srs_length,*/
+                         expected_res_zeta_to_srs_length,
                          expected_res_zeta_to_domain_size,
                          expected_res_perm_scalar_inv,
                          &expected_generic,
@@ -348,7 +345,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
         assert(expected_res_alpha == assignment.var_value(real_res.output.alpha));
         assert(expected_res_beta == assignment.var_value(real_res.output.beta));
         assert(expected_res_gamma == assignment.var_value(real_res.output.gamma));
-        //  assert(expected_res_zeta_to_srs_length == assignment.var_value(real_res.output.zeta_to_srs_length));
+        assert(expected_res_zeta_to_srs_length == assignment.var_value(real_res.output.zeta_to_srs_length));
         assert(expected_res_zeta_to_domain_size == assignment.var_value(real_res.output.zeta_to_domain_size));
         assert(expected_res_perm_scalar_inv == assignment.var_value(real_res.output.perm));
 
@@ -372,7 +369,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_derive_plonk_vesta_scalar_field) {
         params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-    std::cout << "scalars_env: " << duration.count() << "ms" << std::endl;
+    std::cout << "derive_plonk: " << duration.count() << "ms" << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

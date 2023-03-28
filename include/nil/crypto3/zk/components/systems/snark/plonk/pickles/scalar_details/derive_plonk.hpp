@@ -77,7 +77,7 @@ namespace nil {
 
                     using var = snark::plonk_variable<BlueprintFieldType>;
 
-                    using pickles_plonk_min = nil::crypto3::zk::components::pickles_plonk_min<BlueprintFieldType>;
+                    using plonk_type = nil::crypto3::zk::components::pickles_plonk_min<BlueprintFieldType>;
                     using pickles_plonk_circuit = nil::crypto3::zk::components::pickles_plonk_circuit<BlueprintFieldType>;
 
                     //   let index_terms = Sc.index_terms env in
@@ -123,7 +123,7 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        pickles_plonk_min plonk;
+                        plonk_type plonk;
                         environment_type env;
 
                         std::array<evaluations_type, KimchiParamsType::eval_points_amount>
@@ -198,6 +198,7 @@ namespace nil {
                         var one = var(0, start_row_index, false, var::column_type::constant);
                         var two = var(0, start_row_index + 1, false, var::column_type::constant);
                         var domain_size = var(0, start_row_index + 2, false, var::column_type::constant);
+                        var srs_length = var(0, start_row_index + 3, false, var::column_type::constant);
                         // ordering this before index scalars saves 2 rows (otherwise constants overlap)
                         std::pair<std::size_t, std::size_t> alpha_idxs =
                             index_terms_list::alpha_map(argument_type::Permutation);
@@ -245,7 +246,7 @@ namespace nil {
                         row += add_component::rows_amount;
 
                         var zeta_to_srs_len = exponentiation_component::generate_circuit(
-                            bp, assignment, {params.plonk.zeta, domain_size}, row)
+                            bp, assignment, {params.plonk.zeta, srs_length}, row)
                             .output;
                         row += exponentiation_component::rows_amount;
 
@@ -311,6 +312,7 @@ namespace nil {
                         var one = var(0, start_row_index, false, var::column_type::constant);
                         var two = var(0, start_row_index + 1, false, var::column_type::constant);
                         var domain_size = var(0, start_row_index + 2, false, var::column_type::constant);
+                        var srs_length = var(0, start_row_index + 3, false, var::column_type::constant);
                         // ordering this before index scalars saves 2 rows (otherwise constants overlap)
                         std::pair<std::size_t, std::size_t> alpha_idxs =
                             index_terms_list::alpha_map(argument_type::Permutation);
@@ -358,7 +360,7 @@ namespace nil {
                         row += add_component::rows_amount;
 
                         var zeta_to_srs_len = exponentiation_component::generate_assignments(
-                            assignment, {params.plonk.zeta, domain_size}, row)
+                            assignment, {params.plonk.zeta, srs_length}, row)
                             .output;
                         row += exponentiation_component::rows_amount;
 
@@ -429,6 +431,8 @@ namespace nil {
                         assignment.constant(0)[row] = 2;
                         row++;
                         assignment.constant(0)[row] = params.env.domain_size;
+                        row++;
+                        assignment.constant(0)[row] = 1 << KimchiParamsType::commitment_params_type::eval_rounds;
                         row++;
                     }
                 };

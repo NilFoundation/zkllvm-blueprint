@@ -78,7 +78,7 @@ std::vector<typename zk::components::var_ec_point<BlueprintFieldType>> read_vect
 
     std::ifstream point_fstream(points_filename);
     int i = 0;
-    
+
     if (!point_fstream) {
         std::cerr <<  "cannot open " << points_filename << " file" << std::endl;
         assert(1==0 && "cannot open points file");
@@ -87,7 +87,7 @@ std::vector<typename zk::components::var_ec_point<BlueprintFieldType>> read_vect
             while (true) {
                 std::string input_x;
                 std::string input_y;
-        
+
                 point_fstream >> input_x >> input_y;
                 if (input_x.empty() || input_y.empty()) {
                     std::cerr << "empty line in " << points_filename << "!" << std::endl;
@@ -96,7 +96,7 @@ std::vector<typename zk::components::var_ec_point<BlueprintFieldType>> read_vect
 
                 typename BlueprintFieldType::extended_integral_type number_x(input_x);
                 assert(number_x < BlueprintFieldType::modulus && "input does not fit into BlueprintFieldType");
-                
+
                 typename BlueprintFieldType::extended_integral_type number_y(input_y);
                 assert(number_y < BlueprintFieldType::modulus && "input does not fit into BlueprintFieldType");
 
@@ -118,7 +118,7 @@ std::vector<typename zk::components::var_ec_point<BlueprintFieldType>> read_vect
 
             }
         }
-    
+
     point_fstream.close();
     std::cout << "points amount is " << i << " in " << input_filename << std::endl;
 
@@ -133,7 +133,7 @@ std::vector<zk::snark::plonk_variable<BlueprintFieldType>> read_vector_scalars(
     std::string input_filename) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
-    
+
     std::vector<var> output;
 
     std::string scalars_filename = "../../../../libs/blueprint/test/verifiers/kimchi/data/";
@@ -147,7 +147,7 @@ std::vector<zk::snark::plonk_variable<BlueprintFieldType>> read_vector_scalars(
         else {
             while (true) {
                 std::string input_string;
-        
+
                 scalars_fstream >> input_string;
                 if (input_string.empty()) {
                     std::cerr << "empty line in " << scalars_filename << "!" << std::endl;
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_generic_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
     std::vector <var_ec_point> L_vector = read_vector_points<BlueprintFieldType>(public_input, "generic", "l_points.txt");
     std::vector <var_ec_point> R_vector = read_vector_points<BlueprintFieldType>(public_input, "generic", "r_points.txt");
     std::vector <var_ec_point> commitments = read_vector_points<BlueprintFieldType>(public_input, "generic", "commitments.txt");
-    
+
     std::vector<var> scalars_var  = read_vector_scalars<curve_type, BlueprintFieldType>(public_input, "generic", "scalars.txt");
 
     curve_type::base_field_type::value_type cip_shifted = 0x0877E225F785892E118B95754A625F1D008505745AF6E4B174D07168343CB13A_cppui256;
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_generic_rs) {
 
 
     typename component_type::params_type params;
- 
+
     for (std::size_t i = 0; i < commitments.size(); i++){
         params.proofs[0].comm[i].parts[0] = commitments[i];
     }
@@ -346,7 +346,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
     std::vector <var_ec_point> L_vector = read_vector_points<BlueprintFieldType>(public_input, "ec", "l_points.txt");
     std::vector <var_ec_point> R_vector = read_vector_points<BlueprintFieldType>(public_input, "ec", "r_points.txt");
     std::vector <var_ec_point> commitments = read_vector_points<BlueprintFieldType>(public_input, "ec", "commitments.txt");
-    
+
     std::vector<var> scalars_var  = read_vector_scalars<curve_type, BlueprintFieldType>(public_input, "ec", "scalars.txt");
 
     curve_type::base_field_type::value_type cip_shifted = 0x3AA52C0B2BC507CEC6CEEDBFD2C02B9C74CFA1043847011BA789D6F871201A52_cppui256; // ec
@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_ec_rs) {
 
 
     typename component_type::params_type params;
- 
+
     for (std::size_t i = 0; i < commitments.size(); i++){
         params.proofs[0].comm[i].parts[0] = commitments[i];
     }
@@ -486,7 +486,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_chacha_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
@@ -546,13 +546,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
     std::vector <var_ec_point> L_vector = read_vector_points<BlueprintFieldType>(public_input, "chacha", "l_points.txt");
     std::vector <var_ec_point> R_vector = read_vector_points<BlueprintFieldType>(public_input, "chacha", "r_points.txt");
     std::vector <var_ec_point> commitments = read_vector_points<BlueprintFieldType>(public_input, "chacha", "commitments.txt");
-    
+
     std::vector<var> scalars_var  = read_vector_scalars<curve_type, BlueprintFieldType>(public_input, "chacha", "scalars.txt");
 
     curve_type::base_field_type::value_type cip_shifted = 0x1C46F778300ED8499E12AC99920C8F426C59D3E94CCDD17941523412F6574A93_cppui256;
     public_input.push_back(cip_shifted);
     var cip_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
-    
+
     curve_type::base_field_type::value_type state0 = 0x1CA18F11BE5840BDC7700504D8D7F7A075682BC2C8E8E561028A9B44CB52E0AB_cppui256;
     public_input.push_back(state0);
     var state0_var = var(0, public_input.size() - 1, false, var::column_type::public_input);
@@ -568,7 +568,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_batch_verify_base_field_test_chacha_rs) {
 
 
     typename component_type::params_type params;
- 
+
     for (std::size_t i = 0; i < commitments.size(); i++){
         params.proofs[0].comm[i].parts[0] = commitments[i];
     }

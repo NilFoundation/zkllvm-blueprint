@@ -117,6 +117,7 @@ set(PLONK_TESTS_FILES
     "verifiers/kimchi/sponge/oracles"
     "verifiers/kimchi/sponge/transcript_fr"
     "verifiers/kimchi/sponge/transcript_fq"
+    "verifiers/kimchi/sponge/transcript_split_evals"
     "verifiers/kimchi/sponge/compare"
     "algebra/fields/plonk/field_operations"
     "algebra/fields/plonk/combined_inner_product"

@@ -53,13 +53,13 @@ using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_split_evals_test_suite)
 
-template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds, std::size_t SplitSize>
-void prepare_proofs(std::array<zk::snark::proof_type<CurveType>, SplitSize> &original_proofs,
-                   std::array<zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds>, SplitSize> &circuit_proofs,
+template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsType, std::size_t EvalRounds>
+void prepare_proofs(std::array<zk::snark::proof_type<CurveType>, KimchiParamsType::split_size> &original_proofs,
+                   std::array<zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds>, KimchiParamsType::split_size> &circuit_proofs,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    for (std::size_t split_idx = 0; split_idx < SplitSize; split_idx++) {
+    for (std::size_t split_idx = 0; split_idx < KimchiParamsType::split_size; split_idx++) {
         // eval_proofs
         for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
             // w
@@ -86,16 +86,16 @@ void prepare_proofs(std::array<zk::snark::proof_type<CurveType>, SplitSize> &ori
                 }
 
                 public_input.push_back(original_proofs[split_idx].evals[point_idx].lookup.aggreg[0]);
-                circuit_proofs[point_idx].proof_evals[split_idx].lookup.aggreg = 
+                circuit_proofs[point_idx].proof_evals[split_idx].lookup.aggreg =
                     var(0, public_input.size() - 1, false, var::column_type::public_input);
 
                 public_input.push_back(original_proofs[split_idx].evals[point_idx].lookup.table[0]);
-                circuit_proofs[point_idx].proof_evals[split_idx].lookup.table = 
+                circuit_proofs[point_idx].proof_evals[split_idx].lookup.table =
                     var(0, public_input.size() - 1, false, var::column_type::public_input);
 
                 if (KimchiParamsType::circuit_params::lookup_runtime) {
                     public_input.push_back(original_proofs[split_idx].evals[point_idx].lookup.runtime[0]);
-                    circuit_proofs[point_idx].proof_evals[split_idx].lookup.runtime = 
+                    circuit_proofs[point_idx].proof_evals[split_idx].lookup.runtime =
                         var(0, public_input.size() - 1, false, var::column_type::public_input);
                 }
             }
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
     constexpr static std::size_t public_input_size = 3;
-    constexpr static std::size_t max_poly_size = 32;
+    constexpr static std::size_t max_poly_size = 16;
     constexpr static std::size_t eval_rounds = 5;
 
     constexpr static std::size_t witness_columns = 15;
@@ -143,20 +143,20 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
     constexpr static const std::size_t prev_chal_size = 1;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
 
-    const std::size_t split_size = 2;
-
     using component_type =
-        zk::components::evals_of_split_evals<ArithmetizationType, kimchi_params, split_size, 0, 1, 2, 3, 4,
-                                       5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+        zk::components::evals_of_split_evals<ArithmetizationType, kimchi_params, 0, 1, 2, 3, 4,
+                                             5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    std::array<zk::snark::proof_type<curve_type>, 2> kimchi_proofs = {
-        test_proof(),  test_proof_generic() 
+    std::size_t split_size = kimchi_params::split_size;
+
+    std::array<zk::snark::proof_type<curve_type>, kimchi_params::eval_points_amount> kimchi_proofs = {
+        test_proof(), test_proof_generic()
     };
 
     typename BlueprintFieldType::value_type zeta_val =
@@ -164,21 +164,23 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
     typename BlueprintFieldType::value_type zetaw_val =
         0x0000000000000000000000000000000005321CB83A4BCD5C63F489B5BF95A8DC_cppui256;
 
-    std::array<zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds>, 2> proofs;
+    std::array<zk::components::kimchi_proof_scalar<BlueprintFieldType, kimchi_params, eval_rounds>,
+               kimchi_params::eval_points_amount> proofs;
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {zeta_val, zetaw_val};
 
     var zeta(0, 0, false, var::column_type::public_input);
     var zetaw(0, 1, false, var::column_type::public_input);
 
-    prepare_proofs<curve_type, BlueprintFieldType, kimchi_params, eval_rounds, split_size>(
-        kimchi_proofs, proofs, public_input);
+    prepare_proofs<curve_type, BlueprintFieldType, kimchi_params, eval_rounds>(kimchi_proofs, proofs, public_input);
 
     typename component_type::params_type params;
-    params.split_evals = {proofs[0].proof_evals, proofs[1].proof_evals};
+    //params.split_evals = {proofs[0].proof_evals, proofs[1].proof_evals};
+    params.split_evals[0] = proofs[0].proof_evals;
+    params.split_evals[1] = proofs[1].proof_evals;
     params.points = {zeta, zetaw};
 
-    auto result_check = [&kimchi_proofs, &zeta_val, &zetaw_val]
+    auto result_check = [&kimchi_proofs, &zeta_val, &zetaw_val, split_size]
             (AssignmentType &assignment, component_type::result_type &real_res) {
         std::array<typename BlueprintFieldType::value_type, kimchi_params::eval_points_amount> pows = {
             algebra::fields::detail::power(zeta_val, 1 << eval_rounds),
@@ -187,7 +189,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
         for (std::size_t i = 0; i < kimchi_params::eval_points_amount; i++) {
             // w
             typename BlueprintFieldType::value_type acc = 0;
-            for (std::size_t k = 0; k < kimchi_proofs[0].evals[i].w.size(); k++) { 
+            for (std::size_t k = 0; k < kimchi_proofs[0].evals[i].w.size(); k++) {
                 acc = 0;
                 for (std::size_t j = 0; j < split_size; j++) {
                     acc = kimchi_proofs[j].evals[i].w[k][0] + acc * pows[i];
@@ -201,7 +203,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
             }
             assert(acc == assignment.var_value(real_res.output[i].z));
             // s
-            for (std::size_t k = 0; k < kimchi_proofs[0].evals[i].s.size(); k++) { 
+            for (std::size_t k = 0; k < kimchi_proofs[0].evals[i].s.size(); k++) {
                 acc = 0;
                 for (std::size_t j = 0; j < split_size; j++) {
                     acc = kimchi_proofs[j].evals[i].s[k][0] + acc * pows[i];
@@ -210,7 +212,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_evals_of_s
             }
             // lookup
             if (kimchi_params::use_lookup) {
-                for (std::size_t k = 0; k < kimchi_proofs[0].evals[i].lookup.sorted.size(); k++) { 
+                for (std::size_t k = 0; k < kimchi_proofs[0].evals[i].lookup.sorted.size(); k++) {
                     acc = 0;
                     for (std::size_t j = 0; j < split_size; j++) {
                         acc = kimchi_proofs[j].evals[i].lookup.sorted[k][0] + acc * pows[i];

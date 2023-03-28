@@ -90,9 +90,13 @@ namespace nil {
 
                     using endo_params = endo_scalar_params<CurveType>;
 
+                    constexpr static const std::size_t crumbs_per_row = 8;
+                    constexpr static const std::size_t bits_per_crumb = 2;
+                    constexpr static const std::size_t bits_per_row =
+                        bits_per_crumb * crumbs_per_row;    // we suppose that ScalarSize % bits_per_row = 0
                 public:
                     constexpr static const std::size_t selector_seed = 0x0f00;
-                    constexpr static const std::size_t rows_amount = 8;
+                    constexpr static const std::size_t rows_amount = ScalarSize / bits_per_row;
                     constexpr static const std::size_t gates_amount = 2;
 
                     constexpr static const typename BlueprintFieldType::value_type endo_r = endo_params::endo_r;
@@ -103,7 +107,7 @@ namespace nil {
                     };
 
                     struct result_type {
-                        var output = var(0, 0, false);
+                        var output;
                         result_type(const params_type &params, std::size_t start_row_index) {
                             output = var(W6, start_row_index + rows_amount - 1, false, var::column_type::witness);
                         }
@@ -139,11 +143,6 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        const std::size_t crumbs_per_row = 8;
-                        const std::size_t bits_per_crumb = 2;
-                        const std::size_t bits_per_row =
-                            bits_per_crumb * crumbs_per_row;    // we suppose that ScalarSize % bits_per_row = 0
-
                         typename BlueprintFieldType::value_type scalar = assignment.var_value(params.scalar);
                         typename BlueprintFieldType::integral_type integral_scalar =
                             typename BlueprintFieldType::integral_type(scalar.data);
@@ -158,7 +157,7 @@ namespace nil {
                             assert(status == nil::marshalling::status_type::success);
 
                             std::copy(bits_msb_all.end() - ScalarSize, bits_msb_all.end(), bits_msb.begin());
-                            
+
                             for(std::size_t i = 0; i < 255 - ScalarSize; ++i) {
                                 assert(bits_msb_all[i] == false);
                             }

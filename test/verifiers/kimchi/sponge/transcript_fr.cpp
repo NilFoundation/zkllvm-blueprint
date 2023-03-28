@@ -38,7 +38,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_params.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/kimchi_commitment_params.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/proof_system/circuit_description.hpp>
-#include "verifiers/kimchi/index_terms_instances/recursion_test.hpp"
+#include "verifiers/kimchi/index_terms_instances/recursion_index_terms.hpp"
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 //     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size,
 //             srs_len>;
-//     using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+//     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
 
 //     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
 //         witness_columns, perm_size>;
@@ -160,15 +160,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_transcript_1) {
                             var(0, 4, false, var::column_type::public_input)};
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
-    std::vector<typename BlueprintFieldType::value_type> public_input = {0, 0x38C5D08C61572A0F233A3732575F3A07AD484107EC7366FEB0903FCC30253C1A_cppui256,
-                                                                        0x2C1E20B5D662CE38070228313FD0D968116779CC3CD2FFF662707412EEBD04C7_cppui256,
-                                                                        0x2A016E5F91F6C33552FC86A7A88C034E5CF1301E4982545A15AB709ECE150E09_cppui256,
-                                                                        0x1D1B8F16A3DF52F90BA4856A11D397FDD175DEBBDC84F9D9FD71C46E5CB311CC_cppui256,};
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        0, 
+        0x38C5D08C61572A0F233A3732575F3A07AD484107EC7366FEB0903FCC30253C1A_cppui256,
+        0x2C1E20B5D662CE38070228313FD0D968116779CC3CD2FFF662707412EEBD04C7_cppui256,
+        0x2A016E5F91F6C33552FC86A7A88C034E5CF1301E4982545A15AB709ECE150E09_cppui256,
+        0x1D1B8F16A3DF52F90BA4856A11D397FDD175DEBBDC84F9D9FD71C46E5CB311CC_cppui256,
+    };
     assert(public_input.size() == input.size() + 1);
     typename BlueprintFieldType::value_type squeezed = 0;
     std::array<typename BlueprintFieldType::value_type, component_type::state_size> state = {0x26555890DED4608F1784FA12097118D174CAA2778607E4B7A1430EDC247C96B1_cppui256,
-                                                                                            0x0A4D29BDF3B953B147E66E9CFFE0E3E8148320C9DC0112EAB43139FB9A86B128_cppui256,
-                                                                                            0x0D75665FBACB493BD0A43E265D4A6E71E7F5BCE7FCB7F27E497F62FEDFA7E9FE_cppui256};
+     0x0A4D29BDF3B953B147E66E9CFFE0E3E8148320C9DC0112EAB43139FB9A86B128_cppui256,
+     0x0D75665FBACB493BD0A43E265D4A6E71E7F5BCE7FCB7F27E497F62FEDFA7E9FE_cppui256};
     auto result_check = [&squeezed, &state](AssignmentType &assignment, 
         component_type::result_type &real_res) {
         // assert(squeezed == assignment.var_value(real_res.squeezed));

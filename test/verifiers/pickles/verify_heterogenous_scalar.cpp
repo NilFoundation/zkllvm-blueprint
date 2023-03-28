@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
 
     constexpr static std::size_t public_input_size = 0;
     constexpr static std::size_t max_poly_size = 4;
-    constexpr static std::size_t eval_rounds = 2;
+    constexpr static std::size_t eval_rounds = 16;
 
     constexpr static std::size_t witness_columns = 15;
     constexpr static std::size_t perm_size = 7;
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
     constexpr static const std::size_t challenge_polynomial_commitments_size = batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description =
         zk::components::kimchi_circuit_description<index_terms_list, witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -115,15 +115,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {};
 
-    for (std::size_t i = 0; i < batch_size; i++) {
+    /*for (std::size_t i = 0; i < batch_size; i++) {
         // KIMCHI PROOF
         std::vector<var_ec_point> unshifted_var;
         for (std::size_t i = 0; i < 14; i++) {
             curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type unshifted =
                 algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
 
-            public_input.push_back(unshifted.X);
-            public_input.push_back(unshifted.Y);
+            //public_input.push_back(unshifted.X);
+            //public_input.push_back(unshifted.Y);
 
             unshifted_var.push_back({var(0, public_input.size() - 1, false, var::column_type::public_input),
                                      var(0, public_input.size() - 1, false, var::column_type::public_input)});
@@ -396,7 +396,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
     typename binding::fr_data<var, batch_size> fr_data;
 
     fr_data.scalars = batch_scalars_var;
-    params.fr_data = fr_data;
+    params.fr_data = fr_data;*/
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 

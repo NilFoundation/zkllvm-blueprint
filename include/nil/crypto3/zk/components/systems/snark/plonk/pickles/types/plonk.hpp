@@ -53,6 +53,7 @@ namespace nil {
                     var beta;
                     var gamma;
                     var zeta;
+                    // option
                     var joint_combiner;
                 };
 

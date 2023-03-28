@@ -42,6 +42,7 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
 #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
+#include <nil/crypto3/math/algorithms/unity_root.hpp>
 
 #include "test_plonk_component.hpp"
 
@@ -54,7 +55,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
-    constexpr std::size_t PublicInputColumns = 2;
+    // overpad input to avoid memory corruption bug; please remove when fixed
+    constexpr std::size_t PublicInputColumns = 10;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 2;
     using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
@@ -71,15 +73,17 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
-    
+
     typename BlueprintFieldType::value_type challenge = 0x00000000000000000000000000000000FC93536CAE0C612C18FBE5F6D8E8EEF2_cppui255;
     typename BlueprintFieldType::value_type result = 0x004638173549A4C55A118327904B54E5F6F6314225C8C862F5AFA2506C77AC65_cppui255;
 
     var challenge_var = {0, 0, false, var::column_type::public_input};
     typename component_type::params_type params = {challenge_var};
-    std::vector<typename BlueprintFieldType::value_type> public_input = {challenge};
-    std::cout<<"Expected result: "<<result.data<<std::endl;
-    auto result_check = [&result](AssignmentType &assignment, 
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge
+    };
+    std::cout << "Expected result: " << result.data << std::endl;
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.output));
     };

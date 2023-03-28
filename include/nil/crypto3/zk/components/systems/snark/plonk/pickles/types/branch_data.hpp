@@ -42,11 +42,11 @@ namespace nil {
                 struct branch_data_type {
                     using var = snark::plonk_variable<FieldType>;
 
-                    /*enum proofs_verified_type {
+                    enum proofs_verified_type {
                         N0, N1, N2
                     };
 
-                    proofs_verified_type proofs_verified;*/
+                    proofs_verified_type proofs_verified;
                     std::size_t domain_log2;
                 };
             }    // namespace components

@@ -102,7 +102,6 @@ namespace nil {
 
                     struct params_type {
                         plonk_min plonk;
-                        var srs_length_log2;
 
                         var group_gen;
                         std::size_t domain_size_log2;
@@ -117,7 +116,6 @@ namespace nil {
                             output.domain_generator = params.group_gen;
                             output.domain_size_log2 = params.domain_size_log2;
                             output.domain_size = 1 << params.domain_size_log2;
-                            output.srs_length_log2 = params.srs_length_log2;
 
                             output.alphas = typename alpha_powers_component::result_type({params.plonk.alpha}, row).output;
                             row += alpha_powers_component::rows_amount;

@@ -35,7 +35,7 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
+#include <nil/crypto3/zk/components/algebra/fields/plonk/element_powers.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/lagrange_denominators.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/public_evaluations.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/prev_chal_evals.hpp>
@@ -96,11 +96,13 @@ namespace nil {
                                                        W10, W11, W12, W13, W14>;
                     using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
                     
-                    using alpha_powers_component = zk::components::element_powers<ArithmetizationType, KimchiParamsType::alpha_powers_n, W0, W1, W2, W3,
-                                                                          W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                    using alpha_powers_component = zk::components::element_powers<ArithmetizationType, BlueprintFieldType,
+                        KimchiParamsType::alpha_powers_n,
+                        W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
-                    using pi_powers_component = zk::components::element_powers<ArithmetizationType, KimchiParamsType::public_input_size, W0, W1, W2, W3,
-                                                                          W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                    using pi_powers_component = zk::components::element_powers<ArithmetizationType, BlueprintFieldType, 
+                        KimchiParamsType::public_input_size, 
+                        W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using lagrange_denominators_component =
                         zk::components::lagrange_denominators<ArithmetizationType, KimchiParamsType::public_input_size,
@@ -320,7 +322,7 @@ namespace nil {
                         row += exponentiation_component::rows_amount;
 
                         std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers =
-                            alpha_powers_component::generate_circuit(bp, assignment, {alpha, one}, row).output;
+                            alpha_powers_component::generate_circuit(bp, assignment, {alpha}, row).output;
                         row += alpha_powers_component::rows_amount;
 
                         std::array<var, eval_points_amount> public_eval;
@@ -330,7 +332,7 @@ namespace nil {
                         if (KimchiParamsType::public_input_size) {
                             std::array<var, KimchiParamsType::public_input_size> omega_powers =
                                 pi_powers_component::generate_circuit(bp, assignment, 
-                                {params.verifier_index.omega, one}, row).output;
+                                {params.verifier_index.omega}, row).output;
                             row += pi_powers_component::rows_amount;
 
                             std::array<var, eval_points_amount * KimchiParamsType::public_input_size> lagrange_denominators =
@@ -499,7 +501,7 @@ namespace nil {
                         row += exponentiation_component::rows_amount;
 
                         std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers =
-                            alpha_powers_component::generate_assignments(assignment, {alpha, one}, row).output;
+                            alpha_powers_component::generate_assignments(assignment, {alpha}, row).output;
                         row += alpha_powers_component::rows_amount;
 
                         std::array<var, eval_points_amount> public_eval;
@@ -509,7 +511,7 @@ namespace nil {
                         if (KimchiParamsType::public_input_size) {
                             std::array<var, KimchiParamsType::public_input_size> omega_powers =
                                 pi_powers_component::generate_assignments(assignment, 
-                                {params.verifier_index.omega, one}, row).output;
+                                {params.verifier_index.omega}, row).output;
                             row += pi_powers_component::rows_amount;
 
                             std::array<var, eval_points_amount * KimchiParamsType::public_input_size> lagrange_denominators = 

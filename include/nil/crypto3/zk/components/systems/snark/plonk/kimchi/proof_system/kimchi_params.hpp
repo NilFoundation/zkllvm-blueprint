@@ -59,6 +59,7 @@ namespace nil {
 
                     constexpr static std::size_t eval_points_amount = 2;
                     constexpr static std::size_t scalar_challenge_size = 128;
+                    constexpr static std::size_t split_size = commitment_params_type::split_poly_eval_size;
 
                     constexpr static std::size_t prev_challenges_size = PrevChalSize;
 

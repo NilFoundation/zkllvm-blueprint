@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Ilia Shirobokov <i.shirobokov@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -32,9 +33,11 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/component.hpp>
 
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/proof.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/verification_key.hpp>
+
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
-
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/statement.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/app_state.hpp>
 
@@ -42,8 +45,6 @@ namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
-
-                // TODO: link
                 // https://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/verify.ml#L10
                 template<typename BlueprintFieldType, typename CurveType, typename KimchiParamsType>
                 struct instance_type {
@@ -52,16 +53,32 @@ namespace nil {
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
                     using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;
-                    using proof_type = kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, KimchiParamsType::commitment_params_type::eval_rounds>;
-
+                    using proof_type = typename zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType,
+                    KimchiParamsType::commitment_params_type::eval_rounds>;
                     public:
 
                     proof_type kimchi_proof;
                     verifier_index_type verifier_index;
                     app_state_type<BlueprintFieldType> app_state;
+                    // actually, this is a statement from proof
+                    // the actual statement (as in Mina) is likely unused
+                    // the only use I've found is calling to_field_elements function from it on app_state
                     statement_type<BlueprintFieldType> statement;
 
                     std::vector<var_ec_point> comms;
+                };
+
+                template<typename BlueprintFieldType, typename KimchiParamsType>
+                struct instance_type_t {
+                    private:
+                    using proof_type = proof_type<BlueprintFieldType, KimchiParamsType>;
+                    using verification_key_type = verification_key_type<BlueprintFieldType, KimchiParamsType>;
+                    // we don't keep max_proofs_verified; that might be required, but currently is not
+                    // statement from mina instance is mostly unused: afaik a function from it is called on app_state
+                    public:
+                    // unsure of app_state type
+                    proof_type proof;
+                    verification_key_type verification_key;
                 };
             }    // namespace components
         }        // namespace zk

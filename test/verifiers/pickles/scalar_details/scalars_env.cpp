@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr static std::size_t public_input_size = 3;
+    constexpr static std::size_t public_input_size = 1;
     constexpr static std::size_t max_poly_size = 32;
     constexpr static std::size_t eval_rounds = 5;
 
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
     constexpr static const std::size_t prev_chal_size = 0;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description =
         zk::components::kimchi_circuit_description<index_terms_list, WitnessColumns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
@@ -95,7 +95,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
     typename BlueprintFieldType::value_type gamma = algebra::random_element<BlueprintFieldType>();
     typename BlueprintFieldType::value_type zeta = algebra::random_element<BlueprintFieldType>();
     typename BlueprintFieldType::value_type joint_combiner = algebra::random_element<BlueprintFieldType>();
-    typename BlueprintFieldType::value_type srs_length_log2 = algebra::random_element<BlueprintFieldType>();
     std::size_t domain_size_log2 = 8;
     std::size_t domain_size = 1 << domain_size_log2;
     typename BlueprintFieldType::value_type group_gen_pow = group_gen.pow(domain_size - 3);
@@ -109,7 +108,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
         gamma,
         zeta,
         joint_combiner,
-        srs_length_log2, group_gen};
+        group_gen
+    };
 
     typename component_type::params_type params = {
         {
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
             var(0, 3, false, var::column_type::public_input),
             var(0, 4, false, var::column_type::public_input)
         },
-        var(0, 5, false, var::column_type::public_input), var(0, 6, false, var::column_type::public_input),
+        var(0, 5, false, var::column_type::public_input),
         domain_size_log2
     };
 
@@ -136,16 +136,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_scalars_env) {
         expected_powers[i] = last_value;
     }
 
-    typename BlueprintFieldType::value_type two = 2;
     typename BlueprintFieldType::value_type expected_zeta_to_n_minus_1 = power(zeta, domain_size) - 1;
 
-    auto result_check = [&expected_powers, &srs_length_log2, &group_gen, 
+    auto result_check = [&expected_powers, &group_gen, 
                          &expected_zeta_to_n_minus_1, &expected_poly,
                          domain_size](AssignmentType &assignment,
         component_type::result_type &real_res) {
-
         assert(expected_zeta_to_n_minus_1 == assignment.var_value(real_res.output.zeta_to_n_minus_1));
-        assert(srs_length_log2 == assignment.var_value(real_res.output.srs_length_log2));
         assert(expected_poly == assignment.var_value(real_res.output.zk_polynomial));
         assert(group_gen == assignment.var_value(real_res.output.domain_generator));
         assert(domain_size == real_res.output.domain_size);

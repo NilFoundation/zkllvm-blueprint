@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_a
     constexpr const std::size_t num_points = 3;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_ec_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
