@@ -28,12 +28,12 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <nil/crypto3/algebra/curves/vesta.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/vesta.hpp>
 #include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
-#include <nil/crypto3/algebra/random_element.hpp>
+#include <nil/crypto3/random/algebraic_engine.hpp>
 
-#include <nil/crypto3/hash/algorithm/hash.hpp>
-#include <nil/crypto3/hash/sha2.hpp>
 #include <nil/crypto3/hash/keccak.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
@@ -42,16 +42,9 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/components/algebra/curves/pasta/plonk/unified_addition.hpp>
 
-#include <nil/blueprint_mc/blueprint/plonk.hpp>
-#include <nil/blueprint_mc/assignment/plonk.hpp>
-#include <nil/blueprint_mc/components/algebra/curves/pasta/plonk/unified_addition.hpp>
-
 #include "../../../test_plonk_component.hpp"
-#include "../../../test_plonk_component_mc.hpp"
 
 using namespace nil;
-
-BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 template <typename CurveType>
 void test_unified_addition(std::vector<typename CurveType::base_field_type::value_type> public_input,
@@ -79,8 +72,15 @@ void test_unified_addition(std::vector<typename CurveType::base_field_type::valu
         {var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)},
         {var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input)}};
 
-    auto result_check = [&expected_res](AssignmentType &assignment, 
+    auto result_check = [&expected_res, public_input](AssignmentType &assignment, 
         typename component_type::result_type &real_res) {
+        #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "unified_addition test: " << "\n";
+        std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n"; 
+        std::cout << "input   : " << public_input[2].data << " " << public_input[3].data << "\n"; 
+        std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
+        std::cout << "real    : " << var_value(assignment, real_res.X).data << " " << var_value(assignment, real_res.Y).data << "\n\n";
+        #endif
         assert(expected_res.X == var_value(assignment, real_res.X));
         assert(expected_res.Y == var_value(assignment, real_res.Y));
     };
@@ -91,155 +91,105 @@ void test_unified_addition(std::vector<typename CurveType::base_field_type::valu
         component_instance, public_input, result_check, instance_input);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_double) {
+template<typename CurveType>
+void test_unified_addition_with_zeroes() {
+    nil::crypto3::random::algebraic_engine<typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>> generate_random_point;
+    boost::random::mt19937 seed_seq;
+    generate_random_point.seed(seed_seq);
 
-    using curve_type = crypto3::algebra::curves::pallas;
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_algebraic = {0, 1};
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_circuits  = {0, 0};
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = generate_random_point();
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type Q = -P;
 
-    auto P = crypto3::algebra::random_element<curve_type::template g1_type<>>().to_affine();
-    auto Q(P);
+    std::vector<typename CurveType::base_field_type::value_type> public_input;
 
-    std::vector<typename curve_type::base_field_type::value_type> public_input = {P.X, P.Y, Q.X, Q.Y};
-    typename curve_type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type expected_res = P + Q;
+    public_input = {zero_circuits.X, zero_circuits.Y, zero_circuits.X, zero_circuits.Y};
+    test_unified_addition<CurveType>(public_input, zero_circuits);
 
-    test_unified_addition<curve_type>(public_input, expected_res);
+    public_input = {zero_circuits.X, zero_circuits.Y, P.X, P.Y};
+    test_unified_addition<CurveType>(public_input, P);
+
+    public_input = {P.X, P.Y, zero_circuits.X, zero_circuits.Y};
+    test_unified_addition<CurveType>(public_input, P);
+
+    public_input = {P.X, P.Y, Q.X, Q.Y};
+    test_unified_addition<CurveType>(public_input, zero_circuits);
+
+    public_input = {Q.X, Q.Y, P.X, P.Y};
+    test_unified_addition<CurveType>(public_input, zero_circuits);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
+template<typename CurveType>
+void test_unified_addition_doubling() {
+    nil::crypto3::random::algebraic_engine<typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>> generate_random_point;
+    boost::random::mt19937 seed_seq;
+    generate_random_point.seed(seed_seq);
 
-    using curve_type = crypto3::algebra::curves::pallas;
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = generate_random_point();
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type Q(P);
 
-    auto P = crypto3::algebra::random_element<curve_type::template g1_type<>>().to_affine();
-    auto Q = crypto3::algebra::random_element<curve_type::template g1_type<>>().to_affine();
-    typename curve_type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type zero = {0, 0};
-    typename curve_type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type expected_res;
-    P.X = Q.X;
-    P.Y = -Q.Y;
-    if (Q.X == zero.X && Q.Y == zero.Y) {
-        expected_res = P;
-    } else {
-        if (P.X == zero.X && P.Y == zero.Y) {
-            expected_res = Q;
+    std::vector<typename CurveType::base_field_type::value_type> public_input;
+
+    public_input = {P.X, P.Y, Q.X, Q.Y};
+    test_unified_addition<CurveType>(public_input, P+Q);
+
+    public_input = {Q.X, Q.Y, P.X, P.Y};
+    test_unified_addition<CurveType>(public_input, P+Q);
+}
+
+template<typename CurveType, std::size_t RandomTestsAmount>
+void test_unified_addition_random_data() {
+    nil::crypto3::random::algebraic_engine<typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>> generate_random_point;
+    boost::random::mt19937 seed_seq;
+    generate_random_point.seed(seed_seq);
+
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = generate_random_point();
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type Q = generate_random_point();
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero = {0, 0};
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type expected_res;
+
+    std::vector<typename CurveType::base_field_type::value_type> public_input;
+
+    for (std::size_t i = 0; i < RandomTestsAmount; i++){
+        P = generate_random_point();
+        Q = generate_random_point();
+        
+        if (Q.X == zero.X && Q.Y == zero.Y) {
+            expected_res = P;
         } else {
-            if (P.X == Q.X && P.Y == -Q.Y) {
-                expected_res = {0, 0};
+            if (P.X == zero.X && P.Y == zero.Y) {
+                expected_res = Q;
             } else {
-                expected_res = P + Q;
+                if (P.X == Q.X && P.Y == -Q.Y) {
+                    expected_res = {0, 0};
+                } else {
+                    expected_res = P + Q;
+                }
             }
         }
+
+        public_input = {P.X, P.Y, Q.X, Q.Y};
+        test_unified_addition<CurveType>(public_input, expected_res);
     }
-
-    std::vector<typename curve_type::base_field_type::value_type> public_input = {P.X, P.Y, Q.X, Q.Y};
-
-    test_unified_addition<curve_type>(public_input, expected_res);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+constexpr static const std::size_t random_tests_amount = 10;
 
-BOOST_AUTO_TEST_SUITE(blueprint_mc_plonk_test_suite)
+BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-using namespace nil::crypto3;
-BOOST_AUTO_TEST_CASE(blueprint_mc_plonk_unified_addition_double) {
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    using curve_type = algebra::curves::pallas;
-    using BlueprintFieldType = typename curve_type::base_field_type;
-    constexpr std::size_t WitnessColumns = 11;
-    constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
-    using ArithmetizationParams =
-        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
-    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-    constexpr std::size_t Lambda = 40;
-
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
-
-    using component_type = nil::blueprint_mc::components::curve_element_unified_addition<ArithmetizationType, curve_type, 0, 1, 2, 3,
-                                                                          4, 5, 6, 7, 8, 9, 10>;
-
-    auto P = algebra::random_element<curve_type::template g1_type<>>().to_affine();
-    auto Q(P);
-
-    typename component_type::params_type params = {
-        {var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)},
-        {var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input)}};
-
-    std::vector<typename BlueprintFieldType::value_type> public_input = {P.X, P.Y, Q.X, Q.Y};
-
-    typename curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type expected_res = P + Q;
-
-    auto result_check = [&expected_res](AssignmentType &assignment, 
-        component_type::result_type &real_res) {
-        assert(expected_res.X == assignment.var_value(real_res.X));
-        assert(expected_res.Y == assignment.var_value(real_res.Y));
-    };
-
-    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
-
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-    std::cout << "unified_addition: " << duration.count() << "ms" << std::endl;
+BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_pallas) {
+    using curve_type = crypto3::algebra::curves::pallas;
+    test_unified_addition_with_zeroes<curve_type>();
+    test_unified_addition_doubling<curve_type>();
+    test_unified_addition_random_data<curve_type, random_tests_amount>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_mc_plonk_unified_addition_addition) {
-    auto start = std::chrono::high_resolution_clock::now();
-
-    using curve_type = algebra::curves::pallas;
-    using BlueprintFieldType = typename curve_type::base_field_type;
-    constexpr std::size_t WitnessColumns = 11;
-    constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 1;
-    using ArithmetizationParams =
-        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
-    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-    constexpr std::size_t Lambda = 40;
-
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
-
-    using component_type = nil::blueprint_mc::components::curve_element_unified_addition<ArithmetizationType, curve_type, 0, 1, 2, 3,
-                                                                          4, 5, 6, 7, 8, 9, 10>;
-
-    auto P = algebra::random_element<curve_type::template g1_type<>>().to_affine();
-    auto Q = algebra::random_element<curve_type::template g1_type<>>().to_affine();
-    typename curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type zero = {0, 0};
-    typename curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type expected_res;
-    P.X = Q.X;
-    P.Y = -Q.Y;
-    if (Q.X == zero.X && Q.Y == zero.Y) {
-        expected_res = P;
-    } else {
-        if (P.X == zero.X && P.Y == zero.Y) {
-            expected_res = Q;
-        } else {
-            if (P.X == Q.X && P.Y == -Q.Y) {
-                expected_res = {0, 0};
-            } else {
-                expected_res = P + Q;
-            }
-        }
-    }
-    typename component_type::params_type params = {
-        {var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)},
-        {var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input)}};
-
-    std::vector<typename BlueprintFieldType::value_type> public_input = {P.X, P.Y, Q.X, Q.Y};
-
-    auto result_check = [&expected_res](AssignmentType &assignment, 
-        component_type::result_type &real_res) {
-        assert(expected_res.X == assignment.var_value(real_res.X));
-        assert(expected_res.Y == assignment.var_value(real_res.Y));
-    };
-
-    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
-
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-    std::cout << "unified_addition: " << duration.count() << "ms" << std::endl;
+BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_vesta) {
+    using curve_type = crypto3::algebra::curves::vesta;
+    test_unified_addition_with_zeroes<curve_type>();
+    test_unified_addition_doubling<curve_type>();
+    test_unified_addition_random_data<curve_type, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
