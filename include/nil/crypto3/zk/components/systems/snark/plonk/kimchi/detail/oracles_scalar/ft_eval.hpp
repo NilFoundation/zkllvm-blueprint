@@ -141,7 +141,7 @@ namespace nil {
                     constexpr static const std::size_t gates_amount = 0;
 
                     struct params_type {
-                        verifier_index_type &verifier_index;
+                        verifier_index_type verifier_index;
                         std::array<var, KimchiParamsType::alpha_powers_n> alpha_powers;
                         std::array<kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>, eval_points_amount>
                             combined_evals;
@@ -151,6 +151,8 @@ namespace nil {
                         var zeta_pow_n;
                         var joint_combiner;
                         std::array<var, eval_points_amount> public_eval;
+
+                        params_type() {}
                     };
 
                     struct result_type {
@@ -184,7 +186,7 @@ namespace nil {
                         row += zkpm_eval_component::rows_amount;
 
                         // zeta1m1 = zeta_pow_n - ScalarField::<G>::one();
-                        var zeta1m1 = zk::components::generate_circuit<sub_component>(bp, 
+                        var zeta1m1 = zk::components::generate_circuit<sub_component>(bp,
                             assignment, {params.zeta_pow_n, one}, row).output;
                         row += sub_component::rows_amount;
 
@@ -203,7 +205,7 @@ namespace nil {
                                 {params.combined_evals[0].w[KimchiParamsType::permut_size - 1], params.gamma}, row)
                                 .output;
                         row += add_component::rows_amount;
-                        init  = zk::components::generate_circuit<mul_component>(bp, 
+                        init  = zk::components::generate_circuit<mul_component>(bp,
                             assignment, {init, params.combined_evals[1].z}, row).output;
                         row += mul_component::rows_amount;
                         init =
@@ -242,7 +244,7 @@ namespace nil {
 
                         // ft_eval0 - p_eval[0]
                         if (KimchiParamsType::public_input_size > 0) {
-                            ft_eval0 = zk::components::generate_circuit<sub_component>(bp, 
+                            ft_eval0 = zk::components::generate_circuit<sub_component>(bp,
                                 assignment, {ft_eval0, params.public_eval[0]}, row).output;
                             row += sub_component::rows_amount;
                         }

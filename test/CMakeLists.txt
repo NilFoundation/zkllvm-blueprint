@@ -126,7 +126,7 @@ set(PLONK_TESTS_FILES
     "algebra/fields/plonk/sqrt"
     "algebra/fields/plonk/range_check"
     "verifiers/pickles/scalar_details/derive_plonk"
-    "verifiers/pickles/scalar_details/plonk_map_fields"
+    "verifiers/pickles/scalar_details/combine"
     "verifiers/pickles/verify_heterogenous_scalar"
     "verifiers/pickles/verify_heterogenous_base"
     "verifiers/pickles/base_details/batch_dlog_accumulator_check_base"
@@ -183,7 +183,7 @@ set(BASIC_COMPONENTS_TESTS_FILES
     "basic_components"
     "basic_components_r1cs_gg_ppzksnark")
 
-SET(ALGEBRA_TESTS_FILES 
+SET(ALGEBRA_TESTS_FILES
     ${FIELDS_TESTS_FILES}
     ${CURVES_TESTS_FILES}
     ${PAIRING_TESTS_FILES})

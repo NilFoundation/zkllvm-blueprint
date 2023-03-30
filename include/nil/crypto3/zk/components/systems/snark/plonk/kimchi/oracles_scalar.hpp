@@ -95,13 +95,13 @@ namespace nil {
                         zk::components::exponentiation<ArithmetizationType, 255, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
                                                        W10, W11, W12, W13, W14>;
                     using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
-                    
+
                     using alpha_powers_component = zk::components::element_powers<ArithmetizationType, BlueprintFieldType,
                         KimchiParamsType::alpha_powers_n,
                         W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
-                    using pi_powers_component = zk::components::element_powers<ArithmetizationType, BlueprintFieldType, 
-                        KimchiParamsType::public_input_size, 
+                    using pi_powers_component = zk::components::element_powers<ArithmetizationType, BlueprintFieldType,
+                        KimchiParamsType::public_input_size,
                         W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using lagrange_denominators_component =
@@ -278,8 +278,8 @@ namespace nil {
 
                         var beta = params.fq_output.beta;
                         var gamma = params.fq_output.gamma;
-                        
-                        var joint_combiner; 
+
+                        var joint_combiner;
                         if (KimchiParamsType::circuit_params::use_lookup &&
                             KimchiParamsType::circuit_params::joint_lookup) {
                             joint_combiner = endo_scalar_component::generate_circuit(
@@ -331,7 +331,7 @@ namespace nil {
                         }
                         if (KimchiParamsType::public_input_size) {
                             std::array<var, KimchiParamsType::public_input_size> omega_powers =
-                                pi_powers_component::generate_circuit(bp, assignment, 
+                                pi_powers_component::generate_circuit(bp, assignment,
                                 {params.verifier_index.omega}, row).output;
                             row += pi_powers_component::rows_amount;
 
@@ -346,9 +346,9 @@ namespace nil {
                                 pi[i] = params.proof.public_input[i];
                             }
                             public_eval = public_eval_component::generate_circuit(bp,
-                                assignment, {zeta_pow_n, zeta_omega_pow_n, 
+                                assignment, {zeta_pow_n, zeta_omega_pow_n,
                                             pi,
-                                            lagrange_denominators, 
+                                            lagrange_denominators,
                                             omega_powers,
                                             domain_size, one, zero}, row).output;
                             row += public_eval_component::rows_amount;
@@ -384,7 +384,7 @@ namespace nil {
                                 .output;
                         row += exponentiation_component::rows_amount;
 
-                        
+
                         std::vector<prev_chal_output> prev_challenges_evals;
 
                         for (std::size_t i = 0; i < KimchiParamsType::prev_challenges_size; i++) {
@@ -392,16 +392,16 @@ namespace nil {
                                 params.proof.prev_challenges[i];
                             prev_challenges_evals.push_back(
                                     prev_chal_evals_component::generate_circuit(bp, assignment,
-                                    {prev_challenges, 
+                                    {prev_challenges,
                                     {{zeta, zeta_omega}},
-                                    powers_of_eval_points_for_chunks, 
+                                    powers_of_eval_points_for_chunks,
                                     one, zero}, row).output);
                             row += prev_chal_evals_component::rows_amount;
                         }
 
                         var ft_eval0 = ft_eval_component::generate_circuit(
                             bp,
-                            assignment, 
+                            assignment,
                             {params.verifier_index,
                             alpha_powers,
                             params.proof.proof_evals,
@@ -510,11 +510,11 @@ namespace nil {
                         }
                         if (KimchiParamsType::public_input_size) {
                             std::array<var, KimchiParamsType::public_input_size> omega_powers =
-                                pi_powers_component::generate_assignments(assignment, 
+                                pi_powers_component::generate_assignments(assignment,
                                 {params.verifier_index.omega}, row).output;
                             row += pi_powers_component::rows_amount;
 
-                            std::array<var, eval_points_amount * KimchiParamsType::public_input_size> lagrange_denominators = 
+                            std::array<var, eval_points_amount * KimchiParamsType::public_input_size> lagrange_denominators =
                                         lagrange_denominators_component::generate_assignments(assignment,
                                         {zeta, zeta_omega, omega_powers, one}, row).output;
                             row += lagrange_denominators_component::rows_amount;
@@ -525,9 +525,9 @@ namespace nil {
                             }
 
                             public_eval = public_eval_component::generate_assignments(
-                                assignment, {zeta_pow_n, zeta_omega_pow_n, 
+                                assignment, {zeta_pow_n, zeta_omega_pow_n,
                                             pi,
-                                            lagrange_denominators, 
+                                            lagrange_denominators,
                                             omega_powers,
                                             domain_size, one, zero}, row).output;
                             row += public_eval_component::rows_amount;
@@ -535,7 +535,7 @@ namespace nil {
                         transcript.absorb_evaluations_assignment(
                             assignment, public_eval[0], params.proof.proof_evals[0], row);
                         row += transcript_type::absorb_evaluations_rows;
-                        
+
                         transcript.absorb_evaluations_assignment(
                              assignment, public_eval[1], params.proof.proof_evals[1], row);
                         row += transcript_type::absorb_evaluations_rows;
@@ -572,15 +572,15 @@ namespace nil {
                                 params.proof.prev_challenges[i];
                             prev_challenges_evals.push_back(
                                 prev_chal_evals_component::generate_assignments(assignment,
-                                    {prev_challenges, 
+                                    {prev_challenges,
                                     {{zeta, zeta_omega}},
-                                    powers_of_eval_points_for_chunks, 
+                                    powers_of_eval_points_for_chunks,
                                     one, zero}, row).output);
                             row += prev_chal_evals_component::rows_amount;
                         }
 
                         var ft_eval0 = ft_eval_component::generate_assignments(
-                            assignment, 
+                            assignment,
                             {params.verifier_index,
                             alpha_powers,
                             params.proof.proof_evals,
