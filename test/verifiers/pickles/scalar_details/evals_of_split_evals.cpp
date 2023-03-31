@@ -29,7 +29,6 @@
 
 #include <nil/crypto3/algebra/curves/vesta.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/vesta.hpp>
-#include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/hash/algorithm/hash.hpp>
 #include <nil/crypto3/hash/sha2.hpp>

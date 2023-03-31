@@ -92,10 +92,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
                                                              public_input_size, prev_chal_size>;
 
+
+    constexpr static const std::size_t chal_amount = 4;
     using component_type =
         zk::components::verify_heterogenous_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params,
-                                                   batch_size, bulletproofs_size, evals_size, 0, 1, 2, 3, 4, 5, 6, 7, 8,
-                                                   9, 10, 11, 12, 13, 14>;
+                                                   batch_size, bulletproofs_size, evals_size, chal_amount,
+                                                   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     typename component_type::params_type params;
 

@@ -151,8 +151,6 @@ namespace nil {
                         var zeta_pow_n;
                         var joint_combiner;
                         std::array<var, eval_points_amount> public_eval;
-
-                        params_type() {}
                     };
 
                     struct result_type {

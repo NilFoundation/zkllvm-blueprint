@@ -37,21 +37,21 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/environment.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/ft_eval.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/combine.hpp>
 
 namespace nil {
     namespace crypto3 {
         namespace zk {
             namespace components {
                 template<typename ArithmetizationType, typename KimchiParamsType, typename CurveType,
-                         std::size_t... WireIndexes>
+                         std::size_t ChalAmount, std::size_t... WireIndexes>
                 class wrap_combined_inner_product;
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams, typename KimchiParamsType,
-                         typename CurveType, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3,
-                         std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9,
-                         std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
+                         typename CurveType, std::size_t ChalAmount, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13,
+                         std::size_t W14>
                 class wrap_combined_inner_product<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                  KimchiParamsType, CurveType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+                                                  KimchiParamsType, CurveType, ChalAmount, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
@@ -59,15 +59,12 @@ namespace nil {
                     using var = snark::plonk_variable<BlueprintFieldType>;
 
                     using add_component = zk::components::addition<ArithmetizationType, W0, W1, W2>;
-                    using exponentiation_component =
-                        zk::components::exponentiation<ArithmetizationType, 255, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
-                                                       W10, W11, W12, W13, W14>;
-                    /*using combined_proof_evals_component =
-                        zk::components::combine_proof_evals<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4,
-                                                            W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;*/
+                    using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
                     using ft_eval_component = zk::components::ft_eval<ArithmetizationType, CurveType, KimchiParamsType,
                                                                       W0, W1, W2, W3, W4, W5, W6, W7, W8, W9,
                                                                       W10, W11, W12, W13, W14>;
+                    using combine_component = zk::components::combine<ArithmetizationType, CurveType, ChalAmount,
+                                                                      KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using kimchi_proof_evaluations = zk::components::kimchi_proof_evaluations<BlueprintFieldType,
                                                                                               KimchiParamsType>;
@@ -81,7 +78,12 @@ namespace nil {
                         std::size_t row = 0;
 
                         row += add_component::rows_amount;
+                        row += 7; // dodging ft_eval cosntants
                         row += ft_eval_component::rows_amount;
+                        row += combine_component::rows_amount;
+                        row += mul_component::rows_amount;
+                        row += combine_component::rows_amount;
+                        row += add_component::rows_amount;
 
                         return row;
                     }
@@ -89,6 +91,8 @@ namespace nil {
                 public:
                     constexpr static const std::size_t rows_amount = rows();
                     constexpr static const std::size_t gates_amount = 0;
+
+                    constexpr static const std::size_t selector_seed = 0x0fbb;
 
                     struct params_type {
                         // this is output of evals_of_split_evals component
@@ -102,7 +106,8 @@ namespace nil {
                         var zetaw;
                         var r;
                         var xi;
-                        std::vector<std::array<var, 16>> old_bulletproof_challenges;
+                        std::vector<std::array<var, 16>> old_bulletproof_challenges =
+                            std::vector<std::array<var, 16>>(ChalAmount);
                     };
 
                     struct result_type {
@@ -110,6 +115,8 @@ namespace nil {
 
                         result_type(std::size_t component_start_row) {
                             std::size_t row = component_start_row;
+                            row += rows_amount;
+                            output = typename add_component::result_type(row - add_component::rows_amount).output;
                         }
                     };
 
@@ -123,6 +130,7 @@ namespace nil {
 
                         std::size_t row = start_row_index;
                         var one = var(0, start_row_index, false, var::column_type::constant);
+                        row += 7;
                         // we reuse ft_eval component from kimchi
                         typename ft_eval_component::params_type ft_eval_params;
                         ft_eval_params.gamma = params.plonk.gamma;
@@ -131,7 +139,7 @@ namespace nil {
                         ft_eval_params.combined_evals = params.combined_evals;
                         ft_eval_params.alpha_powers = params.env.alphas;
                         ft_eval_params.verifier_index.omega = params.env.domain_generator;
-                        ft_eval_params.verifier_index.domain_size = params.env.domain_size_log2;
+                        ft_eval_params.verifier_index.domain_size = params.env.domain_size;
                         for (std::size_t i = 0; i < KimchiParamsType::permut_size; i++) {
                             ft_eval_params.verifier_index.shift[i] =
                                 var(0, start_row_index + 1 + i, false, var::column_type::constant);
@@ -141,10 +149,40 @@ namespace nil {
                         ft_eval_params.public_eval[0] = params.evals.public_input[0];
                         // joint_combiner technically should not be used, so is not set
                         row += add_component::rows_amount;
-                        // dodging constants of ft_eval_component
-                        row += 6;
+                        // check that no constants overlap
+                        assert(row - start_row_index > 7);
                         var ft_eval0 = ft_eval_component::generate_circuit(bp, assignment, ft_eval_params, row).output;
+                        row += ft_eval_component::rows_amount;
+                        // we can technically save 7 empty rows by calculating this before ft_eval0
+                        // but that relies on constant 1 being in the same place in both components
+                        // this might lead to very hard-to-debug bugs, so we skip instead
+                        var combine_1 = combine_component::generate_circuit(bp, assignment,
+                            {params.old_bulletproof_challenges,
+                             params.evals,
+                             1,
+                             params.ft_eval1,
+                             params.zetaw,
+                             params.xi}, row).output;
+                        row += combine_component::rows_amount;
 
+                        var r_combine_1 = zk::components::generate_circuit<mul_component>(
+                            bp, assignment, {params.r, combine_1}, row).output;
+                        row += mul_component::rows_amount;
+
+                        var combine_0 = combine_component::generate_circuit(bp, assignment,
+                            {params.old_bulletproof_challenges,
+                             params.evals,
+                             0,
+                             ft_eval0,
+                             params.zeta,
+                             params.xi}, row).output;
+                        row += combine_component::rows_amount;
+
+                        // output
+                        zk::components::generate_circuit<add_component>(bp, assignment, {combine_0, r_combine_1}, row);
+                        row += add_component::rows_amount;
+
+                        assert(row == start_row_index + rows_amount);
                         return result_type(start_row_index);
                     }
 
@@ -153,9 +191,61 @@ namespace nil {
                                                             const std::size_t start_row_index) {
 
                         std::size_t row = start_row_index;
+                        var one = var(0, start_row_index, false, var::column_type::constant);
+                        row += 7;
+                        // we reuse ft_eval component from kimchi
+                        typename ft_eval_component::params_type ft_eval_params;
+                        ft_eval_params.gamma = params.plonk.gamma;
+                        ft_eval_params.beta = params.plonk.beta;
+                        ft_eval_params.zeta = params.plonk.zeta;
+                        ft_eval_params.combined_evals = params.combined_evals;
+                        ft_eval_params.alpha_powers = params.env.alphas;
+                        ft_eval_params.verifier_index.omega = params.env.domain_generator;
+                        ft_eval_params.verifier_index.domain_size = params.env.domain_size;
+                        for (std::size_t i = 0; i < KimchiParamsType::permut_size; i++) {
+                            ft_eval_params.verifier_index.shift[i] =
+                                var(0, start_row_index + 1 + i, false, var::column_type::constant);
+                        }
+                        ft_eval_params.zeta_pow_n = add_component::generate_assignments(
+                            assignment, {params.env.zeta_to_n_minus_1, one}, row).output;
+                        ft_eval_params.public_eval[0] = params.evals.public_input[0];
+                        // joint_combiner technically should not be used, so is not set
+                        row += add_component::rows_amount;
+                        // check that no constants overlap
+                        assert(row - start_row_index > 7);
+                        var ft_eval0 = ft_eval_component::generate_assignments(assignment, ft_eval_params, row).output;
+                        row += ft_eval_component::rows_amount;
+                        // we can technically save 7 empty rows by calculating this before ft_eval0
+                        // but that relies on constant 1 being in the same place in both components
+                        // this might lead to very hard-to-debug bugs, so we skip instead
+
+                        var combine_1 = combine_component::generate_assignments(assignment,
+                            {params.old_bulletproof_challenges,
+                             params.evals,
+                             1,
+                             params.ft_eval1,
+                             params.zetaw,
+                             params.xi}, row).output;
+                        row += combine_component::rows_amount;
+
+                        var r_combine_1 = mul_component::generate_assignments(
+                            assignment, {params.r, combine_1}, row).output;
+                        row += mul_component::rows_amount;
+
+                        var combine_0 = combine_component::generate_assignments(assignment,
+                            {params.old_bulletproof_challenges,
+                             params.evals,
+                             0,
+                             ft_eval0,
+                             params.zeta,
+                             params.xi}, row).output;
+                        row += combine_component::rows_amount;
+
+                        // output
+                        add_component::generate_assignments(assignment, {combine_0, r_combine_1}, row);
+                        row += add_component::rows_amount;
 
                         assert(row == start_row_index + rows_amount);
-
                         return result_type(start_row_index);
                     }
 

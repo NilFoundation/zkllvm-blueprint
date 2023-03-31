@@ -122,6 +122,8 @@ namespace nil {
                     constexpr static const std::size_t rows_amount = rows();
                     constexpr static const std::size_t gates_amount = 0;
 
+                    constexpr static const std::size_t selector_seed = 0x0fba;
+
                     struct params_type {
                         std::vector<std::array<var, 16>> old_bulletproof_challenges =
                             std::vector<std::array<var, 16>>(ChalAmount);

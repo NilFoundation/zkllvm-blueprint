@@ -127,6 +127,8 @@ set(PLONK_TESTS_FILES
     "algebra/fields/plonk/range_check"
     "verifiers/pickles/scalar_details/derive_plonk"
     "verifiers/pickles/scalar_details/combine"
+    "verifiers/pickles/scalar_details/wrap_combined_inner_product"
+    "verifiers/pickles/scalar_details/force_equality"
     "verifiers/pickles/verify_heterogenous_scalar"
     "verifiers/pickles/verify_heterogenous_base"
     "verifiers/pickles/base_details/batch_dlog_accumulator_check_base"

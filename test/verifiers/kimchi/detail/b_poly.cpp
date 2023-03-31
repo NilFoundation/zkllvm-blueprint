@@ -40,6 +40,7 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
 #include "../../../test_plonk_component.hpp"
+#include "../../../helper_functions.hpp"
 
 using namespace nil::crypto3;
 
@@ -83,17 +84,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_b_poly) {
 
     typename component_type::params_type params = {challenges, zeta, one};
 
-    std::array<typename BlueprintFieldType::value_type, n> powers_twos;
-    powers_twos[0] = zeta_value;
-    for (std::size_t i = 1; i < n; i++) {
-        powers_twos[i] = powers_twos[i - 1] * powers_twos[i - 1];
-    }
-
-    typename BlueprintFieldType::value_type expected_result = 1;
-    for (std::size_t i = 0; i < n; i++) {
-        typename BlueprintFieldType::value_type term = 1 + challenges_values[i] * powers_twos[n - 1 - i];
-        expected_result = expected_result * term;
-    }
+    typename BlueprintFieldType::value_type expected_result =
+        zk::components::b_poly_compute<BlueprintFieldType, n>(challenges_values, zeta_value);
 
     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
         assert(expected_result == assignment.var_value(real_res.output));

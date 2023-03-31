@@ -71,7 +71,7 @@ namespace nil {
                             // might need to figure out the size
                             std::vector<var_ec_point> challenge_polynomial_commitments;
                             // challenges need conversion from bits when passed into prover
-                            std::array<std::vector<var>, 16> old_bulletproof_challenges;
+                            std::vector<std::array<var, 16>> old_bulletproof_challenges;
                         } messages_for_next_step_proof;
                     } statement;
 

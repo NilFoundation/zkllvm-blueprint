@@ -49,37 +49,15 @@
 #include "verifiers/kimchi/index_terms_instances/recursion_index_terms.hpp"
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
 #include "verifiers/kimchi/index_terms_instances/ec_index_terms.hpp"
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/combine.hpp>
 
 #include "test_plonk_component.hpp"
+#include "helper_functions.hpp"
 
 #include <iostream>
-#include <limits>
-
-using namespace nil::crypto3;
-
-template<typename BlueprintFieldType, std::size_t N>
-typename BlueprintFieldType::value_type b_poly(std::array<typename BlueprintFieldType::value_type, N> challenges_values,
-                                               typename BlueprintFieldType::value_type zeta_value){
-    std::vector<typename BlueprintFieldType::value_type> powers_twos;
-    powers_twos.resize(N);
-    powers_twos[0] = zeta_value;
-    for (std::size_t i = 1; i < N; i++) {
-        powers_twos[i] = powers_twos[i - 1] * powers_twos[i - 1];
-    }
-
-    typename BlueprintFieldType::value_type expected_result = 1;
-    for (std::size_t i = 0; i < N; i++) {
-        typename BlueprintFieldType::value_type term = 1 + challenges_values[i] * powers_twos[N - 1 - i];
-        expected_result = expected_result * term;
-    }
-
-    return expected_result;
-}
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
@@ -207,50 +185,19 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_cip_combine_test) {
     }
     // TODO: lookup test
 
-    std::array<value_type, chal_amount> chal_polys;
-    for (std::size_t i = 0; i < chal_amount; i++) {
-        chal_polys[i] = b_poly<BlueprintFieldType, 16>(old_bulletproof_challenges[i], pt);
-    }
-
-    std::array<value_type, component_type::items_size> items;
-    std::copy(chal_polys.begin(), chal_polys.end(), items.begin());
-    std::size_t idx = chal_amount;
-    items[idx] = prev_evals_public_input_0;
-    idx++;
-    items[idx] = ft;
-    idx++;
-    for (std::size_t j = 0; j < kimchi_params::split_size; j++) {
-        items[idx] = z[j];
-        idx++;
-    }
-    for (std::size_t j = 0; j < kimchi_params::split_size; j++) {
-        items[idx] = generic_selector[j];
-        idx++;
-    }
-    for (std::size_t j = 0; j < kimchi_params::split_size; j++) {
-        items[idx] = poseidon_selector[j];
-        idx++;
-    }
-    for (std::size_t i = 0; i < kimchi_params::witness_columns; i++) {
-        for (std::size_t j = 0; j < kimchi_params::split_size; j++) {
-            items[idx] = w[j][i];
-            idx++;
-        }
-    }
-    for (std::size_t i = 0; i < kimchi_params::permut_size - 1; i++) {
-        for (std::size_t j = 0; j < kimchi_params::split_size; j++) {
-            items[idx] = s[j][i];
-            idx++;
-        }
-    }
-
-    value_type expected_result = items.back();
-    for (std::size_t i = items.size() - 2; i != std::numeric_limits<size_t>::max(); i--) {
-        expected_result *= xi;
-        expected_result += items[i];
-    }
-
-    assert(idx == component_type::items_size);
+    value_type expected_result = zk::components::combine_evals_compute<BlueprintFieldType, kimchi_params,
+                                                                       component_type::items_size, chal_amount>(
+        old_bulletproof_challenges,
+        prev_evals_public_input_0,
+        z,
+        generic_selector,
+        poseidon_selector,
+        w,
+        s,
+        xi,
+        ft,
+        pt
+    );
 
     auto result_check = [expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
         assert(expected_result == assignment.var_value(real_res.output));

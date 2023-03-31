@@ -40,7 +40,7 @@
 #include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/oracles_cip.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/wrap_combined_inner_product.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
@@ -70,18 +70,16 @@ namespace nil {
                 // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/verify.ml#L30
                 template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType,
                          typename KimchiCommitmentParamsType, std::size_t BatchSize, std::size_t list_size,
-                         std::size_t evals_size, std::size_t... WireIndexes>
+                         std::size_t evals_size, std::size_t chal_amount, std::size_t... WireIndexes>
                 class verify_heterogenous_scalar;
 
                 template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,
                          typename KimchiCommitmentParamsType, std::size_t BatchSize, std::size_t list_size,
-                         std::size_t evals_size, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3,
-                         std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9,
-                         std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
+                         std::size_t evals_size, std::size_t chal_amount, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13,
+                         std::size_t W14>
                 class verify_heterogenous_scalar<
                     snark::plonk_constraint_system<typename CurveType::scalar_field_type, ArithmetizationParams>,
-                    CurveType, KimchiParamsType, KimchiCommitmentParamsType, BatchSize, list_size, evals_size, W0, W1,
-                    W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+                    CurveType, KimchiParamsType, KimchiCommitmentParamsType, BatchSize, list_size, evals_size, chal_amount, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     using BlueprintFieldType = typename CurveType::scalar_field_type;
 
@@ -117,13 +115,12 @@ namespace nil {
                             W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using prepare_scalars_inversion_component =
-                        zk::components::prepare_scalars_inversion<ArithmetizationType, KimchiParamsType, evals_size, W0,
-                                                                  W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12,
-                                                                  W13, W14>;
+                        zk::components::prepare_scalars_inversion<ArithmetizationType, CurveType, evals_size,
+                                                                  W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using cip_component =
-                        zk::components::oracles_cip<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6,
-                                                    W7, W8, W9, W10, W11, W12, W13, W14>;
+                        zk::components::wrap_combined_inner_product<ArithmetizationType, KimchiParamsType, CurveType,
+                                                                    chal_amount, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using batch_verify_component =
                         zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType,
@@ -325,15 +322,16 @@ namespace nil {
                                 plonk.lookup.joint_combiner = min_poly.joint_combiner;
                             }
 
-                            std::array<std::vector<var>, 16> old_bulletproof_challenges;
+                            std::vector<std::array<var, 16>> old_bulletproof_challenges;
                             for (std::size_t j = 0; j < old_bulletproof_challenges.size(); j++) {
-                                for (std::size_t k = 0; k < old_bulletproof_challenges[j].size(); k++) {
-                                    old_bulletproof_challenges[j].push_back(
+                                old_bulletproof_challenges.push_back({});
+                                for (std::size_t k = 0; k < 16; k++) {
+                                    old_bulletproof_challenges[j][k]=
                                         endo_scalar_component::generate_circuit(
                                             bp, assignment,
                                             {statement.messages_for_next_step_proof.old_bulletproof_challenges[j][k]},
                                             row)
-                                            .output);
+                                            .output;
                                     row += endo_scalar_component::rows_amount;
                                 }
                             }
@@ -370,15 +368,23 @@ namespace nil {
 
                             var combined_inner_product_actual =
                                 cip_component::generate_circuit(bp, assignment,
-                                                                {r_actual_challenge, min_poly,
-                                                                 evals.ft_eval1,
-                                                                 evals.evals},
-                                                                row)
+                                    {tick_combined_evals,
+                                     evals.evals,
+                                     env,
+                                     min_poly,
+                                     evals.ft_eval1,
+                                     zeta,
+                                     zetaw,
+                                     r_actual_challenge,
+                                     def_values_xi,
+                                     old_bulletproof_challenges
+                                     },
+                                    row)
                                     .output;
                             row += cip_component::rows_amount;
 
                             std::array<var, 16> bulletproof_challenges;
-                            for (std::size_t j = 0; j < old_bulletproof_challenges.size(); j++) {
+                            for (std::size_t j = 0; j < 16; j++) {
                                 bulletproof_challenges[j] =
                                     endo_scalar_component::generate_circuit(
                                         bp, assignment,
@@ -534,15 +540,16 @@ namespace nil {
                                 plonk.lookup.joint_combiner = min_poly.joint_combiner;
                             }
 
-                            std::array<std::vector<var>, 16> old_bulletproof_challenges;
+                            std::vector<std::array<var, 16>> old_bulletproof_challenges;
                             for (std::size_t j = 0; j < old_bulletproof_challenges.size(); j++) {
-                                for (std::size_t k = 0; k < old_bulletproof_challenges[j].size(); k++) {
-                                    old_bulletproof_challenges[j].push_back(
+                                old_bulletproof_challenges.push_back({});
+                                for (std::size_t k = 0; k < 16; k++) {
+                                    old_bulletproof_challenges[j][k] =
                                         endo_scalar_component::generate_assignments(
                                             assignment,
-                                            {statement.messages_for_next_step_proof.old_bulletproof_challenges[j]},
+                                            {statement.messages_for_next_step_proof.old_bulletproof_challenges[j][k]},
                                             row)
-                                            .output);
+                                            .output;
                                     row += endo_scalar_component::rows_amount;
                                 }
                             }
@@ -579,15 +586,23 @@ namespace nil {
 
                             var combined_inner_product_actual =
                                 cip_component::generate_assignments(assignment,
-                                                                    {r_actual_challenge, min_poly,
-                                                                     evals.ft_eval1,
-                                                                     evals.evals},
-                                                                    row)
+                                    {tick_combined_evals,
+                                     evals.evals,
+                                     env,
+                                     min_poly,
+                                     evals.ft_eval1,
+                                     zeta,
+                                     zetaw,
+                                     r_actual_challenge,
+                                     def_values_xi,
+                                     old_bulletproof_challenges
+                                     },
+                                    row)
                                     .output;
                             row += cip_component::rows_amount;
 
                             std::array<var, 16> bulletproof_challenges;
-                            for (std::size_t j = 0; j < old_bulletproof_challenges.size(); j++) {
+                            for (std::size_t j = 0; j < 16; j++) {
                                 bulletproof_challenges[j] =
                                     endo_scalar_component::generate_assignments(
                                         assignment,
