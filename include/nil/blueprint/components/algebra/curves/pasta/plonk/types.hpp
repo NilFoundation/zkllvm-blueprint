@@ -33,19 +33,17 @@
 #include <nil/blueprint/component.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                template<typename BlueprintFieldType>
-                struct var_ec_point {
-                    using var = snark::plonk_variable<BlueprintFieldType>;
-                    var X;
-                    var Y;
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+            template<typename BlueprintFieldType>
+            struct var_ec_point {
+                using var = nil::crypto3::snark::plonk_variable<BlueprintFieldType>;
+                var X;
+                var Y;
+            };
+        }    // namespace components
+    }        // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_TYPES_HPP

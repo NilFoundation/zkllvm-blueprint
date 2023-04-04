@@ -143,7 +143,7 @@ namespace nil {
 
             using fri_type =
                 typename nil::crypto3::zk::commitments::fri<BlueprintFieldType, typename placeholder_params::merkle_hash_type,
-                                              typename placeholder_params::transcript_hash_type, 2, 1>;
+                                              typename placeholder_params::transcript_hash_type, Lambda, 2, 4>;
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
 

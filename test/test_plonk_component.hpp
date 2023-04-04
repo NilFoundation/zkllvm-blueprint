@@ -94,12 +94,13 @@ namespace nil {
             return params;
         }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
-                 std::size_t Lambda, typename FunctorResultCheck, typename PublicInputContainerType,
-                 typename std::enable_if<
-                     std::is_same<typename BlueprintFieldType::value_type,
-                                  typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value,
-                     bool>::type = true>
+        template<
+            typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
+            std::size_t Lambda, typename FunctorResultCheck, typename PublicInputContainerType,
+            typename std::enable_if<std::is_same<typename BlueprintFieldType::value_type,
+                                                 typename std::iterator_traits<
+                                                     typename PublicInputContainerType::iterator>::value_type>::value,
+                                    bool>::type = true>
         auto prepare_component(ComponentType component_instance, const PublicInputContainerType &public_input,
                                const FunctorResultCheck &result_check,
                                typename ComponentType::input_type instance_input) {
@@ -113,7 +114,7 @@ namespace nil {
             std::size_t start_row = 0;
 
             for (std::size_t i = 0; i < public_input.size(); i++) {
-                assignment.public_input(0, start_row +i) = (public_input[i]);
+                assignment.public_input(0, start_row + i) = (public_input[i]);
             }
 
             blueprint::components::generate_circuit<BlueprintFieldType, ArithmetizationParams>(
@@ -130,7 +131,7 @@ namespace nil {
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
-            
+
             profiling(assignment);
 #endif
 
@@ -141,12 +142,11 @@ namespace nil {
 
         template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
                  std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component(ComponentType component_instance, const PublicInputContainerType &public_input,
-                           FunctorResultCheck result_check,
-                           typename ComponentType::input_type instance_input) {
+                           FunctorResultCheck result_check, typename ComponentType::input_type instance_input) {
 
             auto [desc, bp, assignments] =
                 prepare_component<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
@@ -159,7 +159,7 @@ namespace nil {
 
             using fri_type =
                 typename zk::commitments::fri<BlueprintFieldType, typename placeholder_params::merkle_hash_type,
-                                              typename placeholder_params::transcript_hash_type, 2, 1>;
+                                              typename placeholder_params::transcript_hash_type, Lambda, 2, 4>;
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
 
@@ -175,12 +175,11 @@ namespace nil {
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type private_preprocessed_data =
                 zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
                     bp, assignments.private_table(), desc, fri_params);
-
             auto proof = zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, private_preprocessed_data, desc, bp, assignments, fri_params);
 
             bool verifier_res = zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
-              public_preprocessed_data, proof, bp, fri_params);
+                public_preprocessed_data, proof, bp, fri_params);
 
             BOOST_CHECK(verifier_res);
 #endif
