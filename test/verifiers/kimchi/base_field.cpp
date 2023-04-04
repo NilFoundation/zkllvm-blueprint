@@ -172,13 +172,18 @@ std::vector<zk::snark::plonk_variable<BlueprintFieldType>> read_vector_scalars(
 
 template<typename BlueprintFieldType, typename params_type, typename var, typename var_ec_point,
 typename commitment_type, typename commitment_t_type, typename CurveType, typename commitment_params,
-typename circuit_description>
+typename circuit_description, typename kimchi_constants>
 void fill_params_verify_base(
     std::vector<typename BlueprintFieldType::value_type>& public_input,
     params_type& params,
     std::string current_testname) {
 
     std::vector<var> scalars_var  = read_vector_scalars<CurveType, BlueprintFieldType>(public_input, current_testname, "scalars.txt");
+
+    var cip_var;
+    std::vector<var> cip_vector = read_vector_scalars<CurveType, BlueprintFieldType>(public_input, current_testname, "cip.txt");
+    cip_var = cip_vector[0];
+
     std::vector<var> neg_pub = read_vector_scalars<CurveType, BlueprintFieldType>(public_input, current_testname, "neg_pub.txt");
 
     std::vector<var> zeta_to_srs_len_vector = read_vector_scalars<CurveType, BlueprintFieldType>(public_input, current_testname, "zeta_to_srs_len.txt");
@@ -220,6 +225,12 @@ void fill_params_verify_base(
     std::vector <var_ec_point> op_proof_g_vector = read_vector_points<BlueprintFieldType>(
         public_input, current_testname, "opening_sg.txt");
     var_ec_point op_proof_g_var = op_proof_g_vector[0];
+
+    std::vector<var> f_comm_scalars_vector  = read_vector_scalars<CurveType, BlueprintFieldType>(public_input, current_testname, "f_comm_scalars_part_1.txt");
+    std::vector<var> f_comm_scalars_part_2_vector  = read_vector_scalars<CurveType, BlueprintFieldType>(public_input, current_testname, "f_comm_scalars_part_2.txt");
+    f_comm_scalars_vector.insert(f_comm_scalars_vector.end(), f_comm_scalars_part_2_vector.begin(), f_comm_scalars_part_2_vector.end());
+    assert(f_comm_scalars_vector.size() == kimchi_constants::f_comm_msm_size);
+
 
     std::vector <var_ec_point> H_var_vector = read_vector_points<BlueprintFieldType>(
         public_input, current_testname, "h_points.txt");
@@ -278,8 +289,8 @@ void fill_params_verify_base(
     
         // params.fr_data //
     params.fr_data.scalars = scalars_var;
-    // fr_data.std::vector<std::vector<VarType>> f_comm_scalars = std::vector<std::vector<VarType>>(BatchSize, std::vector<VarType>(f_comm_msm_size));
-    // params.fr_data.cip_shifted[0] = cip_var; // fill manually
+    // params.fr_data.f_comm_scalars = f_comm_scalars_vector;
+    params.fr_data.cip_shifted[0] = cip_var;
     params.fr_data.neg_pub = neg_pub;
     params.fr_data.zeta_to_srs_len[0] = zeta_to_srs_len_var;
     params.fr_data.zeta_to_domain_size_minus_1 = zeta_to_domain_size_minus_1_var;
@@ -299,7 +310,7 @@ void fill_params_verify_base(
     params.proofs[0].o.R = R_var;
     params.proofs[0].o.delta = delta_var;
     params.proofs[0].o.G = op_proof_g_var;
-    // params.proofs[0].scalars = proof_scalars_var; // fill manually
+    params.proofs[0].scalars = f_comm_scalars_vector;
 
         // params.verifier_index //
     params.verifier_index.H = H_var;
@@ -378,65 +389,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_generic) {
     using ec_point = curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type;
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
-    /*
-// TODO
-    std::vector<commitment_type> oracles_poly_comm = {
-        {{unshifted_var[3]}}};    // to-do: get in the component from oracles
-    commitment_type lookup_runtime_comm = {{unshifted_var[4]}};
-    commitment_type table_comm = {{unshifted_var[5]}};
-    std::vector<commitment_type> lookup_sorted_comm {{{unshifted_var[6]}}};
-    std::vector<commitment_type> lookup_selectors_comm = {{{unshifted_var[7]}}};
-    std::vector<commitment_type> selectors_comm = {{{unshifted_var[8]}}};
-    commitment_type lookup_agg_comm = {{unshifted_var[9]}};
-*/    
-
-    std::array<curve_type::scalar_field_type::value_type, kimchi_constants::f_comm_msm_size> proof_scalars;
-    proof_scalars[0] = 0x354A5E9D1113DB9A61A8B1F105148045DE624D1E09D3CCE6F80B637082907FCD_cppui256;
-    proof_scalars[1] = 0x102189A38856DF1C80CCC6E048EA1F33E4495EF54A783D19F482EC8A708E70AB_cppui256;
-    proof_scalars[2] = 0x29E241A370EA03A19B3FC89F8B00A030FA0AC2A53B6CB174F2E6968BC870430F_cppui256;
-    proof_scalars[3] = 0x0336BFE3285C7D82EBFBEDB9A6545CFBC4661D2B4B1D39907F76DD2E27DE72BC_cppui256;
-    proof_scalars[4] = 0x30B8AC4EB559474DF430378433021444A0C48D8256A82993B45535B360AAC3CC_cppui256;
-    proof_scalars[5] = 0x07E90390ACAD4FB257163C8CA544C86AD4D73FA726B15006ED59A37DC2BF6108_cppui256;
-    proof_scalars[6] = 0x282C0645A98FEA8094A7797D3AC9D8F86952C25CAD103158159DE68DA8FE9F03_cppui256;
-    proof_scalars[7] = 0x224FEF91C9E1DDE076B8F6C3FED3C33F4EB220B842E30EA9A409B0DAF77D7B22_cppui256;
-    proof_scalars[8] = 0x31B66A275CAE9248610E9AA68B908E9AF097B79EF554E5FC53F5AECA98882847_cppui256;
-    proof_scalars[9] = 0x268F3640CE20E01285383CC2E7C4D5F0610C0A096D2047601354E0D2EDA3DE13_cppui256;
-    proof_scalars[10] = 0x0332ABC485130A37F59B28386F756ED121830BBD8DA6A6990E3AB60827459B98_cppui256;
-    proof_scalars[11] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[12] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[13] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[14] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[15] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[16] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[17] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[18] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[19] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[20] = 0x2C0CCC7F2781B61E088910F08194DFBB3123CD76B3DC0A754CD1605CB50E9AD1_cppui256;
-    proof_scalars[21] = 0x397CD2769BCB3531F9488A76AFBEBDD45080BBF8718C96FB7C98EC16265364E4_cppui256;
-    proof_scalars[22] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[23] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[24] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[25] = 0x055D55F201B5DB8A035428340707FA56C69BF24E8AE468272A6BF1F3F4E47C11_cppui256;
-    proof_scalars[26] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[27] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-    proof_scalars[28] = 0x1E8DB028363CB1CAB03F5BF13ADABB80F5D31F919C6C6C8FC59C11A23FEBA5D4_cppui256;
-    proof_scalars[29] = 0x0000000000000000000000000000000000000000000000000000000000000000_cppui256;
-
-    std::array<var, kimchi_constants::f_comm_msm_size> proof_scalars_var; 
-    for (std::size_t i = 0; i < kimchi_constants::f_comm_msm_size; i++) {
-        public_input.push_back(shift_scalar_base<curve_type>(proof_scalars[i]));
-        proof_scalars_var[i] = var(0, public_input.size() - 1,  false, var::column_type::public_input);
-    }
-
-    curve_type::base_field_type::value_type cip = 0x0877E225F785892E118B95754A625F1D008505745AF6E4B174D07168343CB13A_cppui256;
-    public_input.push_back(cip);
-    var cip_var = var(0, public_input.size() - 1,  false, var::column_type::public_input);
-
-
     typename component_type::params_type params;
-    params.fr_data.cip_shifted[0] = cip_var; // fill manually
-    params.proofs[0].scalars = proof_scalars_var; // fill manually    
-    fill_params_verify_base<BlueprintFieldType, typename component_type::params_type, var, var_ec_point, commitment_type, commitment_t_type, curve_type, commitment_params, circuit_description>(public_input, params, "generic");
+    fill_params_verify_base<BlueprintFieldType, typename component_type::params_type, 
+        var, var_ec_point, commitment_type, commitment_t_type, curve_type, commitment_params, 
+        circuit_description, kimchi_constants>(public_input, params, "generic");
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
