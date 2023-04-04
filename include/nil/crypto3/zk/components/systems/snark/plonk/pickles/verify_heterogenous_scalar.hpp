@@ -47,7 +47,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/environment.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_base.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/batch_dlog_accumulator_check_scalar.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/evals_of_split_evals.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/derive_plonk.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/scalars_env.hpp>
@@ -56,6 +56,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/verification_key.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/prepare_scalars_inversion.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/deferred_values.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/force_equality.hpp>
 
 #include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 
@@ -115,21 +116,22 @@ namespace nil {
                             W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using prepare_scalars_inversion_component =
-                        zk::components::prepare_scalars_inversion<ArithmetizationType, CurveType, evals_size,
+                        zk::components::prepare_scalars_inversion<ArithmetizationType, CurveType, 2,
                                                                   W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using cip_component =
                         zk::components::wrap_combined_inner_product<ArithmetizationType, KimchiParamsType, CurveType,
                                                                     chal_amount, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
-                    using batch_verify_component =
-                        zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType,
-                                                                          KimchiParamsType, W0, W1, W2, W3, W4, W5, W6,
-                                                                          W7, W8, W9, W10, W11, W12, W13, W14>;
+                    using accumulator_check_component =
+                        zk::components::batch_dlog_accumulator_check_scalar<ArithmetizationType, CurveType,
+                                                                            list_size, 16, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     using scalars_env_component =
                         zk::components::scalars_env<ArithmetizationType, KimchiParamsType, W0, W1, W2, W3, W4, W5, W6,
                                                     W7, W8, W9, W10, W11, W12, W13, W14>;
+
+                    using force_equality_component = zk::components::force_equality<ArithmetizationType>;
 
                     /*using kimchi_verify_component =
                         zk::components::verify_scalar<ArithmetizationType, CurveType, KimchiParamsType,
@@ -146,7 +148,6 @@ namespace nil {
                     constexpr static std::size_t rows() {
                         std::size_t row = 0;
                         for (std::size_t i = 0; i < list_size; i++) {
-
                             row += endo_scalar_component::rows_amount;
                             row += endo_scalar_component::rows_amount;
                             row += endo_scalar_component::rows_amount;
@@ -189,8 +190,13 @@ namespace nil {
 
                             row += prepare_scalars_inversion_component::rows_amount;
 
-                            row += prepare_scalars_inversion_component::rows_amount;
+                            for (std::size_t j = 0; j < list_size; j++) {
+                                for (std::size_t k = 0; k < 16; k++) {
+                                    row += endo_scalar_component::rows_amount;
+                                }
+                            }
                         }
+                        row += accumulator_check_component::rows_amount;
                         return row;
                     }
 
@@ -216,10 +222,14 @@ namespace nil {
                                          blueprint_public_assignment_table<ArithmetizationType> &assignment,
                                          const params_type &params,
                                          const std::size_t start_row_index) {
-                        std::size_t row = start_row_index;
 
+                        std::size_t row = start_row_index;
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
+
+                        std::array<pickles_plonk_circuit, list_size> in_circuit_plonks;
+                        std::array<std::array<var, 16>, list_size> computed_bp_chals;
+
                         for (std::size_t i = 0; i < list_size; i++) {
                             pickles_instance_type instance = params.ts[i];
                             typename proof_type::statement_type statement =
@@ -231,19 +241,11 @@ namespace nil {
                             deferred_values_type deferred_values = proof_state.deferred_values;
 
                             auto def_values_xi = endo_scalar_component::generate_circuit(
-                                bp, assignment,
-                                {
-                                    deferred_values.xi,
-                                },
-                                row)
+                                bp, assignment, {deferred_values.xi}, row)
                                 .output;
                             row += endo_scalar_component::rows_amount;
                             auto zeta = endo_scalar_component::generate_circuit(
-                                bp, assignment,
-                                {
-                                    deferred_values.plonk.zeta,
-                                },
-                                row)
+                                bp, assignment, {deferred_values.plonk.zeta}, row)
                                 .output;
                             row += endo_scalar_component::rows_amount;
                             auto alpha = endo_scalar_component::generate_circuit(
@@ -313,6 +315,7 @@ namespace nil {
                                 },
                                 row).output;
                             row += derive_plonk_component::rows_amount;
+                            in_circuit_plonks[i] = plonk;
 
                             plonk.alpha = min_poly.alpha;
                             plonk.beta = min_poly.beta;
@@ -392,6 +395,7 @@ namespace nil {
                                         row)
                                         .output;
                                 row += endo_scalar_component::rows_amount;
+                                computed_bp_chals[i][j] = bulletproof_challenges[j];
                             }
 
                             auto chal_zeta = b_poly_component::generate_circuit(
@@ -412,19 +416,45 @@ namespace nil {
                                     .output;
                             row += add_component::rows_amount;
 
-                            auto shifted_combined_inner_product =
+                            auto shifted_values =
                                 prepare_scalars_inversion_component::generate_circuit(
                                     bp, assignment,
-                                    {deferred_values.combined_inner_product}, row)
+                                    {deferred_values.combined_inner_product, deferred_values.b}, row)
                                     .output;
                             row += prepare_scalars_inversion_component::rows_amount;
+                            var shifted_combined_inner_product = shifted_values[0];
+                            var shifted_b = shifted_values[1];
 
-                            auto shifted_b =
-                                prepare_scalars_inversion_component::generate_circuit(
-                                    bp, assignment, {deferred_values.b}, row)
-                                    .output;
-                            row += prepare_scalars_inversion_component::rows_amount;
+                            force_equality_component::generate_circuit(
+                                bp, assignment, {xi_actual_challenge, def_values_xi}, row);
+
+                            force_equality_component::generate_circuit(
+                                bp, assignment, {shifted_combined_inner_product, combined_inner_product_actual}, row);
+
+                            force_equality_component::generate_circuit(
+                                bp, assignment, {shifted_b, b_actual}, row);
+
+                            assert(params.ts[0].verification_key.verifier_index.domain.domain_size_log2 >= 13 &&
+                                   params.ts[0].verification_key.verifier_index.domain.domain_size_log2 <= 15);
                         }
+
+                        std::array<std::array<var, 16>, list_size> deferred_challenges;
+                        for (std::size_t i = 0; i < list_size; i++) {
+                            for (std::size_t j = 0; j < 16; j++) {
+                                deferred_challenges[i][j] =
+                                    endo_scalar_component::generate_circuit(
+                                        bp, assignment,
+                                        {params.ts[i].proof.statement.proof_state
+                                               .deferred_values.bulletproof_challenges[j]},
+                                        row)
+                                        .output;
+                                row += endo_scalar_component::rows_amount;
+                            }
+                        }
+
+                        accumulator_check_component::generate_circuit(bp, assignment,
+                            {deferred_challenges}, row);
+                        row += accumulator_check_component::rows_amount;
 
                         /*kimchi_verify_component::generate_circuit(bp, assignment,
                             {params.fr_data, params.fq_data, params.ts[0].verifier_index, params.proof,
@@ -443,6 +473,10 @@ namespace nil {
                         std::size_t row = start_row_index;
                         var zero = var(0, start_row_index, false, var::column_type::constant);
                         var one = var(0, start_row_index + 1, false, var::column_type::constant);
+
+                        std::array<pickles_plonk_circuit, list_size> in_circuit_plonks;
+                        std::array<std::array<var, 16>, list_size> computed_bp_chals;
+
                         for (std::size_t i = 0; i < list_size; i++) {
                             pickles_instance_type instance = params.ts[i];
                             typename proof_type::statement_type statement =
@@ -459,11 +493,7 @@ namespace nil {
                                     .output;
                             row += endo_scalar_component::rows_amount;
                             auto zeta = endo_scalar_component::generate_assignments(
-                                assignment,
-                                {
-                                    deferred_values.plonk.zeta,
-                                },
-                                row)
+                                assignment, {deferred_values.plonk.zeta}, row)
                                 .output;
                             row += endo_scalar_component::rows_amount;
                             auto alpha = endo_scalar_component::generate_assignments(
@@ -531,6 +561,7 @@ namespace nil {
                                 },
                                 row).output;
                             row += derive_plonk_component::rows_amount;
+                            in_circuit_plonks[i] = plonk;
 
                             plonk.alpha = min_poly.alpha;
                             plonk.beta = min_poly.beta;
@@ -610,6 +641,7 @@ namespace nil {
                                         row)
                                         .output;
                                 row += endo_scalar_component::rows_amount;
+                                computed_bp_chals[i][j] = bulletproof_challenges[j];
                             }
 
                             auto chal_zeta = b_poly_component::generate_assignments(
@@ -630,25 +662,52 @@ namespace nil {
                             auto b_actual = add_component::generate_assignments(assignment, {chal_zeta, t}, row).output;
                             row += add_component::rows_amount;
 
-                            auto shifted_combined_inner_product =
+                            auto shifted_values =
                                 prepare_scalars_inversion_component::generate_assignments(
                                     assignment,
-                                    {deferred_values.combined_inner_product}, row)
+                                    {deferred_values.combined_inner_product, deferred_values.b}, row)
                                     .output;
                             row += prepare_scalars_inversion_component::rows_amount;
+                            var shifted_combined_inner_product = shifted_values[0];
+                            var shifted_b = shifted_values[1];
 
-                            auto shifted_b =
-                                prepare_scalars_inversion_component::generate_assignments(
-                                    assignment, {deferred_values.b}, row)
-                                    .output;
-                            row += prepare_scalars_inversion_component::rows_amount;
+                            // we check the equalities in circuit; assertions are canaries
+                            assert(assignment.var_value(xi_actual_challenge) == assignment.var_value(def_values_xi));
+                            force_equality_component::generate_assignments(
+                                assignment, {xi_actual_challenge, def_values_xi}, row);
+
+                            assert(assignment.var_value(shifted_combined_inner_product) ==
+                                   assignment.var_value(combined_inner_product_actual));
+                            force_equality_component::generate_assignments(
+                                assignment, {shifted_combined_inner_product, combined_inner_product_actual}, row);
+
+                            assert(assignment.var_value(shifted_b) == assignment.var_value(b_actual));
+                            force_equality_component::generate_assignments(
+                                assignment, {shifted_b, b_actual}, row);
+
+                            assert(params.ts[0].verification_key.verifier_index.domain.domain_size_log2 >= 13 &&
+                                   params.ts[0].verification_key.verifier_index.domain.domain_size_log2 <= 15);
                         }
 
-                        /*batch_verify_component::generate_assignments(assignment,
-                            {instance.proof.statement.proof_state.deferred_values.bulletproof_challenges}, row);
-                        row += batch_verify_component::rows_amount;
+                        std::array<std::array<var, 16>, list_size> deferred_challenges;
+                        for (std::size_t i = 0; i < list_size; i++) {
+                            for (std::size_t j = 0; j < 16; j++) {
+                                deferred_challenges[i][j] =
+                                    endo_scalar_component::generate_assignments(
+                                        assignment,
+                                        {params.ts[i].proof.statement.proof_state
+                                               .deferred_values.bulletproof_challenges[j]},
+                                        row)
+                                        .output;
+                                row += endo_scalar_component::rows_amount;
+                            }
+                        }
 
-                        kimchi_verify_component::generate_assignments(assignment,
+                        accumulator_check_component::generate_assignments(assignment,
+                            {deferred_challenges}, row);
+                        row += accumulator_check_component::rows_amount;
+
+                        /*kimchi_verify_component::generate_assignments(assignment,
                             {params.fr_data, params.fq_data, verifier_index, params.proof, params.fq_output},
                             row);
                         row += kimchi_verify_component::rows_amount;*/

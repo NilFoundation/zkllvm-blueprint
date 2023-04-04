@@ -58,7 +58,7 @@ namespace nil {
                                 // this one is on tock curve
                                 var_ec_point challenge_polynomial_commitment;
                                 // need to convert from bits when passed into prover
-                                std::vector<std::array<var, 15>> old_bulletproof_challenges;
+                                std::vector<std::array<var, 16>> old_bulletproof_challenges;
                             } messages_for_next_wrap_proof;
                         } proof_state;
 

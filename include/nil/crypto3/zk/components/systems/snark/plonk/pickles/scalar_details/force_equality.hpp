@@ -39,11 +39,11 @@ namespace nil {
             namespace components {
                 // input: a, b
                 // places constraint a = b
-                template<typename ArithmetizationType, std::size_t... WireIndexes>
+                template<typename ArithmetizationType>
                 class force_equality;
 
-                template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t W0, std::size_t W1>
-                class force_equality<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, W0, W1> {
+                template<typename BlueprintFieldType, typename ArithmetizationParams>
+                class force_equality<snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
 

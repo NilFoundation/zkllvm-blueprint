@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_force_equality_test) {
     constexpr std::size_t Lambda = 40;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
-    using component_type = zk::components::force_equality<ArithmetizationType, 0, 1>;
+    using component_type = zk::components::force_equality<ArithmetizationType>;
 
     typename component_type::params_type params;
     params.a = var(0, 0, false, var::column_type::public_input);
