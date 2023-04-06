@@ -51,9 +51,16 @@ using namespace nil::crypto3;
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_accumulator_check_base_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_accumulator_check_base_test) {
+    auto start = std::chrono::high_resolution_clock::now();
 
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::base_field_type;
+    using scalar_field_type = typename curve_type::scalar_field_type;
+    using curve_point_type = typename curve_type::template g1_type<algebra::curves::coordinates::affine>;
+    using curve_point = curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type;
+    using scalar_value_type = typename curve_type::scalar_field_type::value_type;
+    using base_value_type = typename curve_type::base_field_type::value_type;
+
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
@@ -85,17 +92,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_a
     constexpr static const std::size_t challenge_polynomial_commitments_size = batch_size;
 
     constexpr const std::size_t num_points = 3;
+    constexpr const std::size_t urs_len = 4;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
-    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list,
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
         public_input_size, prev_chal_size>;
 
     using component_type =
-        zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, curve_type, kimchi_params, num_points, srs_len,
-                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+        zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, curve_type, kimchi_params, num_points,
+                                                          urs_len, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     using commitment_type =
         typename zk::components::kimchi_commitment_type<BlueprintFieldType,
@@ -113,33 +121,58 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_a
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {};
 
-    typename component_type::params_type params = {};
+    typename component_type::params_type params;
+
+    std::array<curve_point, num_points> points;
+    std::array<scalar_value_type, urs_len + num_points> scalars;
+    std::array<scalar_value_type, urs_len + num_points> shifted_scalars;
 
     for (std::size_t i = 0; i < num_points; i++) {
-        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type point =
-            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
-        public_input.push_back(point.X);
-        public_input.push_back(point.Y);
-        params.comms.push_back({var(0, public_input.size() - 2, false, var::column_type::public_input), 
-            var(0, public_input.size() - 1, false, var::column_type::public_input)});
-        
-        params.scalars.push_back(var(0, public_input.size() - 1, false, var::column_type::public_input));
+        points[i] = algebra::random_element<curve_point_type>();
+        params.comms[i] = {
+            var(0, public_input.size(), false, var::column_type::public_input),
+            var(0, public_input.size() + 1, false, var::column_type::public_input)
+        };
+        public_input.push_back(points[i].X);
+        public_input.push_back(points[i].Y);
     }
 
-    for (std::size_t i = 0; i < srs_len; i++) {
-        curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type point =
-            algebra::random_element<curve_type::template g1_type<algebra::curves::coordinates::affine>>();
-        public_input.push_back(point.X);
-        public_input.push_back(point.Y);
-        params.urs.push_back({var(0, public_input.size() - 2, false, var::column_type::public_input), 
-            var(0, public_input.size() - 1, false, var::column_type::public_input)});
-        params.scalars.push_back(var(0, public_input.size() - 1, false, var::column_type::public_input));
+    scalar_value_type shift = 2;
+    shift = shift.pow(255) + 1;
+    for (std::size_t i = 0; i < scalars.size(); i++) {
+        scalars[i] = algebra::random_element<scalar_field_type>();
+        params.scalars[i] = var(0, public_input.size(), false, var::column_type::public_input);
+        scalar_value_type b = (scalars[i] - shift) / 2;
+        base_value_type scalar_base = multiprecision::uint256_t(b.data);
+
+        public_input.push_back(scalar_base);
     }
 
-    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
+    auto result_check = [&scalars, &points](AssignmentType &assignment, component_type::result_type &real_res) {
+        curve_point expected_result;
+        for (std::size_t i = 0; i < scalars.size(); i++) {
+            scalar_value_type x = scalars[i];
+            curve_point p;
+            if (i < urs_len) {
+                p.X = assignment.var_value(real_res.urs.g[i].X);
+                p.Y = assignment.var_value(real_res.urs.g[i].Y);
+            } else {
+                p = points[i - urs_len];
+            }
+            typename curve_type::scalar_field_type::value_type shift = 2;
+            expected_result = expected_result + x * p;
+        }
+        assert(expected_result.X == assignment.var_value(real_res._debug_msm_result.X));
+        assert(expected_result.Y == assignment.var_value(real_res._debug_msm_result.Y));
+    };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
-                                                                                                 result_check);
+    // because we are randomly generating the data the test is 'guaranteed' to fail
+    // we still require result_check to pass though
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check, false);
+
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+    std::cout << "base_scalar_mul: " << duration.count() << "ms" << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

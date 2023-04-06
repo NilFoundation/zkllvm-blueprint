@@ -21,8 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for auxiliary components for the SHA256 component.
-//---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
 #define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_BASE_HPP
@@ -40,7 +38,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
 
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/batch_dlog_accumulator_check_scalar.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_base.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/instance.hpp>
 
 namespace nil {
@@ -50,18 +48,18 @@ namespace nil {
 
                 // base field part of verify_generogenous
                 // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/verify.ml#L30
-                template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType, 
-                    std::size_t BatchSize, std::size_t CommsLen, std::size_t... WireIndexes>
+                template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType,
+                    std::size_t BatchSize, std::size_t CommsLen, std::size_t UrsSize, std::size_t... WireIndexes>
                 class verify_heterogenous_base;
 
-                template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,  
-                         std::size_t BatchSize, std::size_t CommsLen, std::size_t W0, std::size_t W1,
+                template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,
+                         std::size_t BatchSize, std::size_t CommsLen, std::size_t UrsSize, std::size_t W0, std::size_t W1,
                          std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7,
                          std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12,
                          std::size_t W13, std::size_t W14>
                 class verify_heterogenous_base<
                     snark::plonk_constraint_system<typename CurveType::base_field_type, ArithmetizationParams>,
-                    CurveType, KimchiParamsType, BatchSize, CommsLen,
+                    CurveType, KimchiParamsType, BatchSize, CommsLen, UrsSize,
                     W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     using BlueprintFieldType = typename CurveType::base_field_type;
@@ -75,10 +73,9 @@ namespace nil {
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
                     using batch_verify_component =
-                        zk::components::batch_dlog_accumulator_check_scalar<ArithmetizationType, CurveType, KimchiParamsType,
-                                                                CommsLen, W0, W1, W2, W3,
-                                                                W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
-                    
+                        zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType, KimchiParamsType,
+                                                                          UrsSize, CommsLen, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+
                     using kimchi_verify_component = zk::components::base_field<ArithmetizationType,
                         CurveType, KimchiParamsType, KimchiCommitmentParamsType, BatchSize,
                         W0, W1, W2, W3,
@@ -110,6 +107,8 @@ namespace nil {
 
                         typename proof_binding::template fr_data<var, BatchSize> fr_data;
                         typename proof_binding::template fq_data<var> fq_data;
+
+                        std::array<var, UrsSize + CommsLen> scalars;
                     };
 
                     struct result_type {
@@ -124,18 +123,18 @@ namespace nil {
                         std::size_t row = start_row_index;
 
                         std::vector<var_ec_point> comms;
-                        std::vector<var> bulletproof_challenges; 
+                        std::vector<var> bulletproof_challenges;
                         for (std::size_t i = 0; i < BatchSize; ++i) {
-                            var_ec_point comms_i = 
+                            var_ec_point comms_i =
                                 params.ts[i].statement.proof_state.messages_for_next_wrap_proof.challenge_polynomial_commitment;
                             comms.push_back(comms_i);
 
-                            std::vector<var> bulletproof_challenges_i = 
+                            std::vector<var> bulletproof_challenges_i =
                                 params.fr_data.step_bulletproof_challenges[i];
                             bulletproof_challenges.insert(bulletproof_challenges.end(), bulletproof_challenges_i.begin(), bulletproof_challenges_i.end());
                         }
                         batch_verify_component::generate_circuit(bp, assignment,
-                            {comms, bulletproof_challenges, params.ts[0].verifier_index}, row);
+                            {comms, params.scalars}, row);
                         row += batch_verify_component::rows_amount;
 
                         std::array<proof_type, BatchSize> proofs;
@@ -157,18 +156,18 @@ namespace nil {
                         std::size_t row = start_row_index;
 
                         std::vector<var_ec_point> comms;
-                        std::vector<var> bulletproof_challenges; 
+                        std::vector<var> bulletproof_challenges;
                         for (std::size_t i = 0; i < BatchSize; ++i) {
-                            var_ec_point comms_i = 
+                            var_ec_point comms_i =
                                 params.ts[i].statement.proof_state.messages_for_next_wrap_proof.challenge_polynomial_commitment;
                             comms.push_back(comms_i);
 
-                            std::vector<var> bulletproof_challenges_i = 
+                            std::vector<var> bulletproof_challenges_i =
                                 params.fr_data.step_bulletproof_challenges[i];
                             bulletproof_challenges.insert(bulletproof_challenges.end(), bulletproof_challenges_i.begin(), bulletproof_challenges_i.end());
                         }
                         batch_verify_component::generate_assignments(assignment,
-                            {comms, bulletproof_challenges, params.ts[0].verifier_index}, row);
+                            {comms, params.scalars}, row);
                         row += batch_verify_component::rows_amount;
 
                         std::array<proof_type, BatchSize> proofs;
@@ -179,7 +178,7 @@ namespace nil {
                         /*kimchi_verify_component::generate_assignments(assignment,
                             {proofs, params.ts[0].verifier_index, params.fr_data, params.fq_data}, row);
                         row += kimchi_verify_component::rows_amount;*/
-                        
+
                         return result_type();
                     }
                 };

@@ -22,8 +22,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for auxiliary components for the SHA256 component.
-//---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_SCALAR_HPP
 #define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_VERIFY_HETEROGENOUS_SCALAR_HPP
@@ -214,7 +212,14 @@ namespace nil {
                     };
 
                     struct result_type {
-                        var output;
+                        std::array<var, accumulator_check_component::output_len> output;
+
+                        result_type(std::size_t start_row_index) {
+                            std::size_t row = start_row_index;
+                            row += rows_amount;
+                            row -= accumulator_check_component::rows_amount;
+                            output = typename accumulator_check_component::result_type(row).output;
+                        }
                     };
 
                     static result_type
@@ -244,10 +249,12 @@ namespace nil {
                                 bp, assignment, {deferred_values.xi}, row)
                                 .output;
                             row += endo_scalar_component::rows_amount;
+
                             auto zeta = endo_scalar_component::generate_circuit(
                                 bp, assignment, {deferred_values.plonk.zeta}, row)
                                 .output;
                             row += endo_scalar_component::rows_amount;
+
                             auto alpha = endo_scalar_component::generate_circuit(
                                 bp, assignment,
                                 {
@@ -463,7 +470,7 @@ namespace nil {
                         generate_assignments_constant(bp, assignment, params, start_row_index);
 
                         assert(row == start_row_index + rows_amount);
-                        return result_type();
+                        return result_type(start_row_index);
                     }
 
                     static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
@@ -492,9 +499,11 @@ namespace nil {
                                     assignment, {deferred_values.xi}, row)
                                     .output;
                             row += endo_scalar_component::rows_amount;
+
                             auto zeta = endo_scalar_component::generate_assignments(
                                 assignment, {deferred_values.plonk.zeta}, row)
                                 .output;
+
                             row += endo_scalar_component::rows_amount;
                             auto alpha = endo_scalar_component::generate_assignments(
                                 assignment,
@@ -712,7 +721,7 @@ namespace nil {
                             row);
                         row += kimchi_verify_component::rows_amount;*/
                         assert(row == start_row_index + rows_amount);
-                        return result_type();
+                        return result_type(start_row_index);
                     }
 
                 private:

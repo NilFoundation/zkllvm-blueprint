@@ -71,10 +71,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multi_scalar_mul) {
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 	using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    std::vector<typename BlueprintFieldType::value_type> public_input = { };
-    typename component_type::params_type assignment_params = {{}, {}};
+    std::vector<typename BlueprintFieldType::value_type> public_input = {};
+    typename component_type::params_type assignment_params;
 
-    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type sum = 
+    curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type sum =
         curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type::zero();
     for (std::size_t i = 0; i < msm_size; i++) {
         typename curve_type::scalar_field_type::value_type x = algebra::random_element<BlueprintScalarType>();
@@ -105,13 +105,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_multi_scalar_mul) {
 
     std::cout << "msm expected res: "<<sum.X.data<<" "<<sum.Y.data<<std::endl;
 
-    auto result_check = [&sum](AssignmentType &assignment, 
+    auto result_check = [&sum](AssignmentType &assignment,
         component_type::result_type &real_res) {
         assert(sum.X == assignment.var_value(real_res.output.X));
         assert(sum.Y == assignment.var_value(real_res.output.Y));
     };
 
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params, 
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (assignment_params,
         public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);

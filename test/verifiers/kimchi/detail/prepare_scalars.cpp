@@ -69,9 +69,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
 
     constexpr std::size_t InputSize = 4;
 
-    using component_type = zk::components::prepare_scalars<ArithmetizationType, curve_type, 
-        InputSize, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                                                            11, 12, 13, 14>;
+    using component_type = zk::components::prepare_scalars<ArithmetizationType, curve_type,
+        InputSize, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     std::vector<typename BlueprintFieldType::value_type> scalars;
     std::vector<var> scalars_var(InputSize);
@@ -92,8 +91,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_prepare_scalars_vesta) {
     // scalars[1] = 0x20E959472C74FBEA783D62870B979033E1BD490EDF01DD51D69F4C89B52DAA3B_cppui256;
     // scalars[2] = 0x244DCFC9E49D7EF7EE803233A777F72016706EDB1534F75F4F9561FF4EB23255_cppui256;
     // scalars[3] = -1;
-    // scalars[4] = 0;    
-    
+    // scalars[4] = 0;
+
 
     typename BlueprintFieldType::value_type base = 2;
     typename BlueprintFieldType::value_type shift;

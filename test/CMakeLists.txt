@@ -133,6 +133,7 @@ set(PLONK_TESTS_FILES
     "verifiers/pickles/verify_heterogenous_base"
     "verifiers/pickles/scalar_details/batch_dlog_accumulator_check_scalar"
     "verifiers/pickles/base_details/batch_dlog_accumulator_check_base"
+    "verifiers/pickles/base_details/urs_generator"
     "verifiers/pickles/scalar_details/evals_of_split_evals"
     "verifiers/pickles/scalar_details/prepare_scalars_inversion"
     "verifiers/pickles/scalar_details/scalars_env"

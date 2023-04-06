@@ -45,9 +45,9 @@
 
 using namespace nil::crypto3;
 
-BOOST_AUTO_TEST_SUITE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_accumulator_check_base_test_suite)
+BOOST_AUTO_TEST_SUITE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_accumulator_check_scalar_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_accumulator_check_base_test) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_accumulator_check_scalar_test) {
 
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
@@ -136,6 +136,16 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_a
 
     for (std::size_t i = urs_size; i < component_type::output_len; i++) {
         expected_result[i] = rs[i - urs_size];
+    }
+
+    value_type shift = 2;
+    shift = shift.pow(255) + 1;
+    for (std::size_t i = 0; i < component_type::output_len; i++) {
+        if (expected_result[i] != -1 && expected_result[i] != 0 && expected_result[i] != 1) {
+            expected_result[i] = (expected_result[i] - shift) / 2;
+        } else {
+            expected_result[i] = expected_result[i] - shift + 1;
+        }
     }
 
     auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
