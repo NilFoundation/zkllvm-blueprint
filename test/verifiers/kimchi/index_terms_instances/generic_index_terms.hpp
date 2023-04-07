@@ -84,6 +84,8 @@ namespace nil {
                     constexpr static const bool generic_gate = true;
                     constexpr static const bool chacha_gate = false;
 
+                    constexpr static const bool use_p_comm = true;
+
                     constexpr static const std::size_t poseidon_gates_count = 15;
                     constexpr static const std::size_t ec_arithmetic_gates_count = 4;
 

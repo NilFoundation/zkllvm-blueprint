@@ -139,7 +139,9 @@ namespace nil {
                             // Oracles
                             row += transcript_type::init_rows;
 
-                            row += transcript_type::absorb_group_rows;
+                            if (KimchiParamsType::circuit_params::use_p_comm != 0) {
+                                row += transcript_type::absorb_group_rows;
+                            }
 
                             row += KimchiParamsType::circuit_params::witness_columns *
                                    KimchiParamsType::witness_commitment_size * transcript_type::absorb_group_rows;
@@ -368,7 +370,7 @@ namespace nil {
                                                                                params.verifier_index.lagrange_bases.end());      
 
                             // p_comm is always the commitment of size 1
-                            auto p_comm_unshifted =
+                            var_ec_point p_comm_unshifted =
                                 lagrange_msm_component::generate_assignments(
                                     assignment, {neg_pub, lagrange_bases}, row)
                                     .output;
@@ -379,8 +381,10 @@ namespace nil {
                             transcript.init_assignment(assignment, zero, row);
                             row += transcript_type::init_rows;
 
-                            transcript.absorb_g_assignment(assignment, p_comm_unshifted, row);
-                            row += transcript_type::absorb_group_rows;
+                            if (KimchiParamsType::circuit_params::use_p_comm != 0) {
+                                transcript.absorb_g_assignment(assignment, p_comm_unshifted, row);
+                                row += transcript_type::absorb_group_rows;
+                            }
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
                                 for (std::size_t k = 0; k < params.proofs[i].comm.witness[j].parts.size(); k++) {
@@ -554,7 +558,9 @@ namespace nil {
                                  j++) {
                                 ft_comm.parts[j] = {zero, zero};
                             }
-                            evaluations[eval_idx++] = p_comm;
+                            if (KimchiParamsType::circuit_params::use_p_comm != 0) {
+                                evaluations[eval_idx++] = p_comm;
+                            }
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;
@@ -636,8 +642,10 @@ namespace nil {
                             transcript.init_circuit(bp, assignment, zero, row);
                             row += transcript_type::init_rows;
 
-                            transcript.absorb_g_circuit(bp, assignment, p_comm_unshifted, row);
-                            row += transcript_type::absorb_group_rows;
+                            if (KimchiParamsType::circuit_params::use_p_comm != 0) {
+                                transcript.absorb_g_circuit(bp, assignment, p_comm_unshifted, row);
+                                row += transcript_type::absorb_group_rows;
+                            }
 
                             for (std::size_t j = 0; j < params.proofs[i].comm.witness.size(); j++) {
                                 for (std::size_t k = 0; k < params.proofs[i].comm.witness[j].parts.size(); k++) {
@@ -807,7 +815,9 @@ namespace nil {
                                  j++) {
                                 ft_comm.parts[j] = {zero, zero};
                             }
-                            evaluations[eval_idx++] = p_comm;
+                            if (KimchiParamsType::circuit_params::use_p_comm != 0) {
+                                evaluations[eval_idx++] = p_comm;
+                            }
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
                             evaluations[eval_idx++] = params.verifier_index.comm.generic;

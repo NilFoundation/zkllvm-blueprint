@@ -38,11 +38,11 @@ namespace nil {
                 // index terms for recursion test
                 // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/tests/recursion.rs#L15
                 template<typename ArithmetizationType>
-                class index_terms_scalars_list_recursion_test;
+                class index_terms_list_recursion_test;
 
                 template<typename BlueprintFieldType, 
                          typename ArithmetizationParams>
-                class index_terms_scalars_list_recursion_test<
+                class index_terms_list_recursion_test<
                     snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
 
                     typedef snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
@@ -82,6 +82,8 @@ namespace nil {
                     constexpr static const bool ec_arithmetic_gates = true;
                     constexpr static const bool generic_gate = true;
                     constexpr static const bool chacha_gate = false;
+
+                    constexpr static const bool use_p_comm = false;
 
                     constexpr static const std::size_t poseidon_gates_count = 15;
                     constexpr static const std::size_t ec_arithmetic_gates_count = 4;
@@ -178,25 +180,25 @@ namespace nil {
                     
                     constexpr static const std::size_t size = 19;
                     constexpr static const std::array<index_term_type, size> terms = {{
-                        {column_type::Coefficient, 0, coefficient_str[0], coefficient_rows[0]},
-                        {column_type::Coefficient, 1, coefficient_str[1], coefficient_rows[1]},
-                        {column_type::Coefficient, 2, coefficient_str[2], coefficient_rows[2]},
-                        {column_type::Coefficient, 3, coefficient_str[3], coefficient_rows[3]},
                         {column_type::Coefficient, 4, coefficient_str[4], coefficient_rows[4]},
-                        {column_type::Coefficient, 5, coefficient_str[5], coefficient_rows[5]},
-                        {column_type::Coefficient, 6, coefficient_str[6], coefficient_rows[6]},
+                        {column_type::Coefficient, 3, coefficient_str[3], coefficient_rows[3]},
+                        {column_type::Coefficient, 0, coefficient_str[0], coefficient_rows[0]},
                         {column_type::Coefficient, 7, coefficient_str[7], coefficient_rows[7]},
-                        {column_type::Coefficient, 8, coefficient_str[8], coefficient_rows[8]},
-                        {column_type::Coefficient, 9, coefficient_str[9], coefficient_rows[9]},
-                        {column_type::Coefficient, 10, coefficient_str[10], coefficient_rows[10]},
-                        {column_type::Coefficient, 11, coefficient_str[11], coefficient_rows[11]},
-                        {column_type::Coefficient, 12, coefficient_str[12], coefficient_rows[12]},
-                        {column_type::Coefficient, 13, coefficient_str[13], coefficient_rows[13]},
-                        {column_type::Coefficient, 14, coefficient_str[14], coefficient_rows[14]},
-                        {column_type::VarBaseMul, 0, var_base_mul_str, var_base_mul_rows},
-                        {column_type::EndoMul, 0, endo_mul_str, endo_mul_rows},
-                        {column_type::EndoMulScalar, 0, endo_mul_scalar_str, endo_mul_scalar_rows},
                         {column_type::CompleteAdd, 0, complete_add_str, complete_add_rows},
+                        {column_type::Coefficient, 11, coefficient_str[11], coefficient_rows[11]},
+                        {column_type::Coefficient, 6, coefficient_str[6], coefficient_rows[6]},
+                        {column_type::Coefficient, 1, coefficient_str[1], coefficient_rows[1]},
+                        {column_type::Coefficient, 12, coefficient_str[12], coefficient_rows[12]},
+                        {column_type::Coefficient, 2, coefficient_str[2], coefficient_rows[2]},
+                        {column_type::Coefficient, 5, coefficient_str[5], coefficient_rows[5]},
+                        {column_type::Coefficient, 9, coefficient_str[9], coefficient_rows[9]},
+                        {column_type::EndoMulScalar, 0, endo_mul_scalar_str, endo_mul_scalar_rows},
+                        {column_type::VarBaseMul, 0, var_base_mul_str, var_base_mul_rows},
+                        {column_type::Coefficient, 8, coefficient_str[8], coefficient_rows[8]},
+                        {column_type::EndoMul, 0, endo_mul_str, endo_mul_rows},
+                        {column_type::Coefficient, 14, coefficient_str[14], coefficient_rows[14]},
+                        {column_type::Coefficient, 10, coefficient_str[10], coefficient_rows[10]},
+                        {column_type::Coefficient, 13, coefficient_str[13], coefficient_rows[13]},
                     }};
                 };
             }    // namespace components

@@ -48,10 +48,11 @@ namespace nil {
                     constexpr static std::size_t permutation_constraints = 3;
 
                     constexpr static const std::size_t psm_len = KimchiParamsType::circuit_params::poseidon_gate ? 1 : 0;
+                    constexpr static const std::size_t p_comm_len = KimchiParamsType::circuit_params::use_p_comm ? 1 : 0;
 
                     constexpr static std::size_t evaluations_in_batch_size =
                         KimchiParamsType::prev_challenges_size    // recursion
-                        + 1                                       // p_comm
+                        + p_comm_len                              // p_comm
                         + 1                                       // ft_comm
                         + 1                                       // z_comm
                         + 1                                       // generic_comm

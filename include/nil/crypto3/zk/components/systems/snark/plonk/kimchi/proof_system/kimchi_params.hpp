@@ -55,6 +55,7 @@ namespace nil {
                     constexpr static bool lookup_runtime = CircuitDescriptionType::lookup_runtime;
                     constexpr static bool poseidon_gate = CircuitDescriptionType::poseidon_gate;
                     constexpr static bool generic_gate = CircuitDescriptionType::generic_gate;
+                    constexpr static bool use_p_comm = CircuitDescriptionType::use_p_comm;
 
                     constexpr static std::size_t eval_points_amount = 2;
                     constexpr static std::size_t scalar_challenge_size = 128;

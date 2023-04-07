@@ -172,7 +172,7 @@ std::vector<zk::snark::plonk_variable<BlueprintFieldType>> read_vector_scalars(
 
 template<typename BlueprintFieldType, typename params_type, typename var, typename var_ec_point,
 typename commitment_type, typename commitment_t_type, typename CurveType, typename commitment_params,
-typename circuit_description, typename kimchi_constants>
+typename circuit_description, typename kimchi_constants, typename KimchiParamsType>
 void fill_params_verify_base(
     std::vector<typename BlueprintFieldType::value_type>& public_input,
     params_type& params,
@@ -202,6 +202,13 @@ void fill_params_verify_base(
     std::vector <var_ec_point> z_comm_vector = read_vector_points<BlueprintFieldType>(
         public_input, current_testname, "z_comm.txt");
     z_comm.parts[0] = z_comm_vector[0];
+
+    std::array<commitment_type, KimchiParamsType::prev_challenges_size> prev_chal;
+    std::vector <var_ec_point> prev_chal_vector = read_vector_points<BlueprintFieldType>(
+        public_input, current_testname, "prev_chal.txt");
+    for (std::size_t i = 0; i < KimchiParamsType::prev_challenges_size; i++) {
+        prev_chal[i].parts[0] = prev_chal_vector[i];
+    }
 
     commitment_t_type t_comm;
     std::vector <var_ec_point> t_comm_vector = read_vector_points<BlueprintFieldType>(
@@ -305,7 +312,7 @@ void fill_params_verify_base(
     // comm.commitment_type lookup_agg;
     params.proofs[0].comm.z = z_comm;
     for (std::size_t i = 0; i < commitment_params::t_comm_size; i++) {params.proofs[0].comm.t.parts[i] = t_comm.parts[i];}
-    // comm.std::array<commitment_type, KimchiParamsType::prev_challenges_size> prev_challenges;    // to-do: get in the component from oracles
+    params.proofs[0].comm.prev_challenges = prev_chal;
     params.proofs[0].o.L = L_var;
     params.proofs[0].o.R = R_var;
     params.proofs[0].o.delta = delta_var;
@@ -331,7 +338,7 @@ void fill_params_verify_base(
     // params.verifier_index.comm.rang_check;
 
     }
-
+// /*
 BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_generic) {
 
     using curve_type = algebra::curves::vesta;
@@ -392,12 +399,81 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_generic) {
     typename component_type::params_type params;
     fill_params_verify_base<BlueprintFieldType, typename component_type::params_type, 
         var, var_ec_point, commitment_type, commitment_t_type, curve_type, commitment_params, 
-        circuit_description, kimchi_constants>(public_input, params, "generic");
+        circuit_description, kimchi_constants, kimchi_params>(public_input, params, "generic");
 
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 }
+// */
+// /*
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_recursion) {
 
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::base_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 25;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+    constexpr std::size_t Lambda = 40;
+    constexpr static const std::size_t batch_size = 1;
+    constexpr static const std::size_t comm_size = 1;
+
+    constexpr static std::size_t public_input_size = recursion_constants.public_input_size;
+    constexpr static std::size_t max_poly_size =     recursion_constants.max_poly_size;
+    constexpr static std::size_t eval_rounds =       recursion_constants.eval_rounds;
+
+    constexpr static std::size_t witness_columns =   recursion_constants.witness_columns;
+    constexpr static std::size_t perm_size =         recursion_constants.perm_size;
+
+    constexpr static std::size_t srs_len =           recursion_constants.srs_len;
+    constexpr static const std::size_t prev_chal_size = recursion_constants.prev_chal_size;
+
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_list_recursion_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+
+    using component_type = zk::components::base_field<ArithmetizationType,
+                                                      curve_type,
+                                                      kimchi_params,
+                                                      commitment_params,
+                                                      batch_size,
+                            0,1,2,3,4,5,6,7,8,9,10,11,12,13,14>;
+
+    using commitment_type =
+        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
+                                                                commitment_params::shifted_commitment_split>;
+    using commitment_t_type = typename zk::components::kimchi_commitment_type<BlueprintFieldType, commitment_params::t_comm_size>;
+    using opening_proof_type =
+        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
+    using verifier_index_type = zk::components::kimchi_verifier_index_base<curve_type, kimchi_params>;
+    using proof_type = zk::components::kimchi_proof_base<BlueprintFieldType, kimchi_params>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
+    using ec_point = curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type;
+    std::vector<typename BlueprintFieldType::value_type> public_input;
+
+    typename component_type::params_type params;
+    fill_params_verify_base<BlueprintFieldType, typename component_type::params_type, 
+        var, var_ec_point, commitment_type, commitment_t_type, curve_type, commitment_params, 
+        circuit_description, kimchi_constants, kimchi_params>(public_input, params, "recursion");
+
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
+
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check);
+}
+// */
 BOOST_AUTO_TEST_SUITE_END()
