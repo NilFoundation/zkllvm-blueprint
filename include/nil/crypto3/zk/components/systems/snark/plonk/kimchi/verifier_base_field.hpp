@@ -563,7 +563,9 @@ namespace nil {
                             }
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
-                            evaluations[eval_idx++] = params.verifier_index.comm.generic;
+                            if (KimchiParamsType::circuit_params::generic_gate != 0) {
+                                evaluations[eval_idx++] = params.verifier_index.comm.generic;
+                            }
                             if (KimchiParamsType::circuit_params::poseidon_gate) {
                                 evaluations[eval_idx++] = params.verifier_index.comm.psm;
                             }
@@ -820,7 +822,9 @@ namespace nil {
                             }
                             evaluations[eval_idx++] = ft_comm;
                             evaluations[eval_idx++] = params.proofs[i].comm.z;
-                            evaluations[eval_idx++] = params.verifier_index.comm.generic;
+                            if (KimchiParamsType::circuit_params::generic_gate != 0) {
+                                evaluations[eval_idx++] = params.verifier_index.comm.generic;
+                            }
                             if (KimchiParamsType::circuit_params::poseidon_gate) {
                                 evaluations[eval_idx++] = params.verifier_index.comm.psm;
                             }

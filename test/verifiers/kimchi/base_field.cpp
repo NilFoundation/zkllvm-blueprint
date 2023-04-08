@@ -476,4 +476,73 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_recursion) {
         params, public_input, result_check);
 }
 // */
+// /*
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_ec) {
+
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::base_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 25;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+    constexpr std::size_t Lambda = 40;
+    constexpr static const std::size_t batch_size = 1;
+    constexpr static const std::size_t comm_size = 1;
+
+    constexpr static std::size_t public_input_size = ec_constants.public_input_size;
+    constexpr static std::size_t max_poly_size =     ec_constants.max_poly_size;
+    constexpr static std::size_t eval_rounds =       ec_constants.eval_rounds;
+
+    constexpr static std::size_t witness_columns =   ec_constants.witness_columns;
+    constexpr static std::size_t perm_size =         ec_constants.perm_size;
+
+    constexpr static std::size_t srs_len =           ec_constants.srs_len;
+    constexpr static const std::size_t prev_chal_size = ec_constants.prev_chal_size;
+
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+
+    using component_type = zk::components::base_field<ArithmetizationType,
+                                                      curve_type,
+                                                      kimchi_params,
+                                                      commitment_params,
+                                                      batch_size,
+                            0,1,2,3,4,5,6,7,8,9,10,11,12,13,14>;
+
+    using commitment_type =
+        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
+                                                                commitment_params::shifted_commitment_split>;
+    using commitment_t_type = typename zk::components::kimchi_commitment_type<BlueprintFieldType, commitment_params::t_comm_size>;
+    using opening_proof_type =
+        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
+    using verifier_index_type = zk::components::kimchi_verifier_index_base<curve_type, kimchi_params>;
+    using proof_type = zk::components::kimchi_proof_base<BlueprintFieldType, kimchi_params>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
+    using ec_point = curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type;
+    std::vector<typename BlueprintFieldType::value_type> public_input;
+
+    typename component_type::params_type params;
+    fill_params_verify_base<BlueprintFieldType, typename component_type::params_type, 
+        var, var_ec_point, commitment_type, commitment_t_type, curve_type, commitment_params, 
+        circuit_description, kimchi_constants, kimchi_params>(public_input, params, "ec");
+
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
+
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check);
+}
+// */
 BOOST_AUTO_TEST_SUITE_END()
