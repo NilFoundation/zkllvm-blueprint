@@ -55,6 +55,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/prepare_scalars_inversion.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/deferred_values.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/force_equality.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/hash_messages_for_next_step_proof.hpp>
 
 #include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
 
@@ -69,16 +70,18 @@ namespace nil {
                 // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/verify.ml#L30
                 template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType,
                          typename KimchiCommitmentParamsType, std::size_t BatchSize, std::size_t list_size,
-                         std::size_t evals_size, std::size_t chal_amount, std::size_t... WireIndexes>
+                         std::size_t evals_size, std::size_t chal_amount, std::size_t StateSize, std::size_t StepChalLen,
+                         std::size_t WrapChalLen, std::size_t... WireIndexes>
                 class verify_heterogenous_scalar;
 
                 template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,
                          typename KimchiCommitmentParamsType, std::size_t BatchSize, std::size_t list_size,
-                         std::size_t evals_size, std::size_t chal_amount, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13,
-                         std::size_t W14>
+                         std::size_t evals_size, std::size_t chal_amount, std::size_t StateSize, std::size_t StepChalLen,
+                         std::size_t WrapChalLen, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
                 class verify_heterogenous_scalar<
                     snark::plonk_constraint_system<typename CurveType::scalar_field_type, ArithmetizationParams>,
-                    CurveType, KimchiParamsType, KimchiCommitmentParamsType, BatchSize, list_size, evals_size, chal_amount, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+                    CurveType, KimchiParamsType, KimchiCommitmentParamsType, BatchSize, list_size, evals_size, chal_amount,
+                    StateSize, StepChalLen, WrapChalLen, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     using BlueprintFieldType = typename CurveType::scalar_field_type;
 
@@ -131,6 +134,10 @@ namespace nil {
 
                     using force_equality_component = zk::components::force_equality<ArithmetizationType>;
 
+                    using hash_messages_for_next_step_proof_component =
+                        zk::components::hash_messages_for_next_step_proof<ArithmetizationType, CurveType, KimchiParamsType,
+                                                                          StateSize, StepChalLen, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+
                     /*using kimchi_verify_component =
                         zk::components::verify_scalar<ArithmetizationType, CurveType, KimchiParamsType,
                             KimchiParamsType::commitment_params_type, BatchSize,
@@ -139,7 +146,7 @@ namespace nil {
 
                     using proof_binding =
                         typename zk::components::binding<ArithmetizationType, BlueprintFieldType, KimchiParamsType>;
-                    using pickles_instance_type = instance_type_t<BlueprintFieldType, KimchiParamsType>;
+                    using pickles_instance_type = instance_type_t<BlueprintFieldType, KimchiParamsType, StateSize>;
                     using proof_type = proof_type<BlueprintFieldType, KimchiParamsType>;
                     using deferred_values_type = deferred_values_type<BlueprintFieldType>;
 
@@ -195,6 +202,9 @@ namespace nil {
                             }
                         }
                         row += accumulator_check_component::rows_amount;
+                        row += list_size * WrapChalLen * 16 * endo_scalar_component::rows_amount;
+
+                        row += list_size * hash_messages_for_next_step_proof_component::rows_amount;
                         return row;
                     }
 
@@ -234,6 +244,8 @@ namespace nil {
 
                         std::array<pickles_plonk_circuit, list_size> in_circuit_plonks;
                         std::array<std::array<var, 16>, list_size> computed_bp_chals;
+                        std::array<std::vector<std::array<var, 16>>, list_size>
+                            computed_chals_for_next_step_proof;
 
                         for (std::size_t i = 0; i < list_size; i++) {
                             pickles_instance_type instance = params.ts[i];
@@ -333,6 +345,7 @@ namespace nil {
                             }
 
                             std::vector<std::array<var, 16>> old_bulletproof_challenges;
+                            assert(statement.messages_for_next_step_proof.old_bulletproof_challenges.size() == StepChalLen);
                             for (std::size_t j = 0; j < old_bulletproof_challenges.size(); j++) {
                                 old_bulletproof_challenges.push_back({});
                                 for (std::size_t k = 0; k < 16; k++) {
@@ -345,6 +358,8 @@ namespace nil {
                                     row += endo_scalar_component::rows_amount;
                                 }
                             }
+                            std::copy(old_bulletproof_challenges.begin(), old_bulletproof_challenges.end(),
+                                      std::back_inserter(computed_chals_for_next_step_proof[i]));
 
                             transcript_type bulletproofs_transcript;
                             bulletproofs_transcript.init_circuit(bp, assignment, zero, row);
@@ -445,23 +460,43 @@ namespace nil {
                                    params.ts[0].verification_key.verifier_index.domain.domain_size_log2 <= 15);
                         }
 
-                        std::array<std::array<var, 16>, list_size> deferred_challenges;
+                        accumulator_check_component::generate_circuit(bp, assignment,
+                            {computed_bp_chals}, row);
+                        row += accumulator_check_component::rows_amount;
+
+                        std::array<std::vector<std::array<var, 16>>, list_size>
+                            computed_chals_for_next_wrap_proof;
+
                         for (std::size_t i = 0; i < list_size; i++) {
-                            for (std::size_t j = 0; j < 16; j++) {
-                                deferred_challenges[i][j] =
-                                    endo_scalar_component::generate_circuit(
-                                        bp, assignment,
-                                        {params.ts[i].proof.statement.proof_state
-                                               .deferred_values.bulletproof_challenges[j]},
-                                        row)
-                                        .output;
-                                row += endo_scalar_component::rows_amount;
+                            assert(params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                         .old_bulletproof_challenges.size() == WrapChalLen);
+                            computed_chals_for_next_wrap_proof[i].resize(WrapChalLen);
+                            for (std::size_t j = 0; j < computed_chals_for_next_wrap_proof[0].size(); j++) {
+                                for (std::size_t k = 0; k < 16; k++) {
+                                    computed_chals_for_next_wrap_proof[i][j][k] =
+                                        endo_scalar_component::generate_circuit(
+                                            bp, assignment,
+                                            {params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                                   .old_bulletproof_challenges[j][k]},
+                                            row)
+                                            .output;
+                                    row += endo_scalar_component::rows_amount;
+                                }
                             }
                         }
 
-                        accumulator_check_component::generate_circuit(bp, assignment,
-                            {deferred_challenges}, row);
-                        row += accumulator_check_component::rows_amount;
+                        std::array<var, list_size> messages_for_next_step_proof;
+                        for (std::size_t i = 0; i < list_size; i++) {
+                            messages_for_next_step_proof[i] =
+                                hash_messages_for_next_step_proof_component::generate_circuit(
+                                    bp, assignment,
+                                    {params.ts[i].proof.statement.messages_for_next_step_proof,
+                                     computed_chals_for_next_wrap_proof[i],
+                                     params.ts[i].app_state,
+                                     params.ts[i].verification_key.commitments},
+                                    row).output;
+                            row += hash_messages_for_next_step_proof_component::rows_amount;
+                        }
 
                         /*kimchi_verify_component::generate_circuit(bp, assignment,
                             {params.fr_data, params.fq_data, params.ts[0].verifier_index, params.proof,
@@ -483,6 +518,8 @@ namespace nil {
 
                         std::array<pickles_plonk_circuit, list_size> in_circuit_plonks;
                         std::array<std::array<var, 16>, list_size> computed_bp_chals;
+                        std::array<std::vector<std::array<var, 16>>, list_size>
+                            computed_chals_for_next_step_proof;
 
                         for (std::size_t i = 0; i < list_size; i++) {
                             pickles_instance_type instance = params.ts[i];
@@ -581,6 +618,7 @@ namespace nil {
                             }
 
                             std::vector<std::array<var, 16>> old_bulletproof_challenges;
+                            assert(statement.messages_for_next_step_proof.old_bulletproof_challenges.size() == StepChalLen);
                             for (std::size_t j = 0; j < old_bulletproof_challenges.size(); j++) {
                                 old_bulletproof_challenges.push_back({});
                                 for (std::size_t k = 0; k < 16; k++) {
@@ -593,6 +631,8 @@ namespace nil {
                                     row += endo_scalar_component::rows_amount;
                                 }
                             }
+                            std::copy(old_bulletproof_challenges.begin(), old_bulletproof_challenges.end(),
+                                      std::back_inserter(computed_chals_for_next_step_proof[i]));
 
                             transcript_type bulletproofs_transcript;
                             bulletproofs_transcript.init_assignment(assignment, zero, row);
@@ -698,23 +738,43 @@ namespace nil {
                                    params.ts[0].verification_key.verifier_index.domain.domain_size_log2 <= 15);
                         }
 
-                        std::array<std::array<var, 16>, list_size> deferred_challenges;
+                        accumulator_check_component::generate_assignments(assignment,
+                            {computed_bp_chals}, row);
+                        row += accumulator_check_component::rows_amount;
+
+                        std::array<std::vector<std::array<var, 16>>, list_size>
+                            computed_chals_for_next_wrap_proof;
+
                         for (std::size_t i = 0; i < list_size; i++) {
-                            for (std::size_t j = 0; j < 16; j++) {
-                                deferred_challenges[i][j] =
-                                    endo_scalar_component::generate_assignments(
-                                        assignment,
-                                        {params.ts[i].proof.statement.proof_state
-                                               .deferred_values.bulletproof_challenges[j]},
-                                        row)
-                                        .output;
-                                row += endo_scalar_component::rows_amount;
+                           assert(params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                        .old_bulletproof_challenges.size() == WrapChalLen);
+                            computed_chals_for_next_wrap_proof[i].resize(WrapChalLen);
+                            for (std::size_t j = 0; j < computed_chals_for_next_wrap_proof[0].size(); j++) {
+                                for (std::size_t k = 0; k < 16; k++) {
+                                    computed_chals_for_next_wrap_proof[i][j][k] =
+                                        endo_scalar_component::generate_assignments(
+                                            assignment,
+                                            {params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                                   .old_bulletproof_challenges[j][k]},
+                                            row)
+                                            .output;
+                                    row += endo_scalar_component::rows_amount;
+                                }
                             }
                         }
 
-                        accumulator_check_component::generate_assignments(assignment,
-                            {deferred_challenges}, row);
-                        row += accumulator_check_component::rows_amount;
+                        std::array<var, list_size> messages_for_next_step_proof;
+                        for (std::size_t i = 0; i < list_size; i++) {
+                            messages_for_next_step_proof[i] =
+                                hash_messages_for_next_step_proof_component::generate_assignments(
+                                    assignment,
+                                    {params.ts[i].proof.statement.messages_for_next_step_proof,
+                                     computed_chals_for_next_wrap_proof[i],
+                                     params.ts[i].app_state,
+                                     params.ts[i].verification_key.commitments},
+                                    row).output;
+                            row += hash_messages_for_next_step_proof_component::rows_amount;
+                        }
 
                         /*kimchi_verify_component::generate_assignments(assignment,
                             {params.fr_data, params.fq_data, verifier_index, params.proof, params.fq_output},

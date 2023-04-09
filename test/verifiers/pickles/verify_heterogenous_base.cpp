@@ -142,6 +142,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
 
     constexpr static const std::size_t comms_len = 1;
     constexpr static const std::size_t urs_size = 2;
+    constexpr static const std::size_t state_size = 10;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
@@ -152,7 +153,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
 
     using component_type =
         zk::components::verify_heterogenous_base<ArithmetizationType, curve_type, kimchi_params, batch_size, comms_len,
-                                    urs_size, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+                                    urs_size, state_size, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     using commitment_type =
         typename zk::components::kimchi_commitment_type<BlueprintFieldType,
@@ -446,11 +447,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
 
         //fr_data.scalars = batch_scalars_var;
         params.fr_data = fr_data;
-
+    */
     auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input,
-                                                                                                 result_check);*/
+                                                                                                 result_check);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

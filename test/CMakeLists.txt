@@ -137,6 +137,7 @@ set(PLONK_TESTS_FILES
     "verifiers/pickles/scalar_details/evals_of_split_evals"
     "verifiers/pickles/scalar_details/prepare_scalars_inversion"
     "verifiers/pickles/scalar_details/scalars_env"
+    "verifiers/pickles/base_details/hash_messages_for_next_step_proof"
     )
 
 set(FIELDS_TESTS_FILES

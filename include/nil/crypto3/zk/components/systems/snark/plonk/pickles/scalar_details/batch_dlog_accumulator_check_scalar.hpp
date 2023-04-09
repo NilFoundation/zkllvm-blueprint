@@ -44,7 +44,6 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly_coefficients.hpp>
 
 #include <algorithm>
-#include <iostream>
 
 namespace nil {
     namespace crypto3 {

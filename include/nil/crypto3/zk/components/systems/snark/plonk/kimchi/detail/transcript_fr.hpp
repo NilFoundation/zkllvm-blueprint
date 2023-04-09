@@ -50,7 +50,7 @@ namespace nil {
         namespace zk {
             namespace components {
 
-                // Fiat-Shamir transfotmation (scalar field part)
+                // Fiat-Shamir transformation (scalar field part)
                 // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/oracle/src/sponge.rs#L81
                 template<typename ArithmetizationType,
                          typename CurveType,
@@ -72,6 +72,7 @@ namespace nil {
                         ArithmetizationType;
 
                     using var = snark::plonk_variable<BlueprintFieldType>;
+                    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
                     static const std::size_t CHALLENGE_LENGTH_IN_LIMBS = 2;
                     static const std::size_t HIGH_ENTROPY_LIMBS = 2;
@@ -179,6 +180,7 @@ namespace nil {
                     constexpr static const std::size_t rows_amount = 0;
                     constexpr static const std::size_t init_rows = sponge_component::init_rows;
                     constexpr static const std::size_t absorb_rows = sponge_component::absorb_rows;
+                    constexpr static const std::size_t absorb_point_rows = 2 * sponge_component::absorb_rows;
                     constexpr static const std::size_t challenge_rows =
                         sponge_component::squeeze_rows + unpack::rows_amount
                         + pack::rows_amount;
@@ -246,10 +248,12 @@ namespace nil {
                             row += sponge_component::absorb_rows;
                         }
 
-                        std::vector<var> points = {private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
-                                                private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
-                                                private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
-                                                private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
+                        std::vector<var> points = {
+                            private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
+                            private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
+                            private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13],
+                            private_eval.w[14],
+                            private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
                         for (auto p : points) {
                             sponge.absorb_assignment(assignment, p, row);
                             row += sponge_component::absorb_rows;
@@ -297,10 +301,12 @@ namespace nil {
                             row += sponge_component::absorb_rows;
                         }
 
-                        std::vector<var> points = {private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
-                                                private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
-                                                private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13], private_eval.w[14],
-                                                private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
+                        std::vector<var> points = {
+                            private_eval.w[0], private_eval.w[1], private_eval.w[2], private_eval.w[3], private_eval.w[4],
+                            private_eval.w[5], private_eval.w[6], private_eval.w[7], private_eval.w[8], private_eval.w[9],
+                            private_eval.w[10], private_eval.w[11], private_eval.w[12], private_eval.w[13],
+                            private_eval.w[14],
+                            private_eval.s[0], private_eval.s[1], private_eval.s[2], private_eval.s[3], private_eval.s[4], private_eval.s[5]};
                         for (auto p : points) {
                             sponge.absorb_circuit(bp, assignment, p, row);
                             row += sponge_component::absorb_rows;

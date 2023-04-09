@@ -52,7 +52,7 @@ namespace nil {
         namespace zk {
             namespace components {
 
-                // Fiat-Shamir transfotmation (base field part)
+                // Fiat-Shamir transformation (base field part)
                 // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/oracle/src/sponge.rs#L98
                 // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/oracle/src/sponge.rs#L128
                 template<typename ArithmetizationType, typename CurveType, std::size_t... WireIndexes>
@@ -92,7 +92,7 @@ namespace nil {
 
                     using sponge_component = kimchi_sponge<ArithmetizationType,
                                                            CurveType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11,
-                                                           W12, W13, W14>;                
+                                                           W12, W13, W14>;
                     using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
                     using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
 
@@ -156,7 +156,7 @@ namespace nil {
                     constexpr static const std::size_t challenge_fq_rows = sponge_component::squeeze_rows;
                     constexpr static const std::size_t digest_rows =
                         sponge_component::squeeze_rows + compare::rows_amount + mul_component::rows_amount;
-                    
+
                     sponge_component sponge;
 
                     void init_assignment(blueprint_assignment_table<ArithmetizationType> &assignment,

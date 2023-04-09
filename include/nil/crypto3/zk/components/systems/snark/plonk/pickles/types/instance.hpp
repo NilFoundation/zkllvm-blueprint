@@ -68,15 +68,17 @@ namespace nil {
                     std::vector<var_ec_point> comms;
                 };
 
-                template<typename BlueprintFieldType, typename KimchiParamsType>
+                template<typename BlueprintFieldType, typename KimchiParamsType, std::size_t StateSize>
                 struct instance_type_t {
                     private:
                     using proof_type = proof_type<BlueprintFieldType, KimchiParamsType>;
                     using verification_key_type = verification_key_type<BlueprintFieldType, KimchiParamsType>;
+                    using app_state_bounded_type = app_state_bounded_type<BlueprintFieldType, StateSize>;
                     // we don't keep max_proofs_verified; that might be required, but currently is not
                     // statement from mina instance is mostly unused: afaik a function from it is called on app_state
                     public:
-                    // unsure of app_state type
+
+                	app_state_bounded_type app_state;
                     proof_type proof;
                     verification_key_type verification_key;
                 };

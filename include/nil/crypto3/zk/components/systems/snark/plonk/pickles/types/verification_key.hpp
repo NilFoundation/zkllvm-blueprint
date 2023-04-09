@@ -28,6 +28,7 @@
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/plonk.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/commitment.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/urs.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -44,6 +45,8 @@ namespace nil {
                     private:
                     using var = snark::plonk_variable<BlueprintFieldType>;
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+                    using urs_type = typename zk::components::var_urs<BlueprintFieldType,
+                                                                      KimchiParamsType::commitment_params_type::srs_len>;
 
                     public:
                     struct commitments_type {
@@ -76,11 +79,12 @@ namespace nil {
                         // originally called "public", renamed to avoid C++ keyword
                         std::size_t public_input_size;
                         std::size_t prev_challenges;
-                        // unsure what type srs is; binds to rust.
-                        var srs;
+    	                // srs in Mina
+                        urs_type urs;
                         struct verification_evals_type {
-                            std::vector<comm_type> sigma_comm;
-                            std::vector<comm_type> coefficients_comm;
+                            // unsure with sizes here, copied from commitment_type above
+                            std::array<comm_type, KimchiParamsType::permut_size> sigma;
+                            std::array<comm_type, KimchiParamsType::witness_columns> coefficient;
                             comm_type generic_comm;
                             comm_type psm_comm;
                             comm_type complete_add_comm;

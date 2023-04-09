@@ -68,7 +68,7 @@ namespace nil {
                             // thus we ignore it and just use the app_state from instance
 
                             // these are on Tock curve
-                            // might need to figure out the size
+                            // same size as old_bulletproof_challenges right below
                             std::vector<var_ec_point> challenge_polynomial_commitments;
                             // challenges need conversion from bits when passed into prover
                             std::vector<std::array<var, 16>> old_bulletproof_challenges;

@@ -84,6 +84,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
     constexpr static const std::size_t evals_size = 3;
     constexpr static const std::size_t bulletproofs_size = 3;
     constexpr static const std::size_t challenge_polynomial_commitments_size = batch_size;
+    constexpr static const std::size_t state_size = 10;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
@@ -94,9 +95,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_scalar_field_te
 
 
     constexpr static const std::size_t chal_amount = 4;
+    constexpr static const std::size_t step_chal_len = 2;
+    constexpr static const std::size_t wrap_chal_len = 2;
     using component_type =
         zk::components::verify_heterogenous_scalar<ArithmetizationType, curve_type, kimchi_params, commitment_params,
-                                                   batch_size, bulletproofs_size, evals_size, chal_amount,
+                                                   batch_size, bulletproofs_size, evals_size, chal_amount, state_size,
+                                                   step_chal_len, wrap_chal_len,
                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     typename component_type::params_type params;

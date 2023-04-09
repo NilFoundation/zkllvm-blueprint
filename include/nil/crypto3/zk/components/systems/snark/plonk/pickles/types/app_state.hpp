@@ -41,11 +41,20 @@ namespace nil {
                 template<typename FieldType>
                 struct app_state_type {
                     private:
-                    using var = snark::plonk_variable<FieldType>;
+                        using var = snark::plonk_variable<FieldType>;
                     public:
-                    //max_state_size
-                    std::vector<var> Zkapp_state;
-                    
+                        //max_state_size
+                        std::vector<var> Zkapp_state;
+                };
+
+                // we have to transform app_state to field elements before passing it to the circuit
+                // this is done with the statement value part of Instance.t (it has a to_field_elements function)
+                template<typename FieldType, std::size_t StateSize>
+                struct app_state_bounded_type {
+                    private:
+                        using var = snark::plonk_variable<FieldType>;
+                    public:
+                        std::array<var, StateSize> zkapp_state;
                 };
             }    // namespace components
         }        // namespace zk
