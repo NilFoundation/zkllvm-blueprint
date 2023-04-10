@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_demo_verifier_test) {
         zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, hash_type, hash_type, Lambda>;
 
     using fri_type = typename zk::commitments::fri<BlueprintFieldType, typename params::merkle_hash_type,
-                                                   typename params::transcript_hash_type, 2, 1>;
+                                                   typename params::transcript_hash_type, Lambda, 2, 4>;
 
     std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
 
