@@ -35,11 +35,11 @@
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
-#include <nil/blueprint_mc/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
 
-#include <nil/blueprint_mc/blueprint/plonk.hpp>
-#include <nil/blueprint_mc/assignment/plonk.hpp>
-#include "../../../test_plonk_component_mc.hpp"
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include "../../../test_plonk_component.hpp"
 
 using namespace nil::crypto3;
 
@@ -58,13 +58,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
     using ArithmetizationParams =
         zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = nil::blueprint_mc::blueprint_assignment_table<ArithmetizationType>;
+    using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = nil::blueprint_mc::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3,
+    using component_type = zk::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3,
                                                                           4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     var one(0, 0, false, var::column_type::public_input);
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
             }
     };
 
-    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "element_powers_component: " << duration.count() << "ms" << std::endl;
