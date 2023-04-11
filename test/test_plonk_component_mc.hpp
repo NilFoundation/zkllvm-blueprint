@@ -169,8 +169,8 @@ namespace nil {
         typename std::enable_if<
             std::is_same<typename BlueprintFieldType::value_type,
                          typename std::iterator_traits<typename PublicInput::iterator>::value_type>::value>::type
-            test_component(typename ComponentType::params_type params, const PublicInput &public_input,
-                           FunctorResultCheck result_check, bool verification_result = true) {
+            test_component_inner(typename ComponentType::params_type params, const PublicInput &public_input,
+                           const FunctorResultCheck &result_check, bool expected_to_pass) {
 
             using placeholder_params =
                 nil::crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
@@ -189,11 +189,33 @@ namespace nil {
             profiling_plonk_circuit<BlueprintFieldType, ArithmetizationParams, Hash, Lambda>::process(std::cout, bp, public_preprocessed_data);
             profiling(assignments);
 #endif
-            if(verification_result) {
+            if(expected_to_pass) {
                 BOOST_CHECK(verifier_res);
             } else {
                 BOOST_CHECK(!verifier_res);
             }
+        }
+
+        template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
+                 std::size_t Lambda, typename PublicInput, typename FunctorResultCheck>
+        typename std::enable_if<
+            std::is_same<typename BlueprintFieldType::value_type,
+                         typename std::iterator_traits<typename PublicInput::iterator>::value_type>::value>::type
+            test_component(typename ComponentType::params_type params, const PublicInput &public_input,
+                           const FunctorResultCheck &result_check) {
+                return test_component_inner<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
+                                            PublicInput, FunctorResultCheck>(params, public_input, result_check, true);
+        }
+
+        template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
+                 std::size_t Lambda, typename PublicInput, typename FunctorResultCheck>
+        typename std::enable_if<
+            std::is_same<typename BlueprintFieldType::value_type,
+                         typename std::iterator_traits<typename PublicInput::iterator>::value_type>::value>::type
+            test_component_to_fail(typename ComponentType::params_type params, const PublicInput &public_input,
+                           const FunctorResultCheck &result_check) {
+                return test_component_inner<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
+                                            PublicInput, FunctorResultCheck>(params, public_input, result_check, false);
         }
 
         template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
@@ -202,8 +224,8 @@ namespace nil {
                      std::is_same<typename BlueprintFieldType::value_type,
                                   typename std::iterator_traits<typename PublicInput::iterator>::value_type>::value,
                      bool>::type = true>
-        auto create_component_proof(typename ComponentType::params_type params, const PublicInput &public_input,
-                                    const FunctorResultCheck &result_check, bool verification_result = true) {
+        auto create_component_proof_inner(typename ComponentType::params_type params, const PublicInput &public_input,
+                                    const FunctorResultCheck &result_check, bool expected_to_pass) {
 
             using placeholder_params =
                 nil::crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
@@ -217,12 +239,38 @@ namespace nil {
 
             bool verifier_res = nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, proof, bp, fri_params);
-            if (verification_result) {
+            if (expected_to_pass) {
                 BOOST_CHECK(verifier_res);
             } else {
                 BOOST_CHECK(!verifier_res);
             }
             return std::make_tuple(proof, fri_params, public_preprocessed_data, bp);
+        }
+
+        template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
+                 std::size_t Lambda, typename PublicInput, typename FunctorResultCheck,
+                 typename std::enable_if<
+                     std::is_same<typename BlueprintFieldType::value_type,
+                                  typename std::iterator_traits<typename PublicInput::iterator>::value_type>::value,
+                     bool>::type = true>
+        auto create_component_proof(typename ComponentType::params_type params, const PublicInput &public_input,
+                                    const FunctorResultCheck &result_check) {
+            return create_component_proof_inner<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
+                                                PublicInput, FunctorResultCheck>(params, public_input, result_check,
+                                                                                 true);
+        }
+
+        template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
+                 std::size_t Lambda, typename PublicInput, typename FunctorResultCheck,
+                 typename std::enable_if<
+                     std::is_same<typename BlueprintFieldType::value_type,
+                                  typename std::iterator_traits<typename PublicInput::iterator>::value_type>::value,
+                     bool>::type = true>
+        auto create_component_proof_to_fail(typename ComponentType::params_type params, const PublicInput &public_input,
+                                    const FunctorResultCheck &result_check) {
+            return create_component_proof_inner<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
+                                                PublicInput, FunctorResultCheck>(params, public_input, result_check,
+                                                                                 false);
         }
     }    // namespace blueprint_mc
 }    // namespace nil

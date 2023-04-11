@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_range_check_false_result) {
         component_type::result_type &real_res) {
     };
 
-    nil::blueprint_mc::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check, false);
+    nil::blueprint_mc::test_component_to_fail<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "range_check_component: " << duration.count() << "ms" << std::endl;
