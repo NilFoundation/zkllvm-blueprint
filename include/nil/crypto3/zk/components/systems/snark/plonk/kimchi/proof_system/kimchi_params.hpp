@@ -63,6 +63,7 @@ namespace nil {
                     constexpr static std::size_t prev_challenges_size = PrevChalSize;
 
                     constexpr static std::size_t lookup_comm_size = CircuitDescriptionType::lookup_columns;
+                    constexpr static std::size_t lookup_table_size = CircuitDescriptionType::lookup_table_size;
                     constexpr static std::size_t index_term_size() {
                         return circuit_params::index_terms_list::size;
                     }

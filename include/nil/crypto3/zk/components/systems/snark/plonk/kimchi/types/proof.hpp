@@ -125,10 +125,10 @@ namespace nil {
                     using kimchi_constants = zk::components::kimchi_inner_constants<KimchiParamsType>;
 
                     struct commitments_type {
-                        std::array<commitment_type, KimchiParamsType::witness_columns> witness;
+                        std::vector<commitment_type> witness = std::vector<commitment_type> (KimchiParamsType::witness_columns);
                         commitment_type lookup_runtime;
                         commitment_type table;
-                        std::vector<commitment_type> lookup_sorted;
+                        std::vector<commitment_type> lookup_sorted = std::vector<commitment_type> (KimchiParamsType::lookup_comm_size);
                         commitment_type lookup_agg;
                         commitment_type z;
                         commitment_t_type t;
@@ -139,7 +139,7 @@ namespace nil {
 
                     commitments_type comm;
                     opening_proof_type o;
-                    std::array<var, kimchi_constants::f_comm_msm_size> scalars;
+                    std::vector<var> scalars = std::vector<var>(kimchi_constants::f_comm_msm_size);
                 };
 
                 template<typename BlueprintFieldType, typename ArithmetizationType, typename KimchiParamsType,

@@ -97,13 +97,13 @@ namespace nil {
                     using var = snark::plonk_variable<BlueprintFieldType>;
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
-                    constexpr static const std::size_t lookup_columns = KimchiParamsType::circuit_params::lookup_columns;
+                    constexpr static const std::size_t lookup_table_size = KimchiParamsType::circuit_params::lookup_table_size;
 
                     constexpr static const std::size_t use_lookup_runtime = KimchiParamsType::circuit_params::lookup_runtime ? 1 : 0; 
 
                     constexpr static const std::size_t split_size = KimchiParamsType::commitment_params_type::shifted_commitment_split;
 
-                    constexpr static const std::size_t msm_size = (lookup_columns + use_lookup_runtime) * split_size; 
+                    constexpr static const std::size_t msm_size = (lookup_table_size + use_lookup_runtime) * split_size; 
 
                     using commitment_type = typename 
                         zk::components::kimchi_commitment_type<BlueprintFieldType, split_size>;
@@ -117,7 +117,7 @@ namespace nil {
 
                     struct params_type {
                         std::vector<commitment_type> table;
-                        std::array<var, lookup_columns> joint_combiner;
+                        std::array<var, lookup_table_size> joint_combiner_powers_prepared;
                         commitment_type runtime;
                     };
 
@@ -125,9 +125,14 @@ namespace nil {
                         var_ec_point output;
 
                         result_type(std::size_t start_row_index) {
-                            assert (msm_size > 1); // output of add_component. For msm_size = 1 change to output of mul_component 
-                            output.X = var(W4, start_row_index + rows_amount - 1, false, var::column_type::witness);
-                            output.Y = var(W5, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                            if (msm_size == 1) {
+                                output.X = var(W0, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                                output.Y = var(W1, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                            }
+                            else {
+                                output.X = var(W4, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                                output.Y = var(W5, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                            }
                         }
                     };
 
@@ -143,17 +148,17 @@ namespace nil {
                         std::array<var_ec_point, msm_size> commitments;
                         std::array<var, msm_size> scalars;
                         std::size_t j = 0;
-                        for(std::size_t i = j; i < lookup_columns; i++) {
+                        for(std::size_t i = j; i < lookup_table_size; i++) {
                             for (std::size_t k = 0; k < split_size; k++) {
                                 commitments[i*split_size + k] = params.table[i].parts[k];
-                                scalars[i*split_size + k] = params.joint_combiner[i];
+                                scalars[i*split_size + k] = params.joint_combiner_powers_prepared[i];
                                 j++;
                             }
                         }
                         if (KimchiParamsType::circuit_params::lookup_runtime) {
                             for (std::size_t k = 0; k < split_size; k++) {
                                 commitments[j] = params.runtime.parts[k];
-                                scalars[j] = params.joint_combiner[1];
+                                scalars[j] = params.joint_combiner_powers_prepared[1];
                                 j++;
                             }       
                         }
@@ -171,17 +176,17 @@ namespace nil {
                         std::array<var_ec_point, msm_size> commitments;
                         std::array<var, msm_size> scalars;
                         std::size_t j = 0;
-                        for(std::size_t i = j; i < lookup_columns; i++) {
+                        for(std::size_t i = j; i < lookup_table_size; i++) {
                             for (std::size_t k = 0; k < split_size; k++) {
                                 commitments[i*split_size + k] = params.table[i].parts[k];
-                                scalars[i*split_size + k] = params.joint_combiner[i];
+                                scalars[i*split_size + k] = params.joint_combiner_powers_prepared[i];
                                 j++;
                             }
                         }
                         if (KimchiParamsType::circuit_params::lookup_runtime) {
                             for (std::size_t k = 0; k < split_size; k++) {
                                 commitments[j] = params.runtime.parts[k];
-                                scalars[j] = params.joint_combiner[1];
+                                scalars[j] = params.joint_combiner_powers_prepared[1];
                                 j++;
                             }       
                         }

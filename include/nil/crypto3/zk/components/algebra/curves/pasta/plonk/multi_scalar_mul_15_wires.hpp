@@ -163,6 +163,10 @@ namespace nil {
                         auto result = result_type(params, start_row_index);
                         result.output.X = res[0];
                         result.output.Y = res[1];
+
+                        assert(params.scalars.size() == PointsAmount);
+                        assert(params.bases.size() == PointsAmount);
+
                         return result;
                     }
                 };

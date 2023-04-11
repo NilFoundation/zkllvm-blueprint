@@ -52,6 +52,7 @@ namespace nil {
                     private:
                         constexpr static const std::size_t f_comm_msm_size = kimchi_constants::f_comm_msm_size;
                         constexpr static const std::size_t lookup_columns = KimchiParamsType::circuit_params::lookup_columns;
+                        constexpr static const std::size_t lookup_table_size = KimchiParamsType::circuit_params::lookup_table_size;
 
                     public: 
                         std::vector<VarType> scalars = std::vector<VarType>(kimchi_constants::final_msm_size(BatchSize));
@@ -62,7 +63,7 @@ namespace nil {
                         std::vector<var> zeta_to_srs_len = std::vector<var>(BatchSize);
                         var zeta_to_domain_size_minus_1;
 
-                        std::array<var, lookup_columns> joint_combiner_powers_prepared;
+                        std::array<var, lookup_table_size> joint_combiner_powers_prepared;
 
                         std::array<std::vector<VarType>, BatchSize> step_bulletproof_challenges;
 

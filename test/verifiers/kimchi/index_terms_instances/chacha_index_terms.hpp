@@ -77,6 +77,7 @@ namespace nil {
                     }
 
                     constexpr static const std::size_t lookup_columns = 5;
+                    constexpr static const std::size_t lookup_table_size = 3;
                     constexpr static const bool lookup_runtime = false;
                     constexpr static const bool joint_lookup = true;
 
@@ -89,6 +90,8 @@ namespace nil {
                     constexpr static const std::size_t ec_arithmetic_gates_count = 4;
 
                     constexpr static const std::size_t alpha_powers_n = 31;
+
+                    constexpr static const bool use_p_comm = false;
 
                     constexpr static const std::array<char*, poseidon_gates_count> coefficient_str = {
                         "Cell(Variable { col: Index(Poseidon), row: Curr });Literal 40000000000000000000000000000000224698FC094CF91B992D30ED00000000;Mul;\0",
@@ -223,59 +226,31 @@ namespace nil {
                     
                     constexpr static const std::size_t size = 25;
                     constexpr static const std::array<index_term_type, size> terms = {{
-                        {column_type::Coefficient, 0, coefficient_str[0], coefficient_rows[0]},
-                        {column_type::Coefficient, 1, coefficient_str[1], coefficient_rows[1]},
-                        {column_type::Coefficient, 2, coefficient_str[2], coefficient_rows[2]},
-                        {column_type::Coefficient, 3, coefficient_str[3], coefficient_rows[3]},
-                        {column_type::Coefficient, 4, coefficient_str[4], coefficient_rows[4]},
-                        {column_type::Coefficient, 5, coefficient_str[5], coefficient_rows[5]},
-                        {column_type::Coefficient, 6, coefficient_str[6], coefficient_rows[6]},
-                        {column_type::Coefficient, 7, coefficient_str[7], coefficient_rows[7]},
-                        {column_type::Coefficient, 8, coefficient_str[8], coefficient_rows[8]},
-                        {column_type::Coefficient, 9, coefficient_str[9], coefficient_rows[9]},
-                        {column_type::Coefficient, 10, coefficient_str[10], coefficient_rows[10]},
-                        {column_type::Coefficient, 11, coefficient_str[11], coefficient_rows[11]},
-                        {column_type::Coefficient, 12, coefficient_str[12], coefficient_rows[12]},
-                        {column_type::Coefficient, 13, coefficient_str[13], coefficient_rows[13]},
-                        {column_type::Coefficient, 14, coefficient_str[14], coefficient_rows[14]},
-                        {column_type::VarBaseMul, 0, var_base_mul_str, var_base_mul_rows},
-                        {column_type::EndoMul, 0, endo_mul_str, endo_mul_rows},
-                        {column_type::EndoMulScalar, 0, endo_mul_scalar_str, endo_mul_scalar_rows},
-                        {column_type::CompleteAdd, 0, complete_add_str, complete_add_rows},
-                        {column_type::ChaCha0, 0, chacha0_str, chacha0_gate_rows},
-                        {column_type::ChaCha1, 0, chacha1_str, chacha1_gate_rows},
-                        {column_type::ChaCha2, 0, chacha2_str, chacha2_gate_rows},
-                        {column_type::ChaChaFinal, 0, chacha_final_str, chacha_final_gate_rows},
-                        {column_type::LookupKindIndex, 0, lookup_chacha_str, lookup_chacha_rows},
                         {column_type::LookupKindIndex, 0, lookup_chacha_final_str, lookup_chacha_final_rows},
-
-                        ///
-//                         scalar (at column LookupKindIndex(ChaChaFinal)): Fp256 "(3CED547992CD8F8EF47A192267706C163700AA20940A0C07E5F750AEE8B1B22A)"
-// scalar (at column Coefficient(9)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(6)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(3)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(8)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(13)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column LookupKindIndex(ChaCha)): Fp256 "(171D8F459023B125DC92B64C54190124CA4390C701160D8DA6F34192B1B6E1A0)"
-// scalar (at column Coefficient(1)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(11)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Index(EndoMulScalar)): Fp256 "(286EA1A7988F5A539931084343EAEE000B15A66C68FB3B7BBC1D9D9E3492ED1B)"
-// scalar (at column Index(ChaCha0)): Fp256 "(17CA18D044FC81FBBB4B556CAC08B9A38C6D91F34A4B23257DB025AA0683C6D4)"
-// scalar (at column Index(VarBaseMul)): Fp256 "(2F74D1A6F09A87CDA24497E47BEF1A7F528D6665D31C00CABC07EC49006DAEE2)"
-// scalar (at column Coefficient(10)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(4)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(14)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(12)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(2)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(7)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Index(ChaCha2)): Fp256 "(10290005E5485E20C7DE79A15D2DE1FF68EB0250222477D82D3B6FAC76755064)"
-// scalar (at column Coefficient(5)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Coefficient(0)): Fp256 "(0000000000000000000000000000000000000000000000000000000000000000)"
-// scalar (at column Index(ChaCha1)): Fp256 "(10C0A5DF76067315530D03B8E9CA008A56423EB003BE7047E9CE28F627BD8B48)"
-// scalar (at column Index(EndoMul)): Fp256 "(3CB8DBE5DEE36BD6F83537ABB729CA1290AE1D6CF19803721193FA9539BB652F)"
-// scalar (at column Index(CompleteAdd)): Fp256 "(16630430885D86B28EBF247E4D5CD190972EC1D551FA238A05CDFCB44BEF9CC9)"
-// scalar (at column Index(ChaChaFinal)): Fp256 "(10E4E2D7B5B995EEA148E232168F38AB5E95E77CDB081BA77D57EE9EEB1EC94D)"
-///
+                        {column_type::Coefficient, 2, coefficient_str[2], coefficient_rows[2]},
+                        {column_type::Coefficient, 11, coefficient_str[11], coefficient_rows[11]},
+                        {column_type::Coefficient, 3, coefficient_str[3], coefficient_rows[3]},
+                        {column_type::Coefficient, 0, coefficient_str[0], coefficient_rows[0]},
+                        {column_type::EndoMul, 0, endo_mul_str, endo_mul_rows},
+                        {column_type::Coefficient, 14, coefficient_str[14], coefficient_rows[14]},
+                        {column_type::Coefficient, 5, coefficient_str[5], coefficient_rows[5]},
+                        {column_type::ChaChaFinal, 0, chacha_final_str, chacha_final_gate_rows},
+                        {column_type::ChaCha0, 0, chacha0_str, chacha0_gate_rows},
+                        {column_type::EndoMulScalar, 0, endo_mul_scalar_str, endo_mul_scalar_rows},
+                        {column_type::Coefficient, 7, coefficient_str[7], coefficient_rows[7]},
+                        {column_type::Coefficient, 13, coefficient_str[13], coefficient_rows[13]},
+                        {column_type::Coefficient, 4, coefficient_str[4], coefficient_rows[4]},
+                        {column_type::ChaCha2, 0, chacha2_str, chacha2_gate_rows},
+                        {column_type::Coefficient, 9, coefficient_str[9], coefficient_rows[9]},
+                        {column_type::Coefficient, 6, coefficient_str[6], coefficient_rows[6]},
+                        {column_type::Coefficient, 12, coefficient_str[12], coefficient_rows[12]},
+                        {column_type::Coefficient, 10, coefficient_str[10], coefficient_rows[10]},
+                        {column_type::VarBaseMul, 0, var_base_mul_str, var_base_mul_rows},
+                        {column_type::CompleteAdd, 0, complete_add_str, complete_add_rows},
+                        {column_type::Coefficient, 8, coefficient_str[8], coefficient_rows[8]},
+                        {column_type::Coefficient, 1, coefficient_str[1], coefficient_rows[1]},
+                        {column_type::LookupKindIndex, 1, lookup_chacha_str, lookup_chacha_rows},
+                        {column_type::ChaCha1, 0, chacha1_str, chacha1_gate_rows},
                     }};
                 };
             }    // namespace components

@@ -50,6 +50,7 @@ namespace nil {
                     constexpr static const std::size_t psm_len = KimchiParamsType::circuit_params::poseidon_gate ? 1 : 0;
                     constexpr static const std::size_t p_comm_len = KimchiParamsType::circuit_params::use_p_comm ? 1 : 0;
                     constexpr static const std::size_t generic_len = KimchiParamsType::circuit_params::generic_gate ? 1 : 0;
+                    constexpr static const std::size_t lookup_agg_table_comm_len = KimchiParamsType::circuit_params::use_lookup ? 2 : 0;
 
                     constexpr static std::size_t evaluations_in_batch_size =
                         KimchiParamsType::prev_challenges_size    // recursion
@@ -59,6 +60,8 @@ namespace nil {
                         + generic_len                             // generic_comm
                         + psm_len                                 // psm_comm
                         + KimchiParamsType::witness_columns       // w_comm
+                        + lookup_agg_table_comm_len
+                        // + lookup_runtime_len
                         + KimchiParamsType::permut_size - 1 + KimchiParamsType::lookup_comm_size;
 
                     constexpr static std::size_t srs_padding_size() {

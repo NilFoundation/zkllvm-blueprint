@@ -110,16 +110,16 @@ std::vector<typename zk::components::var_ec_point<BlueprintFieldType>> read_vect
 
                 output.push_back(current_point);
 
+                i++;
+
                 if (point_fstream.eof()) {
                     break;
                 }
-                i++;
 
             }
         }
     
     point_fstream.close();
-    std::cout << "points amount is " << i << " in " << input_filename << std::endl;
 
     return output;
 }
@@ -165,7 +165,6 @@ std::vector<zk::snark::plonk_variable<BlueprintFieldType>> read_vector_scalars(
             }
         }
     scalars_fstream.close();
-    std::cout << "scalars amount: " << output.size() << " in " << input_filename << std::endl;
 
     return output;
 }
@@ -301,7 +300,7 @@ void fill_params_verify_base(
     params.fr_data.neg_pub = neg_pub;
     params.fr_data.zeta_to_srs_len[0] = zeta_to_srs_len_var;
     params.fr_data.zeta_to_domain_size_minus_1 = zeta_to_domain_size_minus_1_var;
-    // fr_data.std::array<var, lookup_columns> joint_combiner_powers_prepared;
+    // params.fr_data.std::array<var, lookup_columns> joint_combiner_powers_prepared;
     // fr_data.std::array<std::vector<VarType>, BatchSize> step_bulletproof_challenges;
 
         // params.proofs //
@@ -338,7 +337,7 @@ void fill_params_verify_base(
     // params.verifier_index.comm.rang_check;
 
     }
-// /*
+
 BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_generic) {
 
     using curve_type = algebra::curves::vesta;
@@ -406,8 +405,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_generic) {
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 }
-// */
-// /*
+
 BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_recursion) {
 
     using curve_type = algebra::curves::vesta;
@@ -475,8 +473,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_recursion) {
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 }
-// */
-// /*
+
 BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_ec) {
 
     using curve_type = algebra::curves::vesta;
@@ -544,5 +541,156 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_ec) {
     test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         params, public_input, result_check);
 }
-// */
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_chacha) {
+
+    using curve_type = algebra::curves::vesta;
+    using BlueprintFieldType = typename curve_type::base_field_type;
+    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 25;
+    using ArithmetizationParams =
+        zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = zk::blueprint_assignment_table<ArithmetizationType>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
+    constexpr std::size_t Lambda = 40;
+    constexpr static const std::size_t batch_size = 1;
+    constexpr static const std::size_t comm_size = 1;
+
+    constexpr static std::size_t public_input_size =    chacha_constants.public_input_size;
+    constexpr static std::size_t max_poly_size =        chacha_constants.max_poly_size;
+    constexpr static std::size_t eval_rounds =          chacha_constants.eval_rounds;
+
+    constexpr static std::size_t witness_columns =      chacha_constants.witness_columns;
+    constexpr static std::size_t perm_size =            chacha_constants.perm_size;
+
+    constexpr static std::size_t srs_len =              chacha_constants.srs_len;
+    constexpr static const std::size_t prev_chal_size = chacha_constants.prev_chal_size;
+
+    using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
+    using index_terms_list = zk::components::index_terms_list_chacha_test<ArithmetizationType>;
+    using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
+        witness_columns, perm_size>;
+    using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
+        public_input_size, prev_chal_size>;
+
+    using component_type = zk::components::base_field<ArithmetizationType,
+                                                      curve_type,
+                                                      kimchi_params,
+                                                      commitment_params,
+                                                      batch_size,
+                            0,1,2,3,4,5,6,7,8,9,10,11,12,13,14>;
+
+    using commitment_type =
+        typename zk::components::kimchi_commitment_type<BlueprintFieldType,
+                                                                commitment_params::shifted_commitment_split>;
+    using commitment_t_type = typename zk::components::kimchi_commitment_type<BlueprintFieldType, commitment_params::t_comm_size>;
+    using opening_proof_type =
+        typename zk::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
+    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using binding = typename zk::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
+    using verifier_index_type = zk::components::kimchi_verifier_index_base<curve_type, kimchi_params>;
+    using proof_type = zk::components::kimchi_proof_base<BlueprintFieldType, kimchi_params>;
+    using kimchi_constants = zk::components::kimchi_inner_constants<kimchi_params>;
+    constexpr static const std::size_t bases_size = kimchi_constants::final_msm_size(batch_size);
+    using ec_point = curve_type::template g1_type<algebra::curves::coordinates::affine>::value_type;
+    std::vector<typename BlueprintFieldType::value_type> public_input;
+
+    typename component_type::params_type params;
+    fill_params_verify_base<BlueprintFieldType, typename component_type::params_type, 
+        var, var_ec_point, commitment_type, commitment_t_type, curve_type, commitment_params, 
+        circuit_description, kimchi_constants, kimchi_params>(public_input, params, "chacha");
+
+
+
+    public_input.push_back(0x22330BC42155F70FC0117D9D94CC85C07A583B4F40C4F4BE51711E3452FB32AE_cppui255);
+    public_input.push_back(0x267CC5C7A5FD745C12740B4C3A54171D7FB04FAE724A8439B42C92EA089DE8FA_cppui255);
+    var_ec_point current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+                            var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_sorted[0].parts[0] = current;
+
+    public_input.push_back(0x28A0F4345C542F1F46858CD295558400B821DCC701B289D7D25A7AEA95050157_cppui255);
+    public_input.push_back(0x2F6D5914727918AFA40A1E447742CF107AEF701B1583E4A0DB851084E29F77E2_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_sorted[1].parts[0] = current;
+
+    public_input.push_back(0x28A0F4345C542F1F46858CD295558400B821DCC701B289D7D25A7AEA95050157_cppui255);
+    public_input.push_back(0x2F6D5914727918AFA40A1E447742CF107AEF701B1583E4A0DB851084E29F77E2_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_sorted[1].parts[0] = current;
+
+    public_input.push_back(0x39B1BC080F6D2E9708E359DDB6A4B49B8B8351C36E0AAD8793A79D3599A5C2AA_cppui255);
+    public_input.push_back(0x1F5D32A920BC74E31982F40FA29F7057716C844D5AFF152BE8F522D6A5F3B55D_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_sorted[2].parts[0] = current;
+
+    public_input.push_back(0x2DB0BDE27EB7B8050B3C3B3AF69895347CD6053131428C49B95BC753E0EE3CE6_cppui255);
+    public_input.push_back(0x0D6E81597D9A5A7AE5A712C98F47FE07C1E457A737E13BB4831BBA88C5380D8D_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_sorted[3].parts[0] = current;
+
+    public_input.push_back(0x27DE0C28A0129C83A15524CFD4D77724AFF439BB9D4D77B1037EFE632CC0C1A6_cppui255);
+    public_input.push_back(0x2C444F833C6665940A85299EBEAEBB544205E9229D6ADAF6F98EEC213C81AA52_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_sorted[4].parts[0] = current;
+
+    public_input.push_back(0x14D6C04EBF1F35A660ECAB34E63F5B67654C11361DD6216B68916C9B9863E7F1_cppui255);
+    public_input.push_back(0x16AD7785DF6E1EB0E11993A7E6DDA819FF39502F8C86AEBFE757C2464A7D78C6_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.proofs[0].comm.lookup_agg.parts[0] = current;
+
+
+    public_input.push_back(0x0B249F5CA428E20F9EF5588B51EF440C5248D639629F9B7A5DFE35F0CD004684_cppui255);
+    public_input.push_back(0x184A3C80DC7B9CF6A666B05C5CFDB8C1C9C631B4EC97754983B090BC7179BB65_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.verifier_index.comm.lookup_selectors[1].parts[0] = current;
+
+    public_input.push_back(0x195AEFB5C6047377493C84B50E5F96C799D6CCA47251A77B1627F976BEAEBA0C_cppui255);
+    public_input.push_back(0x3E2CE83DA2468A6DBDDF2F6B54AC46BE236D3A44199260CF943078698094C3CD_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.verifier_index.comm.lookup_selectors[0].parts[0] = current;
+
+    public_input.push_back(0x448d31f81299f237325a61da00000003_cppui255);
+    params.fr_data.joint_combiner_powers_prepared[0] = var(0, public_input.size() - 1, false, var::column_type::public_input); 
+    public_input.push_back(0x1074aca3963a7df53c1eb14385cbc81a13253d8378cde7c4847cd731da96d51e_cppui255);
+    params.fr_data.joint_combiner_powers_prepared[1] = var(0, public_input.size() - 1, false, var::column_type::public_input); 
+    public_input.push_back(0x1226e7e4f24ebf7bf7401919d3bbfb902d7ed06993e774cb40f7e1eca759192b_cppui255);
+    params.fr_data.joint_combiner_powers_prepared[2] = var(0, public_input.size() - 1, false, var::column_type::public_input); 
+
+
+    public_input.push_back(0x277BDD3B233EA5EB80EAAE059B87B9FC730CC6FBAC8BB3C3A8B37F81BC1432F9_cppui255);
+    public_input.push_back(0x28E3C2C6FE5F4986D4BA82F33E3A8042BADAEEDB0F029A597F97242DEC238AD0_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.verifier_index.comm.lookup_table[0].parts[0] = current;
+
+    public_input.push_back(0x098AF79386D7BB3F4E30A6A4892011EF516DA03D5A4A52F48590433A56AFA945_cppui255);
+    public_input.push_back(0x00971880CEDCE9CA26D693B377CF1388F003246050D2C37647A38E255929F630_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.verifier_index.comm.lookup_table[1].parts[0] = current;
+
+    public_input.push_back(0x227D843831934787019F8D1D37CBBFBE4374A068CED7466DCF9DC92F1B1DD344_cppui255);
+    public_input.push_back(0x307EAB146623927E242AF38331A7A9287BEE6502B940F0681B7F38AF1D5599F9_cppui255);
+    current = {var(0, public_input.size() - 2, false, var::column_type::public_input),
+               var(0, public_input.size() - 1, false, var::column_type::public_input)};
+    params.verifier_index.comm.lookup_table[2].parts[0] = current;
+
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
+
+    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

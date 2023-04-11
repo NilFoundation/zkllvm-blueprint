@@ -55,6 +55,7 @@ namespace nil {
                     static const bool use_lookup = index_terms_list::lookup_columns > 0;
                     static const bool joint_lookup = index_terms_list::joint_lookup;
                     static const std::size_t lookup_columns = index_terms_list::lookup_columns;
+                    static const std::size_t lookup_table_size = index_terms_list::lookup_table_size;
                     static const bool lookup_runtime = index_terms_list::lookup_runtime;
                     static const bool use_p_comm = index_terms_list::use_p_comm;
                 };

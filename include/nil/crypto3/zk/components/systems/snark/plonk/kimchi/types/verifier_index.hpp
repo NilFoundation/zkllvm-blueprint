@@ -69,15 +69,17 @@ namespace nil {
 
                     static constexpr const std::size_t chacha_size = 4;
                     static constexpr const std::size_t range_check_size = 2;
+                    static constexpr const std::size_t lookup_selectors_size = 2;
+                    static constexpr const std::size_t lookup_table_size = KimchiParamsType::lookup_table_size;
 
                     struct commitments_type {
                         std::array<commitment_type, KimchiParamsType::permut_size> sigma;
                         std::array<commitment_type, KimchiParamsType::witness_columns> coefficient;
                         commitment_type generic;
                         commitment_type psm;
-                        std::vector<commitment_type> lookup_selectors;
+                        std::vector<commitment_type> lookup_selectors = std::vector<commitment_type>(lookup_selectors_size);
                         commitment_type runtime_tables_selector;
-                        std::vector<commitment_type> lookup_table;
+                        std::vector<commitment_type> lookup_table = std::vector<commitment_type>(lookup_table_size);
                         commitment_type complete_add;
                         commitment_type var_base_mul;
                         commitment_type endo_mul;
