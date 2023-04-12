@@ -83,12 +83,21 @@ namespace nil {
                         }
                         return 0;
                     }
+                    constexpr static std::size_t lookup_size() {
+                        if (KimchiParamsType::circuit_params::use_lookup == true) {
+                            return KimchiParamsType::circuit_params::lookup_columns // sorted
+                                + 1  // aggreg
+                                + 1; // table;
+                        }
+                        return 0;
+                    }
                     constexpr static const std::size_t cip_size =
                         KimchiParamsType::prev_challenges_size + p_eval_size()    // p_eval
                         + 1                                                       // ft_eval
                         + 1                                                       // z
                         + generic_selector_size()                                 // generic_selector
                         + poseidon_selector_size()                                // poseidon_selector
+                        + lookup_size()
                         + KimchiParamsType::witness_columns + KimchiParamsType::permut_size - 1;
 
                     constexpr static const std::size_t eval_points_amount = 2;
@@ -198,6 +207,26 @@ namespace nil {
                         }
                         es_idx += KimchiParamsType::permut_size - 1;
 
+                        if (KimchiParamsType::circuit_params::use_lookup) {
+                            int lookup_sorted_len = 0;
+                            for (std::size_t i = 0; i < eval_points_amount; ++i) {
+                                for (std::size_t j = 0; j < params.evals[i].lookup.sorted.size(); j++) {
+                                    es[i][es_idx + j] = params.evals[i].lookup.sorted[j];
+                                    lookup_sorted_len++;
+                                }
+                            }
+                            lookup_sorted_len = lookup_sorted_len / eval_points_amount;
+                            es_idx += lookup_sorted_len;
+
+                            for (std::size_t i = 0; i < eval_points_amount; ++i) {
+                                es[i][es_idx] = params.evals[i].lookup.aggreg;
+                            }
+                            es_idx++;
+
+                            for (std::size_t i = 0; i < eval_points_amount; ++i) {
+                                es[i][es_idx] = params.evals[i].lookup.table;
+                            }
+                        }
                         assert(es_idx <= cip_size);
 
                         return es;

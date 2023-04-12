@@ -853,7 +853,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_kimchi_detail_oracles_cip_test_ch
 	public_input.push_back(0x0_cppui255);
 	p_eval[1] = var(0, public_input.size() - 1, false, var::column_type::public_input);
 
-	typename BlueprintFieldType::value_type expected_result = 0x3F5E1606E8160D4344DE45AD1E7EE9251BFAF143DC919FD43341EA1AFD34A2E3_cppui255;
+	typename BlueprintFieldType::value_type expected_result = 0x388deef0601db0933c25593324191e84942675da8701b0bb504a064becae9525_cppui255;
 
 
     typename component_type::params_type params = {
