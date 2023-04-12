@@ -511,15 +511,11 @@ namespace nil {
                                 pi_powers_component::generate_assignments(assignment, 
                                 {params.verifier_index.omega, one}, row).output;
                             row += pi_powers_component::rows_amount;
-                            for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {
-                            }
 
                             std::array<var, eval_points_amount * KimchiParamsType::public_input_size> lagrange_denominators = 
                                         lagrange_denominators_component::generate_assignments(assignment,
                                         {zeta, zeta_omega, omega_powers, one}, row).output;
                             row += lagrange_denominators_component::rows_amount;
-                            for (std::size_t i = 0; i < eval_points_amount * KimchiParamsType::public_input_size; ++i) {
-                            }
 
                             std::array<var, KimchiParamsType::public_input_size> pi;
                             for (std::size_t i = 0; i < KimchiParamsType::public_input_size; ++i) {

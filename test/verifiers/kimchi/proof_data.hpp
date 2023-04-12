@@ -390,6 +390,8 @@ nil::crypto3::zk::snark::proof_type<algebra::curves::vesta> test_proof_ec_test()
     proof.evals[0].s[3].push_back( 0x11347E33DF1631D59D66F6149D99DD22FD23B185D7D89CFE0909877C494D7916_cppui256);
     proof.evals[0].s[4].push_back( 0x0E1372B72364C37883171F80BC89F2AC7043464C8C30E1D2B5D94105035A6C6E_cppui256);
     proof.evals[0].s[5].push_back( 0x336A5683971A09A68D33D77B41947F8CAFFE3923190B51D443E515761A32889B_cppui256);
+    proof.evals[0].generic_selector.push_back( 0x0_cppui256);
+    proof.evals[0].poseidon_selector.push_back( 0x0_cppui256);
 
     proof.evals[1].w[0].push_back( 0x144FF7F30B8C75C60E63614EA792F9A41E41C2DBE40F816A602160960C071F56_cppui256);
     proof.evals[1].w[1].push_back( 0x114768369E43EA7A13DE72AC855AE7D31DC52B34EB45BB96EA1BDFF54FEC4AB8_cppui256);
@@ -413,6 +415,8 @@ nil::crypto3::zk::snark::proof_type<algebra::curves::vesta> test_proof_ec_test()
     proof.evals[1].s[3].push_back( 0x05EA2B93EF3D2CD3E8DDDA175F2446A8390E35219DFBA39111C8CDBFA3038FCE_cppui256);
     proof.evals[1].s[4].push_back( 0x15C6FB1ACD775DF5E860906CDDF37C4E6B82CDC1A67F02F129DEAE98A11620D6_cppui256);
     proof.evals[1].s[5].push_back( 0x338D629CA1F64B37674CA7B5AF91015CA50A5D335E7076E25D9F4C230C99395D_cppui256);
+    proof.evals[1].generic_selector.push_back( 0x0_cppui256);
+    proof.evals[1].poseidon_selector.push_back( 0x0_cppui256);
 
     proof.ft_eval1 = 0x16FE1AE7F56997161DB512632BE7BFA337F47F422E0D01AF06DE298DD8C429D5_cppui256;
 

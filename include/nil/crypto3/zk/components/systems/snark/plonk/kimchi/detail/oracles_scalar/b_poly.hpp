@@ -111,7 +111,7 @@ namespace nil {
                         std::size_t row = start_row_index;
 
                         std::array<var, EvalRounds> pow_twos;
-                        pow_twos[0] = params.eval_point;
+                        if (EvalRounds != 0) {pow_twos[0] = params.eval_point;}
                         for (std::size_t i = 1; i < EvalRounds; i++) {
                             pow_twos[i] = zk::components::generate_circuit<mul_component>(
                                               bp, assignment, {pow_twos[i - 1], pow_twos[i - 1]}, row)
@@ -148,7 +148,7 @@ namespace nil {
                         std::size_t row = start_row_index;
 
                         std::array<var, EvalRounds> pow_twos;
-                        pow_twos[0] = params.eval_point;
+                        if (EvalRounds != 0) {pow_twos[0] = params.eval_point;}
                         for (std::size_t i = 1; i < EvalRounds; i++) {
                             pow_twos[i] =
                                 mul_component::generate_assignments(assignment, {pow_twos[i - 1], pow_twos[i - 1]}, row)

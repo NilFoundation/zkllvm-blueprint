@@ -154,7 +154,6 @@ namespace nil {
 
                         std::array<batch_proof, BatchSize> batches;
                         for (std::size_t i = 0; i < BatchSize; i++) {
-                            std::cout << "prepare_batch_component::generate_circuit({params.verifier_index, params.proof[" << i << "], params.fq_output[" << i << "]}, row);" << std::endl;
                             auto prepare_output = prepare_batch_component::generate_circuit(
                                 bp, assignment, {params.verifier_index, params.proof[i], params.fq_output[i]}, row);
                             batches[i] = prepare_output.prepared_proof;

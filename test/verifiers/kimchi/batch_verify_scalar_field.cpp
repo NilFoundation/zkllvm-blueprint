@@ -207,9 +207,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     typename BlueprintFieldType::value_type beta = 0x000000000000000000000000000000005D27C70754796C79C9D9958673CF2ABA_cppui256;
     typename BlueprintFieldType::value_type gamma = 0x00000000000000000000000000000000C2278ADB337FA07CDFB689C4651FFD6D_cppui256;
     typename BlueprintFieldType::value_type alpha =
-        0x322D5D64C86AFB168AC57D2D8AB3512647B4802C8DC4DE07DB2C51E094C4D9B7_cppui256;
+        0x00000000000000000000000000000000E8F6788EF0772F58369B5AE337297BDA_cppui256;
     typename BlueprintFieldType::value_type zeta =
-        0x03D8C35D2E1466E8514E20A8E658F4E2B1116AB123F7BF53F9A1C7376F788EB1_cppui256;
+        0x00000000000000000000000000000000CE60C696BB2745745A9BCC5ECEEE3AE5_cppui256;
     typename BlueprintFieldType::value_type omega =
         0x0CB8102D0128EBB25343154773101EAF1A9DAEF679667EB4BD1E06B973E985E4_cppui256;
     typename BlueprintFieldType::value_type fq_digest =
@@ -577,7 +577,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_batch_verifier_scalar_field_test_sui
     constexpr static const std::size_t batch_size = recursion_constants.batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_recursion_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_recursion_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,

@@ -286,15 +286,16 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_chacha) {
 
     using var = zk::snark::plonk_variable<BlueprintFieldType>;
 
-    constexpr static std::size_t public_input_size = 0;
-    constexpr static std::size_t max_poly_size = 8192;
-    constexpr static std::size_t eval_rounds = 0;
+    constexpr static std::size_t public_input_size = chacha_constants.public_input_size;
+    constexpr static std::size_t max_poly_size = chacha_constants.max_poly_size;
+    constexpr static std::size_t eval_rounds = chacha_constants.eval_rounds;
 
-    constexpr static std::size_t witness_columns = 15;
-    constexpr static std::size_t perm_size = 7;
+    constexpr static std::size_t witness_columns = chacha_constants.witness_columns;
+    constexpr static std::size_t perm_size = chacha_constants.perm_size;
 
-    constexpr static std::size_t srs_len = 8192;
-    constexpr static const std::size_t prev_chal_size = 0;
+    constexpr static std::size_t srs_len = chacha_constants.srs_len;
+    constexpr static const std::size_t prev_chal_size = chacha_constants.prev_chal_size;
+    constexpr static const std::size_t batch_size = chacha_constants.batch_size;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_scalars_list_chacha_test<ArithmetizationType>;
@@ -376,7 +377,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_chacha) {
         0x2D02AFB9FE82DCFB4656319B003FFD986271A0EDB42C3C0564FC71AC420805A3_cppui256};
     expected_result.zeta_pow_n = 0x2D02AFB9FE82DCFB4656319B003FFD986271A0EDB42C3C0564FC71AC420805A3_cppui256;
     expected_result.ft_eval0 = 0x2717BC155186C4ED296A12363CA8CCAB31C5B5A77C1DB971FDC9D28282970DE3_cppui256;
-    expected_result.cip = 0x3F5E1606E8160D4344DE45AD1E7EE9251BFAF143DC919FD43341EA1AFD34A2E3_cppui256;
+    expected_result.cip = 0x388DEEF0601DB0933C25593324191E84942675DA8701B0BB504A064BECAE9525_cppui256;
     expected_result.eval_points = 
         {0x24A32849C8B99B6CB2D1A514C0EC7B5F5A15799EA2428C6DCA8B332CEACE9DC0_cppui256, 
         0x0488CE0ED0A00F3711EC06C76903F5BACC5E5DE0470B254C84DFD277BC561A10_cppui256};
@@ -564,7 +565,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_generic) {
     constexpr static const std::size_t prev_chal_size = 0;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
-    using index_terms_list = zk::components::index_terms_scalars_list_generic_test<ArithmetizationType>;
+    using index_terms_list = zk::components::index_terms_list_generic_test<ArithmetizationType>;
     using circuit_description = zk::components::kimchi_circuit_description<index_terms_list, 
         witness_columns, perm_size>;
     using kimchi_params = zk::components::kimchi_params_type<curve_type, commitment_params, circuit_description,
