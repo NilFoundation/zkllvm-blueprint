@@ -44,7 +44,6 @@
 #include <nil/crypto3/zk/blueprint/plonk.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
 #include <../test/verifiers/kimchi/sponge/aux_transcript_fr.hpp>
-#include <../test/verifiers/kimchi/sponge/aux_transcript_fr_points.hpp>
 
 #include "test_plonk_component.hpp"
 

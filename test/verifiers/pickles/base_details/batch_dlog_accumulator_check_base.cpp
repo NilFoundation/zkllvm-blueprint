@@ -125,7 +125,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_batch_dlog_a
 
     std::array<curve_point, num_points> points;
     std::array<scalar_value_type, urs_len + num_points> scalars;
-    std::array<scalar_value_type, urs_len + num_points> shifted_scalars;
 
     for (std::size_t i = 0; i < num_points; i++) {
         points[i] = algebra::random_element<curve_point_type>();

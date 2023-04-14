@@ -50,12 +50,11 @@ using namespace nil::crypto3;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_endo_scalar_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_endo_scalar_test) {
 
     using curve_type = algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
-    // overpad input to avoid memory corruption bug; please remove when fixed
     constexpr std::size_t PublicInputColumns = 10;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 2;
@@ -79,8 +78,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_unified_addition_addition) {
 
     var challenge_var = {0, 0, false, var::column_type::public_input};
     typename component_type::params_type params = {challenge_var};
+    // overpad input to avoid memory corruption bug; please remove when fixed
     std::vector<typename BlueprintFieldType::value_type> public_input = {
-        challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge
+        challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge, challenge
     };
     std::cout << "Expected result: " << result.data << std::endl;
     auto result_check = [&result](AssignmentType &assignment,

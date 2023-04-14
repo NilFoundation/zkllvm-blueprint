@@ -71,7 +71,7 @@ namespace nil {
                 template<typename BlueprintFieldType, typename KimchiParamsType, std::size_t StateSize>
                 struct instance_type_t {
                     private:
-                    using proof_type = proof_type<BlueprintFieldType, KimchiParamsType>;
+                    using proof_type_t = proof_type<BlueprintFieldType, KimchiParamsType>;
                     using verification_key_type = verification_key_type<BlueprintFieldType, KimchiParamsType>;
                     using app_state_bounded_type = app_state_bounded_type<BlueprintFieldType, StateSize>;
                     // we don't keep max_proofs_verified; that might be required, but currently is not
@@ -79,7 +79,7 @@ namespace nil {
                     public:
 
                 	app_state_bounded_type app_state;
-                    proof_type proof;
+                    proof_type_t proof;
                     verification_key_type verification_key;
                 };
             }    // namespace components

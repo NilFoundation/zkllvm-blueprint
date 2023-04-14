@@ -28,6 +28,8 @@
 
 #include <nil/crypto3/algebra/curves/vesta.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/vesta.hpp>
+#include <nil/crypto3/algebra/curves/pallas.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/urs_generator.hpp>
 
@@ -35,12 +37,12 @@
 
 using namespace nil::crypto3;
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_urs_generator_test) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_urs_generator_vesta_test) {
     using curve_type = algebra::curves::vesta;
     using value_type = algebra::curves::vesta::g1_type<algebra::curves::coordinates::affine>::value_type;
     constexpr std::size_t urs_size = 4;
     using urs_type = zk::components::urs<curve_type, urs_size>;
-    urs_type urs = urs_type::generate_mina_urs();
+    urs_type urs;
 
     std::array<value_type, 4> g;
 
@@ -62,6 +64,36 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_urs_generato
     value_type h;
     h.X = 0x092060386301C999AAB4F263757836369CA27975E28BC7A8E5B2CE5B26262201_cppui256;
     h.Y = 0x314FC4D83AE66A509F9D41BE6165F2606A209A9B5805EE85CE20249C5EBCBE26_cppui256;
+
+    assert(urs.h.X == h.X);
+    assert(urs.h.Y == h.Y);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_base_details_urs_generator_pallas_test) {
+    using curve_type = algebra::curves::pallas;
+    using value_type = algebra::curves::pallas::g1_type<algebra::curves::coordinates::affine>::value_type;
+    constexpr std::size_t urs_size = 3;
+    using urs_type = zk::components::urs<curve_type, urs_size>;
+    urs_type urs;
+
+    std::array<value_type, 3> g;
+
+    g[0].X = 0x363D83141FD1E0540718FADBA7278ABAEEDB46D7A3F050F2CFF1DF4F300C9C30_cppui256;
+    g[0].Y = 0x034C68F4079B4F338A19BE2D7BFA44B395C65B9790DD273F361327446C778764_cppui256;
+    g[1].X = 0x2CC40B77D87665244AE5EB5304E8744004C80061AD08476A0F0656C13134EA45_cppui256;
+    g[1].Y = 0x28146EC860159DB55CB5EA5B14F0AA2F8751DEDFE0DDAFD1C313B15575C4B4AC_cppui256;
+    g[2].X = 0x2808BC21BEB90314377BF6130285FABE6CE4B8A4457FB25BC95EBA0083DF27E3_cppui256;
+    g[2].Y = 0x1E04E53DD6395FAB8018D7FE98F9C7FAB39C40BFBE48589626A7B8532728B002_cppui256;
+
+
+    for (std::size_t i = 0; i < urs_size; i++) {
+        assert(urs.g[i].X == g[i].X);
+        assert(urs.g[i].Y == g[i].Y);
+    }
+
+    value_type h;
+    h.X = 0x221B959DACD2052AAE26193FCA36B53279866A4FBBAB0D5A2F828B5FD7778201_cppui256;
+    h.Y = 0x058C8F1105CAE57F4891EADC9B85C8954E5067190E155E61D66855ACE69C16C0_cppui256;
 
     assert(urs.h.X == h.X);
     assert(urs.h.Y == h.Y);

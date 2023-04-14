@@ -214,7 +214,7 @@ namespace nil {
                         // urs_value_type is constant, but might be big
                         // we need to carefully place it in order to dodge msm constants
                         // this is done manually and is going to break if msm_component is changed
-                        urs_value_type urs = urs_value_type::generate_mina_urs();
+                        urs_value_type urs;
                         // this zero overlaps with a zero in msm
                         assignment.constant(0)[row++] = 0;
                         auto save_point = [component_start_row, &assignment]

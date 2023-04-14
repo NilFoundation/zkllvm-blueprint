@@ -42,14 +42,14 @@ namespace nil {
                     private:
                     using var = snark::plonk_variable<BlueprintFieldType>;
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
-                    using kimchi_proof_evaluations = kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>;
-                    using deferred_values_type = deferred_values_type<BlueprintFieldType>;
+                    using kimchi_proof_evaluations_type = kimchi_proof_evaluations<BlueprintFieldType, KimchiParamsType>;
+                    using deferred_values_t = deferred_values_type<BlueprintFieldType>;
 
                     public:
                     struct statement_type {
                         struct proof_state_type {
                             // challenges inside deferred_values need conversion from bits when passed into prover
-                            deferred_values_type deferred_values;
+                            deferred_values_t deferred_values;
                             // in mina this is 4x64 bits, need to convert to var when passing to prover
                             // mina does the conversion before passing to sponge
                             var sponge_digest_before_evaluations;
@@ -58,7 +58,7 @@ namespace nil {
                                 // this one is on tock curve
                                 var_ec_point challenge_polynomial_commitment;
                                 // need to convert from bits when passed into prover
-                                std::vector<std::array<var, 16>> old_bulletproof_challenges;
+                                std::vector<std::array<var, 15>> old_bulletproof_challenges;
                             } messages_for_next_wrap_proof;
                         } proof_state;
 
@@ -79,7 +79,7 @@ namespace nil {
                         // in mina the template parameter is an array
                         // so e.g. kimchi_proof_evaluations would be parametrised by array
                         struct evals_type {
-                            std::array<std::array<kimchi_proof_evaluations, KimchiParamsType::split_size>,
+                            std::array<std::array<kimchi_proof_evaluations_type, KimchiParamsType::split_size>,
                                        2> evals;
 
                             std::array<var, 2> public_input;
@@ -111,7 +111,7 @@ namespace nil {
                                 var_ec_point challenge_polynomial_commitment;
                             } proof;
                             // in mina the template parameter for kimchi_proof_evaluations is an array
-                            std::array<std::vector<kimchi_proof_evaluations>, 2> evals;
+                            std::array<std::vector<kimchi_proof_evaluations_type>, 2> evals;
                             var ft_eval;
                         } openings;
                     } proof;

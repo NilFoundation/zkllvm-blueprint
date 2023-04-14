@@ -47,8 +47,8 @@ namespace nil {
                     using ec_point = typename CurveType::template
                             g1_type<algebra::curves::coordinates::affine>::value_type;
                     using value_type = typename CurveType::base_field_type::value_type;
-
-                    std::array<ec_point, UrsLen> g;
+                    // we use vector here as array is 'on the stack', which might lead to stack overflow
+                    std::vector<ec_point> g;
                     ec_point h;
 
                     static multiprecision::uint256_t digest_to_uint256_t(std::string digest) {
@@ -126,21 +126,19 @@ namespace nil {
                         return result;
                     }
 
-                    static urs<CurveType, UrsLen> generate_mina_urs() {
+                    urs<CurveType, UrsLen>() {
                         using hash_type = hashes::blake2b<512>;
-                        urs<CurveType, UrsLen> urs;
+                        g.resize(UrsLen);
 
                         for (big_uint32_t i = 0; i < UrsLen; i++) {
                             std::string digest = hash<hash_type>(big_uint_to_string(i));
-                            urs.g[i] = point_of_random_bytes(digest);
+                            this->g[i] = point_of_random_bytes(digest);
                         }
                         std::array<char, 12> hash_str = {
                             's', 'r', 's', '_', 'm', 'i', 's', 'c', '\0', '\0', '\0', '\0'
                         };
                         std::string h = hash<hash_type>(hash_str);
-                        urs.h = point_of_random_bytes(h);
-
-                        return urs;
+                        this->h = point_of_random_bytes(h);
                     }
 
                     /*void load(std::string filename) {

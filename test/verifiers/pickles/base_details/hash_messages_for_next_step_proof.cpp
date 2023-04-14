@@ -103,7 +103,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_verifiers_pickles_scalar_details_hash_messa
             ArithmetizationType, curve_type, kimchi_params, state_size, chal_len,
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
-    // reuse testing data from transcript split evals, as I forgot how to generate it
     std::vector<value_type> public_input = {
         0x046547d31b3815a0a13903ec3b23bea37a57e14c5ecb31986cf0d07728b3b3a8_cppui256,
         0x27b68acfc9aadc19cee216376320d9c97acdffa2956c3c9ea09ebbefd6f63e74_cppui256,

@@ -71,8 +71,9 @@ namespace nil {
                     using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
 
                     // both fr and fq transcript types are parametrised with curve type
-                    // the sponge is the same
+                    // the sponge is also parametrised with curve type
                     // we use interface in transcript_fq part
+                    // but the component is actually run with fr field logic
                     using transcript_type =
                         kimchi_transcript_fq<ArithmetizationType, CurveType, W0, W1, W2, W3,
                                              W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
@@ -114,6 +115,7 @@ namespace nil {
 
                         result_type(std::size_t start_row_index) {
                             std::size_t row = start_row_index;
+                            // we rely on curve being vesta here
                             row += rows_amount - mul_component::rows_amount;
                             output = typename mul_component::result_type(row).output;
                         }

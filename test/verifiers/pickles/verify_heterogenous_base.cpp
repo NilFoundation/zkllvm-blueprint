@@ -26,8 +26,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <nil/crypto3/algebra/curves/vesta.hpp>
-#include <nil/crypto3/algebra/fields/arithmetic_params/vesta.hpp>
+#include <nil/crypto3/algebra/curves/pallas.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/hash/algorithm/hash.hpp>
@@ -143,6 +143,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
     constexpr static const std::size_t comms_len = 1;
     constexpr static const std::size_t urs_size = 2;
     constexpr static const std::size_t state_size = 10;
+    constexpr static const std::size_t wrap_chal_len = 2;
 
     using commitment_params = zk::components::kimchi_commitment_params_type<eval_rounds, max_poly_size, srs_len>;
     using index_terms_list = zk::components::index_terms_list_ec_test<ArithmetizationType>;
@@ -153,7 +154,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pickles_heterogenous_verify_base_field_test
 
     using component_type =
         zk::components::verify_heterogenous_base<ArithmetizationType, curve_type, kimchi_params, batch_size, comms_len,
-                                    urs_size, state_size, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+                                    urs_size, state_size, wrap_chal_len, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     using commitment_type =
         typename zk::components::kimchi_commitment_type<BlueprintFieldType,

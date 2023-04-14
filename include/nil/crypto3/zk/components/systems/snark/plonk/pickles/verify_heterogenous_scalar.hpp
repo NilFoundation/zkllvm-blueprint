@@ -202,7 +202,6 @@ namespace nil {
                             }
                         }
                         row += accumulator_check_component::rows_amount;
-                        row += list_size * WrapChalLen * 16 * endo_scalar_component::rows_amount;
 
                         row += list_size * hash_messages_for_next_step_proof_component::rows_amount;
                         return row;
@@ -464,34 +463,13 @@ namespace nil {
                             {computed_bp_chals}, row);
                         row += accumulator_check_component::rows_amount;
 
-                        std::array<std::vector<std::array<var, 16>>, list_size>
-                            computed_chals_for_next_wrap_proof;
-
-                        for (std::size_t i = 0; i < list_size; i++) {
-                            assert(params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
-                                         .old_bulletproof_challenges.size() == WrapChalLen);
-                            computed_chals_for_next_wrap_proof[i].resize(WrapChalLen);
-                            for (std::size_t j = 0; j < computed_chals_for_next_wrap_proof[0].size(); j++) {
-                                for (std::size_t k = 0; k < 16; k++) {
-                                    computed_chals_for_next_wrap_proof[i][j][k] =
-                                        endo_scalar_component::generate_circuit(
-                                            bp, assignment,
-                                            {params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
-                                                   .old_bulletproof_challenges[j][k]},
-                                            row)
-                                            .output;
-                                    row += endo_scalar_component::rows_amount;
-                                }
-                            }
-                        }
-
                         std::array<var, list_size> messages_for_next_step_proof;
                         for (std::size_t i = 0; i < list_size; i++) {
                             messages_for_next_step_proof[i] =
                                 hash_messages_for_next_step_proof_component::generate_circuit(
                                     bp, assignment,
                                     {params.ts[i].proof.statement.messages_for_next_step_proof,
-                                     computed_chals_for_next_wrap_proof[i],
+                                     computed_chals_for_next_step_proof[i],
                                      params.ts[i].app_state,
                                      params.ts[i].verification_key.commitments},
                                     row).output;
@@ -742,34 +720,13 @@ namespace nil {
                             {computed_bp_chals}, row);
                         row += accumulator_check_component::rows_amount;
 
-                        std::array<std::vector<std::array<var, 16>>, list_size>
-                            computed_chals_for_next_wrap_proof;
-
-                        for (std::size_t i = 0; i < list_size; i++) {
-                           assert(params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
-                                        .old_bulletproof_challenges.size() == WrapChalLen);
-                            computed_chals_for_next_wrap_proof[i].resize(WrapChalLen);
-                            for (std::size_t j = 0; j < computed_chals_for_next_wrap_proof[0].size(); j++) {
-                                for (std::size_t k = 0; k < 16; k++) {
-                                    computed_chals_for_next_wrap_proof[i][j][k] =
-                                        endo_scalar_component::generate_assignments(
-                                            assignment,
-                                            {params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
-                                                   .old_bulletproof_challenges[j][k]},
-                                            row)
-                                            .output;
-                                    row += endo_scalar_component::rows_amount;
-                                }
-                            }
-                        }
-
                         std::array<var, list_size> messages_for_next_step_proof;
                         for (std::size_t i = 0; i < list_size; i++) {
                             messages_for_next_step_proof[i] =
                                 hash_messages_for_next_step_proof_component::generate_assignments(
                                     assignment,
                                     {params.ts[i].proof.statement.messages_for_next_step_proof,
-                                     computed_chals_for_next_wrap_proof[i],
+                                     computed_chals_for_next_step_proof[i],
                                      params.ts[i].app_state,
                                      params.ts[i].verification_key.commitments},
                                     row).output;

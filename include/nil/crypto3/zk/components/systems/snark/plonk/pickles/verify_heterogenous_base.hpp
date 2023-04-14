@@ -39,7 +39,11 @@
 
 
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_base.hpp>
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/hash_messages_for_next_wrap_proof.hpp>
+#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
 #include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/instance.hpp>
+
+#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/types/urs.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -49,15 +53,16 @@ namespace nil {
                 // base field part of verify_generogenous
                 // https://github.com/MinaProtocol/mina/blob/09348bccf281d54e6fa9dd2d8bbd42e3965e1ff5/src/lib/pickles/verify.ml#L30
                 template<typename ArithmetizationType, typename CurveType, typename KimchiParamsType,
-                    std::size_t BatchSize, std::size_t CommsLen, std::size_t UrsSize, std::size_t... WireIndexes>
+                    std::size_t BatchSize, std::size_t CommsLen, std::size_t UrsSize, std::size_t StateSize,
+                    std::size_t WrapChalLen, std::size_t... WireIndexes>
                 class verify_heterogenous_base;
 
                 template<typename ArithmetizationParams, typename CurveType, typename KimchiParamsType,
                          std::size_t BatchSize, std::size_t CommsLen, std::size_t UrsSize, std::size_t StateSize,
-                         std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
+                         std::size_t WrapChalLen, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
                 class verify_heterogenous_base<
                     snark::plonk_constraint_system<typename CurveType::base_field_type, ArithmetizationParams>,
-                    CurveType, KimchiParamsType, BatchSize, CommsLen, UrsSize, StateSize,
+                    CurveType, KimchiParamsType, BatchSize, CommsLen, UrsSize, StateSize, WrapChalLen,
                     W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
                     using BlueprintFieldType = typename CurveType::base_field_type;
@@ -70,7 +75,9 @@ namespace nil {
 
                     using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
 
-                    using batch_verify_component =
+                    using urs_type = typename types::var_urs<BlueprintFieldType, UrsSize>;
+
+                    using batch_dlog_accumulator_check_component =
                         zk::components::batch_dlog_accumulator_check_base<ArithmetizationType, CurveType, KimchiParamsType,
                                                                           CommsLen, UrsSize, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
@@ -83,14 +90,26 @@ namespace nil {
 
                     using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;
                     using proof_type = kimchi_proof_base<BlueprintFieldType, KimchiParamsType>;
-                    using pickles_instance_type = instance_type<BlueprintFieldType, CurveType, KimchiParamsType>;
+                    using pickles_instance_type = instance_type_t<BlueprintFieldType, KimchiParamsType, StateSize>;
+                    using endo_scalar_component =
+                        zk::components::endo_scalar<ArithmetizationType, CurveType, KimchiParamsType::scalar_challenge_size,
+                                                    W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+
+                    using hash_messages_for_next_wrap_proof_component =
+                        hash_messages_for_next_wrap_proof<
+                            snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, CurveType,
+                            KimchiParamsType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
                     constexpr static std::size_t rows() {
                         std::size_t row = 0;
 
-                        row += batch_verify_component::rows_amount;
+                        row += batch_dlog_accumulator_check_component::rows_amount;
 
                         row += kimchi_verify_component::rows_amount;
+
+                        row += BatchSize * WrapChalLen * endo_scalar_component::rows_amount;
+
+                        row += BatchSize * hash_messages_for_next_wrap_proof_component::rows_amount;
 
                         return row;
                     }
@@ -119,33 +138,53 @@ namespace nil {
                                          const std::size_t start_row_index) {
                         std::size_t row = start_row_index;
 
-                        std::vector<var_ec_point> comms;
-                        std::vector<var> bulletproof_challenges;
+                        std::array<var_ec_point, BatchSize> comms;
                         for (std::size_t i = 0; i < BatchSize; ++i) {
-                            comms.push_back(
-                                params.ts[i].statement.proof_state.messages_for_next_wrap_proof
-                                      .challenge_polynomial_commitment[i]
-                            );
-
-                            std::vector<var> bulletproof_challenges_i =
-                                params.fr_data.step_bulletproof_challenges[i];
-                            bulletproof_challenges.insert(bulletproof_challenges.end(),
-                                                          bulletproof_challenges_i.begin(),
-                                                          bulletproof_challenges_i.end());
+                            comms[i] = params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                             .challenge_polynomial_commitment;
                         }
-                        batch_verify_component::generate_circuit(bp, assignment,
-                            {comms, params.scalars}, row);
-                        row += batch_verify_component::rows_amount;
+                        urs_type urs = batch_dlog_accumulator_check_component::generate_circuit(bp, assignment,
+                            {comms, params.scalars}, row).output.urs;
+                        row += batch_dlog_accumulator_check_component::rows_amount;
 
-                        std::array<proof_type, BatchSize> proofs;
-                        for (std::size_t i = 0; i < BatchSize; ++i) {
-                            proofs[i] = params.ts[i].kimchi_proof;
+                        std::array<std::vector<std::array<var, 15>>, BatchSize>
+                            computed_chals_for_next_wrap_proof;
+
+                        for (std::size_t i = 0; i < BatchSize; i++) {
+                            assert(params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                         .old_bulletproof_challenges.size() == WrapChalLen);
+                            computed_chals_for_next_wrap_proof[i].resize(WrapChalLen);
+                            for (std::size_t j = 0; j < computed_chals_for_next_wrap_proof[0].size(); j++) {
+                                for (std::size_t k = 0; k < 15; k++) {
+                                    computed_chals_for_next_wrap_proof[i][j][k] =
+                                        endo_scalar_component::generate_circuit(
+                                            bp, assignment,
+                                            {params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                                   .old_bulletproof_challenges[j][k]},
+                                            row)
+                                            .output;
+                                    row += endo_scalar_component::rows_amount;
+                                }
+                            }
+                        }
+
+                        std::array<var, BatchSize> messages_for_next_wrap_proof;
+                        for (std::size_t i = 0; i < BatchSize; i++) {
+                            messages_for_next_wrap_proof[i] =
+                                hash_messages_for_next_wrap_proof_component::generate_circuit(
+                                    bp, assignment,
+                                    {WrapChalLen, computed_chals_for_next_wrap_proof[i],
+                                     params.ts[i].proof.statement.proof_state
+                                           .messages_for_next_wrap_proof.challenge_polynomial_commitment}, row
+                                ).output;
+                            row += hash_messages_for_next_wrap_proof_component::rows_amount;
                         }
 
                         /*kimchi_verify_component::generate_circuit(bp, assignment,
                             {proofs, params.ts[0].verifier_index, params.fr_data, params.fq_data}, row);
                         row += kimchi_verify_component::rows_amount;*/
 
+                        assert(row == start_row_index + rows_amount);
                         return result_type();
                     }
 
@@ -155,33 +194,53 @@ namespace nil {
 
                         std::size_t row = start_row_index;
 
-                        std::vector<var_ec_point> comms;
-                        std::vector<var> bulletproof_challenges;
+                        std::array<var_ec_point, BatchSize> comms;
                         for (std::size_t i = 0; i < BatchSize; ++i) {
-                            comms.push_back(
-                                params.ts[i].statement.proof_state.messages_for_next_wrap_proof
-                                      .challenge_polynomial_commitment[i]
-                            );
-
-                            std::vector<var> bulletproof_challenges_i =
-                                params.fr_data.step_bulletproof_challenges[i];
-                            bulletproof_challenges.insert(bulletproof_challenges.end(),
-                                                          bulletproof_challenges_i.begin(),
-                                                          bulletproof_challenges_i.end());
+                            comms[i] = params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                             .challenge_polynomial_commitment;
                         }
-                        batch_verify_component::generate_assignments(assignment,
-                            {comms, params.scalars}, row);
-                        row += batch_verify_component::rows_amount;
+                        urs_type urs = batch_dlog_accumulator_check_component::generate_assignments(assignment,
+                            {comms, params.scalars}, row).output.urs;
+                        row += batch_dlog_accumulator_check_component::rows_amount;
 
-                        std::array<proof_type, BatchSize> proofs;
-                        for (std::size_t i = 0; i < BatchSize; ++i) {
-                            proofs[i] = params.ts[i].kimchi_proof;
+                        std::array<std::vector<std::array<var, 15>>, BatchSize>
+                            computed_chals_for_next_wrap_proof;
+
+                        for (std::size_t i = 0; i < BatchSize; i++) {
+                            assert(params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                         .old_bulletproof_challenges.size() == WrapChalLen);
+                            computed_chals_for_next_wrap_proof[i].resize(WrapChalLen);
+                            for (std::size_t j = 0; j < computed_chals_for_next_wrap_proof[0].size(); j++) {
+                                for (std::size_t k = 0; k < 15; k++) {
+                                    computed_chals_for_next_wrap_proof[i][j][k] =
+                                        endo_scalar_component::generate_assignments(
+                                            assignment,
+                                            {params.ts[i].proof.statement.proof_state.messages_for_next_wrap_proof
+                                                   .old_bulletproof_challenges[j][k]},
+                                            row)
+                                            .output;
+                                    row += endo_scalar_component::rows_amount;
+                                }
+                            }
+                        }
+
+                        std::array<var, BatchSize> messages_for_next_wrap_proof;
+                        for (std::size_t i = 0; i < BatchSize; i++) {
+                            messages_for_next_wrap_proof[i] =
+                                hash_messages_for_next_wrap_proof_component::generate_assignments(
+                                    assignment,
+                                    {WrapChalLen, computed_chals_for_next_wrap_proof[i],
+                                     params.ts[i].proof.statement.proof_state
+                                           .messages_for_next_wrap_proof.challenge_polynomial_commitment}, row
+                                ).output;
+                            row += hash_messages_for_next_wrap_proof_component::rows_amount;
                         }
 
                         /*kimchi_verify_component::generate_assignments(assignment,
                             {proofs, params.ts[0].verifier_index, params.fr_data, params.fq_data}, row);
                         row += kimchi_verify_component::rows_amount;*/
 
+                        assert(row == start_row_index + rows_amount);
                         return result_type();
                     }
                 };
