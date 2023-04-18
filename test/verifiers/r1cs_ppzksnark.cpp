@@ -42,8 +42,8 @@
 
 #include <nil/crypto3/algebra/random_element.hpp>
 
-#include <nil/blueprint/components/algebra/pairing/detail/mnt4.hpp>
-#include <nil/blueprint/components/algebra/pairing/detail/mnt6.hpp>
+#include <nil/blueprint/components/algebra/pairing/detail/r1cs/mnt4.hpp>
+#include <nil/blueprint/components/algebra/pairing/detail/r1cs/mnt6.hpp>
 //#include <nil/blueprint/components/algebra/pairing/pairing_params.hpp>
 
 #include <nil/blueprint/components/algebra/fields/element_fp2.hpp>

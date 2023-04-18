@@ -33,6 +33,7 @@
 #include <nil/crypto3/multiprecision/number.hpp>
 
 #include <nil/crypto3/zk/math/linear_combination.hpp>
+#include <nil/blueprint/blueprint/r1cs/detail/r1cs/blueprint_variable.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -48,9 +49,9 @@ namespace nil {
 
                 template<typename BlueprintFieldType>
                 class blueprint_linear_combination<crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType>> : 
-                    public snark::linear_combination<BlueprintFieldType> {
+                    public math::linear_combination<BlueprintFieldType> {
 
-                    typedef snark::r1cs_constraint_system<BlueprintFieldType> ArithmetizationType;
+                    typedef crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType> ArithmetizationType;
                     typedef BlueprintFieldType field_type;
                     typedef typename field_type::value_type field_value_type;
 
@@ -63,7 +64,7 @@ namespace nil {
                         this->is_variable = false;
                     }
 
-                    blueprint_linear_combination(const blueprint_variable<ArithmetizationType> &var) {
+                    blueprint_linear_combination(const nil::crypto3::blueprint::detail::blueprint_variable<ArithmetizationType> &var) {
                         this->is_variable = true;
                         this->index = var.index;
                         this->terms.emplace_back(math::linear_term<field_type>(var));
@@ -82,7 +83,7 @@ namespace nil {
 
                         field_value_type sum = 0;
                         for (auto term : this->terms) {
-                            sum += term.coeff * bp.val(blueprint_variable<ArithmetizationType>(term.index));
+                            sum += term.coeff * bp.val(nil::crypto3::blueprint::detail::blueprint_variable<ArithmetizationType>(term.index));
                         }
 
                         bp.lc_val(*this) = sum;

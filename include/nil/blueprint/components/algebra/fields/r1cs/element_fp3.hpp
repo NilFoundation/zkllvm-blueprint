@@ -34,8 +34,7 @@
 #include <memory>
 
 #include <nil/blueprint/component.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp.hpp>
-#include <nil/crypto3/zk/blueprint/r1cs.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp.hpp>
 
 namespace nil {
     namespace crypto3 {

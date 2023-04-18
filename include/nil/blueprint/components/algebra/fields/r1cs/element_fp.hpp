@@ -31,7 +31,7 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_FP_COMPONENTS_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_FP_COMPONENTS_HPP
 
-#include <nil/crypto3/zk/blueprint/r1cs.hpp>
+#include <nil/blueprint/blueprint/r1cs/detail/r1cs/blueprint_linear_combination.hpp>
 
 namespace nil {
     namespace crypto3 {

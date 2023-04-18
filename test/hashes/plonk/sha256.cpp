@@ -45,6 +45,8 @@ using namespace nil;
 
 template <typename BlueprintFieldType>
 void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_input){
+    auto begin = std::chrono::high_resolution_clock::now();
+ 
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 5;
     constexpr std::size_t ConstantColumns = 2;
@@ -73,6 +75,10 @@ void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_inp
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::high_resolution_clock::now() - begin);
+    std::cout << "Sha test time:" << elapsed.count() << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
