@@ -33,8 +33,8 @@
 
 #include <nil/crypto3/algebra/curves/mnt6.hpp>
 
-#include <nil/blueprint/components/algebra/fields/element_fp2.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp4.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp2.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp4.hpp>
 
 namespace nil {
     namespace crypto3 {

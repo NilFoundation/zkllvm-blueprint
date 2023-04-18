@@ -125,7 +125,7 @@ namespace nil {
                 class blueprint_linear_combination_vector<crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType>>
                     : private std::vector<blueprint_linear_combination<crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType>>> {
 
-                    typedef snark::r1cs_constraint_system<BlueprintFieldType> ArithmetizationType;
+                    typedef zk::snark::r1cs_constraint_system<BlueprintFieldType> ArithmetizationType;
                     typedef typename BlueprintFieldType::value_type field_value_type;
                     typedef std::vector<blueprint_linear_combination<ArithmetizationType>> contents;
 

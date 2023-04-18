@@ -34,8 +34,7 @@
 #include <memory>
 
 #include <nil/blueprint/component.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp.hpp>
-#include <nil/crypto3/zk/blueprint/r1cs.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -48,7 +47,7 @@ namespace nil {
                  * Component that represents an element Fp2 component.
                  */
                 template<typename Fp2T>
-                struct element_fp2 : public component<typename Fp2T::underlying_field_type> {
+                struct element_fp2 : public nil::blueprint::components::component<typename Fp2T::underlying_field_type> {
 
                     using field_type = Fp2T;
                     using base_field_type = typename field_type::base_field_type;
@@ -65,7 +64,7 @@ namespace nil {
 
                     detail::blueprint_linear_combination_vector<base_field_type> all_vars;
 
-                    element_fp2(blueprint<base_field_type> &bp) : component<base_field_type>(bp) {
+                    element_fp2(blueprint<base_field_type> &bp) : nil::blueprint::components::component<base_field_type>(bp) {
                         detail::blueprint_variable<base_field_type> c0_var, c1_var;
 
                         c0_var.allocate(bp);
@@ -81,7 +80,7 @@ namespace nil {
                     }
 
                     element_fp2(blueprint<base_field_type> &bp, const typename field_type::value_type &el) :
-                        component<base_field_type>(bp) {
+                        nil::blueprint::components::component<base_field_type>(bp) {
                         underlying_element_type c0_lc;
                         underlying_element_type c1_lc;
 
@@ -100,7 +99,7 @@ namespace nil {
                     element_fp2(blueprint<base_field_type> &bp,
                                 const typename field_type::value_type &el,
                                 const detail::blueprint_linear_combination<base_field_type> &coeff) :
-                        component<base_field_type>(bp) {
+                        nil::blueprint::components::component<base_field_type>(bp) {
 
                         underlying_element_type c0_lc;
                         underlying_element_type c1_lc;
@@ -117,7 +116,7 @@ namespace nil {
                     element_fp2(blueprint<base_field_type> &bp,
                                 const underlying_element_type &c0_lc,
                                 const underlying_element_type &c1_lc) :
-                        component<base_field_type>(bp) {
+                        nil::blueprint::components::component<base_field_type>(bp) {
 
                         data = data_type({underlying_element_type(c0_lc), underlying_element_type(c1_lc)});
 
@@ -126,8 +125,8 @@ namespace nil {
                     }
 
                     void generate_r1cs_equals_const_constraints(const typename Fp2T::value_type &el) {
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(1, el.data[0], data[0]));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(1, el.data[1], data[1]));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(1, el.data[0], data[0]));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(1, el.data[1], data[1]));
                     }
 
                     void generate_assignments(const typename Fp2T::value_type &el) {
@@ -195,7 +194,7 @@ namespace nil {
                  * Component that creates constraints for Fp2 by Fp2 multiplication.
                  */
                 template<typename Fp2T>
-                struct element_fp2_mul : public component<typename Fp2T::underlying_field_type> {
+                struct element_fp2_mul : public nil::blueprint::components::component<typename Fp2T::underlying_field_type> {
                     using base_field_type = typename Fp2T::underlying_field_type;
                     using base_field_value_type = typename base_field_type::value_type;
 
@@ -211,7 +210,7 @@ namespace nil {
                                     const element_fp2<Fp2T> &A,
                                     const element_fp2<Fp2T> &B,
                                     const element_fp2<Fp2T> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), B(B), result(result) {
                         v1.allocate(bp);
                     }
@@ -234,11 +233,11 @@ namespace nil {
                                 "Multiplication and Squaring on Pairing-Friendly Fields"
                                 Devegili, OhEigeartaigh, Scott, Dahab
                         */
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(A.data[1], B.data[1], v1));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(A.data[1], B.data[1], v1));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0], B.data[0], result.data[0] + v1 * (-Fp2T::value_type::non_residue)));
 
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0] + A.data[1],
                             B.data[0] + B.data[1],
                             result.data[1] + result.data[0] +
@@ -263,7 +262,7 @@ namespace nil {
                  * Component that creates constraints for Fp2 multiplication by a linear combination.
                  */
                 template<typename Fp2T>
-                struct element_fp2_mul_by_lc : public component<typename Fp2T::underlying_field_type> {
+                struct element_fp2_mul_by_lc : public nil::blueprint::components::component<typename Fp2T::underlying_field_type> {
                     using base_field_type = typename Fp2T::underlying_field_type;
 
                     element_fp2<Fp2T> A;
@@ -274,15 +273,15 @@ namespace nil {
                                           const element_fp2<Fp2T> &A,
                                           const detail::blueprint_linear_combination<base_field_type> &lc,
                                           const element_fp2<Fp2T> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), lc(lc), result(result) {
                     }
 
                     void generate_gates() {
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(A.data[0], lc, result.data[0]));
+                            zk::snark::r1cs_constraint<base_field_type>(A.data[0], lc, result.data[0]));
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(A.data[1], lc, result.data[1]));
+                            zk::snark::r1cs_constraint<base_field_type>(A.data[1], lc, result.data[1]));
                     }
 
                     void generate_assignments() {
@@ -297,7 +296,7 @@ namespace nil {
                  * Component that creates constraints for Fp2 squaring.
                  */
                 template<typename Fp2T>
-                struct element_fp2_squared : public component<typename Fp2T::underlying_field_type> {
+                struct element_fp2_squared : public nil::blueprint::components::component<typename Fp2T::underlying_field_type> {
                     using base_field_type = typename Fp2T::base_field_type;
 
                     element_fp2<Fp2T> A;
@@ -308,7 +307,7 @@ namespace nil {
                     element_fp2_squared(blueprint<base_field_type> &bp,
                                         const element_fp2<Fp2T> &A,
                                         const element_fp2<Fp2T> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), result(result) {
                     }
 
@@ -329,8 +328,8 @@ namespace nil {
                                 Devegili, OhEigeartaigh, Scott, Dahab
                         */
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(2 * A.data[0], A.data[1], result.data[1]));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                            zk::snark::r1cs_constraint<base_field_type>(2 * A.data[0], A.data[1], result.data[1]));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0] + A.data[1],
                             A.data[0] + Fp2T::value_type::non_residue * A.data[1],
                             result.data[0] + result.data[1] *

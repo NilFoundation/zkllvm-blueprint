@@ -46,12 +46,12 @@
 #include <nil/blueprint/components/algebra/pairing/detail/r1cs/mnt6.hpp>
 //#include <nil/blueprint/components/algebra/pairing/pairing_params.hpp>
 
-#include <nil/blueprint/components/algebra/fields/element_fp2.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp3.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp4.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp6_2over3.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp2.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp3.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp4.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp6_2over3.hpp>
 #include <nil/crypto3/zk/snark/components/verifiers/r1cs_ppzksnark_verifier_component.hpp>
-#include <nil/crypto3/zk/snark/schemes/ppzksnark/r1cs_ppzksnark.hpp>
+#include <nil/crypto3/zk/snark/systems/ppzksnark/r1cs_ppzksnark.hpp>
 
 #include "../pairing/weierstrass_miller_loop.hpp"
 #include "../r1cs_examples.hpp"

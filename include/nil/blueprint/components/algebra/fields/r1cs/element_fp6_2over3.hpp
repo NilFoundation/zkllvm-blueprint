@@ -32,9 +32,8 @@
 #define CRYPTO3_BLUEPRINT_COMPONENTS_FP6_2OVER3_COMPONENTS_HPP
 
 #include <nil/blueprint/component.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp2.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp3.hpp>
-#include <nil/crypto3/zk/blueprint/r1cs.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp2.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp3.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -47,7 +46,7 @@ namespace nil {
                  * Component that represents an Fp6 element.
                  */
                 template<typename FieldType>    // Fp6 2over3
-                class element_fp6_2over3 : public component<typename FieldType::base_field_type> {
+                class element_fp6_2over3 : public nil::blueprint::components::component<typename FieldType::base_field_type> {
 
                     using field_type = FieldType;
                     using base_field_type = typename field_type::base_field_type;
@@ -62,18 +61,18 @@ namespace nil {
                     data_type data;
 
                     element_fp6_2over3(blueprint<base_field_type> &bp) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         data({underlying_element_type(bp), underlying_element_type(bp)}) {
                     }
 
                     element_fp6_2over3(blueprint<base_field_type> &bp, const typename field_type::value_type &el) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         data({underlying_element_type(bp, el.data[0]), underlying_element_type(bp, el.data[1])}) {
                     }
 
                     element_fp6_2over3(blueprint<base_field_type> &bp, const underlying_element_type &in_data0,
                                        const underlying_element_type &in_data1) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         data({underlying_element_type(in_data0), underlying_element_type(in_data1)}) {
                     }
 
@@ -133,7 +132,7 @@ namespace nil {
                  * Component that creates constraints for Fp6 multiplication.
                  */
                 template<typename FieldType>
-                class element_fp6_2over3_mul : public component<typename FieldType::base_field_type> {
+                class element_fp6_2over3_mul : public nil::blueprint::components::component<typename FieldType::base_field_type> {
 
                     using field_type = FieldType;
                     using base_field_type = typename field_type::base_field_type;
@@ -176,7 +175,7 @@ namespace nil {
                                            const element_fp6_2over3<field_type> &A,
                                            const element_fp6_2over3<field_type> &B,
                                            const element_fp6_2over3<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), B(B), result(result) {
                         /*
                             Karatsuba multiplication for Fp6 as a quadratic extension of Fp3:
@@ -273,7 +272,7 @@ namespace nil {
                  * B.data[0].data[0] = B.data[0].data[1] = 0.
                  */
                 template<typename FieldType>
-                class element_fp6_2over3_mul_by_2345 : public component<typename FieldType::base_field_type> {
+                class element_fp6_2over3_mul_by_2345 : public nil::blueprint::components::component<typename FieldType::base_field_type> {
                     using field_type = FieldType;
                     using base_field_type = typename field_type::base_field_type;
                     using underlying_field_type = typename field_type::underlying_field_type;
@@ -314,7 +313,7 @@ namespace nil {
                                                    const element_fp6_2over3<field_type> &A,
                                                    const element_fp6_2over3<field_type> &B,
                                                    const element_fp6_2over3<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), B(B), result(result) {
                         /*
                             Karatsuba multiplication for Fp6 as a quadratic extension of Fp3:
@@ -374,15 +373,15 @@ namespace nil {
 
                     void generate_gates() {
                         compute_v1->generate_gates();
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0].data[1], underlying_field_type::value_type::non_residue * B.data[0].data[2],
                             result.data[0].data[0] - field_type::value_type::non_residue * v1->data[2]));
 
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0].data[2], underlying_field_type::value_type::non_residue * B.data[0].data[2],
                             result.data[0].data[1] - v1->data[0]));
 
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0].data[0], B.data[0].data[2], result.data[0].data[2] - v1->data[1]));
                         compute_result_c1->generate_gates();
                     }
@@ -428,7 +427,7 @@ namespace nil {
                  * Component that creates constraints for Fp6 squaring.
                  */
                 template<typename FieldType>
-                class element_fp6_2over3_squared : public component<typename FieldType::base_field_type> {
+                class element_fp6_2over3_squared : public nil::blueprint::components::component<typename FieldType::base_field_type> {
 
                     using field_type = FieldType;
                     using base_field_type = typename field_type::base_field_type;
@@ -445,7 +444,7 @@ namespace nil {
                     element_fp6_2over3_squared(blueprint<base_field_type> &bp,
                                                const element_fp6_2over3<field_type> &A,
                                                const element_fp6_2over3<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), result(result) {
                         mul.reset(new element_fp6_2over3_mul<field_type>(bp, A, A, result));
                     }
@@ -466,7 +465,7 @@ namespace nil {
                  * Component that creates constraints for Fp6 cyclotomic squaring
                  */
                 template<typename FieldType>
-                class element_fp6_2over3_cyclotomic_squared : public component<typename FieldType::base_field_type> {
+                class element_fp6_2over3_cyclotomic_squared : public nil::blueprint::components::component<typename FieldType::base_field_type> {
 
                     using field_type = FieldType;
                     using base_field_type = typename field_type::base_field_type;
@@ -504,7 +503,7 @@ namespace nil {
                     element_fp6_2over3_cyclotomic_squared(blueprint<base_field_type> &bp,
                                                           const element_fp6_2over3<field_type> &A,
                                                           const element_fp6_2over3<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), result(result) {
                         /*
                             underlying_field_type a = underlying_field_type(data[0].data[0], data[1].data[1]);

@@ -32,9 +32,8 @@
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
-#include <nil/blueprint/blueprint/r1cs/assignment.hpp>
 
-#include <nil/blueprint/components/algebra/fields/element_fp6_2over3.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp6_2over3.hpp>
 
 #include "arithmetic.hpp"
 
@@ -57,9 +56,9 @@ BOOST_AUTO_TEST_CASE(field_element_mul_component_test_mnt6_case) {
         typename field_type::value_type a_value = random_element<field_type>();
         typename field_type::value_type b_value = random_element<field_type>();
 
-        blueprint<base_field_type> bp = test_field_element_mul<field_type, 
-            components::element_fp6_2over3, 
-            components::element_fp6_2over3_mul>(a_value, b_value);
+        nil::blueprint::blueprint<base_field_type> bp = test_field_element_mul<field_type, 
+            nil::crypto3::blueprint::components::element_fp6_2over3, 
+            nil::crypto3::blueprint::components::element_fp6_2over3_mul>(a_value, b_value);
 
         BOOST_CHECK(bp.is_satisfied());
     }
@@ -80,9 +79,9 @@ BOOST_AUTO_TEST_CASE(field_element_squared_component_test_mnt6_case) {
     for (std::size_t i = 0; i < tries_quantity; i++){
         typename field_type::value_type a_value = random_element<field_type>();
 
-        blueprint<base_field_type> bp = test_field_element_squared<field_type, 
-            components::element_fp6_2over3, 
-            components::element_fp6_2over3_squared>(a_value);
+        nil::blueprint::blueprint<base_field_type> bp = test_field_element_squared<field_type, 
+            nil::crypto3::blueprint::components::element_fp6_2over3, 
+            nil::crypto3::blueprint::components::element_fp6_2over3_squared>(a_value);
 
         BOOST_CHECK(bp.is_satisfied());
     }

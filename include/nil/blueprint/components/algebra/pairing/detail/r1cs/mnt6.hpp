@@ -32,7 +32,7 @@
 #define CRYPTO3_BLUEPRINT_COMPONENTS_MNT6_BASIC_PAIRING_HPP
 
 #include <nil/crypto3/algebra/curves/mnt6.hpp>
-#include <nil/blueprint/components/algebra/curves/detail/mnt6.hpp>
+#include <nil/blueprint/components/algebra/curves/detail/r1cs/mnt6.hpp>
 
 namespace nil {
     namespace crypto3 {

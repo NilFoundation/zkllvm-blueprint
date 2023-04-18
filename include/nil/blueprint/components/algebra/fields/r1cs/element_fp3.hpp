@@ -47,7 +47,7 @@ namespace nil {
                  * Component that represents an Fp3 element.
                  */
                 template<typename Fp3T>
-                struct element_fp3 : public component<typename Fp3T::underlying_field_type> {
+                struct element_fp3 : public nil::blueprint::components::component<typename Fp3T::underlying_field_type> {
 
                     using field_type = Fp3T;
                     using base_field_type = typename field_type::base_field_type;
@@ -64,7 +64,8 @@ namespace nil {
 
                     detail::blueprint_linear_combination_vector<base_field_type> all_vars;
 
-                    element_fp3(blueprint<base_field_type> &bp) : component<base_field_type>(bp) {
+                    element_fp3(blueprint<base_field_type> &bp) 
+                            : nil::blueprint::components::component<base_field_type>(bp) {
                         detail::blueprint_variable<base_field_type> c0_var, c1_var, c2_var;
 
                         c0_var.allocate(bp);
@@ -80,7 +81,7 @@ namespace nil {
                     }
 
                     element_fp3(blueprint<base_field_type> &bp, const typename Fp3T::value_type &el) :
-                        component<base_field_type>(bp) {
+                        nil::blueprint::components::component<base_field_type>(bp) {
                         underlying_element_type c0_lc;
                         underlying_element_type c1_lc;
                         underlying_element_type c2_lc;
@@ -104,7 +105,7 @@ namespace nil {
                     element_fp3(blueprint<base_field_type> &bp,
                                 const typename Fp3T::value_type &el,
                                 const detail::blueprint_linear_combination<base_field_type> &coeff) :
-                        component<base_field_type>(bp) {
+                        nil::blueprint::components::component<base_field_type>(bp) {
 
                         underlying_element_type c0_lc;
                         underlying_element_type c1_lc;
@@ -126,7 +127,7 @@ namespace nil {
                                 const underlying_element_type &c0_lc,
                                 const underlying_element_type &c1_lc,
                                 const underlying_element_type &c2_lc) :
-                        component<base_field_type>(bp) {
+                        nil::blueprint::components::component<base_field_type>(bp) {
 
                         data = data_type({underlying_element_type(c0_lc), underlying_element_type(c1_lc),
                                           underlying_element_type(c2_lc)});
@@ -137,9 +138,9 @@ namespace nil {
                     }
 
                     void generate_r1cs_equals_const_constraints(const typename Fp3T::value_type &el) {
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(1, el.data[0], data[0]));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(1, el.data[1], data[1]));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(1, el.data[2], data[2]));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(1, el.data[0], data[0]));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(1, el.data[1], data[1]));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(1, el.data[2], data[2]));
                     }
 
                     void generate_assignments(const typename Fp3T::value_type &el) {
@@ -214,7 +215,7 @@ namespace nil {
                  * Component that creates constraints for Fp3 by Fp3 multiplication.
                  */
                 template<typename Fp3T>
-                struct element_fp3_mul : public component<typename Fp3T::base_field_type> {
+                struct element_fp3_mul : public nil::blueprint::components::component<typename Fp3T::base_field_type> {
                     using base_field_type = typename Fp3T::base_field_type;
 
                     element_fp3<Fp3T> A;
@@ -228,7 +229,7 @@ namespace nil {
                                     const element_fp3<Fp3T> &A,
                                     const element_fp3<Fp3T> &B,
                                     const element_fp3<Fp3T> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), B(B), result(result) {
                         v0.allocate(bp);
                         v4.allocate(bp);
@@ -270,25 +271,25 @@ namespace nil {
                                         data[2] == -v0 + (1/2) v1 + (1/2) v2 - v4}, #] // FullSimplify) & /@
                             Subsets[{v0, v1, v2, v3, v4}, {3}]
                         */
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(A.data[0], B.data[0], v0));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(A.data[2], B.data[2], v4));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(A.data[0], B.data[0], v0));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(A.data[2], B.data[2], v4));
 
                         const typename base_field_type::value_type beta = Fp3T::value_type::non_residue;
 
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0] + A.data[1] + A.data[2],
                             B.data[0] + B.data[1] + B.data[2],
                             result.data[1] + result.data[2] + result.data[0] * beta.inversed() +
                                 v0 * (typename base_field_type::value_type(1) - beta.inversed()) +
                                 v4 * (typename base_field_type::value_type(1) - beta)));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0] - A.data[1] + A.data[2],
                             B.data[0] - B.data[1] + B.data[2],
                             -result.data[1] + result.data[2] +
                                 v0 * (typename base_field_type::value_type(1) + beta.inversed()) -
                                 result.data[0] * beta.inversed() +
                                 v4 * (typename base_field_type::value_type(1) + beta)));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             A.data[0] + 2 * A.data[1] + 4 * A.data[2],
                             B.data[0] + 2 * B.data[1] + 4 * B.data[2],
                             2 * result.data[1] + 4 * result.data[2] +
@@ -316,7 +317,7 @@ namespace nil {
                  * Component that creates constraints for Fp3 multiplication by a linear combination.
                  */
                 template<typename Fp3T>
-                struct element_fp3_mul_by_lc : public component<typename Fp3T::underlying_field_type> {
+                struct element_fp3_mul_by_lc : public nil::blueprint::components::component<typename Fp3T::underlying_field_type> {
                     using base_field_type = typename Fp3T::underlying_field_type;
 
                     element_fp3<Fp3T> A;
@@ -327,17 +328,17 @@ namespace nil {
                                           const element_fp3<Fp3T> &A,
                                           const detail::blueprint_linear_combination<base_field_type> &lc,
                                           const element_fp3<Fp3T> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), lc(lc), result(result) {
                     }
 
                     void generate_gates() {
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(A.data[0], lc, result.data[0]));
+                            zk::snark::r1cs_constraint<base_field_type>(A.data[0], lc, result.data[0]));
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(A.data[1], lc, result.data[1]));
+                            zk::snark::r1cs_constraint<base_field_type>(A.data[1], lc, result.data[1]));
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(A.data[2], lc, result.data[2]));
+                            zk::snark::r1cs_constraint<base_field_type>(A.data[2], lc, result.data[2]));
                     }
 
                     void generate_assignments() {
@@ -353,7 +354,7 @@ namespace nil {
                  * Component that creates constraints for Fp3 squaring.
                  */
                 template<typename Fp3T>
-                struct element_fp3_squared : public component<typename Fp3T::underlying_field_type> {
+                struct element_fp3_squared : public nil::blueprint::components::component<typename Fp3T::underlying_field_type> {
                     using base_field_type = typename Fp3T::underlying_field_type;
 
                     element_fp3<Fp3T> A;
@@ -364,7 +365,7 @@ namespace nil {
                     element_fp3_squared(blueprint<base_field_type> &bp,
                                         const element_fp3<Fp3T> &A,
                                         const element_fp3<Fp3T> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), result(result) {
                         mul.reset(new element_fp3_mul<Fp3T>(bp, A, A, result));
                     }

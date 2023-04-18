@@ -32,8 +32,7 @@
 #define CRYPTO3_BLUEPRINT_COMPONENTS_FP4_COMPONENTS_HPP
 
 #include <nil/blueprint/component.hpp>
-#include <nil/blueprint/components/algebra/fields/element_fp2.hpp>
-#include <nil/crypto3/zk/blueprint/r1cs.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp2.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -46,7 +45,7 @@ namespace nil {
                  * Component that represents an Fp4 element.
                  */
                 template<typename Fp4T>
-                struct element_fp4 : public component<typename Fp4T::base_field_type> {
+                struct element_fp4 : public nil::blueprint::components::component<typename Fp4T::base_field_type> {
 
                     using field_type = Fp4T;
                     using base_field_type = typename field_type::base_field_type;
@@ -60,18 +59,18 @@ namespace nil {
                     data_type data;
 
                     element_fp4(blueprint<base_field_type> &bp) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         data({underlying_element_type(bp), underlying_element_type(bp)}) {
                     }
 
                     element_fp4(blueprint<base_field_type> &bp, const typename field_type::value_type &el) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         data({underlying_element_type(bp, el.data[0]), underlying_element_type(bp, el.data[1])}) {
                     }
 
                     element_fp4(blueprint<base_field_type> &bp, const underlying_element_type &in_data0,
                                 const underlying_element_type &in_data1) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         data({underlying_element_type(in_data0), underlying_element_type(in_data1)}) {
                     }
 
@@ -93,7 +92,7 @@ namespace nil {
                     }
 
                     element_fp4<field_type> Frobenius_map(const std::size_t power) const {
-                        detail::blueprint_linear_combination<base_field_type> new_c0c0, new_c0c1, new_c1c0, new_c1c1;
+                        nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> new_c0c0, new_c0c1, new_c1c0, new_c1c1;
                         new_c0c0.assign(this->bp, data[0].data[0]);
                         new_c0c1.assign(this->bp,
                                         data[0].data[1] * underlying_field_type::Frobenius_coeffs_c1[power % 2]);
@@ -119,7 +118,7 @@ namespace nil {
                  * Component that creates constraints for Fp4 multiplication (towering formulas).
                  */
                 template<typename Fp4T>
-                class element_fp4_tower_mul : public component<typename Fp4T::base_field_type> {
+                class element_fp4_tower_mul : public nil::blueprint::components::component<typename Fp4T::base_field_type> {
                 public:
                     using field_type = Fp4T;
                     using base_field_type = typename field_type::base_field_type;
@@ -131,22 +130,22 @@ namespace nil {
                     element_fp4<field_type> B;
                     element_fp4<field_type> result;
 
-                    detail::blueprint_linear_combination<base_field_type> v0_c0;
-                    detail::blueprint_linear_combination<base_field_type> v0_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> v0_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> v0_c1;
 
-                    detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c0;
-                    detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c1;
                     std::shared_ptr<underlying_element_type> Ac0_plus_Ac1;
 
                     std::shared_ptr<underlying_element_type> v0;
                     std::shared_ptr<underlying_element_type> v1;
 
-                    detail::blueprint_linear_combination<base_field_type> Bc0_plus_Bc1_c0;
-                    detail::blueprint_linear_combination<base_field_type> Bc0_plus_Bc1_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> Bc0_plus_Bc1_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> Bc0_plus_Bc1_c1;
                     std::shared_ptr<underlying_element_type> Bc0_plus_Bc1;
 
-                    detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c0;
-                    detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c1;
 
                     std::shared_ptr<underlying_element_type> result_c1_plus_v0_plus_v1;
 
@@ -158,7 +157,7 @@ namespace nil {
                                           const element_fp4<field_type> &A,
                                           const element_fp4<field_type> &B,
                                           const element_fp4<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), B(B), result(result) {
                         /*
                           Karatsuba multiplication for Fp4 as a quadratic extension of Fp2:
@@ -237,7 +236,7 @@ namespace nil {
                  * Component that creates constraints for Fp4 multiplication (direct formulas).
                  */
                 template<typename Fp4T>
-                class element_fp4_direct_mul : public component<typename Fp4T::base_field_type> {
+                class element_fp4_direct_mul : public nil::blueprint::components::component<typename Fp4T::base_field_type> {
                 public:
                     using field_type = Fp4T;
                     using base_field_type = typename field_type::base_field_type;
@@ -251,15 +250,15 @@ namespace nil {
                     element_fp4<field_type> B;
                     element_fp4<field_type> result;
 
-                    detail::blueprint_variable<base_field_type> v1;
-                    detail::blueprint_variable<base_field_type> v2;
-                    detail::blueprint_variable<base_field_type> v6;
+                    nil::crypto3::blueprint::detail::blueprint_variable<base_field_type> v1;
+                    nil::crypto3::blueprint::detail::blueprint_variable<base_field_type> v2;
+                    nil::crypto3::blueprint::detail::blueprint_variable<base_field_type> v6;
 
                     element_fp4_direct_mul(blueprint<base_field_type> &bp,
                                            const element_fp4<field_type> &A,
                                            const element_fp4<field_type> &B,
                                            const element_fp4<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), B(B), result(result) {
                         /*
                             Tom-Cook-4x for Fp4 (beta is the quartic non-residue):
@@ -328,7 +327,7 @@ namespace nil {
 
                         const base_field_value_type u = (base_field_value_type::one() - beta).inversed();
 
-                        const detail::blueprint_linear_combination<base_field_type> &a0 = A.data[0].data[0],
+                        const nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> &a0 = A.data[0].data[0],
                                                                                     &a1 = A.data[1].data[0],
                                                                                     &a2 = A.data[0].data[1],
                                                                                     &a3 = A.data[1].data[1],
@@ -342,17 +341,17 @@ namespace nil {
                                                                                     &c3 = result.data[1].data[1];
 
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(a0 + a1 + a2 + a3, b0 + b1 + b2 + b3, v1));
+                            zk::snark::r1cs_constraint<base_field_type>(a0 + a1 + a2 + a3, b0 + b1 + b2 + b3, v1));
                         this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<base_field_type>(a0 - a1 + a2 - a3, b0 - b1 + b2 - b3, v2));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(a3, b3, v6));
+                            zk::snark::r1cs_constraint<base_field_type>(a0 - a1 + a2 - a3, b0 - b1 + b2 - b3, v2));
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(a3, b3, v6));
 
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             a0,
                             b0,
                             u * c0 + beta * u * c2 - beta * u * base_field_value_type(0x02).inversed() * v1 -
                                 beta * u * base_field_value_type(0x02).inversed() * v2 + beta * v6));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             a0 + base_field_value_type(0x02) * a1 + base_field_value_type(0x04) * a2 +
                                 base_field_value_type(0x08) * a3,
                             b0 + base_field_value_type(0x02) * b1 + base_field_value_type(0x04) * b2 +
@@ -366,7 +365,7 @@ namespace nil {
                                 (-base_field_value_type(0x08) + beta * base_field_value_type(0x02).inversed()) * u *
                                     v2 -
                                 base_field_value_type(0x03) * (-base_field_value_type(16) + beta) * v6));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             a0 - base_field_value_type(0x02) * a1 + base_field_value_type(0x04) * a2 -
                                 base_field_value_type(0x08) * a3,
                             b0 - base_field_value_type(0x02) * b1 + base_field_value_type(0x04) * b2 -
@@ -380,7 +379,7 @@ namespace nil {
                                 (-base_field_value_type(0x08) + beta * base_field_value_type(0x02).inversed()) * u *
                                     v1 -
                                 base_field_value_type(0x03) * (-base_field_value_type(16) + beta) * v6));
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<base_field_type>(
+                        this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<base_field_type>(
                             a0 + base_field_value_type(0x03) * a1 + base_field_value_type(0x09) * a2 +
                                 base_field_value_type(27) * a3,
                             b0 + base_field_value_type(0x03) * b1 + base_field_value_type(0x09) * b2 +
@@ -394,7 +393,7 @@ namespace nil {
                     }
 
                     void generate_r1cs_witness() {
-                        const detail::blueprint_linear_combination<base_field_type> &a0 = A.data[0].data[0],
+                        const nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> &a0 = A.data[0].data[0],
                                                                             &a1 = A.data[1].data[0],
                                                                             &a2 = A.data[0].data[1],
                                                                             &a3 = A.data[1].data[1],
@@ -431,7 +430,7 @@ namespace nil {
                  * Component that creates constraints for Fp4 squaring.
                  */
                 template<typename Fp4T>
-                class element_fp4_squared : public component<typename Fp4T::base_field_type> {
+                class element_fp4_squared : public nil::blueprint::components::component<typename Fp4T::base_field_type> {
                 public:
                     using field_type = Fp4T;
                     using base_field_type = typename field_type::base_field_type;
@@ -444,19 +443,19 @@ namespace nil {
 
                     std::shared_ptr<underlying_element_type> v1;
 
-                    detail::blueprint_linear_combination<base_field_type> v0_c0;
-                    detail::blueprint_linear_combination<base_field_type> v0_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> v0_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> v0_c1;
                     std::shared_ptr<underlying_element_type> v0;
 
                     std::shared_ptr<element_fp2_squared<underlying_field_type>> compute_v0;
                     std::shared_ptr<element_fp2_squared<underlying_field_type>> compute_v1;
 
-                    detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c0;
-                    detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> Ac0_plus_Ac1_c1;
                     std::shared_ptr<underlying_element_type> Ac0_plus_Ac1;
 
-                    detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c0;
-                    detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> result_c1_plus_v0_plus_v1_c1;
 
                     std::shared_ptr<underlying_element_type> result_c1_plus_v0_plus_v1;
 
@@ -465,7 +464,7 @@ namespace nil {
                     element_fp4_squared(blueprint<base_field_type> &bp,
                                         const element_fp4<field_type> &A,
                                         const element_fp4<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), result(result) {
                         /*
                           Karatsuba squaring for Fp4 as a quadratic extension of Fp2:
@@ -537,7 +536,7 @@ namespace nil {
                  * Component that creates constraints for Fp4 cyclotomic squaring
                  */
                 template<typename Fp4T>
-                class element_fp4_cyclotomic_squared : public component<typename Fp4T::base_field_type> {
+                class element_fp4_cyclotomic_squared : public nil::blueprint::components::component<typename Fp4T::base_field_type> {
                 public:
                     using field_type = Fp4T;
                     using base_field_type = typename field_type::base_field_type;
@@ -550,24 +549,24 @@ namespace nil {
                     element_fp4<field_type> A;
                     element_fp4<field_type> result;
 
-                    detail::blueprint_linear_combination<base_field_type> c0_expr_c0;
-                    detail::blueprint_linear_combination<base_field_type> c0_expr_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> c0_expr_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> c0_expr_c1;
                     std::shared_ptr<underlying_element_type> c0_expr;
                     std::shared_ptr<element_fp2_squared<underlying_field_type>> compute_c0_expr;
 
-                    detail::blueprint_linear_combination<base_field_type> A_c0_plus_A_c1_c0;
-                    detail::blueprint_linear_combination<base_field_type> A_c0_plus_A_c1_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> A_c0_plus_A_c1_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> A_c0_plus_A_c1_c1;
                     std::shared_ptr<underlying_element_type> A_c0_plus_A_c1;
 
-                    detail::blueprint_linear_combination<base_field_type> c1_expr_c0;
-                    detail::blueprint_linear_combination<base_field_type> c1_expr_c1;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> c1_expr_c0;
+                    nil::crypto3::blueprint::detail::blueprint_linear_combination<base_field_type> c1_expr_c1;
                     std::shared_ptr<underlying_element_type> c1_expr;
                     std::shared_ptr<element_fp2_squared<underlying_field_type>> compute_c1_expr;
 
                     element_fp4_cyclotomic_squared(blueprint<base_field_type> &bp,
                                                    const element_fp4<field_type> &A,
                                                    const element_fp4<field_type> &result) :
-                        component<base_field_type>(bp),
+                        nil::blueprint::components::component<base_field_type>(bp),
                         A(A), result(result) {
                         /*
                           A = elt.data[1] ^ 2
