@@ -40,6 +40,7 @@
 
 using namespace nil::crypto3;
 using namespace nil::crypto3::zk;
+using namespace nil::crypto3::blueprint;
 using namespace nil::crypto3::algebra;
 
 BOOST_AUTO_TEST_SUITE(field_element_arithmetic_component_test_suite)
