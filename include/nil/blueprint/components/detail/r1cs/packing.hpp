@@ -41,16 +41,18 @@ namespace nil {
             namespace components {
                 /* forces lc to take value 0 or 1 by adding constraint lc * (1-lc) = 0 */
                 template<typename Field>
-                void generate_boolean_r1cs_constraint(blueprint<Field> &bp,
-                                                      const math::non_linear_combination<Field> &lc) {
-                    bp.add_r1cs_constraint(zk::snark::r1cs_constraint<Field>(lc, Field::value_type::one() - lc,
-                                                                             Field::value_type::zero()));
+                void generate_boolean_r1cs_constraint(
+                        blueprint<Field> &bp,
+                        const math::expression<detail::blueprint_variable<FieldType>> &lc) {
+                    bp.add_r1cs_constraint(zk::snark::r1cs_constraint<Field>(
+                        lc, Field::value_type::one() - lc, Field::value_type::zero()));
                 }
 
                 template<typename Field>
-                void generate_r1cs_equals_const_constraint(blueprint<Field> &bp,
-                                                           const math::non_linear_combination<Field> &lc,
-                                                           const typename Field::value_type &c) {
+                void generate_r1cs_equals_const_constraint(
+                        blueprint<Field> &bp,
+                        const math::expression<detail::blueprint_variable<FieldType>> &lc,
+                        const typename Field::value_type &c) {
                     bp.add_r1cs_constraint(zk::snark::r1cs_constraint<Field>(Field::value_type::one(), lc, c));
                 }
 
