@@ -152,10 +152,10 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_nand_test) {
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_nor_test) {
-    boilerplate(2, blueprint::components::logic_nand);
+    boilerplate(2, blueprint::components::logic_nor);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
-        {{false, false}, true}, {{false, true}, true}, {{true, false}, true}, {{true, true}, false},
+        {{false, false}, true}, {{false, true}, false}, {{true, false}, false}, {{true, true}, false},
     };
     test_logic_component<field_type, ArithmetizationParams, AssignmentType,
                          hash_type, Lambda, component_type, 2>(expected_mapping);

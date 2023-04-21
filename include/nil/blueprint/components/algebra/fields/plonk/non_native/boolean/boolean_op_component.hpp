@@ -72,6 +72,9 @@ namespace nil {
 
                 struct input_type {
                     std::array<var, ArgNum> input;
+
+                    input_type() = default;
+                    input_type(std::initializer_list<var> input) : input(input) {};
                 };
 
                 struct result_type {
