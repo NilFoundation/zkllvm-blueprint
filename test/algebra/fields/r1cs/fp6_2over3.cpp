@@ -32,9 +32,9 @@
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
-#include <nil/blueprint/blueprint/r1cs/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
-#include <nil/blueprint/components/algebra/fields/element_fp6_2over3.hpp>
+#include <nil/blueprint/components/algebra/fields/r1cs/element_fp6_2over3.hpp>
 
 #include "arithmetic.hpp"
 

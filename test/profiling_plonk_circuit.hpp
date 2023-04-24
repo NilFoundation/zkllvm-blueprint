@@ -200,14 +200,15 @@ namespace nil {
                 print_argument_evaluation(os);
             }
 
-            static void process(std::ostream &os, const zk::blueprint<ArithmetizationType> &bp,
-                                const preprocessed_public_data_type &public_preprocessed_data) {
+            static void process(
+                    std::ostream &os, const blueprint::blueprint<ArithmetizationType> &bp,
+                    const preprocessed_public_data_type &public_preprocessed_data) {
                 for (const auto &gate : bp.gates()) {
                     print_gate(os, gate, public_preprocessed_data);
                 }
             }
 
-            static void process_split(const zk::blueprint<ArithmetizationType> &bp,
+            static void process_split(const blueprint::blueprint<ArithmetizationType> &bp,
                                       const preprocessed_public_data_type &public_preprocessed_data) {
                 for (const auto &gate : bp.gates()) {
                     std::ofstream gate_out;
