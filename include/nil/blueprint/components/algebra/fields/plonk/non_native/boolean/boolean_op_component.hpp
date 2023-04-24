@@ -40,7 +40,8 @@ namespace nil {
                 This is a generalized boolean operation component.
                 It abstracts boolean functions with ArgNum variables, when:
                 a) ArgNum + 1 < WitnessesAmount
-                b) The function is implemented as a single constraint
+                b) The function is implemented as a single constraint.
+                No checks that arguments are boolean are performed.
             */
             template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
             class boolean_op_component;

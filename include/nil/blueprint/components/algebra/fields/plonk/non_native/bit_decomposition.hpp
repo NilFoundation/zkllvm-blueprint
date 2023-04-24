@@ -21,8 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for auxiliary components for the MERKLE_TREE component.
-//---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_BIT_DECOMPOSITION_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_BIT_DECOMPOSITION_HPP
@@ -68,70 +66,32 @@ namespace nil {
                         for (std::size_t i = 0; i < 11; i++) {
                             if (i != 0) {
                                 output[25 * i - 22] = var(component.W(0), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 1 - 22] = var(component.W(1), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 2 - 22] = var(component.W(2), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 3 - 22] = var(component.W(3), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 4 - 22] = var(component.W(4), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 5 - 22] = var(component.W(5), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 6 - 22] = var(component.W(6), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 7 - 22] = var(component.W(7), row);
                             }
                             row++;
                             if (i != 0) {
                                 output[25 * i + 8 - 22] = var(component.W(0), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 9 - 22] = var(component.W(1), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 10 - 22] = var(component.W(2), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 11 - 22] = var(component.W(3), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 12 - 22] = var(component.W(4), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 13 - 22] = var(component.W(5), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 14 - 22] = var(component.W(6), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 15 - 22] = var(component.W(7), row);
                             }
                             row++;
                             if (i != 0) {
                                 output[25 * i + 16 - 22] = var(component.W(0), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 17 - 22] = var(component.W(1), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 18 - 22] = var(component.W(2), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 19 - 22] = var(component.W(3), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 20 - 22] = var(component.W(4), row);
-                            }
-                            if (i != 0) {
                                 output[25 * i + 21 - 22] = var(component.W(5), row);
                             }
                             output[25 * i] = var(component.W(6), row);
@@ -193,98 +153,58 @@ namespace nil {
                 typename BlueprintFieldType::integral_type t = 0;
                 for (std::size_t i = 0; i < 11; i++) {
                     assignment.witness(component.W(0), row) = b[25 * i];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i];
-                    }
                     assignment.witness(component.W(1), row) = b[25 * i + 1];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 1];
-                    }
                     assignment.witness(component.W(2), row) = b[25 * i + 2];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 2];
-                    }
                     assignment.witness(component.W(3), row) = b[25 * i + 3];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 3];
-                    }
                     assignment.witness(component.W(4), row) = b[25 * i + 4];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 4];
-                    }
                     assignment.witness(component.W(5), row) = b[25 * i + 5];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 5];
-                    }
                     assignment.witness(component.W(6), row) = b[25 * i + 6];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 6];
-                    }
                     assignment.witness(component.W(7), row) = b[25 * i + 7];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 7];
-                    }
                     assignment.witness(component.W(8), row) = n;
                     row++;
 
                     assignment.witness(component.W(0), row) = b[25 * i + 8];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 8];
-                    }
                     assignment.witness(component.W(1), row) = b[25 * i + 9];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 9];
-                    }
                     assignment.witness(component.W(2), row) = b[25 * i + 10];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 10];
-                    }
                     assignment.witness(component.W(3), row) = b[25 * i + 11];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 11];
-                    }
                     assignment.witness(component.W(4), row) = b[25 * i + 12];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 12];
-                    }
                     assignment.witness(component.W(5), row) = b[25 * i + 13];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 13];
-                    }
                     assignment.witness(component.W(6), row) = b[25 * i + 14];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 14];
-                    }
                     assignment.witness(component.W(7), row) = b[25 * i + 15];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 15];
-                    }
                     row++;
 
                     assignment.witness(component.W(0), row) = b[25 * i + 16];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 16];
-                    }
                     assignment.witness(component.W(1), row) = b[25 * i + 17];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 17];
-                    }
                     assignment.witness(component.W(2), row) = b[25 * i + 18];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 18];
-                    }
                     assignment.witness(component.W(3), row) = b[25 * i + 19];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 19];
-                    }
                     assignment.witness(component.W(4), row) = b[25 * i + 20];
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i + 20];
-                    }
                     assignment.witness(component.W(5), row) = b[25 * i + 21];
+
                     if (i != 0) {
+                        t = t * 2 + b[25 * i];
+                        t = t * 2 + b[25 * i + 1];
+                        t = t * 2 + b[25 * i + 2];
+                        t = t * 2 + b[25 * i + 3];
+                        t = t * 2 + b[25 * i + 4];
+                        t = t * 2 + b[25 * i + 5];
+                        t = t * 2 + b[25 * i + 6];
+                        t = t * 2 + b[25 * i + 7];
+                        t = t * 2 + b[25 * i + 8];
+                        t = t * 2 + b[25 * i + 9];
+                        t = t * 2 + b[25 * i + 10];
+                        t = t * 2 + b[25 * i + 11];
+                        t = t * 2 + b[25 * i + 12];
+                        t = t * 2 + b[25 * i + 13];
+                        t = t * 2 + b[25 * i + 14];
+                        t = t * 2 + b[25 * i + 15];
+                        t = t * 2 + b[25 * i + 16];
+                        t = t * 2 + b[25 * i + 17];
+                        t = t * 2 + b[25 * i + 18];
+                        t = t * 2 + b[25 * i + 19];
+                        t = t * 2 + b[25 * i + 20];
                         t = t * 2 + b[25 * i + 21];
                     }
+
                     assignment.witness(component.W(6), row) = b[25 * i + 22];
                     t = t * 2 + b[25 * i + 22];
                     assignment.witness(component.W(7), row) = b[25 * i + 23];

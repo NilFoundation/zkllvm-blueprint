@@ -29,10 +29,6 @@
 #include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
-#include <nil/crypto3/algebra/curves/ed25519.hpp>
-#include <nil/crypto3/algebra/fields/arithmetic_params/ed25519.hpp>
-#include <nil/crypto3/random/algebraic_engine.hpp>
-
 #include <nil/crypto3/hash/keccak.hpp>
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>

@@ -38,6 +38,10 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
+            /*
+                The following logical operations do NOT perform any checks on the input values.
+            */
+
             template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
             class logic_not;
 
