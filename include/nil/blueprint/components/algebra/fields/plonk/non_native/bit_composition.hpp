@@ -47,6 +47,29 @@ namespace nil {
                 Does not perform a check that the inputs actually belong to {0, 1}.
                 In case that BitsAmount is the same as the field integer type size this performs a check that the element actually fits in the field. This case is implemented separately.
                 Bits can be passed LSB-first or MSB-first, depending on the value of Mode parameter.
+
+                A schematic representation of the component. 'o' signifies an input bit, 'x' signifies one of the sum bits.
+                Input bits are packed MSB first. This diagram is for BitsAmount = 128.
+
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ]  -- First gate constraints the 'x' bit to be a powers-of-two weighted
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |     sum of input bits. Note that for low amount of input bits this
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |     gate might be the only one might take less rows than 3.
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ] ] -- Second gate chains the sum of previous 'x' bit and the next packed
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   |    'o' bits into the following 'x' bit. Depending on the amount of bits
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o|   |    this gate might be repeated multiple times or be missing entirely.
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   |    Note that this gate type is used only when the bits are fully packed.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x|   ] ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+     | -- A repetition of the second gate.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o|     |
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+     |
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]   ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |  -- Third gate is similar to the second one, but is only partially filled.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |     Note that this gate would be missing if all the bits got packed into
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |     either the first gate, or into first and repeated second gates.
+                |o|o|o|o|o|o|o|o|o|o|o|x| | | | ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             */
             template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount,
                      bit_composition_mode Mode>
@@ -70,12 +93,11 @@ namespace nil {
                 }
 
                 constexpr static const std::size_t gates() {
-                    std::size_t total_bits = BitsAmount + sum_bits_amount();
-                    if (total_bits <= 3 * WitnessesAmount - 1) {
+                    if (BitsAmount <= 3 * WitnessesAmount - 1) {
                         return 1;
-                    } else if (total_bits <= 5 * WitnessesAmount - 2) {
+                    } else if (BitsAmount <= 5 * WitnessesAmount - 2) {
                         return 2;
-                    } else if ((total_bits - 3 * WitnessesAmount - 1) % (2 * WitnessesAmount - 1) == 0) {
+                    } else if ((BitsAmount - 3 * WitnessesAmount - 1) % (2 * WitnessesAmount - 1) == 0) {
                         return 2;
                     } else {
                         return 3;
