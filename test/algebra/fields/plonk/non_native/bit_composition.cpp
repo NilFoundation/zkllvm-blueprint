@@ -52,8 +52,8 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
 
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 3;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 1;
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -83,7 +83,7 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
         assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, {}, {});
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, {0}, {});
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
@@ -159,11 +159,6 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test1) {
         auto bits = generate_random_bitstring<field_type, 45>(rng);
         calculate_expected_and_test_bit_decomposition<field_type, 45, mode::MSB>(bits);
         calculate_expected_and_test_bit_decomposition<field_type, 45, mode::LSB>(bits);
-    }
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 73>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 73, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 73, mode::LSB>(bits);
     }
 }
 

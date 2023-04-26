@@ -45,31 +45,66 @@ namespace nil {
             /*
                 Makes a single field element from BitsAmount bits.
                 Does not perform a check that the inputs actually belong to {0, 1}.
-                In case that BitsAmount is the same as the field integer type size this performs a check that the element actually fits in the field. This case is implemented separately.
+                In case that BitsAmount is the same as the field integer type size this performs a check that the element actually fits in the field.
                 Bits can be passed LSB-first or MSB-first, depending on the value of Mode parameter.
 
-                A schematic representation of the component. 'o' signifies an input bit, 'x' signifies one of the sum bits.
-                Input bits are packed MSB first. This diagram is for BitsAmount = 128.
+                A schematic representation of the component. 'o' signifies an input bit. 'x' signifies one of the sum bits.
+                '0' signifies padding with zeros.
+                Input bits are packed MSB first.
 
+                For small (BitsAmount < 3 * WitnessesAmount) components, we use a single sum of bits.
+                Example for BitsAmount = 16:
                 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ]  -- First gate constraints the 'x' bit to be a powers-of-two weighted
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |     sum of input bits. Note that for low amount of input bits this
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |     gate might be the only one might take less rows than 3.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | -- A single constraint forces 'x' to be equal to the (weighted) sum of
+                |o|x| | | | | | | | | | | | | | ]    'o' bits
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                For larger components, we repeat the following sum constraint:
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                |x|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | -- The first 'x' is the previous sum.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |    The second 'x' is constrained to be equal to the
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |    (weighted) sum of 'o' bits and the first 'x'.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                This requires padding up to nearest value of
+                3 * WitnessesAmount - 1 + k * (3 * WitnessesAmount - 2).
+                The first 'x' in the component is assinged to be the first bit (of input or padding).
+
+                An example for BitsAmount = 64 (90 cells: 3 sum bits, 64 input bits, 23 padding bits):
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                |0|0|0|0|0|0|0|0|0|0|0|0|0|0|0| ] -- Note that the first 'x' is being used as an input/padding bit.
                 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ] ] -- Second gate chains the sum of previous 'x' bit and the next packed
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   |    'o' bits into the following 'x' bit. Depending on the amount of bits
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o|   |    this gate might be repeated multiple times or be missing entirely.
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+   |    Note that this gate type is used only when the bits are fully packed.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x|   ] ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+     | -- A repetition of the second gate.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o|     |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+     |
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]   ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |  -- Third gate is similar to the second one, but is only partially filled.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |     Note that this gate would be missing if all the bits got packed into
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |     either the first gate, or into first and repeated second gates.
-                |o|o|o|o|o|o|o|o|o|o|o|x| | | | ]
+                |0|0|0|0|0|0|0|0|o|o|o|o|o|o|o| |
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
                 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                |x|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ] -- This 'x' needs to be constrained to the last 'x'
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |    in the previous constraint block
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                The following is asymptotically the tightest packing I've found:
+                It would utilise constraints of the form:
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                | | | | | | | | | | | | | | |x| ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | -- The first 'x' is the previous sum.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |    The second 'x' is constrained to be equal to the sum of 'o' bits
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |    and the first 'x'. Empty spaces are not constrained.
+                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                These constraints have the best (sum_bits / input_bits) ratio I've seen.
+                It does not make sense to use for WitnessAmount = 15 as the asymptotics kick in too late.
+
+                Lower WitnessesAmount values would result in asymptotics kicking in earlier, and
+                less wasted bits in the first gate, so for them it starts being better.
+                E.g. for WitnessesAmount = 9 this is better (in rows) or equal for BitsAmount = {32, 128, 255}
+                and same for BitsAmount = {64}.
+                This is despite 8 cells being wasted in the beginning!
+                The downside is that we use more constraints.
             */
             template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount,
                      bit_composition_mode Mode>
@@ -80,28 +115,20 @@ namespace nil {
             class bit_composition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                                                             15, BitsAmount, Mode>
-                                 : public plonk_component<BlueprintFieldType, ArithmetizationParams, 15, 0, 0> {
+                                 : public plonk_component<BlueprintFieldType, ArithmetizationParams, 15, 1, 0> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 15;
 
                 using component_type =
-                    plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
+                    plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0>;
 
                 constexpr static const std::size_t rows() {
-                    std::size_t total_bits = BitsAmount + sum_bits_amount();
+                    std::size_t total_bits = BitsAmount + sum_bits_amount() + padding_bits_amount();
                     return total_bits / WitnessesAmount + (total_bits % WitnessesAmount ? 1 : 0);
                 }
 
                 constexpr static const std::size_t gates() {
-                    if (BitsAmount <= 3 * WitnessesAmount - 1) {
-                        return 1;
-                    } else if (BitsAmount <= 5 * WitnessesAmount - 2) {
-                        return 2;
-                    } else if ((BitsAmount - 3 * WitnessesAmount - 1) % (2 * WitnessesAmount - 1) == 0) {
-                        return 2;
-                    } else {
-                        return 3;
-                    }
+                    return 1;
                 }
 
                 /*
@@ -115,13 +142,6 @@ namespace nil {
 
                     return std::make_pair(row, col);
                 };
-
-                constexpr static const std::size_t straight_bit_position_inv(
-                        std::size_t start_row_index, std::pair<std::size_t, std::size_t> pos) {
-
-                    std::size_t unshifted_row = pos.first - start_row_index;
-                    return unshifted_row * WitnessesAmount + pos.second;
-                }
 
             public:
                 using var = typename component_type::var;
@@ -160,51 +180,58 @@ namespace nil {
                         public_inputs) :
                     component_type(witnesses, constants, public_inputs) {};
 
+
+                constexpr static const std::size_t padding_bits_amount() {
+                    if (BitsAmount < 3 * WitnessesAmount) {
+                        return 0;
+                    }
+                    return ((3 * WitnessesAmount - 2) -
+                            (BitsAmount - 3 * WitnessesAmount + 1) % (3 * WitnessesAmount - 2))
+                                % (3 * WitnessesAmount - 2);
+                }
+
                 /*
-                    Returns row and column pair for each input bit for the BitsAmount < modulus_bits case.
+                    Returns row and column pair for each input bit.
                     Packing is done MSB first; code in generate_assignments is responsible for reversing the order if necessary.
                 */
-                template<std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
                 constexpr static const std::pair<std::size_t, std::size_t> bit_position(
                         std::size_t start_row_index, std::size_t bit_num) {
 
-                    if (bit_num < 3 * WitnessesAmount - 1) {
+                    if (BitsAmount < 3 * WitnessesAmount) {
                         return straight_bit_position(start_row_index, bit_num);
                     }
 
-                    std::size_t sum_bits = 1 + (bit_num - (3 * WitnessesAmount - 1)) / (2 * WitnessesAmount - 1);
+                    std::size_t sum_bits = (bit_num >= 3 * WitnessesAmount - 1) *
+                                           (2 + (bit_num - 3 * WitnessesAmount + 1) / (3 * WitnessesAmount - 2) * 2);
                     return straight_bit_position(start_row_index, bit_num + sum_bits);
                 }
 
                 /*
-                    Returns the amount of auxillary sum bits in the component for the BitsAmount < modulus_bits case.
+                    Returns the amount of auxillary sum bits in the component.
                 */
-                template<std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
                 constexpr static const std::size_t sum_bits_amount() {
                     if (BitsAmount < 3 * WitnessesAmount) {
                         return 1;
                     }
-                    bool last_bit_sum_bit = (BitsAmount - (3 * WitnessesAmount - 1)) % (2 * WitnessesAmount - 1) == 0;
-
-                    return 2 - last_bit_sum_bit + (BitsAmount - (3 * WitnessesAmount - 1)) / (2 * WitnessesAmount - 1);
+                    // ceil division
+                    return 1 + (BitsAmount - 3 * WitnessesAmount + 3 * WitnessesAmount - 2) /
+                               (3 * WitnessesAmount - 2) * 2;
                 }
 
                 /*
-                    Returns row and column pair for each auxillary sum bit for the BitsAmount < modulus_bits case.
+                    Returns row and column pair for each auxillary sum bit.
                 */
-                template<std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
                 constexpr static const std::pair<std::size_t, std::size_t> sum_bit_position(
                         std::size_t start_row_index, std::size_t sum_bit_num) {
                     assert(sum_bit_num < sum_bits_amount());
                     std::size_t bit_pos = 0;
 
-                    if (BitsAmount < 3 * WitnessesAmount - 1) {
+                    if (BitsAmount < 3 * WitnessesAmount) {
                         // we only have a single sum bit in this case
                         bit_pos = BitsAmount;
-                    } else if (sum_bit_num < sum_bits_amount() - 1) {
-                        bit_pos = 3 * WitnessesAmount - 1 + sum_bit_num * 2 * WitnessesAmount;
                     } else {
-                        bit_pos = BitsAmount + sum_bits_amount() - 1;
+                        bit_pos = 3 * WitnessesAmount - 1 + (sum_bit_num / 2) * (3 * WitnessesAmount) +
+                                  (sum_bit_num % 2);
                     }
 
                     return straight_bit_position(start_row_index, bit_pos);
@@ -241,22 +268,34 @@ namespace nil {
                     return Mode == bit_composition_mode::MSB ? i : BitsAmount - i - 1;
                 };
 
+                std::size_t padding = 0;
+                for (; padding < component.padding_bits_amount(); padding++) {
+                    auto bit_pos = component.bit_position(start_row_index, padding);
+                    assignment.witness(component.W(bit_pos.second), bit_pos.first) = 0;
+                }
+
                 for (std::size_t i = 0; i < BitsAmount; i++) {
-                    auto bit_pos = component.bit_position(start_row_index, i);
+                    auto bit_pos = component.bit_position(start_row_index, padding + i);
                     assignment.witness(component.W(bit_pos.second), bit_pos.first) =
                         var_value(assignment, instance_input.bits[bit_index(i)]);
                 }
 
                 field_value_type sum = 0;
                 std::size_t bit_num = 0;
-                for (std::size_t i = 0; i < component.sum_bits_amount(); i++) {
+                for (std::size_t i = 0; i < component.sum_bits_amount(); i += 2) {
                     auto sum_bit_pos = component.sum_bit_position(start_row_index, i);
-                    for (; bit_num < std::min(std::size_t(BitsAmount),
-                                              3 * witness_amount - 1 + i * (2 * witness_amount - 1)); bit_num++) {
+                    std::size_t max_bit_num = BitsAmount < 3 * witness_amount ?
+                                               BitsAmount :
+                                               3 * witness_amount - padding - 1 + (i / 2) * (3 * witness_amount - 2);
+                    for (; bit_num < max_bit_num; bit_num++) {
                         sum = 2 * sum + var_value(assignment, instance_input.bits[bit_index(bit_num)]);
                     }
 
                     assignment.witness(component.W(sum_bit_pos.second), sum_bit_pos.first) = sum;
+                    if (i != component.sum_bits_amount() - 1) {
+                        auto sum_bit_pos = component.sum_bit_position(start_row_index, i + 1);
+                        assignment.witness(component.W(sum_bit_pos.second), sum_bit_pos.first) = sum;
+                    }
                 }
 
                 return typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
@@ -280,39 +319,14 @@ namespace nil {
 
                 std::size_t witness_amount = 15;
 
-                std::size_t used_selectors = 1;
+                if (BitsAmount < 3 * witness_amount) {
+                    // custom constraint for small amount of bits to save space
+                    int row_idx = -1;
+                    std::size_t col_idx = 1;
 
-                std::size_t bit_num = 1;
-                int row_idx = -1;
-                std::size_t col_idx = 1;
-                crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_prologue = var(component.W(0), -1);
-                for (; bit_num < std::min(std::size_t(BitsAmount), 3 * witness_amount - 1); bit_num++) {
-                    constraint_prologue = 2 * constraint_prologue + var(component.W(col_idx), row_idx);
-                    col_idx++;
-                    if (col_idx % witness_amount == 0) {
-                        row_idx++;
-                        col_idx = 0;
-                    }
-                }
-
-                constraint_prologue = constraint_prologue - var(component.W(col_idx), row_idx);
-                bp.add_gate(first_selector_index, constraint_prologue);
-
-                if (bit_num == BitsAmount) {
-                    return;
-                }
-                // We have two types of gates to add
-                // 1) (second+) gate for fully filled rows
-                // 2) incomplete final gate.
-                // Either of the types can be absent.
-                if (BitsAmount - bit_num >= 2 * witness_amount - 1) {
-                    // Gate for fully filled rows
-                    crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_middle =
-                        var(component.W(witness_amount - 1), -1);
-                    row_idx = 0;
-                    col_idx = 0;
-                    for (std::size_t i = 0; i < 2 * witness_amount - 1; i++) {
-                        constraint_middle = 2 * constraint_middle + var(component.W(col_idx), row_idx);
+                    crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_small = var(component.W(0), -1);
+                    for (std::size_t bit_num = 1; bit_num < BitsAmount; bit_num++) {
+                        constraint_small = 2 * constraint_small + var(component.W(col_idx), row_idx);
                         col_idx++;
                         if (col_idx % witness_amount == 0) {
                             row_idx++;
@@ -320,29 +334,25 @@ namespace nil {
                         }
                     }
 
-                    constraint_middle = constraint_middle - var(component.W(col_idx), row_idx);
-                    bp.add_gate(first_selector_index + used_selectors, constraint_middle);
-                    used_selectors++;
-                }
+                    constraint_small = constraint_small - var(component.W(col_idx), row_idx);
+                    bp.add_gate(first_selector_index, constraint_small);
+                } else {
+                    int row_idx = -1;
+                    std::size_t col_idx = 1;
 
-                std::size_t bits_remaining = (BitsAmount - bit_num) % (2 * witness_amount - 1);
-                if (bits_remaining > 0) {
-                    // Gate for incompletely filled last rows
-                    crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_epilogue =
-                        var(component.W(witness_amount - 1), -1);
-                    row_idx = 0;
-                    col_idx = 0;
-                    for (std::size_t i = 0; i < bits_remaining; i++) {
-                        constraint_epilogue = 2 * constraint_epilogue + var(component.W(col_idx), row_idx);
+                    crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_generic =
+                        var(component.W(0), -1);
+                    for (std::size_t bit_num = 1; bit_num < 3 * witness_amount - 1; bit_num++) {
+                        constraint_generic = 2 * constraint_generic + var(component.W(col_idx), row_idx);
                         col_idx++;
                         if (col_idx % witness_amount == 0) {
                             row_idx++;
                             col_idx = 0;
                         }
                     }
-                    constraint_epilogue = constraint_epilogue - var(component.W(col_idx), row_idx);
-                    bp.add_gate(first_selector_index + used_selectors, constraint_epilogue);
-                    used_selectors++;
+
+                    constraint_generic = constraint_generic - var(component.W(col_idx), row_idx);
+                    bp.add_gate(first_selector_index, constraint_generic);
                 }
             }
 
@@ -367,10 +377,25 @@ namespace nil {
                     return Mode == bit_composition_mode::MSB ? i : BitsAmount - i - 1;
                 };
 
+                var zero(0, start_row_index, false, var::column_type::constant);
+                std::size_t padding = 0;
+                for (; padding < component.padding_bits_amount(); padding++) {
+                    auto bit_pos = component.bit_position(start_row_index, padding);
+                    bp.add_copy_constraint({zero,
+                                            var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
+                }
+
                 for (std::size_t i = 0; i < BitsAmount; i++) {
-                    auto bit_pos = component.bit_position(start_row_index, i);
+                    auto bit_pos = component.bit_position(start_row_index, padding + i);
                     bp.add_copy_constraint({instance_input.bits[bit_index(i)],
                                             var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
+                }
+
+                for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
+                    auto sum_bit_pos_1 = component.sum_bit_position(start_row_index, i);
+                    auto sum_bit_pos_2 = component.sum_bit_position(start_row_index, i + 1);
+                    bp.add_copy_constraint({var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
+                                            var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
                 }
             }
 
@@ -395,32 +420,42 @@ namespace nil {
                 } else {
                     first_selector_index = selector_iterator->second;
                 }
-                std::size_t row = start_row_index + 1;
                 std::size_t witness_amount = 15;
-                std::size_t used_selectors = 1;
-                assignment.enable_selector(first_selector_index, row);
 
-                std::size_t bits_remaining = BitsAmount > 3 * witness_amount + 1 ?
-                                                BitsAmount - 3 * witness_amount - 1 :
-                                                0;
-                if (bits_remaining >= 2 * witness_amount - 1) {
-                    for (; bits_remaining >= 2 * witness_amount - 1;
-                           bits_remaining -= 2 * witness_amount - 1) {
-                        row += 2;
-                        assignment.enable_selector(first_selector_index + used_selectors, row);
-                    }
-                    used_selectors++;
-                }
-                if (bits_remaining > 0) {
-                    row += 2;
-                    assignment.enable_selector(first_selector_index + used_selectors, row);
-                    used_selectors++;
-                }
+                std::size_t end_row_index = start_row_index + (component.rows_amount > 2 ? component.rows_amount - 2 : 1);
+                assignment.enable_selector(first_selector_index, start_row_index + 1, end_row_index, 3);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
+                generate_assignments_constant(component, assignment, instance_input, start_row_index);
 
                 return typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
                                                       15, BitsAmount, Mode>::result_type(component, start_row_index);
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
+                     bit_composition_mode Mode,
+                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
+            void generate_assignments_constant(
+                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
+                                                         15, BitsAmount, Mode>::input_type &instance_input,
+                    const std::size_t start_row_index) {
+
+                using var = typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
+                                                           15, BitsAmount, Mode>::var;
+
+                std::size_t row = start_row_index;
+                std::size_t witness_amount = 15;
+                // Technically, this constant is only required when we need padding.
+                // So we skip the assignment if either
+                // 1) BitsAmount < 3 * WitnessAmount - 1
+                // 2) BitsAmount = 2 * WitnessAmount + k * (2 * WitnessAmount - 1) for some k.
+                if ((BitsAmount > 3 * witness_amount - 1) &&
+                    (BitsAmount - 3 * witness_amount - 1) % (3 * witness_amount - 2) != 0) {
+                    assignment.constant(component.C(0), row) = 0;
+                }
             }
 
         }    // namespace components
