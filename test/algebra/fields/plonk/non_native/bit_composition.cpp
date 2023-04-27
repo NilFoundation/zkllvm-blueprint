@@ -46,11 +46,11 @@ using namespace nil;
 
 using mode = blueprint::components::bit_composition_mode;
 
-template <typename BlueprintFieldType, std::uint32_t BitsAmount, mode Mode>
+template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
 void test_bit_composition(std::array<bool, BitsAmount> &bits,
                           typename BlueprintFieldType::value_type expected_res){
 
-    constexpr std::size_t WitnessColumns = 15;
+    constexpr std::size_t WitnessColumns = WitnessesAmount;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 1;
@@ -63,7 +63,7 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::bit_composition<ArithmetizationType, 15, BitsAmount, Mode>;
+    using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns, BitsAmount, Mode>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
     public_input.resize(BitsAmount);
@@ -83,17 +83,24 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
         assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, {0}, {});
+    if (WitnessesAmount == 9) {
+        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9},{0},{});
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+            component_instance, public_input, result_check, instance_input);
+    } else if (WitnessesAmount == 15) {
+        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},{0},{});
+
+        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+            component_instance, public_input, result_check, instance_input);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-constexpr static const std::size_t random_tests_amount = 3;
+constexpr static const std::size_t random_tests_amount = 10;
 
-template<typename BlueprintFieldType, std::uint32_t BitsAmount, mode Mode>
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
 void calculate_expected_and_test_bit_decomposition(std::array<bool, BitsAmount> &bits) {
 
     typename BlueprintFieldType::value_type composed = 0;
@@ -106,7 +113,7 @@ void calculate_expected_and_test_bit_decomposition(std::array<bool, BitsAmount> 
         composed = std::accumulate(bits.begin(), bits.end(), composed, accumulator);
     }
 
-    test_bit_composition<BlueprintFieldType, BitsAmount, Mode>(bits, composed);
+    test_bit_composition<BlueprintFieldType, WitnessesAmount, BitsAmount, Mode>(bits, composed);
 }
 
 template<typename BlueprintFieldType, std::uint32_t BitsAmount>
@@ -118,48 +125,80 @@ std::array<bool, BitsAmount> generate_random_bitstring(boost::random::mt19937 &r
     return res;
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test1) {
+template<std::uint32_t WitnesesAmount, std::uint32_t BitsAmount>
+void test_composition() {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     boost::random::mt19937 rng;
     rng.seed(1337);
 
-    // testing common sizes
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 8>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 8, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 8, mode::LSB>(bits);
+    std::array<bool, BitsAmount> test_bits;
+
+    for (std::size_t i = 0; i < BitsAmount; i++) {
+        test_bits[i] = 0;
     }
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 16>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 16, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 16, mode::LSB>(bits);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
+
+    for (std::size_t i = 0; i < BitsAmount; i++) {
+        test_bits[i] = 1;
     }
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
+
     for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 32>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 32, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 32, mode::LSB>(bits);
+        auto bits = generate_random_bitstring<field_type, BitsAmount>(rng);
+        calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(bits);
+        calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(bits);
     }
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 64>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 64, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 64, mode::LSB>(bits);
-    }
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 128>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 128, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 128, mode::LSB>(bits);
-    }
-    // testing sizes which might be tricky for internal logic
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 44>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 44, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 44, mode::LSB>(bits);
-    }
-    for (std::size_t j = 0; j < random_tests_amount; j++) {
-        auto bits = generate_random_bitstring<field_type, 45>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, 45, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, 45, mode::LSB>(bits);
-    }
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_8) {
+    test_composition<15, 8>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_16) {
+    test_composition<15, 16>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_32) {
+    test_composition<15, 32>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_64) {
+    test_composition<15, 64>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_128) {
+    test_composition<15, 128>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_253) {
+    test_composition<15, 253>();
+}
+
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_8) {
+    test_composition<9, 8>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_16) {
+    test_composition<9, 16>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_32) {
+    test_composition<9, 32>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_64) {
+    test_composition<9, 64>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_128) {
+    test_composition<9, 128>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_253) {
+    test_composition<9, 253>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

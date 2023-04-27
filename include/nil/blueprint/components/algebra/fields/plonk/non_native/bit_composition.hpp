@@ -32,6 +32,7 @@
 #include <nil/blueprint/component.hpp>
 
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_builder_component.hpp>
 
 #include <type_traits>
 #include <limits>
@@ -48,107 +49,33 @@ namespace nil {
                 In case that BitsAmount is the same as the field integer type size this performs a check that the element actually fits in the field.
                 Bits can be passed LSB-first or MSB-first, depending on the value of Mode parameter.
 
-                A schematic representation of the component. 'o' signifies an input bit. 'x' signifies one of the sum bits.
-                '0' signifies padding with zeros.
-                Input bits are packed MSB first.
-
-                For small (BitsAmount < 3 * WitnessesAmount) components, we use a single sum of bits.
-                Example for BitsAmount = 16:
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | -- A single constraint forces 'x' to be equal to the (weighted) sum of
-                |o|x| | | | | | | | | | | | | | ]    'o' bits
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-                For larger components, we repeat the following sum constraint:
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |x|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | -- The first 'x' is the previous sum.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |    The second 'x' is constrained to be equal to the
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |    (weighted) sum of 'o' bits and the first 'x'.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                This requires padding up to nearest value of
-                3 * WitnessesAmount - 1 + k * (3 * WitnessesAmount - 2).
-                The first 'x' in the component is assinged to be the first bit (of input or padding).
-
-                An example for BitsAmount = 64 (90 cells: 3 sum bits, 64 input bits, 23 padding bits):
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |0|0|0|0|0|0|0|0|0|0|0|0|0|0|0| ] -- Note that the first 'x' is being used as an input/padding bit.
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
-                |0|0|0|0|0|0|0|0|o|o|o|o|o|o|o| |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |x|o|o|o|o|o|o|o|o|o|o|o|o|o|o| ] -- This 'x' needs to be constrained to the last 'x'
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |    in the previous constraint block
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-                The following is asymptotically the tightest packing I've found:
-                It would utilise constraints of the form:
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                | | | | | | | | | | | | | | |x| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | -- The first 'x' is the previous sum.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|o| |    The second 'x' is constrained to be equal to the sum of 'o' bits
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |    and the first 'x'. Empty spaces are not constrained.
-                |o|o|o|o|o|o|o|o|o|o|o|o|o|o|x| ]
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                These constraints have the best (sum_bits / input_bits) ratio I've seen.
-                It does not make sense to use for WitnessAmount = 15 as the asymptotics kick in too late.
-
-                Lower WitnessesAmount values would result in asymptotics kicking in earlier, and
-                less wasted bits in the first gate, so for them it starts being better.
-                E.g. for WitnessesAmount = 9 this is better (in rows) or equal for BitsAmount = {32, 128, 255}
-                and same for BitsAmount = {64}.
-                This is despite 8 cells being wasted in the beginning!
-                The downside is that we use more constraints.
+                A schematic representation of this component can be found in bit_builder_component.hpp.
             */
             template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount,
                      bit_composition_mode Mode>
             class bit_composition;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                    std::uint32_t BitsAmount, bit_composition_mode Mode>
             class bit_composition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                            15, BitsAmount, Mode>
-                                 : public plonk_component<BlueprintFieldType, ArithmetizationParams, 15, 1, 0> {
-
-                constexpr static const std::uint32_t WitnessesAmount = 15;
+                                                            WitnessesAmount, BitsAmount, Mode>
+                                 : public
+                                   bit_builder_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                                                     ArithmetizationParams>,
+                                                         WitnessesAmount, 1, BitsAmount, Mode> {
 
                 using component_type =
-                    plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0>;
-
-                constexpr static const std::size_t rows() {
-                    std::size_t total_bits = BitsAmount + sum_bits_amount() + padding_bits_amount();
-                    return total_bits / WitnessesAmount + (total_bits % WitnessesAmount ? 1 : 0);
-                }
-
-                constexpr static const std::size_t gates() {
-                    return 1;
-                }
-
-                /*
-                    Returns bit position inside the packing, if the packing were done by filling each row in order, without skipping any cells.
-                */
-                constexpr static const std::pair<std::size_t, std::size_t> straight_bit_position(
-                        std::size_t start_row_index, std::size_t bit_num) {
-
-                    std::size_t row = start_row_index + bit_num / WitnessesAmount;
-                    std::size_t col = bit_num % WitnessesAmount;
-
-                    return std::make_pair(row, col);
-                };
+                    bit_builder_component<
+                        crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                        WitnessesAmount, 1, BitsAmount, Mode>;
 
             public:
                 using var = typename component_type::var;
 
-                constexpr static const std::size_t rows_amount = rows();
+                constexpr static const std::size_t rows_amount = component_type::rows_amount;
 
-                constexpr static const std::size_t gates_amount = gates();
+                constexpr static const std::size_t gates_amount = component_type::gates_amount;
 
                 struct input_type {
                     std::array<var, BitsAmount> bits;
@@ -157,13 +84,16 @@ namespace nil {
                 struct result_type {
                     var output;
                     result_type(const bit_composition &component, std::uint32_t start_row_index) {
-                        auto pos = sum_bit_position(start_row_index, sum_bits_amount() - 1);
+                        auto pos = component_type::sum_bit_position(
+                                        start_row_index,
+                                        component_type::sum_bits_amount() - 1);
                         output = var(component.W(pos.second), pos.first);
                     }
                 };
 
                 template<typename ContainerType>
-                bit_composition(ContainerType witness) : component_type(witness, {}, {}) {};
+                bit_composition(ContainerType witness, ContainerType constant) :
+                    component_type(witness, constant, {}) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -179,63 +109,6 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs) :
                     component_type(witnesses, constants, public_inputs) {};
-
-
-                constexpr static const std::size_t padding_bits_amount() {
-                    if (BitsAmount < 3 * WitnessesAmount) {
-                        return 0;
-                    }
-                    return ((3 * WitnessesAmount - 2) -
-                            (BitsAmount - 3 * WitnessesAmount + 1) % (3 * WitnessesAmount - 2))
-                                % (3 * WitnessesAmount - 2);
-                }
-
-                /*
-                    Returns row and column pair for each input bit.
-                    Packing is done MSB first; code in generate_assignments is responsible for reversing the order if necessary.
-                */
-                constexpr static const std::pair<std::size_t, std::size_t> bit_position(
-                        std::size_t start_row_index, std::size_t bit_num) {
-
-                    if (BitsAmount < 3 * WitnessesAmount) {
-                        return straight_bit_position(start_row_index, bit_num);
-                    }
-
-                    std::size_t sum_bits = (bit_num >= 3 * WitnessesAmount - 1) *
-                                           (2 + (bit_num - 3 * WitnessesAmount + 1) / (3 * WitnessesAmount - 2) * 2);
-                    return straight_bit_position(start_row_index, bit_num + sum_bits);
-                }
-
-                /*
-                    Returns the amount of auxillary sum bits in the component.
-                */
-                constexpr static const std::size_t sum_bits_amount() {
-                    if (BitsAmount < 3 * WitnessesAmount) {
-                        return 1;
-                    }
-                    // ceil division
-                    return 1 + (BitsAmount - 3 * WitnessesAmount + 3 * WitnessesAmount - 2) /
-                               (3 * WitnessesAmount - 2) * 2;
-                }
-
-                /*
-                    Returns row and column pair for each auxillary sum bit.
-                */
-                constexpr static const std::pair<std::size_t, std::size_t> sum_bit_position(
-                        std::size_t start_row_index, std::size_t sum_bit_num) {
-                    assert(sum_bit_num < sum_bits_amount());
-                    std::size_t bit_pos = 0;
-
-                    if (BitsAmount < 3 * WitnessesAmount) {
-                        // we only have a single sum bit in this case
-                        bit_pos = BitsAmount;
-                    } else {
-                        bit_pos = 3 * WitnessesAmount - 1 + (sum_bit_num / 2) * (3 * WitnessesAmount) +
-                                  (sum_bit_num % 2);
-                    }
-
-                    return straight_bit_position(start_row_index, bit_pos);
-                }
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessesAmount,
@@ -244,132 +117,64 @@ namespace nil {
                                                                                                   ArithmetizationParams>,
                                                           WitnessesAmount, BitsAmount, Mode>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode,
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode>::result_type
+            typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                           BitsAmount, Mode>::result_type
                 generate_assignments(
-                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode> &component,
+                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                                BitsAmount, Mode> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                         15, BitsAmount, Mode>::input_type instance_input,
+                                                         WitnessesAmount, BitsAmount, Mode>::input_type instance_input,
                     const std::uint32_t start_row_index) {
 
-                using ArithmetizationType =
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-                using var = typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                           15, BitsAmount, Mode>::var;
-
-                using field_value_type = typename BlueprintFieldType::value_type;
-                std::size_t witness_amount = 15;
-
-                auto bit_index = [](std::size_t i) {
-                    return Mode == bit_composition_mode::MSB ? i : BitsAmount - i - 1;
-                };
-
-                std::size_t padding = 0;
-                for (; padding < component.padding_bits_amount(); padding++) {
-                    auto bit_pos = component.bit_position(start_row_index, padding);
-                    assignment.witness(component.W(bit_pos.second), bit_pos.first) = 0;
+                std::array<bool, BitsAmount> input_bits;
+                for (std::uint32_t i = 0; i < BitsAmount; ++i) {
+                    input_bits[i] = var_value(assignment, instance_input.bits[i]) != 0 ? true : false;
                 }
-
-                for (std::size_t i = 0; i < BitsAmount; i++) {
-                    auto bit_pos = component.bit_position(start_row_index, padding + i);
-                    assignment.witness(component.W(bit_pos.second), bit_pos.first) =
-                        var_value(assignment, instance_input.bits[bit_index(i)]);
-                }
-
-                field_value_type sum = 0;
-                std::size_t bit_num = 0;
-                for (std::size_t i = 0; i < component.sum_bits_amount(); i += 2) {
-                    auto sum_bit_pos = component.sum_bit_position(start_row_index, i);
-                    std::size_t max_bit_num = BitsAmount < 3 * witness_amount ?
-                                               BitsAmount :
-                                               3 * witness_amount - padding - 1 + (i / 2) * (3 * witness_amount - 2);
-                    for (; bit_num < max_bit_num; bit_num++) {
-                        sum = 2 * sum + var_value(assignment, instance_input.bits[bit_index(bit_num)]);
-                    }
-
-                    assignment.witness(component.W(sum_bit_pos.second), sum_bit_pos.first) = sum;
-                    if (i != component.sum_bits_amount() - 1) {
-                        auto sum_bit_pos = component.sum_bit_position(start_row_index, i + 1);
-                        assignment.witness(component.W(sum_bit_pos.second), sum_bit_pos.first) = sum;
-                    }
-                }
+                // calling bit_builder_component's generate_assignments
+                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, BitsAmount, Mode>(
+                    component, assignment, input_bits, start_row_index);
 
                 return typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                      15, BitsAmount, Mode>::result_type(component, start_row_index);
+                                                      WitnessesAmount, BitsAmount, Mode>::result_type(
+                                                        component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode,
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             void generate_gates(
-                const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode> &component,
+                const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                            BitsAmount, Mode> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                     15, BitsAmount, Mode>::input_type &instance_input,
+                                                     WitnessesAmount, BitsAmount, Mode>::input_type &instance_input,
                 const std::size_t first_selector_index) {
-
-                using var = typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                           15, BitsAmount, Mode>::var;
-
-                std::size_t witness_amount = 15;
-
-                if (BitsAmount < 3 * witness_amount) {
-                    // custom constraint for small amount of bits to save space
-                    int row_idx = -1;
-                    std::size_t col_idx = 1;
-
-                    crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_small = var(component.W(0), -1);
-                    for (std::size_t bit_num = 1; bit_num < BitsAmount; bit_num++) {
-                        constraint_small = 2 * constraint_small + var(component.W(col_idx), row_idx);
-                        col_idx++;
-                        if (col_idx % witness_amount == 0) {
-                            row_idx++;
-                            col_idx = 0;
-                        }
-                    }
-
-                    constraint_small = constraint_small - var(component.W(col_idx), row_idx);
-                    bp.add_gate(first_selector_index, constraint_small);
-                } else {
-                    int row_idx = -1;
-                    std::size_t col_idx = 1;
-
-                    crypto3::zk::snark::plonk_constraint<BlueprintFieldType> constraint_generic =
-                        var(component.W(0), -1);
-                    for (std::size_t bit_num = 1; bit_num < 3 * witness_amount - 1; bit_num++) {
-                        constraint_generic = 2 * constraint_generic + var(component.W(col_idx), row_idx);
-                        col_idx++;
-                        if (col_idx % witness_amount == 0) {
-                            row_idx++;
-                            col_idx = 0;
-                        }
-                    }
-
-                    constraint_generic = constraint_generic - var(component.W(col_idx), row_idx);
-                    bp.add_gate(first_selector_index, constraint_generic);
-                }
+                // calling bit_builder_component's generate_gates
+                generate_gates(component, bp, assignment, first_selector_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode,
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WintessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             void generate_copy_constraints(
-                const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode> &component,
+                const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WintessesAmount,
+                                            BitsAmount, Mode> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                     15, BitsAmount, Mode>::input_type &instance_input,
+                                                     WintessesAmount, BitsAmount, Mode>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 using var = typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                           15, BitsAmount, Mode>::var;
+                                                           WintessesAmount, BitsAmount, Mode>::var;
 
                 std::size_t row = start_row_index;
 
@@ -399,65 +204,30 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode,
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode>::result_type
+            typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                           BitsAmount, Mode>::result_type
                 generate_circuit(
-                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode> &component,
+                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                                BitsAmount, Mode> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                         15, BitsAmount, Mode>::input_type &instance_input,
+                                                         WitnessesAmount, BitsAmount, Mode>::input_type &instance_input,
                     const std::size_t start_row_index) {
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
-                std::size_t witness_amount = 15;
-
-                std::size_t end_row_index = start_row_index + (component.rows_amount > 2 ? component.rows_amount - 2 : 1);
-                assignment.enable_selector(first_selector_index, start_row_index + 1, end_row_index, 3);
-
+                // calling bit_builder_component's generate_circuit
+                generate_circuit(component, bp, assignment, start_row_index);
+                // copy constraints are specific to this component
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
-                generate_assignments_constant(component, assignment, instance_input, start_row_index);
 
                 return typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                      15, BitsAmount, Mode>::result_type(component, start_row_index);
+                                                      WitnessesAmount, BitsAmount, Mode>::result_type(
+                                                        component, start_row_index);
             }
-
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode,
-                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            void generate_assignments_constant(
-                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, 15, BitsAmount, Mode> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                         15, BitsAmount, Mode>::input_type &instance_input,
-                    const std::size_t start_row_index) {
-
-                using var = typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                           15, BitsAmount, Mode>::var;
-
-                std::size_t row = start_row_index;
-                std::size_t witness_amount = 15;
-                // Technically, this constant is only required when we need padding.
-                // So we skip the assignment if either
-                // 1) BitsAmount < 3 * WitnessAmount - 1
-                // 2) BitsAmount = 2 * WitnessAmount + k * (2 * WitnessAmount - 1) for some k.
-                if ((BitsAmount > 3 * witness_amount - 1) &&
-                    (BitsAmount - 3 * witness_amount - 1) % (3 * witness_amount - 2) != 0) {
-                    assignment.constant(component.C(0), row) = 0;
-                }
-            }
-
         }    // namespace components
     }        // namespace blueprint
 }    // namespace nil

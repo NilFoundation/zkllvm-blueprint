@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -31,79 +32,63 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_builder_component.hpp>
+
 namespace nil {
     namespace blueprint {
         namespace components {
 
-            template<typename ArithmetizationType, typename FieldType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount,
+                     bit_composition_mode Mode>
             class bit_decomposition;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType, typename ArithmetizationParams,
+                     std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, bit_composition_mode Mode>
             class bit_decomposition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                BlueprintFieldType, 9> : public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 0, 0> {
-
-                constexpr static const std::uint32_t WitnessesAmount = 9;
+                                                            WitnessesAmount, BitsAmount, Mode>
+                                 : public
+                                   bit_builder_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                                                     ArithmetizationParams>,
+                                                         WitnessesAmount, 1, BitsAmount, Mode> {
 
                 using component_type =
-                    plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
+                    bit_builder_component<
+                        crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                        WitnessesAmount, 1, BitsAmount, Mode>;
 
             public:
                 using var = typename component_type::var;
 
-                constexpr static const std::size_t rows_amount = 33;
+                constexpr static const std::size_t rows_amount = component_type::rows_amount;
 
-                constexpr static const std::size_t gates_amount = 1;
+                constexpr static const std::size_t gates_amount = component_type::gates_amount;
 
                 struct input_type {
-                    var k;
+                    var input;
                 };
 
                 struct result_type {
-                    std::array<var, 253> output;
+                    std::array<var, BitsAmount> output;
                     result_type(const bit_decomposition &component, std::uint32_t start_row_index) {
-                        std::size_t row = start_row_index;
-                        for (std::size_t i = 0; i < 11; i++) {
-                            if (i != 0) {
-                                output[25 * i - 22] = var(component.W(0), row);
-                                output[25 * i + 1 - 22] = var(component.W(1), row);
-                                output[25 * i + 2 - 22] = var(component.W(2), row);
-                                output[25 * i + 3 - 22] = var(component.W(3), row);
-                                output[25 * i + 4 - 22] = var(component.W(4), row);
-                                output[25 * i + 5 - 22] = var(component.W(5), row);
-                                output[25 * i + 6 - 22] = var(component.W(6), row);
-                                output[25 * i + 7 - 22] = var(component.W(7), row);
-                            }
-                            row++;
-                            if (i != 0) {
-                                output[25 * i + 8 - 22] = var(component.W(0), row);
-                                output[25 * i + 9 - 22] = var(component.W(1), row);
-                                output[25 * i + 10 - 22] = var(component.W(2), row);
-                                output[25 * i + 11 - 22] = var(component.W(3), row);
-                                output[25 * i + 12 - 22] = var(component.W(4), row);
-                                output[25 * i + 13 - 22] = var(component.W(5), row);
-                                output[25 * i + 14 - 22] = var(component.W(6), row);
-                                output[25 * i + 15 - 22] = var(component.W(7), row);
-                            }
-                            row++;
-                            if (i != 0) {
-                                output[25 * i + 16 - 22] = var(component.W(0), row);
-                                output[25 * i + 17 - 22] = var(component.W(1), row);
-                                output[25 * i + 18 - 22] = var(component.W(2), row);
-                                output[25 * i + 19 - 22] = var(component.W(3), row);
-                                output[25 * i + 20 - 22] = var(component.W(4), row);
-                                output[25 * i + 21 - 22] = var(component.W(5), row);
-                            }
-                            output[25 * i] = var(component.W(6), row);
-                            output[25 * i + 1] = var(component.W(7), row);
-                            output[25 * i + 2] = var(component.W(8), row);
-                            row++;
+                        auto padded_bit_index = [&component](std::size_t i) {
+                            return component.padding_bits_amount() +
+                                    (Mode == bit_composition_mode::MSB ?
+                                        i
+                                        : BitsAmount - i - 1);
+                        };
+
+                        for (std::size_t i = 0; i < BitsAmount; i++) {
+                            auto pos = component_type::bit_position(start_row_index, padded_bit_index(i));
+                            output[i] = var(component.W(pos.second), pos.first);
                         }
                     }
                 };
 
                 template<typename ContainerType>
-                bit_decomposition(ContainerType witness) : component_type(witness, {}, {}) {};
+                bit_decomposition(ContainerType witness) :
+                    component_type(witness, {}, {}) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -121,240 +106,123 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams,
+                     std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, bit_composition_mode Mode>
             using plonk_bit_decomposition = bit_decomposition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                BlueprintFieldType, WitnessesAmount>;
+                WitnessesAmount, BitsAmount, Mode>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode>
+            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                             WitnessesAmount, BitsAmount, Mode>::result_type
                 generate_assignments(
-                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                  WitnessesAmount, BitsAmount, Mode> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
-                    const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
-                        instance_input,
+                    const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                           WitnessesAmount, BitsAmount, Mode>::input_type instance_input,
                     const std::uint32_t start_row_index) {
 
-                using ArithmetizationType =
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-                using var = typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                typename BlueprintFieldType::integral_type input_data =
+                    typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.input).data);
+                std::array<bool, BitsAmount> input_bits;
 
-                std::size_t row = start_row_index;
-                assignment.constant(0, row) = ArithmetizationType::field_type::value_type::zero();
-                const std::size_t scalar_size = 275;
-                std::array<bool, scalar_size> b = {false};
-                typename BlueprintFieldType::integral_type integral_k =
-                    typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.k).data);
-                for (std::size_t i = 0; i < scalar_size; i++) {
-                    b[scalar_size - i - 1] = crypto3::multiprecision::bit_test(integral_k, i);
+                auto reverse_bit_index = [](std::size_t i) {
+                    return Mode == bit_composition_mode::LSB ? i : BitsAmount - i - 1;
+                };
+
+                for (std::uint32_t i = 0; i < BitsAmount; i++) {
+                    input_bits[i] = crypto3::multiprecision::bit_test(input_data, reverse_bit_index(i));
                 }
-                typename BlueprintFieldType::integral_type n = 0;
-                typename BlueprintFieldType::integral_type t = 0;
-                for (std::size_t i = 0; i < 11; i++) {
-                    assignment.witness(component.W(0), row) = b[25 * i];
-                    assignment.witness(component.W(1), row) = b[25 * i + 1];
-                    assignment.witness(component.W(2), row) = b[25 * i + 2];
-                    assignment.witness(component.W(3), row) = b[25 * i + 3];
-                    assignment.witness(component.W(4), row) = b[25 * i + 4];
-                    assignment.witness(component.W(5), row) = b[25 * i + 5];
-                    assignment.witness(component.W(6), row) = b[25 * i + 6];
-                    assignment.witness(component.W(7), row) = b[25 * i + 7];
-                    assignment.witness(component.W(8), row) = n;
-                    row++;
+                // calling bit_builder_component's generate_assignments
+                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, BitsAmount, Mode>(
+                    component, assignment, input_bits, start_row_index);
 
-                    assignment.witness(component.W(0), row) = b[25 * i + 8];
-                    assignment.witness(component.W(1), row) = b[25 * i + 9];
-                    assignment.witness(component.W(2), row) = b[25 * i + 10];
-                    assignment.witness(component.W(3), row) = b[25 * i + 11];
-                    assignment.witness(component.W(4), row) = b[25 * i + 12];
-                    assignment.witness(component.W(5), row) = b[25 * i + 13];
-                    assignment.witness(component.W(6), row) = b[25 * i + 14];
-                    assignment.witness(component.W(7), row) = b[25 * i + 15];
-                    row++;
-
-                    assignment.witness(component.W(0), row) = b[25 * i + 16];
-                    assignment.witness(component.W(1), row) = b[25 * i + 17];
-                    assignment.witness(component.W(2), row) = b[25 * i + 18];
-                    assignment.witness(component.W(3), row) = b[25 * i + 19];
-                    assignment.witness(component.W(4), row) = b[25 * i + 20];
-                    assignment.witness(component.W(5), row) = b[25 * i + 21];
-
-                    if (i != 0) {
-                        t = t * 2 + b[25 * i];
-                        t = t * 2 + b[25 * i + 1];
-                        t = t * 2 + b[25 * i + 2];
-                        t = t * 2 + b[25 * i + 3];
-                        t = t * 2 + b[25 * i + 4];
-                        t = t * 2 + b[25 * i + 5];
-                        t = t * 2 + b[25 * i + 6];
-                        t = t * 2 + b[25 * i + 7];
-                        t = t * 2 + b[25 * i + 8];
-                        t = t * 2 + b[25 * i + 9];
-                        t = t * 2 + b[25 * i + 10];
-                        t = t * 2 + b[25 * i + 11];
-                        t = t * 2 + b[25 * i + 12];
-                        t = t * 2 + b[25 * i + 13];
-                        t = t * 2 + b[25 * i + 14];
-                        t = t * 2 + b[25 * i + 15];
-                        t = t * 2 + b[25 * i + 16];
-                        t = t * 2 + b[25 * i + 17];
-                        t = t * 2 + b[25 * i + 18];
-                        t = t * 2 + b[25 * i + 19];
-                        t = t * 2 + b[25 * i + 20];
-                        t = t * 2 + b[25 * i + 21];
-                    }
-
-                    assignment.witness(component.W(6), row) = b[25 * i + 22];
-                    t = t * 2 + b[25 * i + 22];
-                    assignment.witness(component.W(7), row) = b[25 * i + 23];
-                    t = t * 2 + b[25 * i + 23];
-                    assignment.witness(component.W(8), row) = b[25 * i + 24];
-                    t = t * 2 + b[25 * i + 24];
-                    n = t;
-                    assignment.witness(component.W(8), row - 1) = n;
-                    row++;
-                }
-
-                return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
-                    component, start_row_index);
+                return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                        WitnessesAmount, BitsAmount, Mode>::result_type(
+                                                            component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode>
             void generate_gates(
-                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                              WitnessesAmount, BitsAmount, Mode> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
-                    &instance_input,
+                const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                       WitnessesAmount, BitsAmount, Mode>::input_type &instance_input,
                 const std::size_t first_selector_index) {
-
-                using var = typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::var;
-
-                crypto3::zk::snark::plonk_constraint<BlueprintFieldType> t = var(component.W(8), -1);
-                t = t * 2 + var(component.W(0), -1);
-                t = t * 2 + var(component.W(1), -1);
-                t = t * 2 + var(component.W(2), -1);
-                t = t * 2 + var(component.W(3), -1);
-                t = t * 2 + var(component.W(4), -1);
-                t = t * 2 + var(component.W(5), -1);
-                t = t * 2 + var(component.W(6), -1);
-                t = t * 2 + var(component.W(7), -1);
-                t = t * 2 + var(component.W(0), 0);
-                t = t * 2 + var(component.W(1), 0);
-                t = t * 2 + var(component.W(2), 0);
-                t = t * 2 + var(component.W(3), 0);
-                t = t * 2 + var(component.W(4), 0);
-                t = t * 2 + var(component.W(5), 0);
-                t = t * 2 + var(component.W(6), 0);
-                t = t * 2 + var(component.W(7), 0);
-                t = t * 2 + var(component.W(0), 1);
-                t = t * 2 + var(component.W(1), 1);
-                t = t * 2 + var(component.W(2), 1);
-                t = t * 2 + var(component.W(3), 1);
-                t = t * 2 + var(component.W(4), 1);
-                t = t * 2 + var(component.W(5), 1);
-                t = t * 2 + var(component.W(6), 1);
-                t = t * 2 + var(component.W(7), 1);
-                t = t * 2 + var(component.W(8), 1);
-                auto constraint_1 = bp.add_constraint(var(component.W(8), 0) - t);
-                bp.add_gate(first_selector_index,
-                            {constraint_1
-
-                            });
+                // calling bit_builder_component's generate_gates
+                generate_gates(component, bp, assignment, first_selector_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode>
             void generate_copy_constraints(
-                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                              WitnessesAmount, BitsAmount, Mode> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
-                    &instance_input,
+                const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                       WitnessesAmount, BitsAmount, Mode>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                             WitnessesAmount, BitsAmount, Mode>::var;
 
                 std::size_t row = start_row_index;
-                bp.add_copy_constraint({var(component.W(8), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
 
-                bp.add_copy_constraint({var(component.W(0), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(1), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(2), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(3), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(4), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(5), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(6), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(7), (std::int32_t)(row), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(0), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(1), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(2), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(3), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(4), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(5), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(6), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(7), (std::int32_t)(row + 1), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(0), (std::int32_t)(row + 2), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(1), (std::int32_t)(row + 2), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(2), (std::int32_t)(row + 2), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(3), (std::int32_t)(row + 2), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(4), (std::int32_t)(row + 2), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint({var(component.W(5), (std::int32_t)(row + 2), false),
-                                        var(component.W(0), (std::int32_t)(row), false, var::column_type::constant)});
-                bp.add_copy_constraint(
-                    {var(component.W(8), (std::int32_t)(row + component.rows_amount - 2), false), instance_input.k});
+                auto bit_index = [](std::size_t i) {
+                    return Mode == bit_composition_mode::MSB ? i : BitsAmount - i - 1;
+                };
+
+                var zero(0, start_row_index, false, var::column_type::constant);
+                std::size_t padding = 0;
+                for (; padding < component.padding_bits_amount(); padding++) {
+                    auto bit_pos = component.bit_position(start_row_index, padding);
+                    bp.add_copy_constraint({zero,
+                                            var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
+                }
+
+                for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
+                    auto sum_bit_pos_1 = component.sum_bit_position(start_row_index, i);
+                    auto sum_bit_pos_2 = component.sum_bit_position(start_row_index, i + 1);
+                    bp.add_copy_constraint({var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
+                                            var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
+                }
+
+                auto sum_pos = component.sum_bit_position(start_row_index, component.sum_bits_amount() - 1);
+                bp.add_copy_constraint({instance_input.input,
+                                        var(component.W(sum_pos.second), (std::int32_t)(sum_pos.first))});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t BitsAmount, bit_composition_mode Mode>
+            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                             WitnessesAmount, BitsAmount, Mode>::result_type
                 generate_circuit(
-                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                  WitnessesAmount, BitsAmount, Mode> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
-                    const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
-                        &instance_input,
+                    const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                           WitnessesAmount, BitsAmount, Mode>::input_type &instance_input,
                     const std::size_t start_row_index) {
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
-                std::size_t row = start_row_index;
-                assignment.enable_selector(first_selector_index, row + 1, row + component.rows_amount - 2, 3);
-
+                // calling bit_builder_component's generate_circuit
+                generate_circuit(component, bp, assignment, start_row_index);
+                // copy constraints are specific to this component
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
-                    component, start_row_index);
+                return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                        WitnessesAmount, BitsAmount, Mode>::result_type(
+                                                            component, start_row_index);
             }
 
         }    // namespace components
