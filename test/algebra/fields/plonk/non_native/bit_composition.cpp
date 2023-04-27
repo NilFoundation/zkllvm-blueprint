@@ -38,7 +38,7 @@
 
 #include <boost/random/mersenne_twister.hpp>
 
-#include <algorithm>
+#include <numeric>
 
 #include "../../../../test_plonk_component.hpp"
 
@@ -63,7 +63,8 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns, BitsAmount, Mode>;
+    using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns,
+                                                                  BitsAmount, Mode, true>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
     public_input.resize(BitsAmount);

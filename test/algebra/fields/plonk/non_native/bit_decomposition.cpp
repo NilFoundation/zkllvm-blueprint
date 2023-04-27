@@ -41,8 +41,6 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_decomposition.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 
-#include <algorithm>
-
 #include "../../../../test_plonk_component.hpp"
 
 using namespace nil;
@@ -124,7 +122,7 @@ void calculate_expected_and_test_bit_decomposition(typename FieldType::value_typ
     std::vector <typename FieldType::value_type> expected_res =
         std::vector <typename FieldType::value_type>(BitsAmount);
     for (std::size_t i = 0; i < BitsAmount; i++) {
-        expected_res[Mode == blueprint::components::bit_composition_mode::MSB ? BitsAmount - i - 1: i] =
+        expected_res[Mode == blueprint::components::bit_composition_mode::MSB ? BitsAmount - i - 1 : i] =
             ((input_integral >> i) & 0b1) == 1 ? FieldType::value_type::one() : FieldType::value_type::zero();
     }
     input = typename FieldType::value_type(input_integral);
@@ -190,10 +188,6 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_253) {
     test_decomposition<15, 253>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_255) {
-    test_decomposition<15, 255>();
-}
-
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_8) {
     test_decomposition<9, 8>();
@@ -217,10 +211,6 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_128) {
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_253) {
     test_decomposition<9, 253>();
-}
-
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_255) {
-    test_decomposition<9, 255>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
