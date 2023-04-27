@@ -35,6 +35,8 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_builder_component.hpp>
 
+using nil::blueprint::components::detail::bit_builder_component_constants_required;
+
 namespace nil {
     namespace blueprint {
         namespace components {
@@ -57,12 +59,16 @@ namespace nil {
                                  : public
                                    bit_builder_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                                      ArithmetizationParams>,
-                                                         WitnessesAmount, 1, BitsAmount, Mode, true> {
+                                                         WitnessesAmount,
+                                                         bit_builder_component_constants_required(
+                                                            WitnessesAmount, BitsAmount),
+                                                         BitsAmount, Mode, true> {
 
                 using component_type =
                     bit_builder_component<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                        WitnessesAmount, 1, BitsAmount, Mode, true>;
+                        WitnessesAmount, bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
+                        BitsAmount, Mode, true>;
 
             public:
                 using var = typename component_type::var;
@@ -93,8 +99,7 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                bit_decomposition(ContainerType witness) :
-                    component_type(witness, {}, {}) {};
+                bit_decomposition(ContainerType witness) : component_type(witness) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -145,8 +150,9 @@ namespace nil {
                     input_bits[i] = crypto3::multiprecision::bit_test(input_data, reverse_bit_index(i));
                 }
                 // calling bit_builder_component's generate_assignments
-                generate_assignments<BlueprintFieldType, ArithmetizationParams,
-                                     WitnessesAmount, 1, BitsAmount, Mode, true>(
+                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                     bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
+                                     BitsAmount, Mode, true>(
                     component, assignment, input_bits, start_row_index);
 
                 return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
@@ -158,17 +164,18 @@ namespace nil {
                      std::uint32_t BitsAmount, bit_composition_mode Mode,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             void generate_gates(
-                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount, BitsAmount, Mode> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                       WitnessesAmount, BitsAmount, Mode>::input_type
-                    &instance_input,
-                const std::size_t first_selector_index) {
+                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                WitnessesAmount, BitsAmount, Mode> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
+                                                        WitnessesAmount, BitsAmount, Mode>::input_type
+                        &instance_input,
+                    const std::size_t first_selector_index) {
                 // calling bit_builder_component's generate_gates
-                generate_gates<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1,
+                generate_gates<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                               bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
                                BitsAmount, Mode, true>(component, bp, assignment, first_selector_index);
             }
 
@@ -234,7 +241,9 @@ namespace nil {
 
                 // calling bit_builder_component's generate_circuit
                 generate_circuit<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                 1, BitsAmount, Mode, true>(component, bp, assignment, start_row_index);
+                                 bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
+                                 BitsAmount, Mode, true>(
+                                    component, bp, assignment, start_row_index);
                 // copy constraints are specific to this component
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 

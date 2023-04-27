@@ -45,6 +45,7 @@
 using namespace nil;
 
 using mode = blueprint::components::bit_composition_mode;
+using nil::blueprint::components::detail::bit_builder_component_constants_required;
 
 template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
 void test_bit_composition(std::array<bool, BitsAmount> &bits,
@@ -52,7 +53,7 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
 
     constexpr std::size_t WitnessColumns = WitnessesAmount;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t ConstantColumns = bit_builder_component_constants_required(WitnessesAmount, BitsAmount);
     constexpr std::size_t SelectorColumns = 1;
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
@@ -85,12 +86,12 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
     };
 
     if (WitnessesAmount == 9) {
-        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9},{0},{});
+        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0}, {});
 
         crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
             component_instance, public_input, result_check, instance_input);
     } else if (WitnessesAmount == 15) {
-        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},{0},{});
+        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, {0}, {});
 
         crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
             component_instance, public_input, result_check, instance_input);

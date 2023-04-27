@@ -40,7 +40,25 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-
+            namespace detail {
+                /*
+                    This duplicates logic in bit_builder_component's method padding_bits_amount.
+                    The component requires constants only when padding is required.
+                    We use this function in derived components to create the right amount of constants.
+                    It's a bit janky, but I haven't found a better way.
+                */
+                constexpr std::uint32_t bit_builder_component_constants_required(
+                        std::uint32_t WitnessesAmount, std::uint32_t BitsAmount) {
+                    if (BitsAmount < 3 * WitnessesAmount) {
+                        return 0;
+                    }
+                    std::uint32_t padding =
+                        ((3 * WitnessesAmount - 2) -
+                            (BitsAmount - 3 * WitnessesAmount + 1) % (3 * WitnessesAmount - 2))
+                                % (3 * WitnessesAmount - 2);
+                    return padding > 0;
+                }
+            }
             /*
                 This is a component base, which is used for both bit_decomposition and
                 bit_builder_component components, as they are similar.
@@ -172,8 +190,8 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                bit_builder_component(ContainerType witness, ContainerType constant) :
-                    component_type(witness, constant, std::array<std::uint32_t, 0>()) {};
+                bit_builder_component(ContainerType witness) :
+                    component_type(witness, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>()) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -320,14 +338,14 @@ namespace nil {
                      std::uint32_t ConstantsAmount, std::uint32_t BitsAmount, bit_composition_mode Mode,
                      bool CheckBits>
             void generate_gates(
-                const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                        ConstantsAmount, BitsAmount, Mode, CheckBits>
-                    &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const std::size_t first_selector_index) {
+                    const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                            ConstantsAmount, BitsAmount, Mode, CheckBits>
+                        &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const std::size_t first_selector_index) {
 
                 using var = typename plonk_bit_builder<BlueprintFieldType, ArithmetizationParams,
                                                        WitnessesAmount, ConstantsAmount, BitsAmount, Mode,
@@ -380,6 +398,37 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
                      std::uint32_t ConstantsAmount, std::uint32_t BitsAmount, bit_composition_mode Mode,
                      bool CheckBits>
+            void generate_assignments_constant(
+                    const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                            1, BitsAmount, Mode, CheckBits>
+                        &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const std::size_t start_row_index) {
+
+                using var = typename plonk_bit_builder<BlueprintFieldType, ArithmetizationParams,
+                                                       WitnessesAmount, ConstantsAmount, BitsAmount, Mode,
+                                                       CheckBits>::var;
+
+                assignment.constant(component.C(0), start_row_index) = 0;
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t ConstantsAmount, std::uint32_t BitsAmount, bit_composition_mode Mode,
+                     bool CheckBits>
+            void generate_assignments_constant(
+                    const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                            0, BitsAmount, Mode, CheckBits>
+                        &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const std::size_t start_row_index) {
+                // no constants in this case
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+                     std::uint32_t ConstantsAmount, std::uint32_t BitsAmount, bit_composition_mode Mode,
+                     bool CheckBits>
             void generate_circuit(
                     const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
                                             ConstantsAmount, BitsAmount, Mode, CheckBits>
@@ -407,28 +456,9 @@ namespace nil {
 
                 // copy constraints are specific to either bit_composition or bit_decomposition
                 // they are created in generate_circuit for corresponding classes
-                generate_assignments_constant(component, assignment, start_row_index);
-            }
-
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t ConstantsAmount, std::uint32_t BitsAmount, bit_composition_mode Mode,
-                     bool CheckBits>
-            void generate_assignments_constant(
-                    const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                            ConstantsAmount, BitsAmount, Mode, CheckBits>
-                        &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const std::size_t start_row_index) {
-
-                using var = typename plonk_bit_builder<BlueprintFieldType, ArithmetizationParams,
-                                                       WitnessesAmount, ConstantsAmount, BitsAmount, Mode,
-                                                       CheckBits>::var;
-
-                std::size_t row = start_row_index;
-                if (ConstantsAmount == 1) {
-                    assignment.constant(component.C(0), row) = 0;
-                }
+                generate_assignments_constant<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                              ConstantsAmount, BitsAmount, Mode, CheckBits>(
+                                                component, assignment, start_row_index);
             }
 
         }    // namespace components

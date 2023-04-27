@@ -39,15 +39,17 @@
 #include <type_traits>
 #include <utility>
 
+using nil::blueprint::components::detail::bit_builder_component_constants_required;
+
 namespace nil {
     namespace blueprint {
         namespace components {
 
             /*
                 Makes a single field element from BitsAmount bits.
-                Does not perform a check that the inputs actually belong to {0, 1}.
+                If CheckInput is true, performs a check that input values are actually in {0, 1}.
+                Otherwise, assumes that input values are already in {0, 1}.
                 Only the case of BitsAmount < BlueprintFieldType::modulus_bits is supported.
-                that the element actually fits in the field.
                 Bits can be passed LSB-first or MSB-first, depending on the value of Mode parameter.
 
                 A schematic representation of this component can be found in bit_builder_component.hpp.
@@ -65,12 +67,16 @@ namespace nil {
                                    bit_builder_component<crypto3::zk::snark::plonk_constraint_system<
                                                                                                 BlueprintFieldType,
                                                                                                 ArithmetizationParams>,
-                                                         WitnessesAmount, 1, BitsAmount, Mode, CheckInput> {
+                                                         WitnessesAmount,
+                                                         bit_builder_component_constants_required(
+                                                            WitnessesAmount, BitsAmount),
+                                                         BitsAmount, Mode, CheckInput> {
 
                 using component_type =
                     bit_builder_component<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                        WitnessesAmount, 1, BitsAmount, Mode, CheckInput>;
+                        WitnessesAmount, bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
+                        BitsAmount, Mode, CheckInput>;
 
             public:
                 using var = typename component_type::var;
@@ -94,8 +100,8 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                bit_composition(ContainerType witness, ContainerType constant) :
-                    component_type(witness, constant, {}) {};
+                bit_composition(ContainerType witness) :
+                    component_type(witness, {}, {}) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -140,7 +146,8 @@ namespace nil {
                     input_bits[i] = var_value(assignment, instance_input.bits[i]) != 0 ? true : false;
                 }
                 // calling bit_builder_component's generate_assignments
-                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1,
+                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                     bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
                                      BitsAmount, Mode, CheckInput>(
                     component, assignment, input_bits, start_row_index);
 
@@ -153,17 +160,17 @@ namespace nil {
                      std::uint32_t BitsAmount, bit_composition_mode Mode, bool CheckInput,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             void generate_gates(
-                const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                            BitsAmount, Mode, CheckInput>
-                    &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                     WitnessesAmount, BitsAmount, Mode, CheckInput>::input_type
-                    &instance_input,
-                const std::size_t first_selector_index) {
+                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
+                                                BitsAmount, Mode, CheckInput>
+                        &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
+                                                        WitnessesAmount, BitsAmount, Mode, CheckInput>::input_type
+                        &instance_input,
+                    const std::size_t first_selector_index) {
 
                 // calling bit_builder_component's generate_gates
                 generate_gates(component, bp, assignment, first_selector_index);
@@ -173,16 +180,16 @@ namespace nil {
                      std::uint32_t BitsAmount, bit_composition_mode Mode, bool CheckInput,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             void generate_copy_constraints(
-                const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WintessesAmount,
-                                            BitsAmount, Mode, CheckInput> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                     WintessesAmount, BitsAmount, Mode, CheckInput>::input_type
-                    &instance_input,
-                const std::size_t start_row_index) {
+                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WintessesAmount,
+                                                BitsAmount, Mode, CheckInput> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
+                                                        WintessesAmount, BitsAmount, Mode, CheckInput>::input_type
+                        &instance_input,
+                    const std::size_t start_row_index) {
 
                 using var = typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
                                                            WintessesAmount, BitsAmount, Mode, CheckInput>::var;
