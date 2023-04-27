@@ -47,8 +47,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class logic_not<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 2>
-                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                   ArithmetizationParams>,
+                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                            2, 1> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 2;
@@ -94,8 +95,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class logic_and<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 3>
-                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                   ArithmetizationParams>,
+                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                            3, 2> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 3;
@@ -141,8 +143,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class logic_or<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 3>
-                            : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                   ArithmetizationParams>,
+                            : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                            3, 2> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 3;
@@ -188,8 +191,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class logic_xor<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 3>
-                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                   ArithmetizationParams>,
+                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                            3, 2> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 3;
@@ -235,8 +239,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class logic_nand<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 3>
-                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                   ArithmetizationParams>,
+                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                            3, 2> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 3;
@@ -281,8 +286,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class logic_nor<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 3>
-                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                   ArithmetizationParams>,
+                             : public boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                            3, 2> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 3;
