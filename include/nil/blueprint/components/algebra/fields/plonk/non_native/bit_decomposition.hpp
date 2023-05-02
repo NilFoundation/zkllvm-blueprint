@@ -42,7 +42,7 @@ namespace nil {
         namespace components {
 
             /*
-                Decomposes a single field element from BitsAmount bits.
+                Decomposes a single field element into BitsAmount bits.
                 Output bits can be ordered LSB-first or MSB-first, depending on the value of Mode parameter.
 
                 A schematic representation of this component can be found in bit_builder_component.hpp.
@@ -57,8 +57,8 @@ namespace nil {
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                                                             WitnessesAmount, BitsAmount, Mode>
                                  : public
-                                   bit_builder_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                                     ArithmetizationParams>,
+                                   bit_builder_component<crypto3::zk::snark::plonk_constraint_system<
+                                                            BlueprintFieldType, ArithmetizationParams>,
                                                          WitnessesAmount,
                                                          bit_builder_component_constants_required(
                                                             WitnessesAmount, BitsAmount),
@@ -163,25 +163,6 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
                      std::uint32_t BitsAmount, bit_composition_mode Mode,
                      std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            void generate_gates(
-                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                WitnessesAmount, BitsAmount, Mode> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount, BitsAmount, Mode>::input_type
-                        &instance_input,
-                    const std::size_t first_selector_index) {
-                // calling bit_builder_component's generate_gates
-                generate_gates<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                               bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
-                               BitsAmount, Mode, true>(component, bp, assignment, first_selector_index);
-            }
-
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t BitsAmount, bit_composition_mode Mode,
-                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             void generate_copy_constraints(
                 const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
                                               WitnessesAmount, BitsAmount, Mode> &component,
@@ -213,8 +194,9 @@ namespace nil {
                 for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
                     auto sum_bit_pos_1 = component.sum_bit_position(row, i);
                     auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
-                    bp.add_copy_constraint({var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
-                                            var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
+                    bp.add_copy_constraint(
+                        {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
+                         var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
                 }
 
                 auto sum_pos = component.sum_bit_position(row, component.sum_bits_amount() - 1);

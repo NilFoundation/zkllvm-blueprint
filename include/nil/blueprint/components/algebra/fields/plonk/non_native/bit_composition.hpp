@@ -31,8 +31,6 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/crypto3/multiprecision/jacobi.hpp>
-
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_builder_component.hpp>
 
@@ -154,26 +152,6 @@ namespace nil {
                 return typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
                                                       WitnessesAmount, BitsAmount, Mode, CheckInput>::result_type(
                                                         component, start_row_index);
-            }
-
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t BitsAmount, bit_composition_mode Mode, bool CheckInput,
-                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            void generate_gates(
-                    const plonk_bit_composition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                                BitsAmount, Mode, CheckInput>
-                        &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_bit_composition<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount, BitsAmount, Mode, CheckInput>::input_type
-                        &instance_input,
-                    const std::size_t first_selector_index) {
-
-                // calling bit_builder_component's generate_gates
-                generate_gates(component, bp, assignment, first_selector_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WintessesAmount,

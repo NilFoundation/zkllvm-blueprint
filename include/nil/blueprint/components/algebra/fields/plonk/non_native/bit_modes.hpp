@@ -34,6 +34,10 @@ namespace nil {
                 MSB,
             };
 
+            enum bit_shift_mode {
+                LEFT,
+                RIGHT,
+            };
         }    // namespace components
     }        // namespace blueprint
 }    // namespace nil
