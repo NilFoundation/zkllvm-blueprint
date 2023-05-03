@@ -60,8 +60,9 @@ namespace nil {
                                  : public plonk_component<BlueprintFieldType, ArithmetizationParams,
                                                           WitnessesAmount,
                                                           // Use constants if either compose/decompose
-                                                          // requires them OR if we are shifitng left
-                                                          std::max(
+                                                          // requires them OR if we are shifitng left,
+                                                          // as shifting left requires padding.
+                                                          std::max({
                                                             bit_builder_component_constants_required(
                                                                 WitnessesAmount,
                                                                 BlueprintFieldType::modulus_bits - 1),
@@ -69,11 +70,12 @@ namespace nil {
                                                                 WitnessesAmount,
                                                                 Mode == bit_shift_mode::RIGHT ?
                                                                     BlueprintFieldType::modulus_bits - 1 - Shift
-                                                                  : BlueprintFieldType::modulus_bits - 1)),
+                                                                  : BlueprintFieldType::modulus_bits - 1),
+                                                            std::uint32_t(Mode == bit_shift_mode::LEFT ? 1 : 0)}),
                                                           0> {
                 using component_type =
                     plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                    std::max(
+                    std::max({
                         bit_builder_component_constants_required(
                             WitnessesAmount,
                             BlueprintFieldType::modulus_bits - 1),
@@ -81,7 +83,8 @@ namespace nil {
                             WitnessesAmount,
                             Mode == bit_shift_mode::RIGHT ?
                                   BlueprintFieldType::modulus_bits - 1 - Shift
-                                : BlueprintFieldType::modulus_bits - 1)), 0>;
+                                : BlueprintFieldType::modulus_bits - 1),
+                        std::uint32_t(Mode == bit_shift_mode::LEFT ? 1 : 0)}), 0>;
 
             public:
                 using var = typename component_type::var;
