@@ -103,8 +103,7 @@ namespace nil {
                                     bool>::type = true>
         auto prepare_component(ComponentType component_instance, const PublicInputContainerType &public_input,
                                const FunctorResultCheck &result_check,
-                               typename ComponentType::input_type instance_input,
-                               bool expected_to_pass) {
+                               typename ComponentType::input_type instance_input) {
 
             using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
             using component_type = ComponentType;
@@ -135,9 +134,6 @@ namespace nil {
 
             profiling(assignment);
 #endif
-
-            assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
-
             return std::make_tuple(desc, bp, assignment);
         }
 
@@ -152,7 +148,17 @@ namespace nil {
 
             auto [desc, bp, assignments] =
                 prepare_component<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
-                                  FunctorResultCheck>(component_instance, public_input, result_check, instance_input, expected_to_pass);
+                                  FunctorResultCheck>(component_instance, public_input, result_check, instance_input);
+
+            if (expected_to_pass) {
+                BOOST_CHECK(blueprint::is_satisfied(bp, assignments));
+            }
+            else {
+                // Test was expected to fail, if already failed, no need to continue, if it did not
+                // fail yet, it's fine, it may fail a later check.
+                if (!blueprint::is_satisfied(bp, assignments))
+                    return;
+            }
 
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using placeholder_params =
@@ -197,12 +203,12 @@ namespace nil {
             typename BlueprintFieldType::value_type,
             typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component(ComponentType component_instance, const PublicInputContainerType &public_input,
-                           FunctorResultCheck result_check, typename ComponentType::input_type instance_input) {
+                           FunctorResultCheck result_check, typename ComponentType::input_type instance_input, bool expected_to_pass = true) {
             return test_component_inner<ComponentType, BlueprintFieldType, ArithmetizationParams, Hash, Lambda,
                                  PublicInputContainerType, FunctorResultCheck>(component_instance,
                                                                                public_input, result_check,
                                                                                instance_input,
-                                                                               true);
+                                                                               expected_to_pass);
         }
 
         template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams, typename Hash,
