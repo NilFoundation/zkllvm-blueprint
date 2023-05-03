@@ -32,7 +32,9 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/boolean/boolean_op_component.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/boolean_op_component.hpp>
+
+using nil::blueprint::components::detail::boolean_op_component;
 
 namespace nil {
     namespace blueprint {

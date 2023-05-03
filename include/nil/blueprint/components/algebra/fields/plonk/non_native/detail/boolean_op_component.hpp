@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_FIELDS_boolean_op_component_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_FIELDS_boolean_op_component_HPP
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_FIELDS_BOOLEAN_OP_COMPONENT_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_FIELDS_BOOLEAN_OP_COMPONENT_HPP
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
@@ -37,88 +37,91 @@
 namespace nil {
     namespace blueprint {
         namespace components {
+            namespace detail {
+                /*
+                    This is a generalized boolean operation component.
+                    It abstracts boolean functions with ArgNum variables, when:
+                    a) ArgNum + 1 < WitnessesAmount
+                    b) The function is implemented as a single constraint.
+                    No checks that arguments are boolean are performed.
+                */
+                template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
+                class boolean_op_component;
 
-            /*
-                This is a generalized boolean operation component.
-                It abstracts boolean functions with ArgNum variables, when:
-                a) ArgNum + 1 < WitnessesAmount
-                b) The function is implemented as a single constraint.
-                No checks that arguments are boolean are performed.
-            */
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
-            class boolean_op_component;
+                template<typename BlueprintFieldType, typename ArithmetizationParams,
+                        std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
+                class boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                                    ArithmetizationParams>,
+                                        WitnessesAmount, ArgNum>
+                                : public plonk_component<BlueprintFieldType, ArithmetizationParams,
+                                                        WitnessesAmount, 0, 0> {
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
-            class boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                   ArithmetizationParams>,
-                                       WitnessesAmount, ArgNum>
-                             : public plonk_component<BlueprintFieldType, ArithmetizationParams,
-                                                      WitnessesAmount, 0, 0> {
+                    using component_type =
+                        plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
+                    using value_type = typename BlueprintFieldType::value_type;
 
-                using component_type =
-                    plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
-                using value_type = typename BlueprintFieldType::value_type;
+                public:
+                    using var = typename component_type::var;
 
-            public:
-                using var = typename component_type::var;
+                    constexpr static const std::size_t rows_amount = 1;
+                    constexpr static const std::size_t gates_amount = 1;
 
-                constexpr static const std::size_t rows_amount = 1;
-                constexpr static const std::size_t gates_amount = 1;
+                    constexpr static const std::size_t args_amount = ArgNum;
 
-                constexpr static const std::size_t args_amount = ArgNum;
+                    virtual crypto3::zk::snark::plonk_constraint<BlueprintFieldType>
+                        op_constraint(const std::array<var, ArgNum + 1> &witnesses) const = 0;
 
-                virtual crypto3::zk::snark::plonk_constraint<BlueprintFieldType>
-                    op_constraint(const std::array<var, ArgNum + 1> &witnesses) const = 0;
+                    virtual value_type result_assignment(const std::array<value_type, ArgNum> &input_values) const = 0;
 
-                virtual value_type result_assignment(const std::array<value_type, ArgNum> &input_values) const = 0;
+                    struct input_type {
+                        std::array<var, ArgNum> input;
 
-                struct input_type {
-                    std::array<var, ArgNum> input;
+                        input_type() = default;
+                        input_type(std::initializer_list<var> input) : input(input) {};
+                    };
 
-                    input_type() = default;
-                    input_type(std::initializer_list<var> input) : input(input) {};
+                    struct result_type {
+                        var output;
+
+                        result_type(const boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
+                                                                                                    BlueprintFieldType,
+                                                                                                    ArithmetizationParams>,
+                                                            WitnessesAmount, ArgNum> &component,
+                                                    const std::uint32_t start_row_index) {
+                            output = var(component.W(ArgNum), start_row_index);
+                        }
+                    };
+
+                    template<typename ContainerType>
+                    boolean_op_component(ContainerType witness) : component_type(witness,
+                                                                                std::array<std::uint32_t, 0>(),
+                                                                                std::array<std::uint32_t, 0>()) {};
+
+                    template<typename WitnessContainerType, typename ConstantContainerType,
+                            typename PublicInputContainerType>
+                    boolean_op_component(WitnessContainerType witness, ConstantContainerType constant,
+                                PublicInputContainerType public_input) :
+                        component_type(witness, constant, public_input) {};
+
+                    boolean_op_component(std::initializer_list<typename
+                                                                    component_type::witness_container_type::value_type>
+                                witnesses,
+                            std::initializer_list<typename component_type::constant_container_type::value_type>
+                                constants,
+                            std::initializer_list<typename component_type::public_input_container_type::value_type>
+                                public_inputs) :
+                        component_type(witnesses, constants, public_inputs) {};
                 };
+            }   // namespace detail
 
-                struct result_type {
-                    var output;
-
-                    result_type(const boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
-                                                                                                BlueprintFieldType,
-                                                                                                ArithmetizationParams>,
-                                                           WitnessesAmount, ArgNum> &component,
-                                                 const std::uint32_t start_row_index) {
-                        output = var(component.W(ArgNum), start_row_index);
-                    }
-                };
-
-                template<typename ContainerType>
-                boolean_op_component(ContainerType witness) : component_type(witness,
-                                                                             std::array<std::uint32_t, 0>(),
-                                                                             std::array<std::uint32_t, 0>()) {};
-
-                template<typename WitnessContainerType, typename ConstantContainerType,
-                         typename PublicInputContainerType>
-                boolean_op_component(WitnessContainerType witness, ConstantContainerType constant,
-                               PublicInputContainerType public_input) :
-                    component_type(witness, constant, public_input) {};
-
-                boolean_op_component(std::initializer_list<typename
-                                                                component_type::witness_container_type::value_type>
-                               witnesses,
-                           std::initializer_list<typename component_type::constant_container_type::value_type>
-                               constants,
-                           std::initializer_list<typename component_type::public_input_container_type::value_type>
-                               public_inputs) :
-                    component_type(witnesses, constants, public_inputs) {};
-            };
+            using detail::boolean_op_component;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t ArgNum>
+                    std::uint32_t ArgNum>
             using plonk_boolean_op_component =
                 boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>,
-                            WitnessesAmount, ArgNum>;
+                                                                                ArithmetizationParams>,
+                                     WitnessesAmount, ArgNum>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
@@ -151,8 +154,8 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             void generate_gates(
                 const plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ArgNum>
                     &component,
@@ -178,8 +181,8 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             void generate_copy_constraints(
                 const plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ArgNum>
                     &component,
@@ -204,8 +207,8 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             typename plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams,
                                                 WitnessesAmount, ArgNum>::result_type
                 generate_circuit(
@@ -238,8 +241,8 @@ namespace nil {
 
                 return typename component_type::result_type(component, start_row_index);
             }
-        }    // namespace components
-    }        // namespace blueprint
+        }   // namespace components
+    }       // namespace blueprint
 }    // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_FIELDS_boolean_op_component_HPP
+#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_FIELDS_BOOLEAN_OP_COMPONENT_HPP

@@ -22,7 +22,7 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#define BOOST_TEST_MODULE blueprint_plonk_non_native_boolean_not_test
+#define BOOST_TEST_MODULE blueprint_plonk_non_native_logic_test
 
 #include <boost/test/unit_test.hpp>
 
@@ -33,7 +33,7 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/boolean/logic_ops.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/logic_ops.hpp>
 
 #include <map>
 
@@ -97,7 +97,7 @@ void test_logic_component(std::map<std::array<bool, ArgsNum>, bool> expected_map
     }
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_not_test) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_not_test) {
     boilerplate(1, blueprint::components::logic_not);
 
     std::map<std::array<bool, 1>, bool> expected_mapping = {
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_not_test) {
                          hash_type, Lambda, component_type, 1>(expected_mapping);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_and_test) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_and_test) {
     boilerplate(2, blueprint::components::logic_and);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_and_test) {
                          hash_type, Lambda, component_type, 2>(expected_mapping);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_or_test) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_or_test) {
     boilerplate(2, blueprint::components::logic_or);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_or_test) {
                          hash_type, Lambda, component_type, 2>(expected_mapping);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_xor_test) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_xor_test) {
     boilerplate(2, blueprint::components::logic_xor);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_xor_test) {
                          hash_type, Lambda, component_type, 2>(expected_mapping);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_nand_test) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_nand_test) {
     boilerplate(2, blueprint::components::logic_nand);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_nand_test) {
                          hash_type, Lambda, component_type, 2>(expected_mapping);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_boolean_logic_nor_test) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_nor_test) {
     boilerplate(2, blueprint::components::logic_nor);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {

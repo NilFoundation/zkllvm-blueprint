@@ -33,14 +33,14 @@
 #include <nil/blueprint/component.hpp>
 
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_builder_component.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/bit_builder_component.hpp>
 
-using nil::blueprint::components::detail::bit_builder_component_constants_required;
+using nil::blueprint::components::detail::bit_builder_component;
+using nil::blueprint::components::detail::bit_builder_component_implementation;
 
 namespace nil {
     namespace blueprint {
         namespace components {
-
             /*
                 Decomposes a single field element into BitsAmount bits.
                 Output bits can be ordered LSB-first or MSB-first, depending on the value of Mode parameter.
@@ -59,16 +59,12 @@ namespace nil {
                                  : public
                                    bit_builder_component<crypto3::zk::snark::plonk_constraint_system<
                                                             BlueprintFieldType, ArithmetizationParams>,
-                                                         WitnessesAmount,
-                                                         bit_builder_component_constants_required(
-                                                            WitnessesAmount, BitsAmount),
-                                                         BitsAmount, Mode, true> {
+                                                         WitnessesAmount, BitsAmount, Mode, true> {
 
                 using component_type =
                     bit_builder_component<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                        WitnessesAmount, bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
-                        BitsAmount, Mode, true>;
+                        WitnessesAmount, BitsAmount, Mode, true>;
 
             public:
                 using var = typename component_type::var;
@@ -151,7 +147,6 @@ namespace nil {
                 }
                 // calling bit_builder_component's generate_assignments
                 generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                     bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
                                      BitsAmount, Mode, true>(
                     component, assignment, input_bits, start_row_index);
 
@@ -191,12 +186,21 @@ namespace nil {
                                             var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
                 }
 
-                for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
-                    auto sum_bit_pos_1 = component.sum_bit_position(row, i);
-                    auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
-                    bp.add_copy_constraint(
-                        {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
-                         var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
+                switch (component.implementation_variant()) {
+                case bit_builder_component_implementation::SMALL: // expected fallthrough
+                case bit_builder_component_implementation::J3:    // expected fallthrough
+                case bit_builder_component_implementation::J2:
+                    for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
+                        auto sum_bit_pos_1 = component.sum_bit_position(row, i);
+                        auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
+                        bp.add_copy_constraint(
+                            {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
+                             var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
+                    }
+                    break;
+                case bit_builder_component_implementation::A2:
+                    // In this case each of the sum bits is unique, so no additional copy constraints are required.
+                    break;
                 }
 
                 auto sum_pos = component.sum_bit_position(row, component.sum_bits_amount() - 1);
@@ -223,7 +227,6 @@ namespace nil {
 
                 // calling bit_builder_component's generate_circuit
                 generate_circuit<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                 bit_builder_component_constants_required(WitnessesAmount, BitsAmount),
                                  BitsAmount, Mode, true>(
                                     component, bp, assignment, start_row_index);
                 // copy constraints are specific to this component
