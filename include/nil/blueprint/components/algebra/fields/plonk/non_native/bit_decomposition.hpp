@@ -36,7 +36,6 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/bit_builder_component.hpp>
 
 using nil::blueprint::components::detail::bit_builder_component;
-using nil::blueprint::components::detail::bit_builder_component_implementation;
 
 namespace nil {
     namespace blueprint {
@@ -186,21 +185,12 @@ namespace nil {
                                             var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
                 }
 
-                switch (component.implementation_variant()) {
-                case bit_builder_component_implementation::SMALL: // expected fallthrough
-                case bit_builder_component_implementation::J3:    // expected fallthrough
-                case bit_builder_component_implementation::J2:
-                    for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
-                        auto sum_bit_pos_1 = component.sum_bit_position(row, i);
-                        auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
-                        bp.add_copy_constraint(
-                            {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
-                             var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
-                    }
-                    break;
-                case bit_builder_component_implementation::A2:
-                    // In this case each of the sum bits is unique, so no additional copy constraints are required.
-                    break;
+                for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
+                    auto sum_bit_pos_1 = component.sum_bit_position(row, i);
+                    auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
+                    bp.add_copy_constraint(
+                        {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
+                         var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
                 }
 
                 auto sum_pos = component.sum_bit_position(row, component.sum_bits_amount() - 1);

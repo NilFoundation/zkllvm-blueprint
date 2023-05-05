@@ -53,16 +53,7 @@ void test_bit_shift(typename BlueprintFieldType::value_type input,
 
     constexpr std::size_t WitnessColumns = WitnessesAmount;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = std::max({
-                                                    bit_builder_component_constants_required(
-                                                        WitnessesAmount,
-                                                        BlueprintFieldType::modulus_bits - 1),
-                                                     bit_builder_component_constants_required(
-                                                        WitnessesAmount,
-                                                        Mode == bit_shift_mode::RIGHT ?
-                                                                    BlueprintFieldType::modulus_bits - 1 - Shift
-                                                                  : BlueprintFieldType::modulus_bits - 1),
-                                                        std::uint32_t(Mode == bit_shift_mode::LEFT ? 1 : 0)});
+    constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 2;
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;

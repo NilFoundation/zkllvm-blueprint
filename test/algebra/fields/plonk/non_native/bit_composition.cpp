@@ -45,7 +45,6 @@
 using namespace nil;
 
 using mode = blueprint::components::bit_composition_mode;
-using nil::blueprint::components::detail::bit_builder_component_constants_required;
 
 template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
 void test_bit_composition(std::array<bool, BitsAmount> &bits,
@@ -53,7 +52,7 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
 
     constexpr std::size_t WitnessColumns = WitnessesAmount;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = bit_builder_component_constants_required(WitnessesAmount, BitsAmount);
+    constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 1;
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
@@ -65,7 +64,7 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
     using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns,
-                                                                  BitsAmount, Mode, true>;
+                                                                  BitsAmount, Mode, false>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
     public_input.resize(BitsAmount);
@@ -77,6 +76,9 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
     for (std::size_t i = 0; i < BitsAmount; i++) {
         instance_input.bits[i] = var(0, i, false, var::column_type::public_input);
     }
+
+    assert(BitsAmount + component_type::padding_bits_amount() + component_type::sum_bits_amount() ==
+           WitnessColumns * component_type::rows_amount);
 
     auto result_check = [&expected_res](AssignmentType &assignment,
                                         typename component_type::result_type &real_res) {
@@ -166,6 +168,10 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_32) {
     test_composition<15, 32>();
 }
 
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_44) {
+    test_composition<15, 44>();
+}
+
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_64) {
     test_composition<15, 64>();
 }
@@ -185,6 +191,10 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_8) {
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_16) {
     test_composition<9, 16>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_26) {
+    test_composition<9, 26>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_32) {
