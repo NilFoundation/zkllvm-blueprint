@@ -32,6 +32,7 @@
 #include <fstream>
 #include <sstream>
 
+#include <nil/crypto3/zk/math/expression.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
@@ -152,7 +153,7 @@ namespace nil {
 
             template<typename Terms, typename TermsIt>
             static typename std::enable_if<
-                std::is_same<nil::crypto3::math::non_linear_term<nil::crypto3::zk::snark::plonk_variable<FieldType>>,
+                std::is_same<nil::crypto3::math::term<nil::crypto3::zk::snark::plonk_variable<FieldType>>,
                              typename std::iterator_traits<typename Terms::iterator>::value_type>::value>::type
                 print_terms(std::ostream &os,
                             const Terms &terms,

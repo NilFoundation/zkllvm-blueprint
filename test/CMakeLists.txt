@@ -69,6 +69,7 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/range"
     "algebra/fields/plonk/non_native/reduction"
     "algebra/fields/plonk/non_native/bit_decomposition"
+    "non_native/plonk/signatures_verification"
     "non_native/plonk/bool_scalar_multiplication"
     "non_native/plonk/scalar_non_native_range"
     )

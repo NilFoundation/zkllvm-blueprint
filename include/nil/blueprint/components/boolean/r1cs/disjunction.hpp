@@ -68,24 +68,27 @@ namespace nil {
 
                     void generate_gates() {
                         /* inv * sum = output */
-                        math::non_linear_combination<FieldType> a1, b1, c1;
-                        a1.add_term(inv);
+                        math::expression<detail::blueprint_variable<FieldType>> a1, b1, c1;
+                        a1 += inv;
                         for (std::size_t i = 0; i < inputs.size(); ++i) {
-                            b1.add_term(inputs[i]);
+                            b1 += inputs[i];
                         }
-                        c1.add_term(output);
+                        c1 += output;
 
+                        // Very strange conversion of parameters from math::non_linear_combination to math::linear_combination
                         this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<FieldType>(a1, b1, c1));
-
                         /* (1-output) * sum = 0 */
-                        math::non_linear_combination<FieldType> a2, b2, c2;
-                        a2.add_term(detail::blueprint_variable<FieldType>(0));
-                        a2.add_term(output, -1);
+                        math::expression<FieldType> a2, b2, c2;
+                        a2 += detail::blueprint_variable<FieldType>(0);
+                        a2 -= output;
                         for (std::size_t i = 0; i < inputs.size(); ++i) {
-                            b2.add_term(inputs[i]);
+                            b2 += inputs[i];
                         }
-                        c2.add_term(detail::blueprint_variable<FieldType>(0), 0);
 
+                        // Martun: this one's strange.... 
+                        c2 += detail::blueprint_variable<FieldType>(0) * 0;
+
+                        // Very strange conversion of parameters from math::non_linear_combination to math::linear_combination
                         this->bp.add_r1cs_constraint(zk::snark::r1cs_constraint<FieldType>(a2, b2, c2));
                     }
 

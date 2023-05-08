@@ -92,7 +92,7 @@ namespace nil {
 
             template<typename Terms, typename TermsIt>
             static typename std::enable_if<
-                std::is_same<nil::crypto3::math::non_linear_term<nil::crypto3::zk::snark::plonk_variable<FieldType>>,
+                std::is_same<nil::crypto3::math::term<nil::crypto3::zk::snark::plonk_variable<FieldType>>,
                              typename std::iterator_traits<typename Terms::iterator>::value_type>::value>::type
                 print_terms(std::ostream &os,
                             const Terms &terms,
@@ -200,14 +200,15 @@ namespace nil {
                 print_argument_evaluation(os);
             }
 
-            static void process(std::ostream &os, const zk::blueprint<ArithmetizationType> &bp,
-                                const preprocessed_public_data_type &public_preprocessed_data) {
+            static void process(
+                    std::ostream &os, const blueprint::blueprint<ArithmetizationType> &bp,
+                    const preprocessed_public_data_type &public_preprocessed_data) {
                 for (const auto &gate : bp.gates()) {
                     print_gate(os, gate, public_preprocessed_data);
                 }
             }
 
-            static void process_split(const zk::blueprint<ArithmetizationType> &bp,
+            static void process_split(const blueprint::blueprint<ArithmetizationType> &bp,
                                       const preprocessed_public_data_type &public_preprocessed_data) {
                 for (const auto &gate : bp.gates()) {
                     std::ofstream gate_out;
