@@ -35,6 +35,9 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/bit_builder_component.hpp>
 
+#include <type_traits>
+#include <utility>
+
 using nil::blueprint::components::detail::bit_builder_component;
 
 namespace nil {

@@ -37,13 +37,12 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
-#include <nil/blueprint/components/algebra/fields/plonk/bit_shift.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/bit_shift_constant.hpp>
 
 #include "test_plonk_component.hpp"
 
 using namespace nil;
 
-using nil::blueprint::components::detail::bit_builder_component_constants_required;
 using nil::blueprint::components::bit_shift_mode;
 
 template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t Shift,
@@ -64,7 +63,8 @@ void test_bit_shift(typename BlueprintFieldType::value_type input,
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::bit_shift<ArithmetizationType, WitnessesAmount, Shift, Mode>;
+    using component_type = blueprint::components::bit_shift_constant<ArithmetizationType, WitnessesAmount,
+                                                                     Shift, Mode>;
 
     typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
@@ -137,118 +137,118 @@ void test_shift() {
 }
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_1) {
     test_shift<15, 1, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_8) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_8) {
     test_shift<15, 8, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_16) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_16) {
     test_shift<15, 16, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_32) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_32) {
     test_shift<15, 32, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_64) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_64) {
     test_shift<15, 64, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_128) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_128) {
     test_shift<15, 128, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_15_253) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_253) {
     test_shift<15, 253, bit_shift_mode::RIGHT>();
 }
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_1) {
     test_shift<15, 1, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_8) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_8) {
     test_shift<9, 8, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_16) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_16) {
     test_shift<9, 16, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_32) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_32) {
     test_shift<9, 32, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_64) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_64) {
     test_shift<9, 64, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_128) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_128) {
     test_shift<9, 128, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_right_test_9_253) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_253) {
     test_shift<9, 253, bit_shift_mode::RIGHT>();
 }
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_1) {
     test_shift<15, 1, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_8) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_8) {
     test_shift<15, 8, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_16) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_16) {
     test_shift<15, 16, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_32) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_32) {
     test_shift<15, 32, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_64) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_64) {
     test_shift<15, 64, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_128) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_128) {
     test_shift<15, 128, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_15_253) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_253) {
     test_shift<15, 253, bit_shift_mode::LEFT>();
 }
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_1) {
     test_shift<15, 1, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_8) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_8) {
     test_shift<9, 8, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_16) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_16) {
     test_shift<9, 16, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_32) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_32) {
     test_shift<9, 32, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_64) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_64) {
     test_shift<9, 64, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_128) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_128) {
     test_shift<9, 128, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_left_test_9_253) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_253) {
     test_shift<9, 253, bit_shift_mode::LEFT>();
 }
 

@@ -33,9 +33,7 @@
 
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 
-#include <type_traits>
 #include <utility>
-#include <algorithm>
 
 namespace nil {
     namespace blueprint {
@@ -205,7 +203,8 @@ namespace nil {
                         Returns the amount of auxillary sum bits in the component.
                     */
                     constexpr static const std::size_t sum_bits_amount() {
-                        return 1 + (BitsAmount + CheckBits - 2) / (3 * WitnessesAmount - 2) * 2;
+                        return 1 + (BitsAmount + CheckBits >= 2 ? BitsAmount + CheckBits - 2 : 0) /
+                                    (3 * WitnessesAmount - 2) * 2;
                     }
 
                     /*
