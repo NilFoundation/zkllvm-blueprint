@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 constexpr static const std::size_t random_tests_amount = 10;
 
 template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
-void calculate_expected_and_test_bit_decomposition(std::array<bool, BitsAmount> &bits) {
+void calculate_expected_and_test_bit_composition(std::array<bool, BitsAmount> &bits) {
 
     typename BlueprintFieldType::value_type composed = 0;
     auto accumulator = [](typename BlueprintFieldType::value_type acc, bool b) {
@@ -140,20 +140,39 @@ void test_composition() {
     for (std::size_t i = 0; i < BitsAmount; i++) {
         test_bits[i] = 0;
     }
-    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
 
     for (std::size_t i = 0; i < BitsAmount; i++) {
         test_bits[i] = 1;
     }
-    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
 
     for (std::size_t j = 0; j < random_tests_amount; j++) {
         auto bits = generate_random_bitstring<field_type, BitsAmount>(rng);
-        calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(bits);
-        calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(bits);
+        calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, BitsAmount, mode::MSB>(bits);
+        calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, BitsAmount, mode::LSB>(bits);
     }
+}
+
+template<std::uint32_t WitnesesAmount>
+void test_single_bit_composition() {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::array<bool, 1> bits = {0};
+
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, 1, mode::MSB>(bits);
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, 1, mode::LSB>(bits);
+
+    bits = {1};
+
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, 1, mode::MSB>(bits);
+    calculate_expected_and_test_bit_composition<field_type, WitnesesAmount, 1, mode::LSB>(bits);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_1) {
+    test_single_bit_composition<15>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_8) {
@@ -184,6 +203,10 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_253) {
     test_composition<15, 253>();
 }
 
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_1) {
+    test_single_bit_composition<9>();
+}
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_8) {
     test_composition<9, 8>();

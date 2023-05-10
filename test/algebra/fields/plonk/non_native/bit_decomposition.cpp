@@ -136,23 +136,20 @@ template<std::uint32_t WitnessesAmount, std::uint32_t BitsAmount>
 void test_decomposition() {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
 
-    const mode msb = blueprint::components::bit_composition_mode::MSB;
-    const mode lsb = blueprint::components::bit_composition_mode::LSB;
-
     auto max_elem = []() {
         return BitsAmount < field_type::modulus_bits ?
                (typename field_type::integral_type(1) << BitsAmount) - 1
               : field_type::modulus;
     };
 
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, msb>(1);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, msb>(0);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, msb>(45524);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, msb>(max_elem());
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, lsb>(1);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, lsb>(0);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, lsb>(45524);
-    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, lsb>(max_elem());
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::MSB>(1);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::MSB>(0);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::MSB>(45524);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::MSB>(max_elem());
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::LSB>(1);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::LSB>(0);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::LSB>(45524);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::LSB>(max_elem());
 
     using generator_type = nil::crypto3::random::algebraic_engine<field_type>;
     generator_type rand;
@@ -161,11 +158,29 @@ void test_decomposition() {
 
     for (std::size_t j = 0; j < random_tests_amount; j++) {
         field_type::value_type random = rand();
-        calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, msb>(random);
-        calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, lsb>(random);
+        calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::MSB>(random);
+        calculate_expected_and_test_bit_decomposition<field_type, WitnessesAmount, BitsAmount, mode::LSB>(random);
     }
 }
 
+template<std::uint32_t WitnesesAmount>
+void test_single_bit_decomposition() {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    typename field_type::value_type input = 0;
+
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, 1, mode::MSB>(input);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, 1, mode::LSB>(input);
+
+    input = 1;
+
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, 1, mode::MSB>(input);
+    calculate_expected_and_test_bit_decomposition<field_type, WitnesesAmount, 1, mode::LSB>(input);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_1) {
+    test_single_bit_decomposition<15>();
+}
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_8) {
     test_decomposition<15, 8>();
@@ -195,6 +210,10 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_253) {
     test_decomposition<15, 253>();
 }
 
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_1) {
+    test_single_bit_decomposition<9>();
+}
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_8) {
     test_decomposition<9, 8>();
