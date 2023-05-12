@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_253) {
 }
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_1) {
+/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_1) {
     test_single_bit_composition<9>();
 }
 
@@ -234,6 +234,6 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_128) {
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_253) {
     test_composition<9, 253>();
-}
+}*/
 
 BOOST_AUTO_TEST_SUITE_END()

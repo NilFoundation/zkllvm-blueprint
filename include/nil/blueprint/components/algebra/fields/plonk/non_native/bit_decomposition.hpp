@@ -54,14 +54,16 @@ namespace nil {
             class bit_decomposition;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, bit_composition_mode Mode>
+                     std::uint32_t BitsAmount, bit_composition_mode Mode>
             class bit_decomposition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                            WitnessesAmount, BitsAmount, Mode>
+                                                            15, BitsAmount, Mode>
                                  : public
                                    bit_builder_component<crypto3::zk::snark::plonk_constraint_system<
                                                             BlueprintFieldType, ArithmetizationParams>,
-                                                         WitnessesAmount, BitsAmount, Mode, true> {
+                                                         15, BitsAmount, Mode, true> {
+
+                constexpr static const std::uint32_t WitnessesAmount = 15;
 
                 using component_type =
                     bit_builder_component<

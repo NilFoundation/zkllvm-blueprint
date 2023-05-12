@@ -50,13 +50,16 @@ namespace nil {
             class bit_shift_constant;
 
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+            template<typename BlueprintFieldType, typename ArithmetizationParams,
                      std::uint32_t Shift, bit_shift_mode Mode>
             class bit_shift_constant<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                            WitnessesAmount, Shift, Mode>
+                                                            15, Shift, Mode>
                                  : public plonk_component<BlueprintFieldType, ArithmetizationParams,
-                                                          WitnessesAmount, 1, 0> {
+                                                          15, 1, 0> {
+
+                constexpr static const std::uint32_t WitnessesAmount = 15;
+
                 using component_type =
                     plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0>;
 

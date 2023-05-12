@@ -56,16 +56,18 @@ namespace nil {
                      bit_composition_mode Mode, bool CheckInput>
             class bit_composition;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
+            template<typename BlueprintFieldType, typename ArithmetizationParams,
                     std::uint32_t BitsAmount, bit_composition_mode Mode, bool CheckInput>
             class bit_composition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                            WitnessesAmount, BitsAmount, Mode, CheckInput>
+                                                            15, BitsAmount, Mode, CheckInput>
                                  : public
                                    bit_builder_component<crypto3::zk::snark::plonk_constraint_system<
                                                                                                 BlueprintFieldType,
                                                                                                 ArithmetizationParams>,
-                                                         WitnessesAmount, BitsAmount, Mode, CheckInput> {
+                                                         15, BitsAmount, Mode, CheckInput> {
+
+                constexpr static const std::uint32_t WitnessesAmount = 15;
 
                 using component_type =
                     bit_builder_component<
