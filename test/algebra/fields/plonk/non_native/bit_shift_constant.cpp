@@ -36,19 +36,18 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/bit_shift_constant.hpp>
 
 #include "test_plonk_component.hpp"
 
 using namespace nil;
 
-using nil::blueprint::components::bit_shift_mode;
+using nil::blueprint::components::detail::bit_shift_mode;
 
-template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t Shift,
+template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount, std::uint32_t Shift,
           bit_shift_mode Mode>
 void test_bit_shift(typename BlueprintFieldType::value_type input,
-                          typename BlueprintFieldType::value_type expected_res){
+                    typename BlueprintFieldType::value_type expected_res){
 
     constexpr std::size_t WitnessColumns = WitnessesAmount;
     constexpr std::size_t PublicInputColumns = 1;
@@ -62,28 +61,37 @@ void test_bit_shift(typename BlueprintFieldType::value_type input,
     constexpr std::size_t Lambda = 1;
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using value_type = typename BlueprintFieldType::value_type;
 
     using component_type = blueprint::components::bit_shift_constant<ArithmetizationType, WitnessesAmount,
-                                                                     Shift, Mode>;
+                                                                     BitsAmount, Shift, Mode>;
 
     typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
-    std::vector<typename BlueprintFieldType::value_type> public_input = {input};
+    std::vector<value_type> public_input = {input};
 
-    auto result_check = [expected_res, public_input](AssignmentType &assignment,
-        typename component_type::result_type &real_res) {
+    bool expected_to_pass = input < value_type(2).pow(BlueprintFieldType::modulus_bits - 1);
+
+    auto result_check = [&expected_res, &public_input, expected_to_pass]
+                        (AssignmentType &assignment, typename component_type::result_type &real_res) {
+        if (expected_to_pass) {
             assert(var_value(assignment, real_res.output) == expected_res);
+        }
     };
 
-    if (WitnessesAmount == 9) {
-        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {});
+    component_type component_instance = WitnessesAmount == 15 ?
+                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0}, {0})
+                                          : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {0});
 
+    if (!(WitnessesAmount == 15 || WitnessesAmount == 9)) {
+        BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;
+    }
+
+    if (expected_to_pass) {
         crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
             component_instance, public_input, result_check, instance_input);
-    } else if (WitnessesAmount == 15) {
-        component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0}, {});
-
-        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    } else {
+        crypto3::test_component_to_fail<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
             component_instance, public_input, result_check, instance_input);
     }
 }
@@ -92,164 +100,241 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 constexpr static const std::size_t random_tests_amount = 10;
 
-template<typename FieldType, std::uint32_t WitnessesAmount, std::uint32_t Shift, bit_shift_mode Mode>
-void calculate_expected_and_test_bit_shift(typename FieldType::value_type input) {
-    typename FieldType::integral_type max = (typename FieldType::integral_type(1) <<
-                                             (FieldType::modulus_bits - 1));
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount,
+         std::uint32_t Shift, bit_shift_mode Mode>
+void calculate_expected_and_test_bit_shift(typename BlueprintFieldType::value_type input) {
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
-    typename FieldType::integral_type input_integral = typename FieldType::integral_type(input.data);
-    input_integral = input_integral % max;
+    integral_type max = integral_type(1) << BitsAmount;
+    integral_type input_integral = integral_type(input.data) % max;
+    value_type expected_res = 0;
 
-    typename FieldType::value_type expected_res = 0;
     if (Mode == bit_shift_mode::RIGHT) {
         expected_res = input_integral >> Shift;
     } else if (Mode == bit_shift_mode::LEFT) {
         expected_res = (input_integral << Shift) % max;
     }
-    input = typename FieldType::value_type(input_integral);
-    test_bit_shift<FieldType, WitnessesAmount, Shift, Mode>({input}, expected_res);
+    input = value_type(input_integral);
+    test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(input, expected_res);
 }
 
-template<std::uint32_t WitnessesAmount, std::uint32_t Shift, bit_shift_mode Mode>
-void test_shift() {
-    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount,
+         std::uint32_t Shift, bit_shift_mode Mode>
+void test_shift_specific_inputs() {
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
-    bit_shift_mode mode = bit_shift_mode::RIGHT;
+    value_type max_elem = value_type(integral_type(1) << (BlueprintFieldType::modulus_bits - 1) - 1);
 
-    auto max_elem = []() {
-        return field_type::value_type((typename field_type::integral_type(1) << (field_type::modulus_bits - 1)) - 1);
-    };
+    calculate_expected_and_test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(1);
+    calculate_expected_and_test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(0);
+    calculate_expected_and_test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(45524);
+    calculate_expected_and_test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(max_elem);
+    calculate_expected_and_test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(max_elem + 1);
+}
 
-    calculate_expected_and_test_bit_shift<field_type, WitnessesAmount, Shift, Mode>(1);
-    calculate_expected_and_test_bit_shift<field_type, WitnessesAmount, Shift, Mode>(0);
-    calculate_expected_and_test_bit_shift<field_type, WitnessesAmount, Shift, Mode>(45524);
-    calculate_expected_and_test_bit_shift<field_type, WitnessesAmount, Shift, Mode>(max_elem());
-
-    using generator_type = nil::crypto3::random::algebraic_engine<field_type>;
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount,
+         std::uint32_t Shift, bit_shift_mode Mode>
+void test_shift_random_input() {
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
+    using generator_type = nil::crypto3::random::algebraic_engine<BlueprintFieldType>;
     generator_type rand;
     boost::random::mt19937 seed_seq;
     rand.seed(seed_seq);
 
+    value_type max_value = value_type(2).pow(BitsAmount);
+
     for (std::size_t j = 0; j < random_tests_amount; j++) {
-        field_type::value_type random = rand();
-        calculate_expected_and_test_bit_shift<field_type, WitnessesAmount, Shift, Mode>(random);
+        value_type random = rand();
+        integral_type input_integral = integral_type(random.data);
+        input_integral = input_integral & integral_type((max_value - 1).data);
+        value_type input = value_type(input_integral);
+
+        calculate_expected_and_test_bit_shift<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>(input);
     }
 }
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_1) {
-    test_shift<15, 1, bit_shift_mode::RIGHT>();
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount,
+         std::uint32_t Shift, bit_shift_mode Mode>
+void test_shift() {
+    test_shift_specific_inputs<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>();
+    test_shift_random_input<BlueprintFieldType, WitnessesAmount, BitsAmount, Shift, Mode>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_8) {
-    test_shift<15, 8, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_1) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 1, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_16) {
-    test_shift<15, 16, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_8) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 8, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_32) {
-    test_shift<15, 32, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_16) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 16, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_64) {
-    test_shift<15, 64, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_32) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 32, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_128) {
-    test_shift<15, 128, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_64) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 64, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_253) {
-    test_shift<15, 253, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_128) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 128, bit_shift_mode::RIGHT>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_253) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 253, bit_shift_mode::RIGHT>();
 }
 
 
-/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_1) {
-    test_shift<9, 1, bit_shift_mode::RIGHT>();
+/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_1) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 1, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_8) {
-    test_shift<9, 8, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_8) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 8, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_16) {
-    test_shift<9, 16, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_16) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 16, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_32) {
-    test_shift<9, 32, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_32) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 32, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_64) {
-    test_shift<9, 64, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_64) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 64, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_128) {
-    test_shift<9, 128, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_128) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 128, bit_shift_mode::RIGHT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_253) {
-    test_shift<9, 253, bit_shift_mode::RIGHT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_253) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 253, bit_shift_mode::RIGHT>();
 }*/
 
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_1) {
-    test_shift<15, 1, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_1) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 1, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_8) {
-    test_shift<15, 8, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_8) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 8, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_16) {
-    test_shift<15, 16, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_16) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 16, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_32) {
-    test_shift<15, 32, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_32) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 32, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_64) {
-    test_shift<15, 64, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_64) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 64, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_128) {
-    test_shift<15, 128, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_128) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 128, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_253) {
-    test_shift<15, 253, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_253) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 253, bit_shift_mode::LEFT>();
 }
 
-
-/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_1) {
-    test_shift<9, 1, bit_shift_mode::LEFT>();
+/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_1) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 1, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_8) {
-    test_shift<9, 8, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_8) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 8, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_16) {
-    test_shift<9, 16, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_16) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 16, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_32) {
-    test_shift<9, 32, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_32) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 32, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_64) {
-    test_shift<9, 64, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_64) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 64, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_128) {
-    test_shift<9, 128, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_128) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 128, bit_shift_mode::LEFT>();
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_253) {
-    test_shift<9, 253, bit_shift_mode::LEFT>();
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_253) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 9, 254, 253, bit_shift_mode::LEFT>();
 }*/
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_128_32) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 32, bit_shift_mode::RIGHT>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_128_64) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 64, bit_shift_mode::RIGHT>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_128_17) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 128, bit_shift_mode::RIGHT>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_128_32) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 32, bit_shift_mode::LEFT>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_128_64) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 64, bit_shift_mode::LEFT>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_128_17) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_shift<field_type, 15, 254, 128, bit_shift_mode::LEFT>();
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -29,7 +29,6 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/bit_builder_component.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_composition.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_decomposition.hpp>
@@ -41,20 +40,30 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
+            namespace detail {
+                    enum bit_shift_mode {
+                    LEFT,
+                    RIGHT,
+                };
+            }   // namespace detail
+            using detail::bit_shift_mode;
+
             /*
-                Input has to fit into [BlueprintFieldType::modulus_bits - 1] bits (this is checked).
+                Shits an element < 2^{BitsAmount} by a constant amount of bits.
+                Input has to fit into [BitsAmount < BlueprintFieldType::modulus_bits - 1] bits (this is checked).
                 This is implemented as decomposition + composition.
+                Left shift is done modulo 2^{BitsAmount}.
             */
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount,
+            template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::size_t BitsAmount,
                      std::uint32_t Shift, bit_shift_mode Mode>
             class bit_shift_constant;
 
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams,
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BitsAmount,
                      std::uint32_t Shift, bit_shift_mode Mode>
             class bit_shift_constant<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                            15, Shift, Mode>
+                                                            15, BitsAmount, Shift, Mode>
                                  : public plonk_component<BlueprintFieldType, ArithmetizationParams,
                                                           15, 1, 0> {
 
@@ -69,15 +78,14 @@ namespace nil {
                 using decomposition_component_type =
                     bit_decomposition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                   ArithmetizationParams>,
-                                      WitnessesAmount, BlueprintFieldType::modulus_bits - 1,
-                                      bit_composition_mode::MSB>;
+                                      WitnessesAmount, BitsAmount, bit_composition_mode::MSB>;
 
                 using composition_component_type =
                     bit_composition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                  ArithmetizationParams>,
                                     WitnessesAmount,
-                                    Mode == bit_shift_mode::RIGHT ? BlueprintFieldType::modulus_bits - 1 - Shift
-                                                                  : BlueprintFieldType::modulus_bits - 1,
+                                    Mode == bit_shift_mode::RIGHT ? BitsAmount - Shift
+                                                                  : BitsAmount,
                                     bit_composition_mode::MSB, false>;
 
                 constexpr static const std::size_t rows_amount = decomposition_component_type::rows_amount +
@@ -132,34 +140,35 @@ namespace nil {
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t Shift, bit_shift_mode Mode>
+                     std::uint32_t WitnessesAmount, std::size_t BitsAmount, std::uint32_t Shift, bit_shift_mode Mode>
             using plonk_bit_shift_constant = bit_shift_constant<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                WitnessesAmount, Shift, Mode>;
+                WitnessesAmount, BitsAmount, Shift, Mode>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t Shift, bit_shift_mode Mode>
+                     std::size_t BitsAmount, std::uint32_t Shift, bit_shift_mode Mode,
+                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                     WitnessesAmount, Shift, Mode>::result_type
+                                              WitnessesAmount, BitsAmount, Shift, Mode>::result_type
                 generate_assignments(
                     const plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                          WitnessesAmount, Shift, Mode> &component,
+                                                   WitnessesAmount, BitsAmount, Shift, Mode> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                   WitnessesAmount, Shift, Mode>::input_type
+                                                            WitnessesAmount, BitsAmount, Shift, Mode>::input_type
                         &instance_input,
                     const std::uint32_t start_row_index) {
                 std::uint32_t row = start_row_index;
 
                 using var = typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                     WitnessesAmount, Shift, Mode>::var;
+                                                     WitnessesAmount, BitsAmount, Shift, Mode>::var;
                 using decomposition_component_type =
                     typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                      WitnessesAmount, Shift, Mode>::decomposition_component_type;
+                                                      WitnessesAmount, BitsAmount, Shift, Mode>::decomposition_component_type;
                 using composition_component_type =
                     typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                      WitnessesAmount, Shift, Mode>::composition_component_type;
+                                                      WitnessesAmount, BitsAmount, Shift, Mode>::composition_component_type;
 
                 typename decomposition_component_type::result_type decomposition =
                     generate_assignments(component.decomposition_subcomponent, assignment,
@@ -183,36 +192,37 @@ namespace nil {
 
                 assert(row == start_row_index + component.rows_amount);
                 return typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                         WitnessesAmount, Shift, Mode>::result_type(
+                                                         WitnessesAmount, BitsAmount, Shift, Mode>::result_type(
                                                     component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t Shift, bit_shift_mode Mode>
+                     std::size_t BitsAmount, std::uint32_t Shift, bit_shift_mode Mode,
+                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
             typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount, Shift, Mode>::result_type
+                                              WitnessesAmount, BitsAmount, Shift, Mode>::result_type
                 generate_circuit(
                     const plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                   WitnessesAmount, Shift, Mode>
+                                                   WitnessesAmount, BitsAmount, Shift, Mode>
                         &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                            WitnessesAmount, Shift, Mode>::input_type
+                                                            WitnessesAmount, BitsAmount, Shift, Mode>::input_type
                         &instance_input,
                     const std::size_t start_row_index) {
                 std::uint32_t row = start_row_index;
 
                 using var = typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                              WitnessesAmount, Shift, Mode>::var;
+                                                              WitnessesAmount, BitsAmount, Shift, Mode>::var;
                 using decomposition_component_type =
                     typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                      WitnessesAmount, Shift, Mode>::decomposition_component_type;
+                                                      WitnessesAmount, BitsAmount, Shift, Mode>::decomposition_component_type;
                 using composition_component_type =
                     typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                      WitnessesAmount, Shift, Mode>::composition_component_type;
+                                                      WitnessesAmount, BitsAmount, Shift, Mode>::composition_component_type;
 
                 typename decomposition_component_type::result_type decomposition =
                     generate_circuit(component.decomposition_subcomponent, bp, assignment, {instance_input.input},
@@ -236,7 +246,7 @@ namespace nil {
 
                 assert(row == start_row_index + component.rows_amount);
                 return typename plonk_bit_shift_constant<BlueprintFieldType, ArithmetizationParams,
-                                                         WitnessesAmount, Shift, Mode>::result_type(
+                                                         WitnessesAmount, BitsAmount, Shift, Mode>::result_type(
                                                     component, start_row_index);
             }
         }    // namespace components

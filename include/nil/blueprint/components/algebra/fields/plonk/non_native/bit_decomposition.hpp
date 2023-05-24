@@ -28,17 +28,19 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
+#include <nil/marshalling/algorithms/pack.hpp>
+
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/bit_builder_component.hpp>
 
 #include <type_traits>
 #include <utility>
 
 using nil::blueprint::components::detail::bit_builder_component;
+using nil::blueprint::components::detail::bit_composition_mode;
 
 namespace nil {
     namespace blueprint {
@@ -140,14 +142,15 @@ namespace nil {
 
                 typename BlueprintFieldType::integral_type input_data =
                     typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.input).data);
+
                 std::array<bool, BitsAmount> input_bits;
-
-                auto reverse_bit_index = [](std::size_t i) {
-                    return Mode == bit_composition_mode::LSB ? i : BitsAmount - i - 1;
-                };
-
-                for (std::uint32_t i = 0; i < BitsAmount; i++) {
-                    input_bits[i] = crypto3::multiprecision::bit_test(input_data, reverse_bit_index(i));
+                {
+                    nil::marshalling::status_type status;
+                    std::array<bool, BlueprintFieldType::modulus_bits> bytes_all =
+                        nil::marshalling::pack<nil::marshalling::option::big_endian>(
+                            var_value(assignment, instance_input.input), status);
+                    std::copy(bytes_all.end() - BitsAmount, bytes_all.end(), input_bits.begin());
+                    assert(status == nil::marshalling::status_type::success);
                 }
                 // calling bit_builder_component's generate_assignments
                 generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
@@ -178,29 +181,25 @@ namespace nil {
 
                 std::size_t row = start_row_index;
 
-                auto bit_index = [](std::size_t i) {
-                    return Mode == bit_composition_mode::MSB ? i : BitsAmount - i - 1;
-                };
-
                 var zero(0, row, false, var::column_type::constant);
                 std::size_t padding = 0;
                 for (; padding < component.padding_bits_amount(); padding++) {
                     auto bit_pos = component.bit_position(row, padding);
                     bp.add_copy_constraint({zero,
-                                            var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
+                                            var(component.W(bit_pos.second), bit_pos.first)});
                 }
 
                 for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
                     auto sum_bit_pos_1 = component.sum_bit_position(row, i);
                     auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
                     bp.add_copy_constraint(
-                        {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
-                         var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
+                        {var(component.W(sum_bit_pos_1.second), sum_bit_pos_1.first),
+                         var(component.W(sum_bit_pos_2.second), sum_bit_pos_2.first)});
                 }
 
                 auto sum_pos = component.sum_bit_position(row, component.sum_bits_amount() - 1);
                 bp.add_copy_constraint({instance_input.input,
-                                        var(component.W(sum_pos.second), (std::int32_t)(sum_pos.first))});
+                                        var(component.W(sum_pos.second), sum_pos.first)});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,

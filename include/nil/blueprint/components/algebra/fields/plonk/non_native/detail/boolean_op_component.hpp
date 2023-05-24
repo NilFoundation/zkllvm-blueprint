@@ -49,7 +49,7 @@ namespace nil {
                 class boolean_op_component;
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams,
-                        std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
+                         std::uint32_t WitnessesAmount, std::uint32_t ArgNum>
                 class boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                     ArithmetizationParams>,
                                         WitnessesAmount, ArgNum>
@@ -84,8 +84,8 @@ namespace nil {
                         var output;
 
                         result_type(const boolean_op_component<crypto3::zk::snark::plonk_constraint_system<
-                                                                                                    BlueprintFieldType,
-                                                                                                    ArithmetizationParams>,
+                                                                                                BlueprintFieldType,
+                                                                                                ArithmetizationParams>,
                                                             WitnessesAmount, ArgNum> &component,
                                                     const std::uint32_t start_row_index) {
                             output = var(component.W(ArgNum), start_row_index);
@@ -117,15 +117,15 @@ namespace nil {
             using detail::boolean_op_component;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                    std::uint32_t ArgNum>
+                     std::uint32_t ArgNum>
             using plonk_boolean_op_component =
                 boolean_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                 ArithmetizationParams>,
                                      WitnessesAmount, ArgNum>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             typename plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams,
                                                 WitnessesAmount, ArgNum>::result_type
                 generate_assignments(
@@ -154,8 +154,8 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             void generate_gates(
                 const plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ArgNum>
                     &component,
@@ -181,8 +181,8 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             void generate_copy_constraints(
                 const plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ArgNum>
                     &component,
@@ -207,8 +207,8 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams,
-                    std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
-                    std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
+                     std::uint32_t WitnessesAmount, std::uint32_t ArgNum,
+                     std::enable_if_t<WitnessesAmount == ArgNum + 1, bool> = true>
             typename plonk_boolean_op_component<BlueprintFieldType, ArithmetizationParams,
                                                 WitnessesAmount, ArgNum>::result_type
                 generate_circuit(

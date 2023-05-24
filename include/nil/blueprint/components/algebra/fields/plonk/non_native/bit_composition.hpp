@@ -31,13 +31,13 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/bit_modes.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/bit_builder_component.hpp>
 
 #include <type_traits>
 #include <utility>
 
 using nil::blueprint::components::detail::bit_builder_component;
+using nil::blueprint::components::detail::bit_composition_mode;
 
 namespace nil {
     namespace blueprint {
@@ -138,8 +138,13 @@ namespace nil {
                     const std::uint32_t start_row_index) {
 
                 std::array<bool, BitsAmount> input_bits;
+
+                auto bit_index = [](std::size_t i) {
+                    return Mode == bit_composition_mode::MSB ? i : BitsAmount - i - 1;
+                };
+
                 for (std::uint32_t i = 0; i < BitsAmount; ++i) {
-                    input_bits[i] = var_value(assignment, instance_input.bits[i]) != 0 ? true : false;
+                    input_bits[i] = var_value(assignment, instance_input.bits[bit_index(i)]) != 0 ? true : false;
                 }
                 // calling bit_builder_component's generate_assignments
                 generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
@@ -180,21 +185,21 @@ namespace nil {
                 for (; padding < component.padding_bits_amount(); padding++) {
                     auto bit_pos = component.bit_position(row, padding);
                     bp.add_copy_constraint({zero,
-                                            var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
+                                            var(component.W(bit_pos.second), bit_pos.first)});
                 }
 
                 for (std::size_t i = 0; i < BitsAmount; i++) {
                     auto bit_pos = component.bit_position(row, padding + i);
                     bp.add_copy_constraint({instance_input.bits[bit_index(i)],
-                                            var(component.W(bit_pos.second), (std::int32_t)(bit_pos.first))});
+                                            var(component.W(bit_pos.second), bit_pos.first)});
                 }
 
                 for (std::size_t i = 0; i < component.sum_bits_amount() - 1; i += 2) {
                     auto sum_bit_pos_1 = component.sum_bit_position(row, i);
                     auto sum_bit_pos_2 = component.sum_bit_position(row, i + 1);
                     bp.add_copy_constraint(
-                        {var(component.W(sum_bit_pos_1.second), (std::int32_t)(sum_bit_pos_1.first)),
-                         var(component.W(sum_bit_pos_2.second), (std::int32_t)(sum_bit_pos_2.first))});
+                        {var(component.W(sum_bit_pos_1.second), sum_bit_pos_1.first),
+                         var(component.W(sum_bit_pos_2.second), sum_bit_pos_2.first)});
                 }
             }
 
