@@ -45,8 +45,9 @@ using namespace nil;
 
 using mode = blueprint::components::detail::bit_composition_mode;
 
-template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
-void test_bit_composition(std::array<bool, BitsAmount> &bits,
+template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode,
+          bool CheckInput>
+void test_bit_composition(const std::vector<typename BlueprintFieldType::value_type> &bits,
                           typename BlueprintFieldType::value_type expected_res){
 
     constexpr std::size_t WitnessColumns = WitnessesAmount;
@@ -63,18 +64,24 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
     using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns,
-                                                                  BitsAmount, Mode, false>;
+                                                                  BitsAmount, Mode, CheckInput>;
 
-    std::vector<typename BlueprintFieldType::value_type> public_input;
-    public_input.resize(BitsAmount);
-    for (std::size_t i = 0; i < BitsAmount; i++) {
-        public_input[i] = typename BlueprintFieldType::value_type(bits[i]);
+    assert(bits.size() == BitsAmount);
+
+    bool expected_to_pass = true;
+    if (CheckInput) {
+        expected_to_pass = std::accumulate(bits.begin(), bits.end(), true,
+                [](bool acc, typename BlueprintFieldType::value_type b) {
+                    return acc && (b == 0 || b == 1);
+                }
+        );
     }
 
     typename component_type::input_type instance_input;
     for (std::size_t i = 0; i < BitsAmount; i++) {
         instance_input.bits[i] = var(0, i, false, var::column_type::public_input);
     }
+
     // Sanity check.
     assert(BitsAmount + component_type::padding_bits_amount() + component_type::sum_bits_amount() ==
            WitnessColumns * component_type::rows_amount);
@@ -87,13 +94,20 @@ void test_bit_composition(std::array<bool, BitsAmount> &bits,
         BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;
     }
 
-    auto result_check = [&expected_res](AssignmentType &assignment,
-                                        typename component_type::result_type &real_res) {
-        assert(expected_res == var_value(assignment, real_res.output));
+    auto result_check = [&expected_res, expected_to_pass](AssignmentType &assignment,
+                                                          typename component_type::result_type &real_res) {
+        if (expected_to_pass) {
+            assert(expected_res == var_value(assignment, real_res.output));
+        }
     };
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+    if (expected_to_pass) {
+        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+            component_instance, bits, result_check, instance_input);
+    } else {
+        crypto3::test_component_to_fail<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+            component_instance, bits, result_check, instance_input);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
@@ -101,11 +115,14 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 constexpr static const std::size_t random_tests_amount = 10;
 
 template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode>
-void calculate_expected_and_test_bit_composition(std::array<bool, BitsAmount> &bits) {
+void calculate_expected_and_test_bit_composition(std::vector<typename BlueprintFieldType::value_type> &bits) {
+    using value_type = typename BlueprintFieldType::value_type;
 
-    typename BlueprintFieldType::value_type composed = 0;
-    auto accumulator = [](typename BlueprintFieldType::value_type acc, bool b) {
-        return typename BlueprintFieldType::value_type(2 * acc + (b ? 1 : 0));
+    assert(bits.size() == BitsAmount);
+
+    value_type composed = 0;
+    auto accumulator = [](value_type acc, value_type b) {
+        return value_type(2 * acc + (b == 1 ? 1 : 0));
     };
     if (Mode == mode::LSB) {
         composed = std::accumulate(bits.rbegin(), bits.rend(), composed, accumulator);
@@ -113,27 +130,27 @@ void calculate_expected_and_test_bit_composition(std::array<bool, BitsAmount> &b
         composed = std::accumulate(bits.begin(), bits.end(), composed, accumulator);
     }
 
-    test_bit_composition<BlueprintFieldType, WitnessesAmount, BitsAmount, Mode>(bits, composed);
+    test_bit_composition<BlueprintFieldType, WitnessesAmount, BitsAmount, Mode, true>(bits, composed);
+    test_bit_composition<BlueprintFieldType, WitnessesAmount, BitsAmount, Mode, false>(bits, composed);
 }
 
 template<typename BlueprintFieldType, std::uint32_t BitsAmount>
-std::array<bool, BitsAmount> generate_random_bitstring(boost::random::mt19937 &rng) {
-    std::array<bool, BitsAmount> res;
+std::vector<typename BlueprintFieldType::value_type> generate_random_bitstring(boost::random::mt19937 &rng) {
+    std::vector<typename BlueprintFieldType::value_type> res(BitsAmount);
     for (std::size_t i = 0; i < BitsAmount; i++) {
-        res[i] = rng() % 2;
+        res[i] = rng() % 2 == 1 ? 1 : 0;
     }
     return res;
 }
 
 template<typename BlueprintFieldType, std::uint32_t WitnesesAmount, std::uint32_t BitsAmount>
 void test_composition() {
+    using value_type = typename BlueprintFieldType::value_type;
     boost::random::mt19937 rng;
     rng.seed(1337);
-    std::array<bool, BitsAmount> test_bits;
 
-    for (std::size_t i = 0; i < BitsAmount; i++) {
-        test_bits[i] = 0;
-    }
+    std::vector<value_type> test_bits(BitsAmount, 0);
+
     calculate_expected_and_test_bit_composition<BlueprintFieldType, WitnesesAmount, BitsAmount, mode::MSB>(test_bits);
     calculate_expected_and_test_bit_composition<BlueprintFieldType, WitnesesAmount, BitsAmount, mode::LSB>(test_bits);
 
@@ -147,6 +164,22 @@ void test_composition() {
         auto bits = generate_random_bitstring<BlueprintFieldType, BitsAmount>(rng);
         calculate_expected_and_test_bit_composition<BlueprintFieldType, WitnesesAmount, BitsAmount, mode::MSB>(bits);
         calculate_expected_and_test_bit_composition<BlueprintFieldType, WitnesesAmount, BitsAmount, mode::LSB>(bits);
+    }
+}
+
+template<typename BlueprintFieldType, std::uint32_t WitnesesAmount, std::uint32_t BitsAmount>
+void test_composition_bad_bits() {
+    using value_type = typename BlueprintFieldType::value_type;
+    std::vector<value_type> test_bits(BitsAmount, 0);
+
+    mode m = mode::MSB;
+    for (std::size_t i = 0; i < BitsAmount; i++) {
+        value_type val = m == mode::MSB ? value_type(2).pow(BitsAmount - i) :
+                                                                        value_type(2).pow(i);
+        val *= -1;
+        test_bits[i] = -1;
+        test_bit_composition<BlueprintFieldType, WitnesesAmount, BitsAmount, mode::MSB, true>(test_bits, val);
+        test_bits[i] = 0;
     }
 }
 
@@ -188,6 +221,11 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_128) {
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_15_253) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     test_composition<field_type, 15, 253>();
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_oops_didnt_pass_bits) {
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    test_composition_bad_bits<field_type, 15, 253>();
 }
 
 
