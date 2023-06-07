@@ -45,8 +45,8 @@ using namespace nil;
 
 using mode = blueprint::components::detail::bit_composition_mode;
 
-template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode,
-          bool CheckInput>
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, mode Mode,
+         bool CheckInput>
 void test_bit_composition(const std::vector<typename BlueprintFieldType::value_type> &bits,
                           typename BlueprintFieldType::value_type expected_res){
 
@@ -63,8 +63,7 @@ void test_bit_composition(const std::vector<typename BlueprintFieldType::value_t
 
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
 
-    using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns,
-                                                                  BitsAmount, Mode, CheckInput>;
+    using component_type = blueprint::components::bit_composition<ArithmetizationType, WitnessColumns>;
 
     assert(bits.size() == BitsAmount);
 
@@ -78,21 +77,24 @@ void test_bit_composition(const std::vector<typename BlueprintFieldType::value_t
     }
 
     typename component_type::input_type instance_input;
+    instance_input.bits.resize(BitsAmount);
     for (std::size_t i = 0; i < BitsAmount; i++) {
         instance_input.bits[i] = var(0, i, false, var::column_type::public_input);
     }
 
-    // Sanity check.
-    assert(BitsAmount + component_type::padding_bits_amount() + component_type::sum_bits_amount() ==
-           WitnessColumns * component_type::rows_amount);
-
     component_type component_instance = WitnessesAmount == 15 ?
-                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0}, {0})
-                                          : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {0});
+                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0},
+                                                           {0}, BitsAmount, CheckInput, Mode)
+                                          : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {0},
+                                                            BitsAmount, CheckInput, Mode);
 
     if (!(WitnessesAmount == 15 || WitnessesAmount == 9)) {
         BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;
     }
+
+    // Sanity check.
+    assert(BitsAmount + component_instance.padding_bits_amount() + component_instance.sum_bits_amount() ==
+           WitnessColumns * component_instance.rows_amount);
 
     auto result_check = [&expected_res, expected_to_pass](AssignmentType &assignment,
                                                           typename component_type::result_type &real_res) {

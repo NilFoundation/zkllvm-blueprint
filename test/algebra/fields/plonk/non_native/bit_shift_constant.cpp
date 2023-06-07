@@ -44,8 +44,8 @@ using namespace nil;
 
 using nil::blueprint::components::detail::bit_shift_mode;
 
-template <typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount, std::uint32_t Shift,
-          bit_shift_mode Mode>
+template<typename BlueprintFieldType, std::uint32_t WitnessesAmount, std::size_t BitsAmount,
+         std::uint32_t Shift, bit_shift_mode Mode>
 void test_bit_shift(typename BlueprintFieldType::value_type input,
                     typename BlueprintFieldType::value_type expected_res){
 
@@ -63,8 +63,7 @@ void test_bit_shift(typename BlueprintFieldType::value_type input,
     using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
     using value_type = typename BlueprintFieldType::value_type;
 
-    using component_type = blueprint::components::bit_shift_constant<ArithmetizationType, WitnessesAmount,
-                                                                     BitsAmount, Shift, Mode>;
+    using component_type = blueprint::components::bit_shift_constant<ArithmetizationType, WitnessesAmount>;
 
     typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
@@ -80,8 +79,10 @@ void test_bit_shift(typename BlueprintFieldType::value_type input,
     };
 
     component_type component_instance = WitnessesAmount == 15 ?
-                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0}, {0})
-                                          : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {0});
+                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+                                                           {0}, {0}, BitsAmount, Shift, Mode)
+                                          : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {0},
+                                                           BitsAmount, Shift, Mode);
 
     if (!(WitnessesAmount == 15 || WitnessesAmount == 9)) {
         BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;

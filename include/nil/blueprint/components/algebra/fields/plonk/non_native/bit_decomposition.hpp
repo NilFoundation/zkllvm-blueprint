@@ -46,68 +46,68 @@ namespace nil {
     namespace blueprint {
         namespace components {
             /*
-                Decomposes a single field element into BitsAmount bits.
-                Output bits can be ordered LSB-first or MSB-first, depending on the value of Mode parameter.
+                Decomposes a single field element into bits_amount bits.
+                Output bits can be ordered LSB-first or MSB-first, depending on the value of mode parameter.
 
                 A schematic representation of this component can be found in bit_builder_component.hpp.
             */
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::uint32_t BitsAmount,
-                     bit_composition_mode Mode>
+            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
             class bit_decomposition;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t BitsAmount, bit_composition_mode Mode>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
             class bit_decomposition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                                            15, BitsAmount, Mode>
+                                                            WitnessesAmount>
                                  : public
                                    bit_builder_component<crypto3::zk::snark::plonk_constraint_system<
                                                             BlueprintFieldType, ArithmetizationParams>,
-                                                         15, BitsAmount, Mode, true> {
-
-                constexpr static const std::uint32_t WitnessesAmount = 15;
+                                                         WitnessesAmount> {
 
                 using component_type =
                     bit_builder_component<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                        WitnessesAmount, BitsAmount, Mode, true>;
+                        WitnessesAmount>;
 
             public:
                 using var = typename component_type::var;
 
-                constexpr static const std::size_t rows_amount = component_type::rows_amount;
-
-                constexpr static const std::size_t gates_amount = component_type::gates_amount;
+                const bit_composition_mode mode;
 
                 struct input_type {
                     var input;
                 };
 
                 struct result_type {
-                    std::array<var, BitsAmount> output;
+                    std::vector<var> output;
                     result_type(const bit_decomposition &component, std::uint32_t start_row_index) {
+                        output.resize(component.bits_amount);
                         auto padded_bit_index = [&component](std::size_t i) {
                             return component.padding_bits_amount() +
-                                    (Mode == bit_composition_mode::MSB ?
+                                    (component.mode == bit_composition_mode::MSB ?
                                         i
-                                        : BitsAmount - i - 1);
+                                        : component.bits_amount - i - 1);
                         };
 
-                        for (std::size_t i = 0; i < BitsAmount; i++) {
-                            auto pos = component_type::bit_position(start_row_index, padded_bit_index(i));
+                        for (std::size_t i = 0; i < component.bits_amount; i++) {
+                            auto pos = component.bit_position(start_row_index, padded_bit_index(i));
                             output[i] = var(component.W(pos.second), pos.first);
                         }
                     }
                 };
 
                 template<typename ContainerType>
-                bit_decomposition(ContainerType witness) : component_type(witness) {};
+                bit_decomposition(ContainerType witness, std::uint32_t bits_amount,
+                                  bit_composition_mode mode_) :
+                                        component_type(witness, bits_amount, true),
+                                        mode(mode_) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 bit_decomposition(WitnessContainerType witness, ConstantContainerType constant,
-                                  PublicInputContainerType public_input) :
-                    component_type(witness, constant, public_input) {};
+                                  PublicInputContainerType public_input, std::uint32_t bits_amount,
+                                  bit_composition_mode mode_) :
+                    component_type(witness, constant, public_input, bits_amount, true),
+                    mode(mode_) {};
 
                 bit_decomposition(
                     std::initializer_list<typename component_type::witness_container_type::value_type>
@@ -115,69 +115,65 @@ namespace nil {
                     std::initializer_list<typename component_type::constant_container_type::value_type>
                         constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
-                        public_inputs) :
-                    component_type(witnesses, constants, public_inputs) {};
+                        public_inputs,
+                    std::uint32_t bits_amount, bit_composition_mode mode_) :
+                    component_type(witnesses, constants, public_inputs, bits_amount, true),
+                    mode(mode_) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams,
-                     std::uint32_t WitnessesAmount, std::uint32_t BitsAmount, bit_composition_mode Mode>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
             using plonk_bit_decomposition = bit_decomposition<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                WitnessesAmount, BitsAmount, Mode>;
+                WitnessesAmount>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t BitsAmount, bit_composition_mode Mode,
-                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                             WitnessesAmount, BitsAmount, Mode>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>::result_type
                 generate_assignments(
-                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                  WitnessesAmount, BitsAmount, Mode> &component,
+                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>
+                        &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                           WitnessesAmount, BitsAmount, Mode>::input_type
+                                                           WitnessesAmount>::input_type
                         &instance_input,
                     const std::uint32_t start_row_index) {
 
                 typename BlueprintFieldType::integral_type input_data =
                     typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.input).data);
 
-                std::array<bool, BitsAmount> input_bits;
+                std::vector<bool> input_bits(component.bits_amount);
                 {
                     nil::marshalling::status_type status;
                     std::array<bool, BlueprintFieldType::modulus_bits> bytes_all =
                         nil::marshalling::pack<nil::marshalling::option::big_endian>(
                             var_value(assignment, instance_input.input), status);
-                    std::copy(bytes_all.end() - BitsAmount, bytes_all.end(), input_bits.begin());
+                    std::copy(bytes_all.end() - component.bits_amount, bytes_all.end(), input_bits.begin());
                     assert(status == nil::marshalling::status_type::success);
                 }
                 // calling bit_builder_component's generate_assignments
-                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                     BitsAmount, Mode, true>(
+                generate_assignments<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>(
                     component, assignment, input_bits, start_row_index);
 
                 return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount, BitsAmount, Mode>::result_type(
-                                                            component, start_row_index);
+                                                        WitnessesAmount>::result_type(
+                            component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t BitsAmount, bit_composition_mode Mode,
-                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
             void generate_copy_constraints(
-                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount, BitsAmount, Mode> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>
+                    &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                       WitnessesAmount, BitsAmount, Mode>::input_type
+                                                       WitnessesAmount>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
 
                 using var = typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                             WitnessesAmount, BitsAmount, Mode>::var;
+                                                             WitnessesAmount>::var;
 
                 std::size_t row = start_row_index;
 
@@ -202,33 +198,29 @@ namespace nil {
                                         var(component.W(sum_pos.second), sum_pos.first)});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::uint32_t BitsAmount, bit_composition_mode Mode,
-                     std::enable_if_t<BitsAmount < BlueprintFieldType::modulus_bits, bool> = true>
-            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                             WitnessesAmount, BitsAmount, Mode>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>::result_type
                 generate_circuit(
-                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                  WitnessesAmount, BitsAmount, Mode> &component,
+                    const plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>
+                        &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                           WitnessesAmount, BitsAmount, Mode>::input_type
+                                                           WitnessesAmount>::input_type
                         &instance_input,
                     const std::size_t start_row_index) {
 
                 // calling bit_builder_component's generate_circuit
-                generate_circuit<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                 BitsAmount, Mode, true>(
+                generate_circuit<BlueprintFieldType, ArithmetizationParams, WitnessesAmount>(
                                     component, bp, assignment, start_row_index);
                 // copy constraints are specific to this component
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 return typename plonk_bit_decomposition<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount, BitsAmount, Mode>::result_type(
-                                                            component, start_row_index);
+                                                        WitnessesAmount>::result_type(
+                            component, start_row_index);
             }
 
         }    // namespace components
