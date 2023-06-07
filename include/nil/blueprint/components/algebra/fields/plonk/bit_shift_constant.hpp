@@ -96,13 +96,12 @@ namespace nil {
                 const std::uint32_t shift;
                 const bit_shift_mode mode;
 
-                // Technically, this component uses two gates.
-                // But both of them are inside subcomponents.
-                const std::size_t gates_amount = 0;
-
                 decomposition_component_type decomposition_subcomponent;
                 composition_component_type composition_subcomponent;
 
+                // Technically, this component uses two gates.
+                // But both of them are inside subcomponents.
+                static constexpr const std::size_t gates_amount = 0;
                 const std::size_t rows_amount;
 
                 struct input_type {

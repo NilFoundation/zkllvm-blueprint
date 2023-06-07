@@ -231,9 +231,9 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_oops_didnt_pass_bits
 }
 
 
-/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_1) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
-    test_single_bit_composition<field_type, 9, 1>();
+    test_composition<field_type, 9, 1>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_8) {
@@ -269,6 +269,6 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_128) {
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_decomposition_test_9_253) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     test_composition<field_type, 9, 253>();
-}*/
+}
 
 BOOST_AUTO_TEST_SUITE_END()

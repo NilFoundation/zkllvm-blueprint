@@ -101,8 +101,9 @@ namespace nil {
                     using component_type =
                         plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0>;
 
-                    std::size_t rows() const{
-                        std::size_t total_bits = bits_amount + sum_bits_amount() + padding_bits_amount();
+                    std::size_t rows(std::size_t bits_amount, bool check_bits) const {
+                        std::size_t total_bits = bits_amount + sum_bits_amount_internal(bits_amount, check_bits) +
+                                                               padding_bits_amount_internal(bits_amount, check_bits);
                         return total_bits / WitnessesAmount;
                     }
 
@@ -118,11 +119,33 @@ namespace nil {
 
                         return std::make_pair(row, col);
                     };
+
+                    std::size_t padding_bits_amount_internal(std::size_t bits_amount_, bool check_bits_) const {
+                        if (check_bits_) {
+                            // in this case, first bit always has to be padded '0'
+                            if (bits_amount_ > bits_per_gate) {
+                                return 1 + (bits_per_gate - bits_amount_ % bits_per_gate) % bits_per_gate;
+                            } else {
+                                return bits_per_gate + 1 - bits_amount_;
+                            }
+                        } else {
+                            // in this case, first bit of component is a normal input bit
+                            if (bits_amount_ > bits_per_first_gate) {
+                                return (bits_per_gate -
+                                        (bits_amount_ - bits_per_first_gate) % bits_per_gate) % bits_per_gate;
+                            } else {
+                                return bits_per_first_gate - bits_amount_;
+                            }
+                        }
+                    }
+
+                    std::size_t sum_bits_amount_internal(std::size_t bits_amount_, bool check_bits_) const {
+                        return 1 + (bits_amount_ + check_bits_ >= 2 ? bits_amount_ + check_bits_ - 2 : 0) /
+                                    bits_per_gate * 2;
+                    }
+
                 public:
                     using var = typename component_type::var;
-
-                    const std::size_t rows_amount = rows();
-                    constexpr static const std::size_t gates_amount = 1;
 
                     const std::size_t bits_amount;
                     const bool check_bits;
@@ -135,12 +158,16 @@ namespace nil {
                         return check_bits ? bits_per_gate : bits_per_gate + 1;
                     }
 
+                    constexpr static const std::size_t gates_amount = 1;
+                    const std::size_t rows_amount;
+
                     template<typename ContainerType>
-                    bit_builder_component(ContainerType witness, std::uint32_t bits_amount, bool check_bits_) :
+                    bit_builder_component(ContainerType witness, std::uint32_t bits_amount_, bool check_bits_) :
                         component_type(witness, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>()),
-                        bits_amount(bits_amount),
+                        bits_amount(bits_amount_),
                         check_bits(check_bits_),
-                        bits_per_first_gate(calc_bits_per_first_gate(check_bits_)) {};
+                        bits_per_first_gate(calc_bits_per_first_gate(check_bits_)),
+                        rows_amount(rows(bits_amount_, check_bits_)) {};
 
                     template<typename WitnessContainerType, typename ConstantContainerType,
                             typename PublicInputContainerType>
@@ -150,7 +177,8 @@ namespace nil {
                         component_type(witness, constant, public_input),
                         bits_amount(bits_amount_),
                         check_bits(check_bits_),
-                        bits_per_first_gate(calc_bits_per_first_gate(check_bits_)) {};
+                        bits_per_first_gate(calc_bits_per_first_gate(check_bits_)),
+                        rows_amount(rows(bits_amount_, check_bits_)) {};
 
                     bit_builder_component(
                         std::initializer_list<typename component_type::witness_container_type::value_type>
@@ -163,26 +191,12 @@ namespace nil {
                             component_type(witnesses, constants, public_inputs),
                             bits_amount(bits_amount_),
                             check_bits(check_bits_),
-                            bits_per_first_gate(calc_bits_per_first_gate(check_bits_)) {};
+                            bits_per_first_gate(calc_bits_per_first_gate(check_bits_)),
+                            rows_amount(rows(bits_amount_, check_bits_)) {};
 
 
                     std::size_t padding_bits_amount() const {
-                        if (check_bits) {
-                            // in this case, first bit always has to be padded '0'
-                            if (bits_amount > bits_per_gate) {
-                                return 1 + (bits_per_gate - bits_amount % bits_per_gate) % bits_per_gate;
-                            } else {
-                                return bits_per_gate + 1 - bits_amount;
-                            }
-                        } else {
-                            // in this case, first bit of component is a normal input bit
-                            if (bits_amount > bits_per_first_gate) {
-                                return (bits_per_gate -
-                                        (bits_amount - bits_per_first_gate) % bits_per_gate) % bits_per_gate;
-                            } else {
-                                return bits_per_first_gate - bits_amount;
-                            }
-                        }
+                        return padding_bits_amount_internal(bits_amount, check_bits);
                     }
 
                     /*
@@ -203,8 +217,7 @@ namespace nil {
                         Returns the amount of auxillary sum bits in the component.
                     */
                     std::size_t sum_bits_amount() const {
-                        return 1 + (bits_amount + check_bits >= 2 ? bits_amount + check_bits - 2 : 0) /
-                                    bits_per_gate * 2;
+                        return sum_bits_amount_internal(bits_amount, check_bits);
                     }
 
                     /*

@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_254_2
     test_shift<field_type, 15, 254, 253, bit_shift_mode::RIGHT>();
 }
 
-/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_1) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     test_shift<field_type, 9, 254, 1, bit_shift_mode::RIGHT>();
 }
@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_12
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_9_254_253) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     test_shift<field_type, 9, 254, 253, bit_shift_mode::RIGHT>();
-}*/
+}
 
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_1) {
@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_15_254_25
     test_shift<field_type, 15, 254, 253, bit_shift_mode::LEFT>();
 }
 
-/*BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_1) {
+BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_1) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     test_shift<field_type, 9, 254, 1, bit_shift_mode::LEFT>();
 }
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_128
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_left_test_9_254_253) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     test_shift<field_type, 9, 254, 253, bit_shift_mode::LEFT>();
-}*/
+}
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_bit_shift_constant_right_test_15_128_32) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
