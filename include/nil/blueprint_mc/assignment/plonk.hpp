@@ -93,8 +93,9 @@ namespace nil {
                 if (_table_description.usable_rows_amount == 0) {
                     _table_description.usable_rows_amount =
                             _table_description.rows_amount;
-                    _table_description.rows_amount = std::pow(2,
-                                                                std::ceil(std::log2(_table_description.rows_amount)));
+                    _table_description.rows_amount = std::pow(
+                        2,
+                        std::ceil(std::log2(_table_description.rows_amount)));
 
                     if (_table_description.rows_amount < 8)
                         _table_description.rows_amount = 8;
@@ -103,8 +104,9 @@ namespace nil {
                 for (std::size_t w_index = 0; w_index <
                                                 ArithmetizationParams::witness_columns; w_index++) {
 
-                    this->_witnesses[w_index].resize(_table_description.rows_amount,
-                                                            decltype(this->witnesses())::value_type::value_type::zero());
+                    this->_witnesses[w_index].resize(
+                        _table_description.rows_amount,
+                        decltype(this->_witnesses)::value_type::value_type::zero());
                 }
 
 

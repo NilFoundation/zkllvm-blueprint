@@ -768,6 +768,9 @@ namespace nil {
                                 row += unnormalized_lagrange_basis_component::rows_amount;
                                 break;
                             }
+                            // t.type can have multiple other values, so removing the warning.
+                            default:
+                                break;
                         }
                     }
                 }
