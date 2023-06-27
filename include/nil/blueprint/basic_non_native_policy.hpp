@@ -54,7 +54,7 @@ namespace nil {
                 using native_value = native_field_type::value_type;
                 using native_integral = native_field_type::integral_type;
 
-                typedef std::array<var, ratio> value_type;
+                typedef std::array<var, ratio> non_native_var_type;
                 
                 constexpr static const std::array<std::size_t, ratio> chunk_sizes = {66, 66, 66, 66};
 
