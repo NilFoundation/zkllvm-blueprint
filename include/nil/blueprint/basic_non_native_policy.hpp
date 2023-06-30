@@ -65,7 +65,6 @@ namespace nil {
                     for (std::size_t i = 1; i <= i_th; i++) {
                         shift += chunk_sizes[i - 1];
                     }
-                    std::cout << "chunk " << i_th << ": " <<  ((result >> shift) & mask) << "\n";
                     
                     return (result >> shift) & mask;
                 }
@@ -124,7 +123,6 @@ namespace nil {
                     for (std::size_t i = 1; i <= i_th; i++) {
                         shift += chunk_sizes[i - 1];
                     }
-                    std::cout << "chunk " << i_th << ": " <<  ((result >> shift) & mask) << "\n";
                     
                     return (result >> shift) & mask;
                 }
