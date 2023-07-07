@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_from_limbs) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = nil::blueprint_mc::components::from_limbs<ArithmetizationType, 0, 1, 2>;
 
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_to_limbs_1) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = nil::blueprint_mc::components::to_limbs<ArithmetizationType, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_to_limbs_2) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = nil::blueprint_mc::components::to_limbs<ArithmetizationType, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 

@@ -44,7 +44,7 @@ namespace nil {
 
             template<typename BlueprintFieldType, std::size_t Permuts = 7>
             struct kimchi_verifier_index_scalar {
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 // nil::crypto3::math::evaluation_domain<Fr> domain;
                 std::size_t max_quot_size;
@@ -61,7 +61,7 @@ namespace nil {
 
                 using commitment_type = kimchi_commitment_type<FieldType, commitment_params_type::shifted_commitment_split>;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
                 using var_ec_point = typename components::var_ec_point<FieldType>;
 
                 static constexpr const std::size_t chacha_size = 4;

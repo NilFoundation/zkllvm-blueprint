@@ -46,7 +46,7 @@ namespace nil {
             template<typename BlueprintFieldType, typename CurveType, typename KimchiParamsType>
             struct instance_type {
                 private:
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
                 using var_ec_point = typename nil::blueprint_mc::components::var_ec_point<BlueprintFieldType>;
 
                 using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;

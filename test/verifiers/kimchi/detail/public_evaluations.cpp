@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_publuc_evaluations) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type =
         nil::blueprint_mc::components::public_evaluations<ArithmetizationType, n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_real_data) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type =
         nil::blueprint_mc::components::public_evaluations<ArithmetizationType, n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
@@ -257,7 +257,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_no_public_input) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type =
         nil::blueprint_mc::components::public_evaluations<ArithmetizationType, n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;

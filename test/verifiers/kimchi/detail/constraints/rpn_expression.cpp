@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_lag
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_van
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -257,7 +257,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_dup
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_sub
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -433,7 +433,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_add
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -520,7 +520,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_mul
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -608,7 +608,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_pow
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -696,7 +696,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_loa
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -785,7 +785,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_com
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -960,7 +960,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_detail_rpn_expression_test_suite_end
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;

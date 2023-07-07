@@ -70,7 +70,7 @@ typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates:
     constexpr std::size_t Lambda = 1;
 	using component_type = nil::blueprint::components::curve_element_variable_base_scalar_mul<ArithmetizationType, CurveType, 15>;
 
-	using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+	using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     var scalar_var = {0, 2, false, var::column_type::public_input};
     var T_X_var = {0, 0, false, var::column_type::public_input};
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_variable_base_scalar_mul) {
     constexpr std::size_t Lambda = 1;
     using component_type = nil::blueprint_mc::components::curve_element_variable_base_scalar_mul<ArithmetizationType, curve_type,
                                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
-	using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+	using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
     typename BlueprintScalarType::value_type b_scalar = nil::crypto3::algebra::random_element<BlueprintScalarType>();
 
 	typename curve_type::scalar_field_type::value_type shift_base = 2;

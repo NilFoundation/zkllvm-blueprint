@@ -74,7 +74,7 @@ void test_unified_addition(std::vector<typename CurveType::base_field_type::valu
     using hash_type = crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::unified_addition<ArithmetizationType, curve_type, 11>;
 
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(blueprint_mc_plonk_unified_addition_double) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = nil::blueprint_mc::components::curve_element_unified_addition<ArithmetizationType, curve_type, 0, 1, 2, 3,
                                                                           4, 5, 6, 7, 8, 9, 10>;
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(blueprint_mc_plonk_unified_addition_addition) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = nil::blueprint_mc::components::curve_element_unified_addition<ArithmetizationType, curve_type, 0, 1, 2, 3,
                                                                           4, 5, 6, 7, 8, 9, 10>;

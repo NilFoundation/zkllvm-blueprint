@@ -39,7 +39,7 @@ namespace nil {
             // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/composition_types/composition_types.ml#L34-L65
             template<typename FieldType>
             struct pickles_plonk {
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
 
                 // { alpha : 'scalar_challenge
                 // ; beta : 'challenge

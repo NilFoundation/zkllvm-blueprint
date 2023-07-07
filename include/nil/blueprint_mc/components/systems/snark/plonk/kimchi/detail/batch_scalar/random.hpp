@@ -64,7 +64,7 @@ namespace nil {
                 typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                     ArithmetizationType;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 using transcript_type = kimchi_transcript_fr<ArithmetizationType,
                                                                 typename KimchiParamsType::curve_type,

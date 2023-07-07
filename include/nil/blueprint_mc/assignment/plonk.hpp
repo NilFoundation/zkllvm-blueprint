@@ -127,7 +127,7 @@ namespace nil {
             typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                     ArithmetizationParams> ArithmetizationType;
 
-            using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+            using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
             nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType,
                     ArithmetizationParams> &_table_description;
@@ -363,7 +363,7 @@ namespace nil {
             using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                     ArithmetizationParams>;
 
-            using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+            using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
             blueprint_private_assignment_table<ArithmetizationType> &_private_assignment;
             blueprint_public_assignment_table<ArithmetizationType> &_public_assignment;

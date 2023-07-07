@@ -69,7 +69,7 @@ namespace nil {
 
                 using KimchiCommitmentParamsType = typename KimchiParamsType::commitment_params_type;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 using var_ec_point = typename nil::blueprint_mc::components::var_ec_point<BlueprintFieldType>;
 

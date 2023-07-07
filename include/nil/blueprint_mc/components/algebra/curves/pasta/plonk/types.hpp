@@ -38,7 +38,7 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             struct var_ec_point {
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
                 var X;
                 var Y;
             };

@@ -107,7 +107,7 @@ namespace nil {
                 return it == (std::cend(c) - 1);
             }
 
-            static void print_variable(std::ostream &os, const nil::crypto3::zk::snark::plonk_variable<FieldType> &var,
+            static void print_variable(std::ostream &os, const nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type> &var,
                                        const preprocessed_public_data_type &public_preprocessed_data) {
                 std::size_t rotation_idx =
                     std::find(std::cbegin(public_preprocessed_data.common_data.columns_rotations.at(var.index)),
@@ -115,16 +115,16 @@ namespace nil {
                               var.rotation) -
                     std::begin(public_preprocessed_data.common_data.columns_rotations.at(var.index));
                 os << "get_eval_i_by_rotation_idx(" << var.index << "," << rotation_idx << ", mload(add(gate_params, ";
-                if (zk::snark::plonk_variable<FieldType>::column_type::witness == var.type) {
+                if (zk::snark::plonk_variable<typename FieldType::value_type>::column_type::witness == var.type) {
                     os << "WITNESS_EVALUATIONS_OFFSET";
                 }
-                if (zk::snark::plonk_variable<FieldType>::column_type::constant == var.type) {
+                if (zk::snark::plonk_variable<typename FieldType::value_type>::column_type::constant == var.type) {
                     os << "CONSTANT_EVALUATIONS_OFFSET";
                 }
-                if (zk::snark::plonk_variable<FieldType>::column_type::public_input == var.type) {
+                if (zk::snark::plonk_variable<typename FieldType::value_type>::column_type::public_input == var.type) {
                     os << "PUBLIC_INPUT_EVALUATIONS_OFFSET";
                 }
-                if (zk::snark::plonk_variable<FieldType>::column_type::selector == var.type) {
+                if (zk::snark::plonk_variable<typename FieldType::value_type>::column_type::selector == var.type) {
                     os << "SELECTOR_EVALUATIONS_OFFSET";
                 }
                 os << ")))";
@@ -132,7 +132,7 @@ namespace nil {
 
             template<typename Vars, typename VarsIt>
             static typename std::enable_if<
-                std::is_same<nil::crypto3::zk::snark::plonk_variable<FieldType>,
+                std::is_same<nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>,
                              typename std::iterator_traits<typename Vars::iterator>::value_type>::value>::type
                 print_term(std::ostream &os,
                            const Vars &vars,
@@ -153,7 +153,7 @@ namespace nil {
 
             template<typename Terms, typename TermsIt>
             static typename std::enable_if<
-                std::is_same<nil::crypto3::math::term<nil::crypto3::zk::snark::plonk_variable<FieldType>>,
+                std::is_same<nil::crypto3::math::term<nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>>,
                              typename std::iterator_traits<typename Terms::iterator>::value_type>::value>::type
                 print_terms(std::ostream &os,
                             const Terms &terms,
