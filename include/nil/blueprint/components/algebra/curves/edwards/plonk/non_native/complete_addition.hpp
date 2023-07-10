@@ -47,13 +47,13 @@ namespace nil {
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                     CurveType, 
                     Ed25519Type,
-                    15,
+                    9,
                     basic_non_native_policy<BlueprintFieldType>>:
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 15, 1, 0> {
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 0, 0> {
 
-                constexpr static const std::uint32_t WitnessesAmount = 15;
+                constexpr static const std::uint32_t WitnessesAmount = 9;
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
 
             public:
                 using var = typename component_type::var;
@@ -128,7 +128,7 @@ namespace nil {
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                 CurveType,
                 typename crypto3::algebra::curves::ed25519,
-                15,
+                9,
                 basic_non_native_policy<BlueprintFieldType>>;
             
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
@@ -138,12 +138,6 @@ namespace nil {
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                     const std::uint32_t start_row_index) {
-
-                    // using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-                    // using vbsm_component = curve_element_variable_base_scalar_mul<ArithmetizationType, CurveType, 15>; // Variable Base Scalar Multiplication 
-                    // using mul_field_component = multiplication<ArithmetizationType, BlueprintFieldType, 3, basic_non_native_policy<BlueprintFieldType>>;
-                    // using add_component = unified_addition<ArithmetizationType, CurveType, 11>;
-                    // using var = typename curve_element_decomposed_variable_base_scalar_mul<ArithmetizationType,  CurveType, 15>::var;
 
                     using non_native_policy_type = basic_non_native_policy<BlueprintFieldType>;
 
