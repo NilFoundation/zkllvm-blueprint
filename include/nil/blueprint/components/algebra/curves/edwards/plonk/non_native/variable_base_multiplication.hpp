@@ -98,7 +98,7 @@ namespace nil {
                         using mult_per_bit_component =
                             components::variable_base_multiplication_per_bit<ArithmetizationType, 
                                 CurveType, Ed25519Type, 9, non_native_policy_type>;
-                        mult_per_bit_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {}, {});
+                        mult_per_bit_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {});
 
                         auto final_mul_per_bit_res = typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
                             component_instance, start_row_index + rows_amount - mult_per_bit_component::rows_amount);   
@@ -165,7 +165,7 @@ namespace nil {
                     
                     mult_per_bit_component mult_per_bit_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
-                            component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
+                            component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
                     
                     bit_decomposition_component bit_decomposition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
@@ -232,7 +232,7 @@ namespace nil {
                     
                     mult_per_bit_component mult_per_bit_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
-                            component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
+                            component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
                     
                     bit_decomposition_component bit_decomposition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),

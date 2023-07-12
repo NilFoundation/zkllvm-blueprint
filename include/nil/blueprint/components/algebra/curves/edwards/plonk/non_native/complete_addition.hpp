@@ -49,11 +49,12 @@ namespace nil {
                     Ed25519Type,
                     9,
                     basic_non_native_policy<BlueprintFieldType>>:
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 0, 0> {
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 1, 0> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 9;
+                constexpr static const std::uint32_t ConstantsAmount = 1;
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ConstantsAmount, 0>;
 
             public:
                 using var = typename component_type::var;

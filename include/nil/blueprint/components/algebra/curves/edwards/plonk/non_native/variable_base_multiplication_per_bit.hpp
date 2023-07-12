@@ -103,7 +103,7 @@ namespace nil {
                         using complete_addition_component =
                             components::complete_addition<ArithmetizationType, CurveType, Ed25519Type, 9,
                                 basic_non_native_policy<BlueprintFieldType>>;
-                        complete_addition_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {}, {});
+                        complete_addition_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {});
 
                         auto final_addition_res = typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
                             component_instance, start_row_index + rows_amount - complete_addition_component::rows_amount);  
@@ -170,11 +170,11 @@ namespace nil {
                     
                     doubling_component doubling_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
-                            component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
+                            component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
                     
                     complete_addition_component complete_addition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
-                            component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
+                            component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
                     
                     bool_scalar_multiplication_component bool_scalar_multiplication_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
@@ -233,11 +233,11 @@ namespace nil {
                     
                     doubling_component doubling_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
-                            component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
+                            component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
                     
                     complete_addition_component complete_addition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
-                            component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
+                            component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
                     
                     bool_scalar_multiplication_component bool_scalar_multiplication_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
