@@ -3,6 +3,7 @@
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
 // Copyright (c) 2022 Ekaterina Chukavina <kate@nil.foundation>
+// Copyright (c) 2023 Valeh Farzaliyev <estoniaa@nil.foundation>
 //
 // MIT License
 //
@@ -606,6 +607,81 @@ namespace nil {
                 const typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams, 9, 1>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
+
+                std::size_t row = start_row_index + 2;
+                using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams, 9, 1>::var;
+
+                for (std::size_t i = 1; i <= 15; ++i) {
+                    bp.add_copy_constraint(
+                        {var(component.W(0), row + (i - 1) * 5 + 0, false), instance_input.input_words[i]});
+                }
+                for (std::size_t i = 9; i <= 15; ++i) {
+                    bp.add_copy_constraint(
+                        {var(component.W(0), row + (i - 9) * 5 + 1, false), instance_input.input_words[i]});
+                }
+                for (std::size_t i = 0; i <= 15; ++i) {
+                    bp.add_copy_constraint(
+                        {var(component.W(1), row + (i - 0) * 5 + 1, false), instance_input.input_words[i]});
+                }
+                for (std::size_t i = 14; i <= 15; ++i) {
+                    bp.add_copy_constraint(
+                        {var(component.W(0), row + (i - 14) * 5 + 4, false), instance_input.input_words[i]});
+                }
+
+                for (std::size_t round = 0; round < 48; round++) {
+                    if (round >= 2) {
+                        bp.add_copy_constraint({var(component.W(0), row + round * 5 + 4, false),
+                                                var(component.W(0), row + (round - 2) * 5 + 2, false)});
+                    }
+                    if (round >= 7) {
+                        bp.add_copy_constraint({var(component.W(0), row + round * 5 + 1, false),
+                                                var(component.W(0), row + (round - 7) * 5 + 2, false)});
+                    }
+                    if (round >= 15) {
+                        bp.add_copy_constraint({var(component.W(0), row + round * 5 + 0, false),
+                                                var(component.W(0), row + (round - 15) * 5 + 2, false)});
+                    }
+                    if (round >= 16) {
+                        bp.add_copy_constraint({var(component.W(1), row + round * 5 + 1, false),
+                                                var(component.W(0), row + (round - 16) * 5 + 2, false)});
+                    }
+                }
+                row = row + 240;
+
+                for (std::size_t round = 1; round < 64; round++) {
+                    bp.add_copy_constraint({var(component.W(0), row + round * 8 + 0, false),
+                                            var(component.W(4), row + (round - 1) * 8 + 3, false)});    // e = e_new
+                    bp.add_copy_constraint({var(component.W(0), row + round * 8 + 7, false),
+                                            var(component.W(2), row + (round - 1) * 8 + 5, false)});    // a = a_new
+
+                    bp.add_copy_constraint({var(component.W(1), row + round * 8 + 5, false),
+                                            var(component.W(0), row + (round - 1) * 8 + 5,
+                                                false)});    // sparse_values[1] = sparse_values[0]
+                    bp.add_copy_constraint({var(component.W(4), row + round * 8 + 5, false),
+                                            var(component.W(1), row + (round - 1) * 8 + 5,
+                                                false)});    // sparse_values[2] = sparse_values[1]
+                    bp.add_copy_constraint({var(component.W(1), row + round * 8 + 1, false),
+                                            var(component.W(0), row + (round - 1) * 8 + 1,
+                                                false)});    // sparse_values[5] = sparse_values[4]
+                    bp.add_copy_constraint({var(component.W(0), row + round * 8 + 3, false),
+                                            var(component.W(1), row + (round - 1) * 8 + 1,
+                                                false)});    // sparse_values[6] = sparse_values[5]
+                }
+
+                row = row + 512;
+
+                bp.add_copy_constraint({var(component.W(0), row - 1, false), var(component.W(5), row, false)});
+                bp.add_copy_constraint({var(component.W(0), row - 9, false), var(component.W(6), row, false)});
+                bp.add_copy_constraint({var(component.W(0), row - 17, false), var(component.W(7), row, false)});
+
+                bp.add_copy_constraint({var(component.W(0), row - 8, false), var(component.W(5), row + 2, false)});
+                bp.add_copy_constraint({var(component.W(0), row - 16, false), var(component.W(6), row + 2, false)});
+                bp.add_copy_constraint({var(component.W(0), row - 24, false), var(component.W(7), row + 2, false)});
+
+                for (std::size_t i = 0; i < 4; i++) {
+                    bp.add_copy_constraint({var(component.W(i), row, false), instance_input.input_state[i]});
+                    bp.add_copy_constraint({var(component.W(i), row + 2, false), instance_input.input_state[i + 4]});
+                }
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
