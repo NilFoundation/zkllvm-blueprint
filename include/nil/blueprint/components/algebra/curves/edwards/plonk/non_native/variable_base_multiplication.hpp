@@ -93,7 +93,26 @@ namespace nil {
                         typename non_native_policy_type::template field<typename Ed25519Type::base_field_type>::non_native_var_type y;
                     };
                     var_ec_point output;
-                    // TODO: add constructors
+
+                    result_type(const variable_base_multiplication &component, std::uint32_t start_row_index) {
+                        using mult_per_bit_component =
+                            components::variable_base_multiplication_per_bit<ArithmetizationType, 
+                                CurveType, Ed25519Type, 9, non_native_policy_type>;
+                        mult_per_bit_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {}, {});
+
+                        auto final_mul_per_bit_res = typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
+                            component_instance, start_row_index + rows_amount - mult_per_bit_component::rows_amount);   
+
+
+                        output.x = {final_mul_per_bit_res.output.x[0], 
+                                    final_mul_per_bit_res.output.x[1],
+                                    final_mul_per_bit_res.output.x[2], 
+                                    final_mul_per_bit_res.output.x[3]};
+                        output.y = {final_mul_per_bit_res.output.y[0],
+                                    final_mul_per_bit_res.output.y[1],
+                                    final_mul_per_bit_res.output.y[2],
+                                    final_mul_per_bit_res.output.y[3]};
+                    }
                 };
 
                 template<typename ContainerType>
@@ -184,7 +203,7 @@ namespace nil {
                         row += mult_per_bit_component::rows_amount;                    
                     }
 
-                    return {res_per_bit.output.x, res_per_bit.output.y};
+                    return typename plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
                 }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
@@ -251,7 +270,7 @@ namespace nil {
                         row += mult_per_bit_component::rows_amount;                    
                     }
 
-                    return {res_per_bit.output.x, res_per_bit.output.y};
+                    return typename plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>

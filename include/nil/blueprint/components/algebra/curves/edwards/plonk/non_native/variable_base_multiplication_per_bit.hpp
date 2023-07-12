@@ -98,7 +98,25 @@ namespace nil {
                         typename non_native_policy_type::template field<typename Ed25519Type::base_field_type>::non_native_var_type y;
                     };
                     var_ec_point output;
-                // TODO: add constructor
+
+                    result_type(const variable_base_multiplication_per_bit &component, std::uint32_t start_row_index) {
+                        using complete_addition_component =
+                            components::complete_addition<ArithmetizationType, CurveType, Ed25519Type, 9,
+                                basic_non_native_policy<BlueprintFieldType>>;
+                        complete_addition_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {}, {});
+
+                        auto final_addition_res = typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
+                            component_instance, start_row_index + rows_amount - complete_addition_component::rows_amount);  
+
+                        output.x = {final_addition_res.output.x[0], 
+                                    final_addition_res.output.x[1],
+                                    final_addition_res.output.x[2], 
+                                    final_addition_res.output.x[3]};
+                        output.y = {final_addition_res.output.y[0],
+                                    final_addition_res.output.y[1],
+                                    final_addition_res.output.y[2],
+                                    final_addition_res.output.y[3]};  
+                    }
                 };
 
                 template<typename ContainerType>
@@ -185,7 +203,8 @@ namespace nil {
                              {bool_mul_res.output.x, bool_mul_res.output.y}}), row);
                     row += complete_addition_component::rows_amount;
 
-                    return {add_res.output.x, add_res.output.y};
+                    return typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
+
                 }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
@@ -249,7 +268,8 @@ namespace nil {
 
                     generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                    return {add_res.output.x, add_res.output.y};
+                    return typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
+
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
