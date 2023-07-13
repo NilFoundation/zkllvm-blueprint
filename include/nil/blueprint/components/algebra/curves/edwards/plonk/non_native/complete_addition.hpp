@@ -403,7 +403,7 @@ namespace nil {
                         var(component.W(3), row)};
 
                     generate_circuit(non_native_range_instance, bp, assignment, 
-                        typename non_native_range_component::input_type({P_x}), row);
+                        typename non_native_range_component::input_type({P_y}), row);
                     row += non_native_range_component::rows_amount;
 
                     std::array<var, 4> R_x = instance_input.R.x;
