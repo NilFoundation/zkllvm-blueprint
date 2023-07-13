@@ -44,7 +44,6 @@
 
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 
-#include "profiling_plonk_circuit_mc.hpp"
 #include "profiling.hpp"
 
 #include <nil/marshalling/status_type.hpp>
