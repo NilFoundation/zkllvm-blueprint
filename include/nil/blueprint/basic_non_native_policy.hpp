@@ -92,7 +92,7 @@ namespace nil {
                 constexpr static const std::uint32_t ratio = 1;
 
                 typedef crypto3::zk::snark::plonk_variable<typename crypto3::algebra::curves::pallas::base_field_type>
-                value_type;
+                non_native_var_type;
             };
 
             /*
