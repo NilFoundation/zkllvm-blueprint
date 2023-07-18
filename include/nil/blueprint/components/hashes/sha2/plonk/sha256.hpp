@@ -36,22 +36,22 @@
 #include <nil/blueprint/components/hashes/sha2/plonk/sha256_process.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/decomposition.hpp>
 
+
 namespace nil {
     namespace blueprint {
         namespace components {
 
             // Input:
             // Output:
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::size_t BlockSize>
+            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
             class sha256;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
-            class sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
-                         BlockSize> : public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 1, 0> {
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            class sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9>
+                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 1, 0> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 9;
                 constexpr static const std::uint32_t ConstantsAmount = 1;
-                constexpr static const std::size_t num_blocks = BlockSize;
 
                 using component_type =
                     plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ConstantsAmount, 0>;
@@ -59,69 +59,97 @@ namespace nil {
             public:
                 using var = typename component_type::var;
 
-                constexpr static const std::size_t rows_amount =
-                    sha256_process<
-                        crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
-                        1>::rows_amount *
-                        (num_blocks / 4 + 1) +
-                    decomposition<
-                        crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                        BlueprintFieldType, 9>::rows_amount *
-                        num_blocks / 2 +
-                    2;
+                std::size_t BlockSize;
+                std::size_t rows_amount;
+
                 const std::size_t gates_amount = 1;
 
                 struct input_type {
-                    std::array<var, BlockSize> block_data;
+                    std::vector<var> block_data;
                 };
 
                 struct result_type {
                     std::array<var, 2> output;
 
                     result_type(const sha256 &component, std::uint32_t start_row_index) {
-                        output = {var(component.W(0), start_row_index + rows_amount - 1, false),
-                                  var(component.W(1), start_row_index + rows_amount - 1, false)};
+                        output = {var(component.W(0), start_row_index + component.rows_amount - 1, false),
+                                  var(component.W(1), start_row_index + component.rows_amount - 1, false)};
                     }
                 };
 
                 template<typename ContainerType>
-                sha256(ContainerType witness) : component_type(witness, {}, {}) {};
+                sha256(ContainerType witness, std::size_t num_blocks) : component_type(witness, {}, {}) {
+                    BlockSize = num_blocks;
+                    rows_amount =
+                        sha256_process<
+                            crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
+                            1>::rows_amount *
+                            (BlockSize / 4 + 1) +
+                        decomposition<
+                            crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                            BlueprintFieldType, 9>::rows_amount *
+                            BlockSize / 2 +
+                        2;
+                };
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 sha256(WitnessContainerType witness, ConstantContainerType constant,
-                       PublicInputContainerType public_input) :
-                    component_type(witness, constant, public_input) {};
+                       PublicInputContainerType public_input, std::size_t num_blocks) :
+                    component_type(witness, constant, public_input) {
+                    BlockSize = num_blocks;
+                    rows_amount =
+                        sha256_process<
+                            crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
+                            1>::rows_amount *
+                            (BlockSize / 4 + 1) +
+                        decomposition<
+                            crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                            BlueprintFieldType, 9>::rows_amount *
+                            BlockSize / 2 +
+                        2;
+                };
 
                 sha256(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                        std::initializer_list<typename component_type::constant_container_type::value_type>
                            constants,
                        std::initializer_list<typename component_type::public_input_container_type::value_type>
-                           public_inputs) :
-                    component_type(witnesses, constants, public_inputs) {};
+                           public_inputs,
+                       std::size_t num_blocks) :
+                    component_type(witnesses, constants, public_inputs) {
+                    BlockSize = num_blocks;
+                    rows_amount =
+                        sha256_process<
+                            crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
+                            1>::rows_amount *
+                            (BlockSize / 4 + 1) +
+                        decomposition<
+                            crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                            BlueprintFieldType, 9>::rows_amount *
+                            BlockSize / 2 +
+                        2;
+                };
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessAmount,
-                     std::size_t BlockSize>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessAmount>
             using plonk_sha256 =
                 sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                       WitnessAmount, BlockSize>;
+                       WitnessAmount>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
-            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type
-                generate_assignments(
-                    const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
-                        instance_input,
-                    const std::uint32_t start_row_index) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type generate_assignments(
+                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
-                assert(BlockSize % 4 == 0);
+                assert(component.BlockSize % 4 == 0);
+                assert(instance_input.block_data.size() == component.BlockSize);
 
                 std::size_t row = start_row_index;
 
-                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::var;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
                 using ArithmetizationType =
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
@@ -150,7 +178,7 @@ namespace nil {
                     var(component.C(0), start_row_index + 6, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                for (std::size_t i = 0; i < BlockSize; i += 4) {
+                for (std::size_t i = 0; i < component.BlockSize; i += 4) {
                     std::array<var, 2> input_1 = {instance_input.block_data[i + 0], instance_input.block_data[i + 1]};
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
                         {input_1};
@@ -181,7 +209,8 @@ namespace nil {
 
                 // process last padding bits;
                 std::array<typename BlueprintFieldType::value_type, 16> constants2 = {
-                    2147483648, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, BlockSize << 7};
+                    2147483648, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, component.BlockSize << 7};
+
                 for (int i = 0; i < 16; i++) {
                     assignment.constant(component.C(0), start_row_index + 8 + i) = constants2[i];
                 }
@@ -226,21 +255,20 @@ namespace nil {
                                                           var_value(assignment, second_block_state[1]) * (one << 64) +
                                                           var_value(assignment, second_block_state[0]) * (one << 96);
 
-                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type(
+                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
                     component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_gates(
-                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
+                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
-                    &instance_input,
+                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
                 const std::size_t first_selector_index) {
 
-                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::var;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
 
                 typename BlueprintFieldType::integral_type one = 1;
                 auto constraint_1 =
@@ -254,32 +282,30 @@ namespace nil {
                 bp.add_gate(first_selector_index, {constraint_1, constraint_2});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
+                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
-                    &instance_input,
+                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
                 const std::size_t start_row_index) {
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
-            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type
-                generate_circuit(
-                    const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
-                        &instance_input,
-                    const std::size_t start_row_index) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type generate_circuit(
+                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
+                const std::size_t start_row_index) {
 
                 std::size_t row = start_row_index;
-                assert(BlockSize % 4 == 0);
+                assert(component.BlockSize % 4 == 0);
+                assert(component.BlockSize == instance_input.block_data.size());
 
-                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::var;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
                 using ArithmetizationType =
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
@@ -305,7 +331,7 @@ namespace nil {
                     var(component.C(0), start_row_index + 6, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                for (std::size_t i = 0; i < BlockSize; i += 4) {
+                for (std::size_t i = 0; i < component.BlockSize; i += 4) {
                     std::array<var, 2> input_1 = {instance_input.block_data[i + 0], instance_input.block_data[i + 1]};
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
                         {input_1};
@@ -369,7 +395,7 @@ namespace nil {
                 assignment.enable_selector(first_selector_index, row);
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type(
+                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
                     component, start_row_index);
             }
         }    // namespace components
