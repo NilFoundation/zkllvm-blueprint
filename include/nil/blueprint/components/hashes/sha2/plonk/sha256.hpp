@@ -2,6 +2,7 @@
 // Copyright (c) 2021 Mikhail Komarov <nemo@nil.foundation>
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
+// Copyright (c) 2023 Valeh Farzaliyev <estoniaa@nil.foundation>
 //
 // MIT License
 //
@@ -41,15 +42,16 @@ namespace nil {
 
             // Input:
             // Output:
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType, std::uint32_t WitnessesAmount, std::size_t BlockSize>
             class sha256;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 1, 0> {
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
+            class sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
+                         BlockSize> : public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 1, 0> {
 
                 constexpr static const std::uint32_t WitnessesAmount = 9;
                 constexpr static const std::uint32_t ConstantsAmount = 1;
+                constexpr static const std::size_t num_blocks = BlockSize;
 
                 using component_type =
                     plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ConstantsAmount, 0>;
@@ -61,16 +63,16 @@ namespace nil {
                     sha256_process<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 9,
                         1>::rows_amount *
-                        2 +
+                        (num_blocks / 4 + 1) +
                     decomposition<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                         BlueprintFieldType, 9>::rows_amount *
-                        2 +
+                        num_blocks / 2 +
                     2;
                 const std::size_t gates_amount = 1;
 
                 struct input_type {
-                    std::array<var, 4> block_data;
+                    std::array<var, BlockSize> block_data;
                 };
 
                 struct result_type {
@@ -99,22 +101,27 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessAmount,
+                     std::size_t BlockSize>
             using plonk_sha256 =
                 sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                       WitnessAmount>;
+                       WitnessAmount, BlockSize>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type generate_assignments(
-                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type instance_input,
-                const std::uint32_t start_row_index) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
+            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type
+                generate_assignments(
+                    const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
+                        instance_input,
+                    const std::uint32_t start_row_index) {
+
+                assert(BlockSize % 4 == 0);
 
                 std::size_t row = start_row_index;
 
-                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::var;
                 using ArithmetizationType =
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
@@ -123,36 +130,17 @@ namespace nil {
                      component.W(6), component.W(7), component.W(8)},
                     {}, {});
 
-                std::array<var, 2> input_1 = {instance_input.block_data[0], instance_input.block_data[1]};
-                typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input = {
-                    input_1};
-                typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_1 =
-                    generate_assignments(decomposition_instance, assignment, decomposition_input, row);
-                row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
-
-                std::array<var, 2> input_2 = {instance_input.block_data[2], instance_input.block_data[3]};
-                decomposition_input = {input_2};
-
-                typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_2 =
-                    generate_assignments(decomposition_instance, assignment, decomposition_input, row);
-                row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
-
                 sha256_process<ArithmetizationType, 9, 1> sha256_process_instance(
                     {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4), component.W(5),
                      component.W(6), component.W(7), component.W(8)},
                     {component.C(0)}, {});
 
-                std::array<var, 16> input_words_vars;
-                for (int i = 0; i < 8; i++) {
-                    input_words_vars[i] = sha_block_part_1.output[i];
-                    input_words_vars[8 + i] = sha_block_part_2.output[i];
-                }
                 std::array<typename BlueprintFieldType::value_type, 8> constants = {
                     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
                 for (int i = 0; i < 8; i++) {
                     assignment.constant(component.C(0), start_row_index + i) = constants[i];
                 }
-                std::array<var, 8> constants_vars = {
+                std::array<var, 8> first_block_state = {
                     var(component.C(0), start_row_index, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 1, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 2, false, var::column_type::constant),
@@ -162,15 +150,38 @@ namespace nil {
                     var(component.C(0), start_row_index + 6, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input = {
-                    constants_vars, input_words_vars};
+                for (std::size_t i = 0; i < BlockSize; i += 4) {
+                    std::array<var, 2> input_1 = {instance_input.block_data[i + 0], instance_input.block_data[i + 1]};
+                    typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
+                        {input_1};
+                    typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_1 =
+                        generate_assignments(decomposition_instance, assignment, decomposition_input, row);
+                    row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
 
-                std::array<var, 8> first_block_state =
-                    generate_assignments(sha256_process_instance, assignment, sha256_process_input, row).output_state;
-                row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
+                    std::array<var, 2> input_2 = {instance_input.block_data[i + 2], instance_input.block_data[i + 3]};
+                    decomposition_input = {input_2};
 
-                std::array<typename BlueprintFieldType::value_type, 16> constants2 = {2147483648, 0, 0, 0, 0, 0, 0,     0,
-                                                                                      0,       0, 0, 0, 0, 0, 0, 1 << 9};
+                    typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_2 =
+                        generate_assignments(decomposition_instance, assignment, decomposition_input, row);
+                    row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                    std::array<var, 16> input_words_vars;
+                    for (int i = 0; i < 8; i++) {
+                        input_words_vars[i] = sha_block_part_1.output[i];
+                        input_words_vars[8 + i] = sha_block_part_2.output[i];
+                    }
+                    typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input = {
+                        first_block_state, input_words_vars};
+
+                    first_block_state =
+                        generate_assignments(sha256_process_instance, assignment, sha256_process_input, row)
+                            .output_state;
+                    row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
+                }
+
+                // process last padding bits;
+                std::array<typename BlueprintFieldType::value_type, 16> constants2 = {
+                    2147483648, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, BlockSize << 7};
                 for (int i = 0; i < 16; i++) {
                     assignment.constant(component.C(0), start_row_index + 8 + i) = constants2[i];
                 }
@@ -215,20 +226,21 @@ namespace nil {
                                                           var_value(assignment, second_block_state[1]) * (one << 64) +
                                                           var_value(assignment, second_block_state[0]) * (one << 96);
 
-                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
+                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type(
                     component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
             void generate_gates(
-                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
+                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
+                    &instance_input,
                 const std::size_t first_selector_index) {
 
-                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::var;
 
                 typename BlueprintFieldType::integral_type one = 1;
                 auto constraint_1 =
@@ -242,28 +254,32 @@ namespace nil {
                 bp.add_gate(first_selector_index, {constraint_1, constraint_2});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
             void generate_copy_constraints(
-                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
+                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
+                    &instance_input,
                 const std::size_t start_row_index) {
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type generate_circuit(
-                const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
-                const std::size_t start_row_index) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams, std::size_t BlockSize>
+            typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type
+                generate_circuit(
+                    const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::input_type
+                        &instance_input,
+                    const std::size_t start_row_index) {
 
                 std::size_t row = start_row_index;
+                assert(BlockSize % 4 == 0);
 
-                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::var;
                 using ArithmetizationType =
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
@@ -272,44 +288,51 @@ namespace nil {
                      component.W(6), component.W(7), component.W(8)},
                     {}, {});
 
-                std::array<var, 2> input_1 = {instance_input.block_data[0], instance_input.block_data[1]};
-                typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input = {
-                    input_1};
-                typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_1 =
-                    generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
-                row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
-
-                std::array<var, 2> input_2 = {instance_input.block_data[2], instance_input.block_data[3]};
-                decomposition_input = {input_2};
-                typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_2 =
-                    generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
-                row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
-
                 sha256_process<ArithmetizationType, 9, 1> sha256_process_instance(
                     {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4), component.W(5),
                      component.W(6), component.W(7), component.W(8)},
                     {component.C(0)}, {});
 
                 std::array<var, 16> input_words_vars;
-                for (int i = 0; i < 8; i++) {
-                    input_words_vars[i] = sha_block_part_1.output[i];
-                    input_words_vars[8 + i] = sha_block_part_2.output[i];
+
+                std::array<var, 8> first_block_state = {
+                    var(component.C(0), start_row_index, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 1, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 2, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 3, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 4, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 5, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 6, false, var::column_type::constant),
+                    var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
+
+                for (std::size_t i = 0; i < BlockSize; i += 4) {
+                    std::array<var, 2> input_1 = {instance_input.block_data[i + 0], instance_input.block_data[i + 1]};
+                    typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
+                        {input_1};
+                    typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_1 =
+                        generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
+                    row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                    std::array<var, 2> input_2 = {instance_input.block_data[i + 2], instance_input.block_data[i + 3]};
+                    decomposition_input = {input_2};
+
+                    typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_2 =
+                        generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
+                    row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                    for (int i = 0; i < 8; i++) {
+                        input_words_vars[i] = sha_block_part_1.output[i];
+                        input_words_vars[8 + i] = sha_block_part_2.output[i];
+                    }
+                    typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input = {
+                        first_block_state, input_words_vars};
+
+                    first_block_state =
+                        generate_circuit(sha256_process_instance, bp, assignment, sha256_process_input, row)
+                            .output_state;
+                    row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
                 }
-                std::array<var, 8> constants_vars = {var(component.C(0), start_row_index, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 1, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 2, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 3, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 4, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 5, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 6, false, var::column_type::constant),
-                                                     var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input = {
-                    constants_vars, input_words_vars};
-                typename sha256_process<ArithmetizationType, 9, 1>::result_type first_block_state =
-                    generate_circuit(sha256_process_instance, bp, assignment, sha256_process_input, row);
-
-                row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
                 std::array<var, 16> input_words2_vars = {
                     var(component.C(0), start_row_index + 8, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 9, false, var::column_type::constant),
@@ -329,7 +352,7 @@ namespace nil {
                     var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
 
                 typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input_2 = {
-                    first_block_state.output_state, input_words2_vars};
+                    first_block_state, input_words2_vars};
 
                 generate_circuit(sha256_process_instance, bp, assignment, sha256_process_input_2, row);
 
@@ -346,7 +369,7 @@ namespace nil {
                 assignment.enable_selector(first_selector_index, row);
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
+                return typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9, BlockSize>::result_type(
                     component, start_row_index);
             }
         }    // namespace components
