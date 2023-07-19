@@ -130,14 +130,26 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_test0) {
         {1, 1, 1, 1}, {0x8e1caeb2418a07d7d88f710dccd882d5_cppui255, 0xb5772c88ae5ca4442ccc46c4518a3d3b_cppui255});
     
     test_sha256<BlueprintFieldType>(
-        {},
-        {0xe3b0c44298fc1c149afbf4c8996fb924_cppui255, 0x27ae41e4649b934ca495991b7852b855_cppui255});
+        {}, {0xe3b0c44298fc1c149afbf4c8996fb924_cppui255, 0x27ae41e4649b934ca495991b7852b855_cppui255});
+
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64},
+        {0x787979ee6a78d79a5c6cf1f3ede7cb1d_cppui255, 0x40a6ae9e410062d0b57f848ca083edd6_cppui255});
     
     test_sha256<BlueprintFieldType>(
-        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64,
-         0xffffffffffffffff_cppui64,0x0000000000000000_cppui64, 0x0000000000000000_cppui64, 0x0000000000000000_cppui64,
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64},
+        {0x0156ad310453c9a0456b5bb7aa2fa7c3_cppui255, 0x8f81e6728e51d3a4c337ae0b00ec6c88_cppui255});
+
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64,
+         0x0000000000000000_cppui64, 0x0000000000000000_cppui64, 0x0000000000000000_cppui64,
          0x0000000000000000_cppui64},
         {0x66772d09a067f1b181fd802dae4e6357_cppui255, 0x4845413c46b395d5ad2935d6a9a07e6d_cppui255});
+
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64,
+         0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64},
+        {0x3126b6d31b1613b600f0db60321ddba5_cppui255, 0x538634dfa615347b96d1992921297b16_cppui255});
            
 }
 

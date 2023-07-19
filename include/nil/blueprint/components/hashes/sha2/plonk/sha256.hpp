@@ -93,7 +93,7 @@ namespace nil {
                         decomposition<
                             crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                             BlueprintFieldType, 9>::rows_amount *
-                            num_blocks / 2 +
+                            ((num_blocks + 1) / 2) +
                         2;
                 };
 
@@ -111,7 +111,7 @@ namespace nil {
                         decomposition<
                             crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                             BlueprintFieldType, 9>::rows_amount *
-                            num_blocks / 2 +
+                            ((num_blocks + 1) / 2) +
                         2;
                 };
 
@@ -131,7 +131,7 @@ namespace nil {
                         decomposition<
                             crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                             BlueprintFieldType, 9>::rows_amount *
-                            num_blocks / 2 +
+                            ((num_blocks + 1) / 2) +
                         2;
                 };
             };
@@ -149,7 +149,6 @@ namespace nil {
                 const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type instance_input,
                 const std::uint32_t start_row_index) {
 
-                assert(component.num_blocks % 4 == 0);
                 assert(instance_input.block_data.size() == component.num_blocks);
 
                 std::size_t row = start_row_index;
@@ -183,22 +182,26 @@ namespace nil {
                     var(component.C(0), start_row_index + 6, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                for (std::size_t i = 0; i < component.num_blocks; i += 4) {
-                    std::array<var, 2> input_1 = {instance_input.block_data[i + 0], instance_input.block_data[i + 1]};
+                std::array<var, 16> input_words_vars;
+
+                std::size_t curr_block = 0;
+                for (std::size_t i = 0; i < component.num_blocks / 4; i++) {
+                    std::array<var, 2> input_1 = {instance_input.block_data[4 * i + 0],
+                                                  instance_input.block_data[4 * i + 1]};
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
                         {input_1};
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_1 =
                         generate_assignments(decomposition_instance, assignment, decomposition_input, row);
                     row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
 
-                    std::array<var, 2> input_2 = {instance_input.block_data[i + 2], instance_input.block_data[i + 3]};
+                    std::array<var, 2> input_2 = {instance_input.block_data[4 * i + 2],
+                                                  instance_input.block_data[4 * i + 3]};
                     decomposition_input = {input_2};
 
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_2 =
                         generate_assignments(decomposition_instance, assignment, decomposition_input, row);
                     row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
 
-                    std::array<var, 16> input_words_vars;
                     for (int i = 0; i < 8; i++) {
                         input_words_vars[i] = sha_block_part_1.output[i];
                         input_words_vars[8 + i] = sha_block_part_2.output[i];
@@ -210,6 +213,8 @@ namespace nil {
                         generate_assignments(sha256_process_instance, assignment, sha256_process_input, row)
                             .output_state;
                     row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
+
+                    curr_block += 4;
                 }
 
                 // process last padding bits;
@@ -219,31 +224,136 @@ namespace nil {
                 for (int i = 0; i < 16; i++) {
                     assignment.constant(component.C(0), start_row_index + 8 + i) = constants2[i];
                 }
-                std::array<var, 16> input_words2_vars = {
-                    var(component.C(0), start_row_index + 8, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 9, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 10, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 11, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 12, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 13, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 14, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 15, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 16, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 17, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 18, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 19, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 20, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 21, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 22, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+                switch (component.num_blocks % 4) {
+                    case 0: {
+                        input_words_vars = {
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 11, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 12, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 13, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 14, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 15, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 16, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 17, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 18, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 19, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 20, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 21, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 22, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+
+                        break;
+                    }
+                    case 1: {
+                        std::array<var, 2> input_1 = {
+                            instance_input.block_data[curr_block],
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant)};    // 0
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type
+                            decomposition_input = {input_1};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_1 =
+                                generate_assignments(decomposition_instance, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        input_words_vars = {
+                            sha_block_part_1.output[0],
+                            sha_block_part_1.output[1],
+                            sha_block_part_1.output[2],
+                            sha_block_part_1.output[3],
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 11, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 12, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 13, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 14, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 15, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 16, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 17, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 18, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+
+                        break;
+                    }
+                    case 2: {
+                        std::array<var, 2> input_1 = {instance_input.block_data[curr_block],
+                                                      instance_input.block_data[curr_block + 1]};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type
+                            decomposition_input = {input_1};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_1 =
+                                generate_assignments(decomposition_instance, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        input_words_vars = {
+                            sha_block_part_1.output[0],
+                            sha_block_part_1.output[1],
+                            sha_block_part_1.output[2],
+                            sha_block_part_1.output[3],
+                            sha_block_part_1.output[4],
+                            sha_block_part_1.output[5],
+                            sha_block_part_1.output[6],
+                            sha_block_part_1.output[7],
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 11, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 12, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 13, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 14, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+
+                        break;
+                    }
+                    case 3: {
+                        std::array<var, 2> input_1 = {instance_input.block_data[curr_block],
+                                                      instance_input.block_data[curr_block + 1]};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type
+                            decomposition_input = {input_1};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_1 =
+                                generate_assignments(decomposition_instance, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        std::array<var, 2> input_2 = {
+                            instance_input.block_data[curr_block + 2],
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant)};    // 0
+                        decomposition_input = {input_2};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_2 =
+                                generate_assignments(decomposition_instance, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        input_words_vars = {
+                            sha_block_part_1.output[0],
+                            sha_block_part_1.output[1],
+                            sha_block_part_1.output[2],
+                            sha_block_part_1.output[3],
+                            sha_block_part_1.output[4],
+                            sha_block_part_1.output[5],
+                            sha_block_part_1.output[6],
+                            sha_block_part_1.output[7],
+                            sha_block_part_2.output[0],
+                            sha_block_part_2.output[1],
+                            sha_block_part_2.output[2],
+                            sha_block_part_2.output[3],
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+                    }
+                }
 
                 typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input_2 = {
-                    first_block_state, input_words2_vars};
+                    first_block_state, input_words_vars};
 
                 std::array<var, 8> second_block_state =
                     generate_assignments(sha256_process_instance, assignment, sha256_process_input_2, row).output_state;
 
                 row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
+
                 typename ArithmetizationType::field_type::integral_type one = 1;
                 for (std::size_t i = 0; i < 8; i++) {
                     assignment.witness(component.W(i), row) = var_value(assignment, second_block_state[i]);
@@ -307,7 +417,6 @@ namespace nil {
                 const std::size_t start_row_index) {
 
                 std::size_t row = start_row_index;
-                assert(component.num_blocks % 4 == 0);
                 assert(component.num_blocks == instance_input.block_data.size());
 
                 using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
@@ -336,15 +445,18 @@ namespace nil {
                     var(component.C(0), start_row_index + 6, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                for (std::size_t i = 0; i < component.num_blocks; i += 4) {
-                    std::array<var, 2> input_1 = {instance_input.block_data[i + 0], instance_input.block_data[i + 1]};
+                std::size_t curr_block = 0;
+                for (std::size_t i = 0; i < component.num_blocks / 4; i++) {
+                    std::array<var, 2> input_1 = {instance_input.block_data[4 * i + 0],
+                                                  instance_input.block_data[4 * i + 1]};
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
                         {input_1};
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_1 =
                         generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
                     row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
 
-                    std::array<var, 2> input_2 = {instance_input.block_data[i + 2], instance_input.block_data[i + 3]};
+                    std::array<var, 2> input_2 = {instance_input.block_data[4 * i + 2],
+                                                  instance_input.block_data[4 * i + 3]};
                     decomposition_input = {input_2};
 
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type sha_block_part_2 =
@@ -362,28 +474,135 @@ namespace nil {
                         generate_circuit(sha256_process_instance, bp, assignment, sha256_process_input, row)
                             .output_state;
                     row += sha256_process<ArithmetizationType, 9, 1>::rows_amount;
+
+                    curr_block += 4;
                 }
 
-                std::array<var, 16> input_words2_vars = {
-                    var(component.C(0), start_row_index + 8, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 9, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 10, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 11, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 12, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 13, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 14, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 15, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 16, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 17, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 18, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 19, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 20, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 21, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 22, false, var::column_type::constant),
-                    var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+                switch (component.num_blocks % 4) {
+                    case 0: {
+                        input_words_vars = {
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 11, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 12, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 13, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 14, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 15, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 16, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 17, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 18, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 19, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 20, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 21, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 22, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+
+                        break;
+                    }
+                    case 1: {
+                        std::array<var, 2> input_1 = {
+                            instance_input.block_data[curr_block],
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant)};    // 0
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type
+                            decomposition_input = {input_1};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_1 =
+                                generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        input_words_vars = {
+                            sha_block_part_1.output[0],
+                            sha_block_part_1.output[1],
+                            sha_block_part_1.output[2],
+                            sha_block_part_1.output[3],
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 11, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 12, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 13, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 14, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 15, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 16, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 17, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 18, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+
+                        break;
+                    }
+                    case 2: {
+                        std::array<var, 2> input_1 = {instance_input.block_data[curr_block],
+                                                      instance_input.block_data[curr_block + 1]};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type
+                            decomposition_input = {input_1};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_1 =
+                                generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        input_words_vars = {
+                            sha_block_part_1.output[0],
+                            sha_block_part_1.output[1],
+                            sha_block_part_1.output[2],
+                            sha_block_part_1.output[3],
+                            sha_block_part_1.output[4],
+                            sha_block_part_1.output[5],
+                            sha_block_part_1.output[6],
+                            sha_block_part_1.output[7],
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 11, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 12, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 13, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 14, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+
+                        break;
+                    }
+                    case 3: {
+                        std::array<var, 2> input_1 = {instance_input.block_data[curr_block],
+                                                      instance_input.block_data[curr_block + 1]};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type
+                            decomposition_input = {input_1};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_1 =
+                                generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        std::array<var, 2> input_2 = {
+                            instance_input.block_data[curr_block + 2],
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant)};    // 0
+
+                        decomposition_input = {input_2};
+                        typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::result_type
+                            sha_block_part_2 =
+                                generate_circuit(decomposition_instance, bp, assignment, decomposition_input, row);
+                        row += decomposition<ArithmetizationType, BlueprintFieldType, 9>::rows_amount;
+
+                        input_words_vars = {
+                            sha_block_part_1.output[0],
+                            sha_block_part_1.output[1],
+                            sha_block_part_1.output[2],
+                            sha_block_part_1.output[3],
+                            sha_block_part_1.output[4],
+                            sha_block_part_1.output[5],
+                            sha_block_part_1.output[6],
+                            sha_block_part_1.output[7],
+                            sha_block_part_2.output[0],
+                            sha_block_part_2.output[1],
+                            sha_block_part_2.output[2],
+                            sha_block_part_2.output[3],
+                            var(component.C(0), start_row_index + 8, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 9, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 10, false, var::column_type::constant),
+                            var(component.C(0), start_row_index + 23, false, var::column_type::constant)};
+                    }
+                }
 
                 typename sha256_process<ArithmetizationType, 9, 1>::input_type sha256_process_input_2 = {
-                    first_block_state, input_words2_vars};
+                    first_block_state, input_words_vars};
 
                 generate_circuit(sha256_process_instance, bp, assignment, sha256_process_input_2, row);
 
