@@ -41,6 +41,7 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
+
 #include <nil/blueprint/components/hashes/keccak/keccak_round.hpp>
 
 #include "../../test_plonk_component.hpp"
@@ -54,50 +55,81 @@ const int r[5][5] = {{0, 1, 62, 28, 27},
 // here for level we use:
 // 0 - inner ^ chunk, 1 - theta, 2 - rho/phi, 3 - chi, 4 - iota (full round, by default)
 template<typename BlueprintFieldType, int level = 4>
-std::array<typename BlueprintFieldType, 25> round_function(std::array<typename BlueprintFieldType, 25> inner_state,
-                                                            std::array<typename BlueprintFieldType, 17> padded_message_chunk,
+std::array<typename BlueprintFieldType::value_type, 25> round_function(std::array<typename BlueprintFieldType::value_type, 25> inner_state,
+                                                            std::array<typename BlueprintFieldType::value_type, 17> padded_message_chunk,
                                                             typename BlueprintFieldType::value_type RC) {
-    #define rot(x, s) (((x) << s) | ((x) >> (64 - s)));
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
+
+    std::array<integral_type, 25> inner_state_integral;
+    std::array<integral_type, 17> padded_message_chunk_integral;
+    integral_type RC_integral = integral_type(RC.data);
+    for (int i = 0; i < 25; ++i) {
+        inner_state_integral[i] = integral_type(inner_state[i].data);
+    }
     for (int i = 0; i < 17; ++i) {
-        inner_state[i] = inner_state[i] ^ padded_message_chunk[i];
+        padded_message_chunk_integral[i] = integral_type(padded_message_chunk[i].data);
+    }
+
+    auto rot = [](integral_type x, const int s) {
+        return ((x << s) | (x >> (64 - s)));
+    };
+
+    for (int i = 0; i < 17; ++i) {
+        inner_state_integral[i] = inner_state_integral[i] ^ padded_message_chunk_integral[i];
     }
     if (level == 0) {
+        for (int i = 0; i < 25; ++i) {
+            inner_state[i] = value_type(inner_state_integral[i]);
+        }
         return inner_state;
     }
     // theta
-    std::array<typename BlueprintFieldType, 5> C;
+    std::array<integral_type, 5> C;
     for (int x = 0; x < 5; ++x) {
-        C[x] = inner_state[5 * x] ^ inner_state[5 * x + 1] ^ inner_state[5 * x + 2] ^ inner_state[5 * x + 3] ^
-               inner_state[5 * x + 4];
+        C[x] = inner_state_integral[5 * x] ^ inner_state_integral[5 * x + 1] ^ inner_state_integral[5 * x + 2] ^ inner_state_integral[5 * x + 3] ^
+               inner_state_integral[5 * x + 4];
         for (int y = 0; y < 5; ++y) {
-            inner_state[5 * x + y] = inner_state[5 * x + y] ^ C[(x + 4) % 5] ^ rot(C[(x + 1) % 5], 1);
+            inner_state_integral[5 * x + y] = inner_state_integral[5 * x + y] ^ C[(x + 4) % 5] ^ rot(C[(x + 1) % 5], 1);
         }
     }
     if (level == 1) {
+        for (int i = 0; i < 25; ++i) {
+            inner_state[i] = value_type(inner_state_integral[i]);
+        }
         return inner_state;
     }
     // rho and pi
-    std::array<typename BlueprintFieldType, 25> B;
+    std::array<integral_type, 25> B;
     for (int x = 0; x < 5; ++x) {
         for (int y = 0; y < 5; ++y) {
-            B[5 * y + ((2 * x + 3 * y) % 5)] = rot(inner_state[5 * x + y], r[x, y]);
+            B[5 * y + ((2 * x + 3 * y) % 5)] = rot(inner_state_integral[5 * x + y], r[x][y]);
         }
     }
     if (level == 2) {
-        return B;
+        for (int i = 0; i < 25; ++i) {
+            inner_state[i] = value_type(B[i]);
+        }
+        return inner_state;
     }
     // chi
     for (int x = 0; x < 5; ++x) {
         for (int y = 0; y < 5; ++y) {
-            inner_state[5 * x + y] = B[5 * x + y] ^ ((~B[5 * x + ((y + 1) % 5)]) & B[5 * x + ((y + 2) % 5)]);
+            inner_state_integral[5 * x + y] = B[5 * x + y] ^ ((~B[5 * x + ((y + 1) % 5)]) & B[5 * x + ((y + 2) % 5)]);
         }
     }
     if (level == 3) {
+        for (int i = 0; i < 25; ++i) {
+            inner_state[i] = value_type(inner_state_integral[i]);
+        }
         return inner_state;
     }
     // iota
-    inner_state[0] = inner_state[0] ^ RC;
+    inner_state_integral[0] = inner_state_integral[0] ^ RC_integral;
 
+    for (int i = 0; i < 25; ++i) {
+        inner_state[i] = value_type(inner_state_integral[i]);
+    }
     return inner_state;
 }
 
@@ -175,7 +207,7 @@ void test_keccak_round_random() {
     nil::crypto3::random::algebraic_engine<BlueprintFieldType> generate_random;
     boost::random::mt19937 seed_seq;
     generate_random.seed(seed_seq);
-    uint64_t range = value_type(2).pow(64) - 1;
+    uint64_t range = 18446744073709551615U; //2^64 - 1
 
     boost::random::uniform_int_distribution<std::uint64_t> distribution(0, range);
 
@@ -184,12 +216,12 @@ void test_keccak_round_random() {
     value_type RC = value_type(0);
 
     for (int i = 0; i < 25; ++i) {
-        inner_state[i] = value_type(distribution(generate_random));
+        inner_state[i] = generate_random();
     }
     for (int i = 0; i < 17; ++i) {
-        padded_message_chunk[i] = value_type(distribution(generate_random));
+        padded_message_chunk[i] = generate_random();
     }
-    RC = value_type(distribution(generate_random));
+    RC = generate_random();
 
     test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, level>
                             (inner_state, padded_message_chunk, RC);
@@ -199,8 +231,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::vesta::scalar_field_type;
-    test_keccak_round<field_type, 9, 65536, 10, 0>();
-    test_keccak_round<field_type, 15, 65536, 10, 0>();
+    test_keccak_round_random<field_type, 9, 65536, 10, 0>();
+    test_keccak_round_random<field_type, 15, 65536, 10, 0>();
 }
 
 // BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
