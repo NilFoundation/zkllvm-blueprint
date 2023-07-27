@@ -82,8 +82,15 @@ namespace nil {
                     return num_cells / WitnessesAmount + bool(num_cells % WitnessesAmount);
                 }
                 std::size_t gates() const {
-                    // TODO: need to find the exact answer
-                    return rows() / 3 + bool(rows() % 3);
+                    std::size_t res = 1;
+                    auto cur_selector = gates_configuration[0];
+                    for (std::size_t i = 1; i < gates_configuration.size(); ++i) {
+                        if (gates_configuration[i] != cur_selector) {
+                            res++;
+                            cur_selector = gates_configuration[i];
+                        }
+                    }
+                    return res;
                 }
 
             public:
@@ -131,9 +138,12 @@ namespace nil {
 
                 // full configuration is precalculated, then used in other functions
                 std::array<configuration, 102> full_configuration;
+                // number represents relative selector index for each constraint
+                std::vector<std::size_t> gates_configuration;
+                std::vector<std::size_t> lookup_gates_configuration;
 
                 const std::size_t rows_amount;
-                const std::size_t gates_amount = 1;
+                const std::size_t gates_amount;
 
                 struct input_type {
                     std::array<var, 25> inner_state;
@@ -145,13 +155,12 @@ namespace nil {
                     std::array<var, 25> inner_state;
 
                     result_type(const keccak_round &component, std::size_t start_row_index) {
-                        std::size_t num_config = 102;
-                        std::size_t ind = 25;
-                        inner_state[0] = var(component.W(component.full_configuration[num_config].copy_to[0].row),
-                                                         component.full_configuration[num_config].copy_to[0].column);
+                        std::size_t num_config = 101;
+                        inner_state[0] = var(component.W(component.full_configuration[num_config].copy_from[0].row),
+                                                         component.full_configuration[num_config].copy_from[0].column);
                         for (int i = 1; i < 25; ++i) {
-                            inner_state[ind - i] = var(component.W(component.full_configuration[num_config - i].copy_to[0].row),
-                                                                   component.full_configuration[num_config - i].copy_to[0].column);
+                            inner_state[25 - i] = var(component.W(component.full_configuration[num_config - i].copy_from[0].row),
+                                                                   component.full_configuration[num_config - i].copy_from[0].column);
                         }
                     }
                 };
@@ -196,20 +205,20 @@ namespace nil {
                     // In constraints we use such notation: constr[0] - result,
                     // constr[1]... - arguments for lookup, linear elements for regular constraints in correct order.
                     coordinates last_coordinate;
-                    std::vector<coordinates> copy_from;
+                    std::vector<coordinates> copy_to;
                     std::vector<std::vector<coordinates>> constraints;
                     std::vector<std::vector<coordinates>> lookups;
-                    coordinates copy_to;
+                    coordinates copy_from;
 
                     configuration() = default;
                     configuration(std::pair<std::size_t, std::size_t> last_coordinate_,
-                                  std::vector<std::pair<std::size_t, std::size_t>> copy_from_,
+                                  std::vector<std::pair<std::size_t, std::size_t>> copy_to_,
                                   std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints_,
                                   std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups_,
-                                  std::pair<std::size_t, std::size_t> copy_to_) {
+                                  std::pair<std::size_t, std::size_t> copy_from_) {
                             last_coordinate = coordinates(last_coordinate_);
-                            for (std::size_t i = 0; i < copy_from_.size(); ++i) {
-                                copy_from[i] = coordinates(copy_from_[i]);
+                            for (std::size_t i = 0; i < copy_to_.size(); ++i) {
+                                copy_to[i] = coordinates(copy_to_[i]);
                             }
                             for (std::size_t i = 0; i < constraints_.size(); ++i) {
                                 for (std::size_t j = 0; j < constraints[i].size(); ++j) {
@@ -221,7 +230,7 @@ namespace nil {
                                     lookups[i][j] = coordinates(lookups_[i][j]);
                                 }
                             }
-                            copy_to = coordinates(copy_to_);
+                            copy_from = coordinates(copy_from_);
                         };
                 };
 
@@ -231,29 +240,29 @@ namespace nil {
                     std::size_t last_row = row,
                                 last_column = column;
                                 
-                    std::vector<std::pair<std::size_t, std::size_t>> copy_from;
+                    std::vector<std::pair<std::size_t, std::size_t>> copy_to;
 
                     if (num_args + column > limit_permutation_column) {
                         for (int i = 0; i < num_args; ++i) {
-                            copy_from.push_back({last_row + 1, i});
+                            copy_to.push_back({last_row + 1, i});
                         }
                     } else {
                         for (int i = 0; i < num_args; ++i) {
-                            copy_from.push_back({last_row + (last_column / WitnessesAmount),
+                            copy_to.push_back({last_row + (last_column / WitnessesAmount),
                                                             (last_column++) % WitnessesAmount});
                         }
                     }
                     
-                    std::pair<std::size_t, std::size_t> cell_copy_to;
+                    std::pair<std::size_t, std::size_t> cell_copy_from;
                     std::size_t final_row = (column + num_cells - 1) / WitnessesAmount + row;
-                    if (final_row == copy_from[0].first) {
-                        cell_copy_to = {final_row, copy_from.back().second + 1};
+                    if (final_row == copy_to[0].first) {
+                        cell_copy_from = {final_row, copy_to.back().second + 1};
                     } else {
-                        cell_copy_to = {final_row, 0};
+                        cell_copy_from = {final_row, 0};
                     }
                     
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
-                    std::pair<std::size_t, std::size_t> cell_copy_to;
+                    std::pair<std::size_t, std::size_t> cell_copy_from;
                     if (num_args + column > limit_permutation_column) {
                         for (int i = column; i < WitnessesAmount; ++i) {
                             cells.push_back({row, i});
@@ -262,7 +271,7 @@ namespace nil {
                         std::size_t cur_row = row + 1,
                                     cur_column = num_args;
                         while (cur_column < cells_left) {
-                            if (cur_column % WitnessesAmount == cell_copy_to.second && (cur_row + (cur_column / WitnessesAmount) == cell_copy_to.first)) {
+                            if (cur_column % WitnessesAmount == cell_copy_from.second && (cur_row + (cur_column / WitnessesAmount) == cell_copy_from.first)) {
                                 cur_column++;
                                 continue;
                             }
@@ -272,7 +281,7 @@ namespace nil {
                         std::size_t cur_row = row,
                                     cur_column = column + num_args;
                         while (cur_column - column < num_cells) {
-                            if (cur_column % WitnessesAmount == cell_copy_to.second && (cur_row + (cur_column / WitnessesAmount) == cell_copy_to.first)) {
+                            if (cur_column % WitnessesAmount == cell_copy_from.second && (cur_row + (cur_column / WitnessesAmount) == cell_copy_from.first)) {
                                 cur_column++;
                                 continue;
                             }
@@ -284,11 +293,11 @@ namespace nil {
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
                     constraints.push_back({cells[cell_index++]});
                     for (int i = 0; i < num_args; ++i) {
-                        constraints[0].push_back(copy_from[i]);
+                        constraints[0].push_back(copy_to[i]);
                     }
 
                     constraints.push_back({constraints[0][0]});
-                    constraints.push_back({cell_copy_to});
+                    constraints.push_back({cell_copy_from});
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups(num_chunks, std::vector<std::pair<std::size_t, std::size_t>>());
                     for (std::size_t i = 1; i < 3; ++i) {
                         for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -300,7 +309,7 @@ namespace nil {
                     last_column = cells.back().second + 1;
                     last_row = cells.back().first + (last_column > WitnessesAmount);
                     last_column %= WitnessesAmount;
-                    return configuration({last_row, last_column}, copy_from, constraints, lookups, cell_copy_to);
+                    return configuration({last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
                 configuration configure_xor(std::size_t row, std::size_t column, int num_args) {
@@ -341,17 +350,17 @@ namespace nil {
                     std::size_t last_row = row,
                                 last_column = column;
                 
-                    std::vector<std::pair<std::size_t, std::size_t>> copy_from;
-                    std::pair<std::size_t, std::size_t> cell_copy_to;
+                    std::vector<std::pair<std::size_t, std::size_t>> copy_to;
+                    std::pair<std::size_t, std::size_t> cell_copy_from;
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
                     
                     if (2 + column > limit_permutation_column) {
-                        copy_from.push_back({last_row + 1, 0});
-                        cell_copy_to = {last_row + 1, 1};
+                        copy_to.push_back({last_row + 1, 0});
+                        cell_copy_from = {last_row + 1, 1};
                     } else {
-                        copy_from.push_back({last_row + (last_column / WitnessesAmount),
+                        copy_to.push_back({last_row + (last_column / WitnessesAmount),
                                                         (last_column++) % WitnessesAmount});
-                        cell_copy_to = {last_row + (last_column / WitnessesAmount),
+                        cell_copy_from = {last_row + (last_column / WitnessesAmount),
                                                         (last_column++) % WitnessesAmount};
                     }
                     
@@ -375,11 +384,11 @@ namespace nil {
                     }                    
                     std::size_t cell_index = 0;
                     
-                    constraints.push_back({copy_from[0]});
+                    constraints.push_back({copy_to[0]});
                     constraints[0].push_back(cells[cell_index++]);
                     constraints[0].push_back(cells[cell_index++]);
                     
-                    constraints.push_back({cell_copy_to});
+                    constraints.push_back({cell_copy_from});
                     constraints[1].push_back(constraints[0][2]);
                     constraints[1].push_back(constraints[0][1]);
                     
@@ -405,7 +414,7 @@ namespace nil {
                     last_row = cells.back().first + (last_column / WitnessesAmount);
                     last_column %= WitnessesAmount;
                     
-                    return configuration({last_row, last_column}, copy_from, constraints, lookups, cell_copy_to);
+                    return configuration({last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
                 std::array<configuration, 102> configure_all() {
@@ -453,6 +462,58 @@ namespace nil {
                     return result;
                 }
 
+                std::vector<std::size_t> configure_gates() {
+                    std::vector<std::pair<std::size_t, std::size_t>> pairs;
+                    for (std::size_t i = 0; i < 102; ++i) {
+                        for (auto constr : full_configuration[i].constraints) {
+                            std::size_t min = std::min(constr[0].row, constr[1].row);
+                            std::size_t max = constr.back().row;
+                            BOOST_ASSERT(max - min <= 2);
+                            pairs.push_back({min, max});
+                        }
+                    }
+                    std::vector<std::size_t> result;
+                    std::size_t cur_row = 0;
+                    while (cur_row < rows_amount) {
+                        std::size_t cur_constr = 0;
+                        while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 && pairs[cur_constr].first >= cur_row) {
+                            result.push_back(cur_row + 1);
+                            ++cur_constr;
+                        }
+                        if (cur_constr == pairs.size()) {
+                            break;
+                        }
+                        cur_row = pairs[cur_constr].first;
+                    }
+                    return result;
+                }
+
+                std::vector<std::size_t> configure_lookup_gates() {
+                    std::vector<std::pair<std::size_t, std::size_t>> pairs;
+                    for (std::size_t i = 0; i < 102; ++i) {
+                        for (auto constr : full_configuration[i].lookups) {
+                            std::size_t min = std::min(constr[0].row, constr[1].row);
+                            std::size_t max = constr.back().row;
+                            BOOST_ASSERT(max - min <= 2);
+                            pairs.push_back({min, max});
+                        }
+                    }
+                    std::vector<std::size_t> result;
+                    std::size_t cur_row = 0;
+                    while (cur_row < rows_amount) {
+                        std::size_t cur_constr = 0;
+                        while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 && pairs[cur_constr].first >= cur_row) {
+                            result.push_back(cur_row + 1);
+                            ++cur_constr;
+                        }
+                        if (cur_constr == pairs.size()) {
+                            break;
+                        }
+                        cur_row = pairs[cur_constr].first;
+                    }
+                    return result;
+                }
+
                 #define __keccak_round_init_macro(lookup_rows_, lookup_columns_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
@@ -468,8 +529,10 @@ namespace nil {
                     xor3_cells(normalize4_num_chunks * 2 + 3 + 2), \
                     xor5_cells(normalize6_num_chunks * 2 + 5 + 2), \
                     chi_cells(chi_num_chunks * 2 + 5), \
-                    full_configuration(configure_all()), \
                     rows_amount(rows()), \
+                    full_configuration(configure_all()), \
+                    gates_configuration(configure_gates()), \
+                    lookup_gates_configuration(configure_lookup_gates()), \
                     gates_amount(gates())
 
                 template<typename ContainerType>
@@ -528,6 +591,17 @@ namespace nil {
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
                 using value_type = typename BlueprintFieldType::value_type;
+
+                auto config = component.full_configuration;
+                auto gate_config = component.gates_configuration;
+                std::size_t config_index = 0;
+                std::size_t gate_index = 0;
+
+                // inner_state ^ chunk
+                for (int i = 0; i < 17; ++i) {
+                    auto cur_config = config[config_index + i];
+
+                }
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
@@ -554,11 +628,75 @@ namespace nil {
                 std::size_t config_index = 0;
                 auto config = component.full_configuration;
 
-                // TODO: finish copy_constraints
+                // inner_state ^ chunk
                 for (int i = 0; i < 17; ++i) {
-                    bp.add_copy_constraint({instance_input.inner_state[i], var(component.W(config[i].copy_from[0].row), config[i].copy_from[0].column, false)});
-                    bp.add_copy_constraint({instance_input.padded_message_chunk[i], var(component.W(config[i].copy_from[1].row), config[i].copy_from[1].column, false)});
+                    bp.add_copy_constraint({instance_input.inner_state[i], var(component.W(config[i].copy_to[0].row), config[i].copy_to[0].column, false)});
+                    bp.add_copy_constraint({instance_input.padded_message_chunk[i], var(component.W(config[i].copy_to[1].row), config[i].copy_to[1].column, false)});
                 }
+                config_index += 17;
+                std::size_t prev_index = 0;
+
+                // theta
+                for (int i = 0; i < 17; ++i) {
+                    bp.add_copy_constraint({var(component.W(config[prev_index + i].copy_from.row, config[prev_index + i].copy_from.column, false)), 
+                                            var(component.W(config[config_index + i / 5].copy_to[i % 5].row, config[config_index + i / 5].copy_to[i % 5].column, false))});
+                }
+                for (int i = 17; i < 25; ++i) {
+                    bp.add_copy_constraint({instance_input.inner_state[i],
+                                            var(component.W(config[config_index + i / 5].copy_to[i % 5].row, config[config_index + i / 5].copy_to[i % 5].column, false))});
+                }
+                config_index += 5;
+                prev_index += 17;
+                for (int i = 0; i < 5; ++i) {
+                    bp.add_copy_constraint({var(component.W(config[prev_index + i].copy_from.row, config[prev_index + i].copy_from.column, false)),
+                                            var(component.W(config[config_index + i].copy_to[0].row, config[config_index + i].copy_to[0].column, false))});
+                }
+                config_index += 5;
+                prev_index += 5;
+
+                for (int i = 0; i < 25; ++i) {
+                    bp.add_copy_constraint({var(component.W(config[17 + i / 5].copy_to[i % 5].row, config[17 + i / 5].copy_to[i % 5].column, false)),
+                                            var(component.W(config[config_index + i].copy_to[0].row, config[config_index + i].copy_to[0].column, false))});
+                    bp.add_copy_constraint({var(component.W(config[prev_index + (i + 1) % 5].copy_from.row, config[prev_index + (i + 1) % 5].copy_from.column, false)),
+                                            var(component.W(config[config_index + i].copy_to[1].row, config[config_index + i].copy_to[1].column, false))});
+                    bp.add_copy_constraint({var(component.W(config[prev_index + (i + 4) % 5].copy_to[0].row, config[prev_index + (i + 4) % 5].copy_to[0].column, false)),
+                                            var(component.W(config[config_index + i].copy_to[2].row, config[config_index + i].copy_to[2].column, false))});
+                }
+                config_index += 25;
+                prev_index += 5;
+
+                // rho/phi
+                for (int i = 0; i < 24; ++i) {
+                    bp.add_copy_constraint({var(component.W(config[prev_index + i + 1].copy_from.row, config[prev_index + i + 1].copy_from.column, false)),
+                                            var(component.W(config[config_index + i].copy_to[0].row, config[config_index + i].copy_to[0].column, false))});
+                }
+
+                // chi
+                std::vector<int> perm_index = {14,4,19,9, 5,20,10,0,15, 11,1,16,6,21, 17,7,22,12,2, 23,13,3,18,8};
+                std::vector<var> B = {var(component.W(config[prev_index].copy_from.row, config[prev_index].copy_from.column, false))};
+                for (auto i : perm_index) {
+                    B.push_back(var(component.W(config[config_index + i].copy_from.row, config[config_index + i].copy_from.column, false)));
+                }
+                config_index += 24;
+                prev_index += 25;
+                for (int i = 0; i < 25; ++i) {
+                    int x = index / 5;
+                    int y = index % 5;
+                    bp.add_copy_constraint({B[x * 5 + y],
+                                            var(component.W(config[config_index + i].copy_to[0].row, config[config_index + i].copy_to[0].column, false))});
+                    bp.add_copy_constraint({B[((x + 1) % 5) * 5 + y],
+                                            var(component.W(config[config_index + i].copy_to[1].row, config[config_index + i].copy_to[1].column, false))});
+                    bp.add_copy_constraint({B[((x + 2) % 5) * 5 + y],
+                                            var(component.W(config[config_index + i].copy_to[2].row, config[config_index + i].copy_to[2].column, false))});
+                }
+                config_index += 25;
+                prev_index += 24;
+
+                // iota
+                bp.add_copy_constraint({var(component.W(config[prev_index].copy_from.row, config[prev_index].copy_from.column, false)),
+                                        var(component.W(config[config_index].copy_to[0].row, config[config_index].copy_to[0].column, false))});
+                bp.add_copy_constraint({instance_input.round_constant,
+                                        var(component.W(config[config_index].copy_to[1].row, config[config_index].copy_to[1].column, false))});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
@@ -581,10 +719,10 @@ namespace nil {
                 using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
                                                                 WitnessesAmount>;
                 // TODO: need to find the exact answer
-                std::size_t row = start_row_index + 242 + 3;
-                for (std::size_t i = 0; i < 25; i++) {
-                    assignment.constant(component.C(0), row + i * 8) = component_type::r_constants[i];
-                }
+                // std::size_t row = start_row_index + 242 + 3;
+                // for (std::size_t i = 0; i < 25; i++) {
+                //     assignment.constant(component.C(0), row + i * 8) = component_type::r_constants[i];
+                // }
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
@@ -606,13 +744,20 @@ namespace nil {
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
-                std::size_t row = start_row_index;
-
                 using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
                                                                 WitnessesAmount>;
-                using var = typename component_type::var;
+                
+                generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
+                
+                auto selector_iterator = assignment.find_selector(component);
+                std::size_t first_selector_index;
+
+                if (selector_iterator == assignment.selectors_end()) {
+                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
+                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
+                } else {
+                    first_selector_index = selector_iterator->second;
+                }
                 
 
                 BOOST_ASSERT(row == start_row_index + component.rows_amount);
@@ -671,11 +816,11 @@ namespace nil {
                     A_1[index] = value_type(integral_normalized_sum);
 
                     auto cur_config = component.full_configuration[index];
-                    assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = state;
-                    assignment.witness(component.W(cur_config.copy_from[1].row), cur_config.copy_from[1].column) = message;
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = state;
+                    assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = message;
                     assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_normalized_sum);
-                    for (int j = 1; j < num_chunks; ++j) {
+                    for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
                     }
@@ -710,14 +855,14 @@ namespace nil {
                     C[index] = value_type(integral_normalized_sum);
 
                     auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = A_1[index];
-                    assignment.witness(component.W(cur_config.copy_from[1].row), cur_config.copy_from[1].column) = A_1[index + 1];
-                    assignment.witness(component.W(cur_config.copy_from[2].row), cur_config.copy_from[2].column) = A_1[index + 2];
-                    assignment.witness(component.W(cur_config.copy_from[3].row), cur_config.copy_from[3].column) = A_1[index + 3];
-                    assignment.witness(component.W(cur_config.copy_from[4].row), cur_config.copy_from[4].column) = A_1[index + 4];
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_1[5 * index];
+                    assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = A_1[5 * index + 1];
+                    assignment.witness(component.W(cur_config.copy_to[2].row), cur_config.copy_to[2].column) = A_1[5 * index + 2];
+                    assignment.witness(component.W(cur_config.copy_to[3].row), cur_config.copy_to[3].column) = A_1[5 * index + 3];
+                    assignment.witness(component.W(cur_config.copy_to[4].row), cur_config.copy_to[4].column) = A_1[5 * index + 4];
                     assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_normalized_sum);
-                    for (int j = 1; j < num_chunks; ++j) {
+                    for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
                     }
@@ -746,13 +891,13 @@ namespace nil {
                     }
 
                     auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = C[index];
-                    assignment.witness(component.W(cur_config.copy_to.row), cur_config.copy_to.column) = C_rot[index];
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = C[index];
+                    assignment.witness(component.W(cur_config.copy_from.row), cur_config.copy_from.column) = C_rot[index];
                     assignment.witness(component.W(cur_config.constraints[0][1].row), cur_config.constraints[0][1].column) = value_type(smaller_part);
                     assignment.witness(component.W(cur_config.constraints[0][2].row), cur_config.constraints[0][2].column) = value_type(bigger_part);
                     assignment.witness(component.W(cur_config.constraints[3][0].row), cur_config.constraints[3][0].column) = value_type(bound_smaller);
                     assignment.witness(component.W(cur_config.constraints[5][0].row), cur_config.constraints[5][0].column) = value_type(bound_bigger);
-                    for (int j = 1; j < num_chunks; ++j) {
+                    for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[3][j].row), cur_config.constraints[3][j].column) = value_type(integral_small_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[5][j].row), cur_config.constraints[5][j].column) = value_type(integral_big_chunks[j - 1]);
                     }
@@ -780,12 +925,12 @@ namespace nil {
                     A_2[index] = value_type(integral_normalized_sum);
 
                     auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = A_1[index];
-                    assignment.witness(component.W(cur_config.copy_from[1].row), cur_config.copy_from[1].column) = C_rot[(index + 1) % 5];
-                    assignment.witness(component.W(cur_config.copy_from[2].row), cur_config.copy_from[2].column) = C[(index - 1) % 5];
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_1[index];
+                    assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = C_rot[(index + 1) % 5];
+                    assignment.witness(component.W(cur_config.copy_to[2].row), cur_config.copy_to[2].column) = C[(index + 4) % 5];
                     assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
-                    assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_normalized_sum);
-                    for (int j = 1; j < num_chunks; ++j) {
+                    assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = A_2[index];
+                    for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
                     }
@@ -820,14 +965,14 @@ namespace nil {
                         bound_bigger >>= chunk_size;
                     }
 
-                    auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = A_2[index];
-                    assignment.witness(component.W(cur_config.copy_to.row), cur_config.copy_to.column) = B[y][2*x + 3*y];
+                    auto cur_config = component.full_configuration[index - 1 + config_index];
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_2[index];
+                    assignment.witness(component.W(cur_config.copy_from.row), cur_config.copy_from.column) = B[y][2*x + 3*y];
                     assignment.witness(component.W(cur_config.constraints[0][1].row), cur_config.constraints[0][1].column) = value_type(smaller_part);
                     assignment.witness(component.W(cur_config.constraints[0][2].row), cur_config.constraints[0][2].column) = value_type(bigger_part);
                     assignment.witness(component.W(cur_config.constraints[3][0].row), cur_config.constraints[3][0].column) = value_type(bound_smaller);
                     assignment.witness(component.W(cur_config.constraints[5][0].row), cur_config.constraints[5][0].column) = value_type(bound_bigger);
-                    for (int j = 1; j < num_chunks; ++j) {
+                    for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[3][j].row), cur_config.constraints[3][j].column) = value_type(integral_small_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[5][j].row), cur_config.constraints[5][j].column) = value_type(integral_big_chunks[j - 1]);
                     }
@@ -858,12 +1003,12 @@ namespace nil {
                     A_3[index] = value_type(integral_chi_sum);
 
                     auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = B[x][y];
-                    assignment.witness(component.W(cur_config.copy_from[1].row), cur_config.copy_from[1].column) = B[(x+1)%5][y];
-                    assignment.witness(component.W(cur_config.copy_from[2].row), cur_config.copy_from[2].column) = B[(x+2)%5][y];
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = B[x][y];
+                    assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = B[(x+1)%5][y];
+                    assignment.witness(component.W(cur_config.copy_to[2].row), cur_config.copy_to[2].column) = B[(x+2)%5][y];
                     assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_chi_sum);
-                    for (int j = 1; j < num_chunks; ++j) {
+                    for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_chi_chunks[j - 1]);
                     }
@@ -891,11 +1036,11 @@ namespace nil {
                 value_type A_4 = value_type(integral_normalized_sum);
                 
                 auto cur_config = component.full_configuration[config_index];
-                assignment.witness(component.W(cur_config.copy_from[0].row), cur_config.copy_from[0].column) = A_3[0];
-                assignment.witness(component.W(cur_config.copy_from[1].row), cur_config.copy_from[1].column) = round_constant;
+                assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_3[0];
+                assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = round_constant;
                 assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
                 assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_normalized_sum);
-                for (int j = 1; j < num_chunks; ++j) {
+                for (int j = 1; j < num_chunks + 1; ++j) {
                     assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
                     assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
                 }

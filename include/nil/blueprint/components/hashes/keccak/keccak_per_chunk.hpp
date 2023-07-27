@@ -58,6 +58,7 @@ namespace nil {
                 std::array<round_component_type, 17> rounds;
 
                 using configuration = round_component_type::configuration;
+                std::array<configuration, 17> full_configuration;
 
                 const std::size_t rows_amount;
                 constexpr static const std::size_t gates_amount = 17 * round_component_type::gates_amount;
@@ -74,6 +75,33 @@ namespace nil {
                         
                     }
                 };
+
+                integral_type pack(const integral_type& const_input) const {
+                    integral_type input = const_input;
+                    integral_type sparse_res = 0;
+                    integral_type power = 1;
+                    while (input > 0) {
+                        auto bit = input % 2;
+                        sparse_res += bit * power;
+                        power *= 8;
+                        input /= 2;
+                    }
+                    return sparse_res;
+                }
+
+                integral_type unpack(const integral_type& const_sparse_input) const {
+                    integral_type sparse_input = const_sparse_input;
+                    integral_type res = 0;
+                    integral_type power = 1;
+                    while (sparse_input > 0) {
+                        auto bit = sparse_input % 8;
+                        BOOST_ASSERT(bit * (1 - bit) == 0);
+                        res += bit * power;
+                        power *= 2;
+                        sparse_input /= 8;
+                    }
+                    return res;
+                }
 
                 configuration configure_pack_unpack(std::size_t row, std::size_t column) {
                     // regular constraints:
@@ -148,28 +176,28 @@ namespace nil {
                     return configuration({last_row, last_column}, copy_from, constraints, lookups, cell_copy_to);
                 }
 
-                // std::array<configuration, 17> configure_all() {
-                //     std::array<configuration, 17> result;
-                //     std::size_t row = 0,
-                //                 column = 0;
-                //     for (std::size_t i = 0; i < 17; ++i) {
-                //         result[i] = configure_pack_unpack(row, column);
-                //         row = result[i].last_row;
-                //         column = result[i].last_column;
-                //     }
-                //     return result;
-                // }
+                std::array<configuration, 17> configure_all() {
+                    std::array<configuration, 17> result;
+                    std::size_t row = 0,
+                                column = 0;
+                    for (std::size_t i = 0; i < 17; ++i) {
+                        result[i] = configure_pack_unpack(row, column);
+                        row = result[i].last_row;
+                        column = result[i].last_column;
+                    }
+                    return result;
+                }
 
                 #define __keccak_per_chunk_init_macro(witness, constant, public_input, \
                                                         lookup_rows_, lookup_columns_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
-                    normalize3_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 3)), \
-                    normalize4_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 4)), \
-                    normalize6_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 6)), \
-                    range_checks(range_check_amount, \
-                                 range_check_component_type(witness, constant, public_input, bits_amount_)), \
-                    rows_amount(rows())
+                    pack_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 3)), \
+                    pack_num_chunks(calculate_num_chunks(normalize3_chunk_size)), \
+                    pack_cells(normalize3_num_chunks * 2 + 2 + 2), \
+                    full_configuration(configure_all()), \
+                    rows_amount(rows()), \
+                    gates_amount(gates())
 
                 template<typename ContainerType>
                 keccak_per_chunk(ContainerType witness, std::size_t bits_amount_, bool check_inputs_) :
