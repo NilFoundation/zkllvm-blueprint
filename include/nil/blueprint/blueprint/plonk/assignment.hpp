@@ -55,7 +55,7 @@ namespace nil {
             typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                     ArithmetizationParams> ArithmetizationType;
 
-            using var = crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+            using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
             using component_selector_map_type = std::map<
                 detail::blueprint_component_id_type,
@@ -227,6 +227,76 @@ namespace nil {
 
                 return zk_type::constant(constant_index)[row_index];
             }
+
+            void export_table(std::ostream& os, bool wide_export = false) const {
+                // wide_export is for e.g. potentiall fuzzer: does fixed width elements
+                std::ios_base::fmtflags os_flags(os.flags());
+                std::size_t witnesses_size = this->_private_table.witnesses_amount(),
+                            public_size = this->_public_table.public_inputs_amount(),
+                            constants_size = this->_public_table.constants_amount(),
+                            selectors_size = this->_public_table.selectors_amount();
+                std::uint32_t max_size = 0,
+                              max_witnesses_size = 0,
+                              max_public_inputs_size = 0,
+                              max_constants_size = 0,
+                              max_selectors_size = 0;
+                for (std::uint32_t i = 0; i < witnesses_size; i++) {
+                    max_witnesses_size = std::max(max_witnesses_size, this->_private_table.witness_column_size(i));
+                }
+                for (std::uint32_t i = 0; i < public_size; i++) {
+                    max_public_inputs_size = std::max(max_public_inputs_size,
+                                                      this->_public_table.public_input_column_size(i));
+                }
+                for (std::uint32_t i = 0; i < constants_size; i++) {
+                    max_constants_size = std::max(max_constants_size, this->_public_table.constant_column_size(i));
+                }
+                for (std::uint32_t i = 0; i < selectors_size; i++) {
+                    max_selectors_size = std::max(max_selectors_size, this->_public_table.selector_column_size(i));
+                }
+                os << std::dec;
+                max_size = std::max({max_witnesses_size,
+                                    max_public_inputs_size,
+                                    max_constants_size,
+                                    max_selectors_size});
+                os << "witnesses_size: " << witnesses_size << " "
+                   << "public_inputs_size: " << public_size << " "
+                   << "constants_size: " << constants_size << " "
+                   << "selectors_size: " << selectors_size << " "
+                   << "max_size: " << max_size << "\n";
+
+                os << std::hex << std::setfill('0');
+                std::uint32_t width = wide_export ? (BlueprintFieldType::modulus_bits + 4 - 1) / 4 : 0;
+                for (std::uint32_t i = 0; i < max_size; i++) {
+                    for (std::uint32_t j = 0; j < witnesses_size; j++) {
+                        os << std::setw(width)
+                            << (i < this->_private_table.witness_column_size(j) ?
+                                    this->_private_table.witness(j)[i] : 0).data << " ";
+                    }
+                    os << "| ";
+                    for (std::uint32_t j = 0; j < public_size; j++) {
+                        os << std::setw(width)
+                            << (i < this->_public_table.public_input_column_size(j) ?
+                                    this->_public_table.public_input(j)[i] : 0).data << " ";
+                    }
+                    os << "| ";
+                    for (std::uint32_t j = 0; j < constants_size; j++) {
+                        os << std::setw(width)
+                            << (i < this->_public_table.constant_column_size(j) ?
+                                    this->_public_table.constant(j)[i] : 0).data << " ";
+                    }
+                    os << "| ";
+                    // Selectors only need a single bit, so we do not renew the size here
+                    for (std::uint32_t j = 0; j < selectors_size - 1; j++) {
+                        os << (i < this->_public_table.selector_column_size(j) ?
+                                    this->_public_table.selector(j)[i] : 0).data << " ";
+                    }
+                    os << (i < this->_public_table.selector_column_size(selectors_size - 1) ?
+                                this->_public_table.selector(selectors_size - 1)[i] : 0).data;
+                    os << "\n";
+                }
+                os.flush();
+                os.flags(os_flags);
+            }
         };
 
         template<typename BlueprintFieldType,
@@ -234,11 +304,11 @@ namespace nil {
         typename BlueprintFieldType::value_type var_value(
                 const crypto3::zk::snark::plonk_assignment_table<BlueprintFieldType,
                         ArithmetizationParams> &input_assignment,
-                const crypto3::zk::snark::plonk_variable<BlueprintFieldType> &input_var) {
+                const crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type> &input_var) {
             switch(input_var.type){
-                case crypto3::zk::snark::plonk_variable<BlueprintFieldType>::column_type::witness:
+                case crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>::column_type::witness:
                     return input_assignment.witness(input_var.index)[input_var.rotation];
-                case crypto3::zk::snark::plonk_variable<BlueprintFieldType>::column_type::public_input:
+                case crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>::column_type::public_input:
                     return input_assignment.public_input(input_var.index)[input_var.rotation];
                 default:
                     return input_assignment.constant(input_var.index)[input_var.rotation];

@@ -57,6 +57,13 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/range"
     "algebra/fields/plonk/non_native/reduction"
     "algebra/fields/plonk/non_native/bit_decomposition"
+    "algebra/fields/plonk/non_native/bit_composition"
+    "algebra/fields/plonk/non_native/bit_shift_constant"
+    "algebra/fields/plonk/non_native/logic_ops"
+    "algebra/fields/plonk/non_native/comparison_checked"
+    "algebra/fields/plonk/non_native/comparison_unchecked"
+    "algebra/fields/plonk/non_native/comparison_flag"
+    "algebra/fields/plonk/non_native/division_remainder"
     "non_native/plonk/bool_scalar_multiplication"
     "non_native/plonk/scalar_non_native_range"
     )
@@ -111,6 +118,8 @@ set(PLONK_TESTS_FILES
     "algebra/fields/plonk/exponentiation"
     "algebra/fields/plonk/sqrt"
     "algebra/fields/plonk/range_check"
+    "algebra/fields/plonk/logic_and_flag"
+    "algebra/fields/plonk/logic_or_flag"
     "verifiers/pickles/verify_heterogenous_scalar"
     "verifiers/pickles/verify_heterogenous_base"
     "verifiers/pickles/scalar_details/evals_of_split_evals"
@@ -164,7 +173,7 @@ set(BASIC_COMPONENTS_TESTS_FILES
     "basic_components"
     "basic_components_r1cs_gg_ppzksnark")
 
-SET(ALGEBRA_TESTS_FILES 
+SET(ALGEBRA_TESTS_FILES
     ${FIELDS_TESTS_FILES}
     ${CURVES_TESTS_FILES}
     ${PAIRING_TESTS_FILES})
