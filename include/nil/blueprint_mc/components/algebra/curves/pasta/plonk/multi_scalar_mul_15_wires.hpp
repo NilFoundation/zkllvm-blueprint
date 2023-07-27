@@ -67,7 +67,7 @@ namespace nil {
                     components::curve_element_unified_addition<ArithmetizationType, CurveType, W0, W1, W2, W3,
                                                                     W4, W5, W6, W7, W8, W9, W10>;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
                 using var_ec_point = typename components::var_ec_point<BlueprintFieldType>;
 
             public:

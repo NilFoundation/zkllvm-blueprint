@@ -58,7 +58,7 @@ namespace nil {
                 }
 
                 static void print_variable(std::ostream &os,
-                                           const nil::crypto3::zk::snark::plonk_variable<FieldType> &var,
+                                           const nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type> &var,
                                            const preprocessed_data_type &public_preprocessed_data) {
                     std::size_t rotation_idx =
                         std::find(std::cbegin(public_preprocessed_data.common_data.columns_rotations.at(var.index)),
@@ -73,7 +73,7 @@ namespace nil {
 
                 template<typename Vars, typename VarsIt>
                 static typename std::enable_if<
-                    std::is_same<nil::crypto3::zk::snark::plonk_variable<FieldType>,
+                    std::is_same<nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>,
                                  typename std::iterator_traits<typename Vars::iterator>::value_type>::value>::type
                     print_term(std::ostream &os,
                                const Vars &vars,
@@ -96,7 +96,7 @@ namespace nil {
 
                 template<typename Terms, typename TermsIt>
                 static typename std::enable_if<std::is_same<
-                    nil::crypto3::math::term<nil::crypto3::zk::snark::plonk_variable<FieldType>>,
+                    nil::crypto3::math::term<nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>>,
                     typename std::iterator_traits<typename Terms::iterator>::value_type>::value>::type
                     print_terms(std::ostream &os,
                                 const Terms &terms,

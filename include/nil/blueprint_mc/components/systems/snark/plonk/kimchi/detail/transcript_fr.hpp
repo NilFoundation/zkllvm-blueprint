@@ -67,7 +67,7 @@ namespace nil {
                 typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                     ArithmetizationType;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 static const std::size_t CHALLENGE_LENGTH_IN_LIMBS = 2;
                 static const std::size_t HIGH_ENTROPY_LIMBS = 2;

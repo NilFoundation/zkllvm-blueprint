@@ -85,7 +85,7 @@ namespace nil {
                     typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
 
-                    using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                     using non_native_range_component =
                         components::non_native_range<ArithmetizationType, CurveType, 0, 1, 2, 3, 4, 5, 6, 7, 8>;

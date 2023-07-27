@@ -70,7 +70,7 @@ namespace nil {
                 using div_component = components::division<ArithmetizationType, W0, W1, W2>;
                 using mul_by_const_component = components::mul_by_constant<ArithmetizationType, W0, W1>;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 constexpr static const std::size_t selector_seed = 0x0ff8;
 

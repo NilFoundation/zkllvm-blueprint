@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
 
     using opening_proof_type =
         typename nil::blueprint_mc::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using binding = typename nil::blueprint_mc::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
 
@@ -393,7 +393,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_base_field_test_suite) {
 
     using opening_proof_type =
         typename nil::blueprint_mc::components::kimchi_opening_proof_base<BlueprintFieldType, commitment_params::eval_rounds>;
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using binding = typename nil::blueprint_mc::components::binding<ArithmetizationType, BlueprintFieldType, kimchi_params>;
 

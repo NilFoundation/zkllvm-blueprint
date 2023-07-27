@@ -62,7 +62,7 @@ template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsT
 void prepare_proof(zk::snark::pickles_proof<CurveType> &original_proof,
                    zk::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvelRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     // eval_proofs
     for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_test) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -240,7 +240,7 @@ template<typename CurveType, typename BlueprintFieldType, typename KimchiParamsT
 void prepare_proof(nil::crypto3::zk::snark::proof_type<CurveType> &original_proof,
                    nil::blueprint_mc::components::kimchi_proof_scalar<BlueprintFieldType, KimchiParamsType, EvalRounds> &circuit_proof,
                    std::vector<typename BlueprintFieldType::value_type> &public_input) {
-    using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     // eval_proofs
     for (std::size_t point_idx = 0; point_idx < 2; point_idx++) {
@@ -328,7 +328,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_test) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 3;
     constexpr static std::size_t max_poly_size = 32;
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_chacha) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 0;
     constexpr static std::size_t max_poly_size = 8192;
@@ -568,7 +568,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_test_recursion) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 0;
     constexpr static std::size_t max_poly_size = 32;
@@ -701,7 +701,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_oracles_real_data_test_generic) {
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     constexpr static std::size_t public_input_size = 5;
     constexpr static std::size_t max_poly_size = 32;

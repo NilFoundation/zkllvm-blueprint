@@ -42,7 +42,7 @@ namespace nil {
             // TODO: link
             template<typename FieldType>
             struct pickles_proof_state_type {
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
                 deferred_values_type<FieldType> deferred_values;
                 var sponge_digest_before_evaluations;
                 messages_for_next_wrap_proof_type<FieldType> messages_for_next_wrap_proof;

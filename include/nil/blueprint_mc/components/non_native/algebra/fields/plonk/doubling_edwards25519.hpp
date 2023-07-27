@@ -113,7 +113,7 @@ namespace nil {
                                                                                     W7,
                                                                                     W8>;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
                 constexpr static const std::size_t selector_seed = 0xfc87;
 
             public:

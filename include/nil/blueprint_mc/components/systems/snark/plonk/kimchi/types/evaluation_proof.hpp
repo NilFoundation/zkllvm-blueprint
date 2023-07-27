@@ -38,7 +38,7 @@ namespace nil {
 
             template<typename FieldType, typename KimchiParamsType>
             struct kimchi_lookup_evaluations {
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
 
                 std::array<var, KimchiParamsType::circuit_params::lookup_columns> sorted;
 
@@ -53,7 +53,7 @@ namespace nil {
 
             template<typename FieldType, typename KimchiParamsType>
             struct kimchi_proof_evaluations {
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
                 // witness polynomials
                 std::array<var, KimchiParamsType::witness_columns> w;
                 // permutation polynomial

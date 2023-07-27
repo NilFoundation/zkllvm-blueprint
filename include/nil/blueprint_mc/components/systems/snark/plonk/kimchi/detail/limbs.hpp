@@ -67,7 +67,7 @@ namespace nil {
                 typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                     ArithmetizationType;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 constexpr static const std::size_t selector_seed = 0x0ff0;
 
@@ -178,7 +178,7 @@ namespace nil {
                 typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                     ArithmetizationType;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
                 constexpr static const std::size_t chunk_size = 64;
                 using range_check_component = components::range_check<ArithmetizationType, chunk_size,

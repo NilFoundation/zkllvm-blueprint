@@ -69,7 +69,7 @@ namespace nil {
                 typedef nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                     ArithmetizationType;
 
-                using var = nil::crypto3::zk::snark::plonk_variable<BlueprintFieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
                 using var_ec_point = typename nil::blueprint_mc::components::var_ec_point<BlueprintFieldType>;
                 using sub_component = nil::blueprint_mc::components::subtraction<ArithmetizationType, W0, W1, W2>;
                 using mul_component = nil::blueprint_mc::components::multiplication<ArithmetizationType, W0, W1, W2>;

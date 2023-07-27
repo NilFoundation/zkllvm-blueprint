@@ -68,7 +68,7 @@ namespace nil {
                 const algebra::matrix<typename CurveType::scalar_field_type::value_type, 3, 3> M;
                 const algebra::vector<typename CurveType::scalar_field_type::value_type, 3> RC;
 
-                using var = snark::plonk_variable<BlueprintFieldType>;
+                using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
             public:
                 constexpr static const std::size_t rows_amount = 22;

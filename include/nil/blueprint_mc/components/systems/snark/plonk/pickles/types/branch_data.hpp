@@ -39,7 +39,7 @@ namespace nil {
                 // https://github.com/MinaProtocol/mina/blob/develop/src/lib/mina_wire_types/pickles/pickles_composition_types.ml#L3-L15
                 template<typename FieldType>
                 struct branch_data_type {
-                    using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                    using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
 
                     /*enum proofs_verified_type {
                         N0, N1, N2

@@ -42,7 +42,7 @@ namespace nil {
             // https://github.com/MinaProtocol/mina/blob/a76a550bc2724f53be8ebaf681c3b35686a7f080/src/lib/pickles/composition_types/composition_types.ml#L206-L233
             template<typename FieldType>
             struct deferred_values_type {
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
 
                 // { plonk : 'plonk
                 // ; combined_inner_product : 'fp

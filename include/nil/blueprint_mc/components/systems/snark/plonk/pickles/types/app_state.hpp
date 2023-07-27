@@ -40,7 +40,7 @@ namespace nil {
             template<typename FieldType>
             struct app_state_type {
                 private:
-                using var = nil::crypto3::zk::snark::plonk_variable<FieldType>;
+                using var = nil::crypto3::zk::snark::plonk_variable<typename FieldType::value_type>;
                 public:
                 //max_state_size
                 std::vector<var> Zkapp_state;
