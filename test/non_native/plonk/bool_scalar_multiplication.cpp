@@ -136,13 +136,14 @@ void test_bool_scalar_multiplication(const std::vector<typename BlueprintFieldTy
         }
     // std::cout << "(" << glue_non_native<BlueprintFieldType, NonNativeFieldType>(real_y).data << ")" << std::endl;
 #endif
+        bool all_correct = true;
         if (expected_to_pass) {
             for (std::size_t i = 0; i < 4; i++) {
-                assert(expected_res[i] == var_value(assignment, real_res.output.x[i]));
-                assert(expected_res[i + 4] == var_value(assignment, real_res.output.y[i]));
+                all_correct &= expected_res[i] == var_value(assignment, real_res.output.x[i]);
+                all_correct &= expected_res[i + 4] == var_value(assignment, real_res.output.y[i]);
             }
         }
-        BOOST_REQUIRE(all_correct == must_pass);
+        BOOST_REQUIRE(all_correct == expected_to_pass);
     };
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {}, {});
