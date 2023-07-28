@@ -23,7 +23,7 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#define BOOST_TEST_MODULE blueprint_plonk_non_native_field_test
+#define BOOST_TEST_MODULE blueprint_non_native_plonk_add_mul_zkllvm_compatible_test
 
 #include <boost/test/unit_test.hpp>
 
