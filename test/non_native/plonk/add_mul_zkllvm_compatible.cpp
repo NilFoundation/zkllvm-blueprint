@@ -32,6 +32,7 @@
 
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/ed25519.hpp>
+#include <nil/crypto3/random/algebraic_engine.hpp>
 #include <nil/crypto3/algebra/random_element.hpp>
 
 #include <nil/crypto3/hash/keccak.hpp>
@@ -49,10 +50,11 @@
 
 using namespace nil;
 
-template <typename CurveType>
-void test_mul(typename CurveType::base_field_type::value_type b_val){
-    
-    using ed25519_type = crypto3::algebra::curves::ed25519;
+template <typename CurveType, typename Ed25519Type>
+void test_mul(typename CurveType::base_field_type::value_type b_val,
+        typename Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type T
+    ){
+
     using BlueprintFieldType = typename CurveType::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 1;
@@ -69,9 +71,9 @@ void test_mul(typename CurveType::base_field_type::value_type b_val){
 
     using component_type = blueprint::components::variable_base_multiplication<
         ArithmetizationType,
-        CurveType, 
-        ed25519_type, 
-        WitnessColumns, 
+        CurveType,
+        Ed25519Type,
+        WitnessColumns,
         nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
     std::array<var, 4> input_var_Xa = {
@@ -86,26 +88,37 @@ void test_mul(typename CurveType::base_field_type::value_type b_val){
     typename component_type::input_type instance_input = {
         {input_var_Xa, input_var_Xb}, b};
 
-    ed25519_type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type T = crypto3::algebra::random_element<ed25519_type::template g1_type<crypto3::algebra::curves::coordinates::affine>>();
-    ed25519_type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type P = T * b_val;
+    typename Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type P = T * b_val;
 
-    ed25519_type::base_field_type::integral_type Tx = ed25519_type::base_field_type::integral_type(T.X.data);
-    ed25519_type::base_field_type::integral_type Ty = ed25519_type::base_field_type::integral_type(T.Y.data);
-    ed25519_type::base_field_type::integral_type Px = ed25519_type::base_field_type::integral_type(P.X.data);
-    ed25519_type::base_field_type::integral_type Py = ed25519_type::base_field_type::integral_type(P.Y.data);
-    typename ed25519_type::base_field_type::integral_type base = 1;
-    typename ed25519_type::base_field_type::integral_type mask = (base << 66) - 1;
+    typename Ed25519Type::base_field_type::integral_type Tx = typename Ed25519Type::base_field_type::integral_type(T.X.data);
+    typename Ed25519Type::base_field_type::integral_type Ty = typename Ed25519Type::base_field_type::integral_type(T.Y.data);
+    typename Ed25519Type::base_field_type::integral_type Px = typename Ed25519Type::base_field_type::integral_type(P.X.data);
+    typename Ed25519Type::base_field_type::integral_type Py = typename Ed25519Type::base_field_type::integral_type(P.Y.data);
+    typename Ed25519Type::base_field_type::integral_type base = 1;
+    typename Ed25519Type::base_field_type::integral_type mask = (base << 66) - 1;
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {
         Tx & mask, (Tx >> 66) & mask, (Tx >> 132) & mask, (Tx >> 198) & mask,
         Ty & mask, (Ty >> 66) & mask, (Ty >> 132) & mask, (Ty >> 198) & mask,
         b_val};
 
-    auto result_check = [Px, Py](AssignmentType &assignment, typename component_type::result_type &real_res) {
-        typename ed25519_type::base_field_type::integral_type base = 1;
-        typename ed25519_type::base_field_type::integral_type mask = (base << 66) - 1;
+    auto result_check = [Px, Py, Tx, Ty, b_val](AssignmentType &assignment, typename component_type::result_type &real_res) {
+        typename Ed25519Type::base_field_type::integral_type base = 1;
+        typename Ed25519Type::base_field_type::integral_type mask = (base << 66) - 1;
         for (std::size_t i = 0; i < 4; i++) {
-            
+            if (
+                (typename BlueprintFieldType::value_type((Px >> 66 * i) & mask) !=
+                   var_value(assignment, real_res.output.x[i])) ||
+                (typename BlueprintFieldType::value_type((Py >> 66 * i) & mask) !=
+                   var_value(assignment, real_res.output.y[i]))
+            ) {
+                std::cerr << "test_mul failed! Point(hex form):\n";
+                std::cerr << std::hex << Tx << std::dec << '\n';
+                std::cerr << std::hex << Ty << std::dec << '\n';
+                std::cerr << "Scalar(hex form):\n";
+                std::cerr << std::hex << b_val.data << std::dec << '\n'<<'\n';
+            }
+
             assert(typename BlueprintFieldType::value_type((Px >> 66 * i) & mask) ==
                    var_value(assignment, real_res.output.x[i]));
             assert(typename BlueprintFieldType::value_type((Py >> 66 * i) & mask) ==
@@ -121,7 +134,7 @@ void test_mul(typename CurveType::base_field_type::value_type b_val){
 
 template <typename CurveType>
 void test_mul_per_bit(){
-    
+
     using ed25519_type = crypto3::algebra::curves::ed25519;
     using BlueprintFieldType = typename CurveType::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
@@ -139,9 +152,9 @@ void test_mul_per_bit(){
 
     using component_type = blueprint::components::variable_base_multiplication_per_bit<
         ArithmetizationType,
-        CurveType, 
-        ed25519_type, 
-        WitnessColumns, 
+        CurveType,
+        ed25519_type,
+        WitnessColumns,
         nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
     std::array<var, 4> input_var_Xa = {
@@ -162,8 +175,8 @@ void test_mul_per_bit(){
 
     typename component_type::input_type instance_input
         = {
-        {input_var_Xa, input_var_Xb}, 
-        {input_var_Ya, input_var_Yb}, 
+        {input_var_Xa, input_var_Xb},
+        {input_var_Ya, input_var_Yb},
         b};
 
     ed25519_type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type T = crypto3::algebra::random_element<ed25519_type::template g1_type<crypto3::algebra::curves::coordinates::affine>>();
@@ -194,9 +207,9 @@ void test_mul_per_bit(){
         typename ed25519_type::base_field_type::integral_type base = 1;
         typename ed25519_type::base_field_type::integral_type mask = (base << 66) - 1;
         for (std::size_t i = 0; i < 4; i++) {
-            assert(typename BlueprintFieldType::value_type((Py >> 66 * i) & mask) 
+            assert(typename BlueprintFieldType::value_type((Py >> 66 * i) & mask)
                 == var_value(assignment, real_res.output.y[i]));
-            assert(typename BlueprintFieldType::value_type((Py >> 66 * i) & mask) 
+            assert(typename BlueprintFieldType::value_type((Py >> 66 * i) & mask)
                 == var_value(assignment, real_res.output.y[i]));
         }
     };
@@ -209,7 +222,7 @@ void test_mul_per_bit(){
 
 template <typename CurveType>
 void test_doubling(){
-    
+
     using ed25519_type = crypto3::algebra::curves::ed25519;
     using BlueprintFieldType = typename CurveType::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
@@ -226,7 +239,7 @@ void test_doubling(){
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::doubling<ArithmetizationType,
-        CurveType, ed25519_type, WitnessColumns, 
+        CurveType, ed25519_type, WitnessColumns,
         nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
     std::array<var, 4> input_var_Xa = {
@@ -256,7 +269,7 @@ void test_doubling(){
         typename ed25519_type::base_field_type::integral_type base = 1;
         typename ed25519_type::base_field_type::integral_type mask = (base << 66) - 1;
         for (std::size_t i = 0; i < 4; i++) {
-            assert(typename BlueprintFieldType::value_type((Px >> 66 * i) & mask) == 
+            assert(typename BlueprintFieldType::value_type((Px >> 66 * i) & mask) ==
                    var_value(assignment, real_res.output.x[i]));
             assert(typename BlueprintFieldType::value_type((Py >> 66 * i) & mask) ==
                    var_value(assignment, real_res.output.y[i]));
@@ -271,7 +284,7 @@ void test_doubling(){
 
 template <typename CurveType>
 void test_complete_addition(){
-    
+
     using ed25519_type = crypto3::algebra::curves::ed25519;
     using BlueprintFieldType = typename CurveType::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
@@ -288,7 +301,7 @@ void test_complete_addition(){
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::complete_addition<ArithmetizationType,
-        CurveType, ed25519_type, WitnessColumns, 
+        CurveType, ed25519_type, WitnessColumns,
         nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
     std::array<var, 4> input_var_Xa = {
@@ -359,25 +372,46 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_mul_per_bit) {
     test_mul_per_bit<typename crypto3::algebra::curves::pallas>();
 }
 
+constexpr static const std::size_t random_tests_amount = 10;
+
 BOOST_AUTO_TEST_CASE(blueprint_non_native_mul_1) {
     using CurveType = typename crypto3::algebra::curves::pallas;
-    typename CurveType::base_field_type::value_type b_val = 0;
-    test_mul<CurveType>(b_val);
-}
+    using Ed25519Type = typename crypto3::algebra::curves::ed25519;
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_mul_2) {
-    using CurveType = typename crypto3::algebra::curves::pallas;
-    typename CurveType::base_field_type::value_type b_val = typename CurveType::base_field_type::value_type(98572345);
-    test_mul<CurveType>(b_val);
-}
+    typename CurveType::base_field_type::integral_type scal_integral;
+    typename CurveType::base_field_type::value_type scal_rand;
+    typename CurveType::base_field_type::value_type scal_max =
+        0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed_cppui256;
+    typename CurveType::base_field_type::value_type scal_zero = 0;
 
-BOOST_AUTO_TEST_CASE(blueprint_non_native_mul_3) {
-    using CurveType = typename crypto3::algebra::curves::pallas;
-    typename CurveType::base_field_type::value_type b_val = 
-        typename CurveType::base_field_type::value_type(
-            0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed);
+    typename Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>
+        ::value_type point_zero = {0, 1};
 
-    test_mul<CurveType>(b_val);
+
+    nil::crypto3::random::algebraic_engine<
+        Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>>
+            random_point_generator;
+    boost::random::mt19937 seed_seq_1;
+    random_point_generator.seed(seed_seq_1);
+
+    nil::crypto3::random::algebraic_engine<Ed25519Type::scalar_field_type> random_scalar_generator;
+    boost::random::mt19937 seed_seq_2;
+    random_scalar_generator.seed(seed_seq_2);
+
+    scal_integral = typename CurveType::base_field_type::integral_type((random_scalar_generator()).data);
+    scal_rand = typename CurveType::base_field_type::value_type (scal_integral);
+
+    test_mul<CurveType, Ed25519Type>(scal_zero, point_zero);
+    test_mul<CurveType, Ed25519Type>(scal_max, point_zero);
+    test_mul<CurveType, Ed25519Type>(scal_rand, point_zero);
+    test_mul<CurveType, Ed25519Type>(scal_zero, random_point_generator());
+    test_mul<CurveType, Ed25519Type>(scal_max, random_point_generator());
+
+    for (std::size_t i = 0; i < random_tests_amount; i++) {
+        scal_integral = typename CurveType::base_field_type::integral_type((random_scalar_generator()).data);
+        scal_rand = typename CurveType::base_field_type::value_type (scal_integral);
+    test_mul<CurveType, Ed25519Type>(scal_rand, random_point_generator());
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

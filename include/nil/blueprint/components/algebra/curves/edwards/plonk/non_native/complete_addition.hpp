@@ -37,7 +37,7 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            template<typename ArithmetizationType, typename CurveType, typename Ed25519Type, 
+            template<typename ArithmetizationType, typename CurveType, typename Ed25519Type,
                 std::uint32_t WitnessesAmount, typename NonNativePolicyType>
             class complete_addition;
 
@@ -45,7 +45,7 @@ namespace nil {
                      typename ArithmetizationParams, typename CurveType, typename Ed25519Type>
             class complete_addition<
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    CurveType, 
+                    CurveType,
                     Ed25519Type,
                     9,
                     basic_non_native_policy<BlueprintFieldType>>:
@@ -96,9 +96,9 @@ namespace nil {
                     var_ec_point output;
 
                     result_type(const complete_addition &component, std::uint32_t start_row_index) {
-                        output.x = {var(component.W(0), start_row_index, false), 
+                        output.x = {var(component.W(0), start_row_index, false),
                                     var(component.W(1), start_row_index, false),
-                                    var(component.W(2), start_row_index, false), 
+                                    var(component.W(2), start_row_index, false),
                                     var(component.W(3), start_row_index, false)};
                         output.y = {var(component.W(0), start_row_index + non_native_range_component::rows_amount, false),
                                     var(component.W(1), start_row_index + non_native_range_component::rows_amount, false),
@@ -131,7 +131,7 @@ namespace nil {
                 typename crypto3::algebra::curves::ed25519,
                 9,
                 basic_non_native_policy<BlueprintFieldType>>;
-            
+
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
             typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                 generate_assignments(
@@ -144,7 +144,7 @@ namespace nil {
 
                     typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
-                    
+
                     using var = typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::var;
 
                     using Ed25519Type = typename crypto3::algebra::curves::ed25519;
@@ -161,47 +161,47 @@ namespace nil {
                     non_native_range_component non_native_range_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
+
                     multiplication_component multiplication_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
+
                     addition_component addition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
+
                     subtraction_component subtraction_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
-                    
+
+
 
                     std::size_t row = start_row_index;
                     typename Ed25519Type::base_field_type::integral_type base = 1;
                     std::array<var, 4> T_x = instance_input.T.x;
                     std::array<var, 4> T_y = instance_input.T.y;
                     std::array<typename BlueprintFieldType::value_type, 4> T_x_array = {
-                        var_value(assignment, instance_input.T.x[0]), 
+                        var_value(assignment, instance_input.T.x[0]),
                         var_value(assignment, instance_input.T.x[1]),
-                        var_value(assignment, instance_input.T.x[2]), 
+                        var_value(assignment, instance_input.T.x[2]),
                         var_value(assignment, instance_input.T.x[3])};
                     std::array<typename BlueprintFieldType::value_type, 4> T_y_array = {
-                        var_value(assignment, instance_input.T.y[0]), 
+                        var_value(assignment, instance_input.T.y[0]),
                         var_value(assignment, instance_input.T.y[1]),
-                        var_value(assignment, instance_input.T.y[2]), 
+                        var_value(assignment, instance_input.T.y[2]),
                         var_value(assignment, instance_input.T.y[3])};
 
                     std::array<var, 4> R_x = instance_input.R.x;
                     std::array<var, 4> R_y = instance_input.R.y;
                     std::array<typename BlueprintFieldType::value_type, 4> R_x_array = {
-                        var_value(assignment, instance_input.R.x[0]), 
+                        var_value(assignment, instance_input.R.x[0]),
                         var_value(assignment, instance_input.R.x[1]),
-                        var_value(assignment, instance_input.R.x[2]), 
+                        var_value(assignment, instance_input.R.x[2]),
                         var_value(assignment, instance_input.R.x[3])};
                     std::array<typename BlueprintFieldType::value_type, 4> R_y_array = {
-                        var_value(assignment, instance_input.R.y[0]), 
+                        var_value(assignment, instance_input.R.y[0]),
                         var_value(assignment, instance_input.R.y[1]),
-                        var_value(assignment, instance_input.R.y[2]), 
+                        var_value(assignment, instance_input.R.y[2]),
                         var_value(assignment, instance_input.R.y[3])};
 
                     typename Ed25519Type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type T(
@@ -244,12 +244,12 @@ namespace nil {
                     assignment.witness(component.W(2), row) = x3[2];
                     assignment.witness(component.W(3), row) = x3[3];
                     std::array<var, 4> P_x = {
-                        var(component.W(0), row), 
-                        var(component.W(1), row), 
-                        var(component.W(2), row), 
+                        var(component.W(0), row),
+                        var(component.W(1), row),
+                        var(component.W(2), row),
                         var(component.W(3), row)};
 
-                    generate_assignments(non_native_range_instance, assignment, 
+                    generate_assignments(non_native_range_instance, assignment,
                         typename non_native_range_component::input_type({P_x}), row);
                     row += non_native_range_component::rows_amount;
 
@@ -258,17 +258,17 @@ namespace nil {
                     assignment.witness(component.W(2), row) = y3[2];
                     assignment.witness(component.W(3), row) = y3[3];
                     std::array<var, 4> P_y = {
-                        var(component.W(0), row), 
-                        var(component.W(1), row), 
-                        var(component.W(2), row), 
+                        var(component.W(0), row),
+                        var(component.W(1), row),
+                        var(component.W(2), row),
                         var(component.W(3), row)};
 
-                    generate_assignments(non_native_range_instance, assignment, 
+                    generate_assignments(non_native_range_instance, assignment,
                         typename non_native_range_component::input_type({P_y}), row);
                     row += non_native_range_component::rows_amount;
 
                     typename multiplication_component::result_type t0 = generate_assignments(
-                        multiplication_instance, assignment, 
+                        multiplication_instance, assignment,
                         typename multiplication_component::input_type({T_x, R_y}), row);
                     row += multiplication_component::rows_amount;
 
@@ -350,12 +350,12 @@ namespace nil {
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                     const std::uint32_t start_row_index) {
-                    
+
                     using non_native_policy_type = basic_non_native_policy<BlueprintFieldType>;
 
                     typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
-                    
+
                     using var = typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::var;
 
                     using Ed25519Type = typename crypto3::algebra::curves::ed25519;
@@ -372,37 +372,37 @@ namespace nil {
                     non_native_range_component non_native_range_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
+
                     multiplication_component multiplication_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
+
                     addition_component addition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
-                    
+
                     subtraction_component subtraction_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
 
                     std::size_t row = start_row_index;
                     std::array<var, 4> P_x = {
-                        var(component.W(0), row), 
-                        var(component.W(1), row), 
-                        var(component.W(2), row), 
+                        var(component.W(0), row),
+                        var(component.W(1), row),
+                        var(component.W(2), row),
                         var(component.W(3), row)};
 
-                    generate_circuit(non_native_range_instance, bp, assignment, 
+                    generate_circuit(non_native_range_instance, bp, assignment,
                         typename non_native_range_component::input_type({P_x}), row);
                     row += non_native_range_component::rows_amount;
 
                     std::array<var, 4> P_y = {
-                        var(component.W(0), row), 
-                        var(component.W(1), row), 
-                        var(component.W(2), row), 
+                        var(component.W(0), row),
+                        var(component.W(1), row),
+                        var(component.W(2), row),
                         var(component.W(3), row)};
 
-                    generate_circuit(non_native_range_instance, bp, assignment, 
+                    generate_circuit(non_native_range_instance, bp, assignment,
                         typename non_native_range_component::input_type({P_y}), row);
                     row += non_native_range_component::rows_amount;
 
@@ -412,7 +412,7 @@ namespace nil {
                     std::array<var, 4> T_y = instance_input.T.y;
 
                     typename multiplication_component::result_type t0 = generate_circuit(
-                        multiplication_instance, bp, assignment, 
+                        multiplication_instance, bp, assignment,
                         typename multiplication_component::input_type({T_x, R_y}), row);
                     row += multiplication_component::rows_amount;
 
@@ -479,16 +479,6 @@ namespace nil {
                     generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                     return typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
-                }
-
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-                void generate_gates(
-                    const plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
-                    const std::size_t first_selector_index) {
-        
                 }
 
 

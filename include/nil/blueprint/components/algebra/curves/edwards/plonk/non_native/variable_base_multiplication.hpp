@@ -45,7 +45,7 @@ namespace nil {
             }   // namespace detail
             using detail::bit_shift_mode;
 
-            template<typename ArithmetizationType, typename CurveType, typename Ed25519Type, 
+            template<typename ArithmetizationType, typename CurveType, typename Ed25519Type,
                 std::uint32_t WitnessesAmount, typename NonNativePolicyType>
             class variable_base_multiplication;
 
@@ -53,7 +53,7 @@ namespace nil {
                      typename ArithmetizationParams, typename CurveType, typename Ed25519Type>
             class variable_base_multiplication<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    CurveType, 
+                    CurveType,
                     Ed25519Type,
                     9,
                     basic_non_native_policy<BlueprintFieldType>>:
@@ -83,13 +83,13 @@ namespace nil {
                 const bool_scalar_mul_component bool_scalar_mul_subcomponent;
 
                 const std::size_t rows_amount;
-                
+
                 constexpr static const std::size_t rows(
                     const decomposition_component_type& decomposition_subcomponent,
                     const mul_per_bit_component& mul_per_bit_subcomponent,
                     const bool_scalar_mul_component& bool_scalar_mul_subcomponent
                     ) {
-                        return decomposition_subcomponent.rows_amount 
+                        return decomposition_subcomponent.rows_amount
                                 + mul_per_bit_subcomponent.rows_amount * 252
                                 + bool_scalar_mul_subcomponent.rows_amount;
                 }
@@ -115,17 +115,17 @@ namespace nil {
 
                     result_type(const variable_base_multiplication &component, std::uint32_t start_row_index) {
                         using mul_per_bit_component =
-                            components::variable_base_multiplication_per_bit<ArithmetizationType, 
+                            components::variable_base_multiplication_per_bit<ArithmetizationType,
                                 CurveType, Ed25519Type, 9, non_native_policy_type>;
                         mul_per_bit_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {});
 
                         auto final_mul_per_bit_res = typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
-                            component_instance, start_row_index + component.rows_amount - component.mul_per_bit_subcomponent.rows_amount);   
+                            component_instance, start_row_index + component.rows_amount - component.mul_per_bit_subcomponent.rows_amount);
 
 
-                        output.x = {final_mul_per_bit_res.output.x[0], 
+                        output.x = {final_mul_per_bit_res.output.x[0],
                                     final_mul_per_bit_res.output.x[1],
-                                    final_mul_per_bit_res.output.x[2], 
+                                    final_mul_per_bit_res.output.x[2],
                                     final_mul_per_bit_res.output.x[3]};
                         output.y = {final_mul_per_bit_res.output.y[0],
                                     final_mul_per_bit_res.output.y[1],
@@ -141,7 +141,7 @@ namespace nil {
                     mul_per_bit_subcomponent(witness),
                     bool_scalar_mul_subcomponent(witness),
                     rows_amount(rows(decomposition_subcomponent, mul_per_bit_subcomponent, bool_scalar_mul_subcomponent)) {};
-                
+
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 variable_base_multiplication(WitnessContainerType witness, ConstantContainerType constant,
@@ -167,7 +167,7 @@ namespace nil {
                                                    bits_amount, bit_composition_mode::MSB),
                         mul_per_bit_subcomponent(witnesses, constants, public_inputs),
                         bool_scalar_mul_subcomponent(witnesses, constants, public_inputs),
-                        rows_amount(rows(decomposition_subcomponent, mul_per_bit_subcomponent, bool_scalar_mul_subcomponent)) {};                
+                        rows_amount(rows(decomposition_subcomponent, mul_per_bit_subcomponent, bool_scalar_mul_subcomponent)) {};
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
@@ -192,42 +192,38 @@ namespace nil {
                     typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
 
-                    using mul_per_bit_component = variable_base_multiplication_per_bit<
-                        ArithmetizationType, CurveType, Ed25519Type, 9, non_native_policy_type>;
+                    using component_type = plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>;
 
-                    using decomposition_component_type = typename plonk_ed25519_var_base_mul
-                        <BlueprintFieldType, ArithmetizationParams, CurveType>::decomposition_component_type;
-
-                    using bool_scalar_mul_component = bool_scalar_multiplication<
-                        ArithmetizationType, Ed25519Type, 9, non_native_policy_type>;
-                    
+                    using mul_per_bit_component = typename component_type::mul_per_bit_component;
+                    using decomposition_component_type = typename component_type::decomposition_component_type;
+                    using bool_scalar_mul_component = typename component_type::bool_scalar_mul_component;
 
                     std::size_t row = start_row_index;
                     std::array<var, 4> T_x = instance_input.T.x;
                     std::array<var, 4> T_y = instance_input.T.y;
 
                     typename decomposition_component_type::result_type bits =
-                        generate_assignments(component.decomposition_subcomponent, 
+                        generate_assignments(component.decomposition_subcomponent,
                             assignment, {instance_input.k}, row);
                     row += component.decomposition_subcomponent.rows_amount;
 
-                    typename bool_scalar_mul_component::result_type bool_mul_res = 
+                    typename bool_scalar_mul_component::result_type bool_mul_res =
                         generate_assignments(component.bool_scalar_mul_subcomponent, assignment,
                         typename bool_scalar_mul_component::input_type({{T_x, T_y}, bits.output[0]}), row);
                     row += component.bool_scalar_mul_subcomponent.rows_amount;
 
-                    typename mul_per_bit_component::result_type res_per_bit = 
+                    typename mul_per_bit_component::result_type res_per_bit =
                         generate_assignments(component.mul_per_bit_subcomponent, assignment,
-                        typename mul_per_bit_component::input_type({{T_x, T_y}, 
+                        typename mul_per_bit_component::input_type({{T_x, T_y},
                             {bool_mul_res.output.x, bool_mul_res.output.y}, bits.output[1]}),
                         row);
                     row += component.mul_per_bit_subcomponent.rows_amount;
 
                     for (std::size_t i = 2; i < 253; i++) {
                         res_per_bit = generate_assignments(component.mul_per_bit_subcomponent, assignment,
-                        typename mul_per_bit_component::input_type({{T_x, T_y}, 
+                        typename mul_per_bit_component::input_type({{T_x, T_y},
                             {res_per_bit.output.x, res_per_bit.output.y}, bits.output[i]}), row);
-                        row += component.mul_per_bit_subcomponent.rows_amount;                    
+                        row += component.mul_per_bit_subcomponent.rows_amount;
                     }
 
                     return typename plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
@@ -248,15 +244,12 @@ namespace nil {
                     typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
                         ArithmetizationType;
 
-                    using mul_per_bit_component = variable_base_multiplication_per_bit<
-                        ArithmetizationType, CurveType, Ed25519Type, 9, non_native_policy_type>;
+                    using component_type = plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>;
 
-                    using decomposition_component_type = typename plonk_ed25519_var_base_mul
-                        <BlueprintFieldType, ArithmetizationParams, CurveType>::decomposition_component_type;
+                    using mul_per_bit_component = typename component_type::mul_per_bit_component;
+                    using decomposition_component_type = typename component_type::decomposition_component_type;
+                    using bool_scalar_mul_component = typename component_type::bool_scalar_mul_component;
 
-                    using bool_scalar_mul_component = bool_scalar_multiplication<
-                        ArithmetizationType, Ed25519Type, 9, non_native_policy_type>;
-                    
 
                     std::size_t row = start_row_index;
                     std::array<var, 4> T_x = instance_input.T.x;
@@ -267,45 +260,26 @@ namespace nil {
                                      row);
                     row += component.decomposition_subcomponent.rows_amount;
 
-                    typename bool_scalar_mul_component::result_type bool_mul_res = 
+                    typename bool_scalar_mul_component::result_type bool_mul_res =
                         generate_circuit(component.bool_scalar_mul_subcomponent, bp, assignment,
                         typename bool_scalar_mul_component::input_type({{T_x, T_y}, bits.output[0]}), row);
                     row += component.bool_scalar_mul_subcomponent.rows_amount;
 
-                    typename mul_per_bit_component::result_type res_per_bit = 
+                    typename mul_per_bit_component::result_type res_per_bit =
                         generate_circuit(component.mul_per_bit_subcomponent, bp, assignment,
-                        typename mul_per_bit_component::input_type({{T_x, T_y}, 
+                        typename mul_per_bit_component::input_type({{T_x, T_y},
                             {bool_mul_res.output.x, bool_mul_res.output.y}, bits.output[1]}),
                         row);
                     row += component.mul_per_bit_subcomponent.rows_amount;
 
                     for (std::size_t i = 2; i < 253; i++) {
                         res_per_bit = generate_circuit(component.mul_per_bit_subcomponent, bp, assignment,
-                        typename mul_per_bit_component::input_type({{T_x, T_y}, 
+                        typename mul_per_bit_component::input_type({{T_x, T_y},
                             {res_per_bit.output.x, res_per_bit.output.y}, bits.output[i]}), row);
-                        row += component.mul_per_bit_subcomponent.rows_amount;                    
+                        row += component.mul_per_bit_subcomponent.rows_amount;
                     }
 
                     return typename plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
-                }
-
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-                void generate_gates(
-                    const plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
-                    const std::size_t first_selector_index) {
-        
-                }
-
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-                void generate_copy_constraints(
-                    const plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_ed25519_var_base_mul<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
-                    const std::uint32_t start_row_index) {
                 }
 
         }    // namespace components

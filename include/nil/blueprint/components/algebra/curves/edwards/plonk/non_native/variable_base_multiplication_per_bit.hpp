@@ -39,7 +39,7 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            template<typename ArithmetizationType, typename CurveType, typename Ed25519Type, 
+            template<typename ArithmetizationType, typename CurveType, typename Ed25519Type,
                 std::uint32_t WitnessesAmount, typename NonNativePolicyType>
             class variable_base_multiplication_per_bit;
 
@@ -47,7 +47,7 @@ namespace nil {
                      typename ArithmetizationParams, typename CurveType, typename Ed25519Type>
             class variable_base_multiplication_per_bit<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    CurveType, 
+                    CurveType,
                     Ed25519Type,
                     9,
                     basic_non_native_policy<BlueprintFieldType>>:
@@ -106,16 +106,16 @@ namespace nil {
                         complete_addition_component component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {});
 
                         auto final_addition_res = typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
-                            component_instance, start_row_index + rows_amount - complete_addition_component::rows_amount);  
+                            component_instance, start_row_index + rows_amount - complete_addition_component::rows_amount);
 
-                        output.x = {final_addition_res.output.x[0], 
+                        output.x = {final_addition_res.output.x[0],
                                     final_addition_res.output.x[1],
-                                    final_addition_res.output.x[2], 
+                                    final_addition_res.output.x[2],
                                     final_addition_res.output.x[3]};
                         output.y = {final_addition_res.output.y[0],
                                     final_addition_res.output.y[1],
                                     final_addition_res.output.y[2],
-                                    final_addition_res.output.y[3]};  
+                                    final_addition_res.output.y[3]};
                     }
                 };
 
@@ -167,15 +167,15 @@ namespace nil {
 
                     using bool_scalar_multiplication_component = bool_scalar_multiplication<
                         ArithmetizationType, Ed25519Type, 9, non_native_policy_type>;
-                    
+
                     doubling_component doubling_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
-                    
+
                     complete_addition_component complete_addition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
-                    
+
                     bool_scalar_multiplication_component bool_scalar_multiplication_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
@@ -186,17 +186,17 @@ namespace nil {
                     std::array<var, 4> R_x = instance_input.R.x;
                     std::array<var, 4> R_y = instance_input.R.y;
 
-                    typename bool_scalar_multiplication_component::result_type bool_mul_res = 
+                    typename bool_scalar_multiplication_component::result_type bool_mul_res =
                         generate_assignments(bool_scalar_multiplication_instance, assignment,
                         typename bool_scalar_multiplication_component::input_type({{T_x, T_y}, instance_input.k}), row);
                     row += bool_scalar_multiplication_component::rows_amount;
 
-                    typename doubling_component::result_type doubling_res = 
+                    typename doubling_component::result_type doubling_res =
                         generate_assignments(doubling_instance, assignment,
                         typename doubling_component::input_type({R_x, R_y}), row);
                     row += doubling_component::rows_amount;
 
-                    typename complete_addition_component::result_type add_res = 
+                    typename complete_addition_component::result_type add_res =
                         generate_assignments(complete_addition_instance, assignment,
                         typename complete_addition_component::input_type(
                             {{doubling_res.output.x, doubling_res.output.y},
@@ -230,15 +230,15 @@ namespace nil {
 
                     using bool_scalar_multiplication_component = bool_scalar_multiplication<
                         ArithmetizationType, Ed25519Type, 9, non_native_policy_type>;
-                    
+
                     doubling_component doubling_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
-                    
+
                     complete_addition_component complete_addition_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{component.C(0)},{});
-                    
+
                     bool_scalar_multiplication_component bool_scalar_multiplication_instance(
                         {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4),
                             component.W(5), component.W(6), component.W(7), component.W(8)},{},{});
@@ -249,46 +249,25 @@ namespace nil {
                     std::array<var, 4> R_x = instance_input.R.x;
                     std::array<var, 4> R_y = instance_input.R.y;
 
-                    typename bool_scalar_multiplication_component::result_type bool_mul_res = 
+                    typename bool_scalar_multiplication_component::result_type bool_mul_res =
                         generate_circuit(bool_scalar_multiplication_instance, bp, assignment,
                         typename bool_scalar_multiplication_component::input_type({{T_x, T_y}, instance_input.k}), row);
                     row += bool_scalar_multiplication_component::rows_amount;
 
-                    typename doubling_component::result_type doubling_res = 
+                    typename doubling_component::result_type doubling_res =
                         generate_circuit(doubling_instance, bp, assignment,
                         typename doubling_component::input_type({R_x, R_y}), row);
                     row += doubling_component::rows_amount;
 
-                    typename complete_addition_component::result_type add_res = 
+                    typename complete_addition_component::result_type add_res =
                         generate_circuit(complete_addition_instance, bp, assignment,
                         typename complete_addition_component::input_type(
                             {{doubling_res.output.x, doubling_res.output.y},
                              {bool_mul_res.output.x, bool_mul_res.output.y}}), row);
                     row += complete_addition_component::rows_amount;
 
-                    generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
-
                     return typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
 
-                }
-
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-                void generate_gates(
-                    const plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
-                    const std::size_t first_selector_index) {
-        
-                }
-
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-                void generate_copy_constraints(
-                    const plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_ed25519_mul_per_bit<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
-                    const std::uint32_t start_row_index) {
                 }
 
         }    // namespace components
