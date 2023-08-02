@@ -305,10 +305,6 @@ namespace nil {
                     typename Ed25519Type::base_field_type::integral_type d =
                         typename Ed25519Type::base_field_type::integral_type(
                             0x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3_cppui256);
-                    assignment.constant(component.C(0), row + 4) = d & mask;
-                    assignment.constant(component.C(0), row + 5) = (d >> 66) & mask;
-                    assignment.constant(component.C(0), row + 6) = (d >> 132) & mask;
-                    assignment.constant(component.C(0), row + 7) = (d >> 198) & mask;
                     std::array<var, 4> d_var_array = {var(component.C(0), row + 4, false, var::column_type::constant),
                                                       var(component.C(0), row + 5, false, var::column_type::constant),
                                                       var(component.C(0), row + 6, false, var::column_type::constant),
@@ -476,6 +472,7 @@ namespace nil {
                         typename subtraction_component::input_type({P_y, k2.output}), row);
                     row += subtraction_component::rows_amount;
 
+                    generate_constants(component, bp, assignment, instance_input, start_row_index);
                     generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                     return typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, start_row_index);
@@ -511,6 +508,55 @@ namespace nil {
                         bp.add_copy_constraint({{component.W(i), (std::int32_t)(row + 2), false},
                                                 {component.W(i), (std::int32_t)(start_row_index + component_type::rows_amount - 2), false}});
                     }
+                }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
+            void generate_constants(
+                    const plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
+                    const std::uint32_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+                    using non_native_policy_type = basic_non_native_policy<BlueprintFieldType>;
+
+                    typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                        ArithmetizationType;
+
+                    using var = typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::var;
+
+                    using Ed25519Type = typename crypto3::algebra::curves::ed25519;
+
+                    using non_native_range_component = components::range<
+                        ArithmetizationType, Ed25519Type::base_field_type, 9, non_native_policy_type>;
+                    using multiplication_component = multiplication<
+                        ArithmetizationType, Ed25519Type::base_field_type, 9, non_native_policy_type>;
+                    using addition_component = addition<
+                        ArithmetizationType, Ed25519Type::base_field_type, 9, non_native_policy_type>;
+                    using subtraction_component = subtraction<
+                        ArithmetizationType, Ed25519Type::base_field_type, 9, non_native_policy_type>;
+
+                    row += non_native_range_component::rows_amount;
+                    row += non_native_range_component::rows_amount;
+                    row += multiplication_component::rows_amount;
+                    row += multiplication_component::rows_amount;
+                    row += multiplication_component::rows_amount;
+                    row += multiplication_component::rows_amount;
+                    row += addition_component::rows_amount;
+                    row += addition_component::rows_amount;
+                    row += multiplication_component::rows_amount;
+
+                    typename Ed25519Type::base_field_type::integral_type base = 1;
+                    typename Ed25519Type::base_field_type::integral_type mask = (base << 66) - 1;
+
+                    typename Ed25519Type::base_field_type::integral_type d =
+                        typename Ed25519Type::base_field_type::integral_type(
+                            0x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3_cppui256);
+                    assignment.constant(component.C(0), row + 4) = d & mask;
+                    assignment.constant(component.C(0), row + 5) = (d >> 66) & mask;
+                    assignment.constant(component.C(0), row + 6) = (d >> 132) & mask;
+                    assignment.constant(component.C(0), row + 7) = (d >> 198) & mask;
                 }
 
         }    // namespace components
