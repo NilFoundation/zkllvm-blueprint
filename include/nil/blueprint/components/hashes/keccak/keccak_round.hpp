@@ -29,7 +29,7 @@
 
 #include <vector>
 #include <array>
-#include <queue>
+#include <iostream>
 
 
 namespace nil {
@@ -49,7 +49,7 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
-                std::size_t calculate_normalize_chunk_size(std::size_t num_rows, std::size_t base) {
+                std::size_t calculate_chunk_size(std::size_t num_rows, std::size_t base) {
                     std::size_t chunk_size = 0;
                     std::size_t power = base;
                     while (power < num_rows) {
@@ -58,20 +58,23 @@ namespace nil {
                     }
                     return chunk_size * 3;
                 }
-                std::size_t calculate_chi_chunk_size(std::size_t num_rows) {
-                    std::size_t chunk_size = 0;
-                    std::size_t power = 2;
-                    while (power < num_rows) {
-                        ++chunk_size;
-                        power *= 2;
-                    }
-                    return chunk_size * 3;
+                std::size_t calculate_num_chunks(std::size_t base = 0) {
+                    std::size_t chunk_size = base == 3 ? normalize3_chunk_size
+                                            : base == 4 ? normalize4_chunk_size
+                                            : base == 6 ? normalize6_chunk_size
+                                            : chi_chunk_size;
+                    std::size_t res = 192 / chunk_size + bool(192 % chunk_size);
+                    return res;
                 }
-                std::size_t calculate_num_chunks(std::size_t chunk_size) {
-                    return word_size / chunk_size + bool(word_size % chunk_size);
+                std::size_t calculate_num_cells(std::size_t base = 0) {
+                    std::size_t res = base == 3 ? normalize3_num_chunks * 2 + 2 + 2
+                                    : base == 4 ? normalize4_num_chunks * 2 + 3 + 2
+                                    : base == 6 ? normalize6_num_chunks * 2 + 5 + 2
+                                    : chi_chunk_size * 2 + 5;
+                    return res;
                 }
 
-                std::size_t rows() const {
+                std::size_t calculate_rows() const {
                     std::size_t num_cells = 17 * xor2_cells +           // inner_state ^ chunk
                                             5 * xor5_cells +            // theta
                                             5 * rotate_cells +          // theta
@@ -80,6 +83,18 @@ namespace nil {
                                             25 * chi_cells +            // chi
                                             xor2_cells;                 // iota
                     return num_cells / WitnessesAmount + bool(num_cells % WitnessesAmount);
+                }
+                std::vector<std::size_t> calculate_gates_rows() const {
+                    std::vector<std::size_t> res;
+                    auto cur_selector = gates_configuration[0];
+                    res.push_back(cur_selector);
+                    for (std::size_t i = 1; i < gates_configuration.size(); ++i) {
+                        if (gates_configuration[i] != cur_selector) {
+                            cur_selector = gates_configuration[i];
+                            res.push_back(cur_selector);
+                        }
+                    }
+                    return res;
                 }
                 std::size_t gates() const {
                     std::size_t res = 1;
@@ -121,17 +136,21 @@ namespace nil {
                                   std::pair<std::size_t, std::size_t> copy_from_) {
                             last_coordinate = coordinates(last_coordinate_);
                             for (std::size_t i = 0; i < copy_to_.size(); ++i) {
-                                copy_to[i] = coordinates(copy_to_[i]);
+                                copy_to.push_back(coordinates(copy_to_[i]));
                             }
                             for (std::size_t i = 0; i < constraints_.size(); ++i) {
-                                for (std::size_t j = 0; j < constraints[i].size(); ++j) {
-                                    constraints[i][j] = coordinates(constraints_[i][j]);
+                                std::vector<coordinates> constr;
+                                for (std::size_t j = 0; j < constraints_[i].size(); ++j) {
+                                    constr.push_back(coordinates(constraints_[i][j]));
                                 }
+                                constraints.push_back(constr);
                             }
                             for (std::size_t i = 0; i < lookups_.size(); ++i) {
-                                for (std::size_t j = 0; j < lookups[i].size(); ++j) {
-                                    lookups[i][j] = coordinates(lookups_[i][j]);
+                                std::vector<coordinates> lookup;
+                                for (std::size_t j = 0; j < lookups_[i].size(); ++j) {
+                                    lookup.push_back(coordinates(lookups_[i][j]));
                                 }
+                                lookups.push_back(lookup);
                             }
                             copy_from = coordinates(copy_from_);
                         };
@@ -160,6 +179,17 @@ namespace nil {
                 const std::size_t rotate_cells = 22;
                 const std::size_t chi_cells;
 
+                const std::size_t rows_amount;
+
+                // full configuration is precalculated, then used in other functions
+                std::array<configuration, 102> full_configuration;
+                // number represents relative selector index for each constraint
+                std::vector<std::size_t> gates_configuration;
+                std::vector<std::size_t> lookup_gates_configuration;
+                std::vector<std::size_t> gates_rows;
+
+                const std::size_t gates_amount;
+
                 constexpr static const int r[5][5] = {{0, 3, 186, 84, 81},
                                                     {108, 132, 18, 165, 60},
                                                     {9, 30, 129, 75, 117},
@@ -168,7 +198,7 @@ namespace nil {
 
                 // all words in sparse form
                 const std::size_t word_size = 192;
-                const value_type sparse_3 = 0x6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB_cppui192;
+                const value_type sparse_3 = 0x6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB_cppui255;
 
                 const std::size_t limit_permutation_column = 7;
 
@@ -178,15 +208,6 @@ namespace nil {
                                     62, 6, 43, 15, 61, 
                                     28, 55, 25, 21, 56, 
                                     27, 20, 39, 8, 14};
-
-                // full configuration is precalculated, then used in other functions
-                std::array<configuration, 102> full_configuration;
-                // number represents relative selector index for each constraint
-                std::vector<std::size_t> gates_configuration;
-                std::vector<std::size_t> lookup_gates_configuration;
-
-                const std::size_t rows_amount;
-                const std::size_t gates_amount;
 
                 struct input_type {
                     std::array<var, 25> inner_state;
@@ -212,9 +233,9 @@ namespace nil {
                     integral_type result = 0;
                     integral_type value = integral_value;
                     integral_type power = 1;
-                    for (std::size_t i = 0; i < 64; ++i) {
+                    while (value > 0) {
                         result += (value & 1) * power;
-                        power *= 8;
+                        power <<= 3;
                         value >>= 3;
                     }
                     return result;
@@ -226,11 +247,11 @@ namespace nil {
                     integral_type power = 1;
                     integral_type mask = 7;
                     int table[5] = {0, 1, 1, 0, 0};
-                    for (std::size_t i = 0; i < 64; ++i) {
+                    while (value > 0) {
                         int bit = table[int(value & mask)];
                         result += bit * power;
-                        power *= 8;
-                        value >>= 8;
+                        power <<= 3;
+                        value >>= 3;
                     }
                     return result;
                 }
@@ -468,16 +489,20 @@ namespace nil {
                     std::vector<std::pair<std::size_t, std::size_t>> pairs;
                     for (std::size_t i = 0; i < 102; ++i) {
                         for (auto constr : full_configuration[i].constraints) {
-                            std::size_t min = std::min(constr[0].row, constr[1].row);
+                            std::size_t min = constr[0].row;
                             std::size_t max = constr.back().row;
+                            for (std::size_t j = 0; j < constr.size(); ++j) {
+                                min = std::min(min, constr[j].row);
+                                max = std::max(max, constr[j].row);
+                            }
                             BOOST_ASSERT(max - min <= 2);
                             pairs.push_back({min, max});
                         }
                     }
                     std::vector<std::size_t> result;
                     std::size_t cur_row = 0;
+                    std::size_t cur_constr = 0;
                     while (cur_row < rows_amount) {
-                        std::size_t cur_constr = 0;
                         while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 && pairs[cur_constr].first >= cur_row) {
                             result.push_back(cur_row + 1);
                             ++cur_constr;
@@ -494,16 +519,20 @@ namespace nil {
                     std::vector<std::pair<std::size_t, std::size_t>> pairs;
                     for (std::size_t i = 0; i < 102; ++i) {
                         for (auto constr : full_configuration[i].lookups) {
-                            std::size_t min = std::min(constr[0].row, constr[1].row);
+                            std::size_t min = constr[0].row;
                             std::size_t max = constr.back().row;
+                            for (std::size_t j = 0; j < constr.size(); ++j) {
+                                min = std::min(min, constr[j].row);
+                                max = std::max(max, constr[j].row);
+                            }
                             BOOST_ASSERT(max - min <= 2);
                             pairs.push_back({min, max});
                         }
                     }
                     std::vector<std::size_t> result;
                     std::size_t cur_row = 0;
+                    std::size_t cur_constr = 0;
                     while (cur_row < rows_amount) {
-                        std::size_t cur_constr = 0;
                         while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 && pairs[cur_constr].first >= cur_row) {
                             result.push_back(cur_row + 1);
                             ++cur_constr;
@@ -519,29 +548,30 @@ namespace nil {
                 #define __keccak_round_init_macro(lookup_rows_, lookup_columns_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
-                    normalize3_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 3)), \
-                    normalize4_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 4)), \
-                    normalize6_chunk_size(calculate_normalize_chunk_size(lookup_rows_, 6)), \
-                    chi_chunk_size(calculate_chi_chunk_size(lookup_rows_)), \
-                    normalize3_num_chunks(calculate_num_chunks(normalize3_chunk_size)), \
-                    normalize4_num_chunks(calculate_num_chunks(normalize4_chunk_size)), \
-                    normalize6_num_chunks(calculate_num_chunks(normalize6_chunk_size)), \
-                    chi_num_chunks(calculate_num_chunks(chi_chunk_size)), \
-                    xor2_cells(normalize3_num_chunks * 2 + 2 + 2), \
-                    xor3_cells(normalize4_num_chunks * 2 + 3 + 2), \
-                    xor5_cells(normalize6_num_chunks * 2 + 5 + 2), \
-                    chi_cells(chi_num_chunks * 2 + 5), \
-                    rows_amount(rows()), \
+                    normalize3_chunk_size(calculate_chunk_size(lookup_rows_, 3)), \
+                    normalize4_chunk_size(calculate_chunk_size(lookup_rows_, 4)), \
+                    normalize6_chunk_size(calculate_chunk_size(lookup_rows_, 6)), \
+                    chi_chunk_size(calculate_chunk_size(lookup_rows_, 2)), \
+                    word_size(192), \
+                    normalize3_num_chunks(calculate_num_chunks(3)), \
+                    normalize4_num_chunks(calculate_num_chunks(4)), \
+                    normalize6_num_chunks(calculate_num_chunks(6)), \
+                    chi_num_chunks(calculate_num_chunks()), \
+                    xor2_cells(calculate_num_cells(3)), \
+                    xor3_cells(calculate_num_cells(4)), \
+                    xor5_cells(calculate_num_cells(6)), \
+                    chi_cells(calculate_num_cells()), \
+                    rows_amount(calculate_rows()), \
                     full_configuration(configure_all()), \
                     gates_configuration(configure_gates()), \
                     lookup_gates_configuration(configure_lookup_gates()), \
-                    gates_amount(gates())
+                    gates_amount(gates()), \
+                    gates_rows(calculate_gates_rows())
 
                 template<typename ContainerType>
                 keccak_round(ContainerType witness, std::size_t lookup_rows_, std::size_t lookup_columns_) :
                     component_type(witness, {}, {}),
                     __keccak_round_init_macro(lookup_rows_, lookup_columns_) {};
-
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -558,8 +588,7 @@ namespace nil {
                         public_inputs,
                     std::size_t lookup_rows_, std::size_t lookup_columns_) :
                         component_type(witnesses, constants, public_inputs),
-                        __keccak_round_init_macro(lookup_rows_, lookup_columns_)
-                {};
+                        __keccak_round_init_macro(lookup_rows_, lookup_columns_) {};
 
                 #undef __keccak_round_init_macro
             };
@@ -617,14 +646,14 @@ namespace nil {
                     constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize3_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize3_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize3_chunk_size));
                     } 
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize3_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize3_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize3_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
@@ -644,14 +673,14 @@ namespace nil {
                     constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize6_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize6_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize6_chunk_size));
                     } 
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize6_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize6_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize6_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
@@ -660,42 +689,42 @@ namespace nil {
 
                 for (int i = 0; i < 5; ++i) {
                     auto cur_config = config[config_index];
-                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * (1ull << 189)
+                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * (integral_type(1) << 189)
                                                           + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
                     gate_index++;
-                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row - gate_config[gate_index]) * (1ull << 3)
+                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row - gate_config[gate_index]) * (integral_type(1) << 3)
                                                           + var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index])));
                     gate_index++;
                     constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row - gate_config[gate_index])
-                                                          - (1ull << 3)
-                                                          + (1ull << 192)));
+                                                          - (integral_type(1) << 3)
+                                                          + (integral_type(1) << 192)));
                     gate_index++;
                     constraints.push_back(bp.add_constraint(var(cur_config.constraints[3][0].column, cur_config.constraints[3][0].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[3][1].column, cur_config.constraints[3][1].row - gate_config[gate_index])
-                                                          - (1ull << 189)
-                                                          + (1ull << 192)));
+                                                          - (integral_type(1) << 189)
+                                                          + (integral_type(1) << 192)));
                     gate_index++;
                     constraint_type constraint_1 = var(cur_config.constraints[4][0].column, cur_config.constraints[4][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.rotate_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[4][j + 1].column, cur_config.constraints[4][j + 1].row - gate_config[gate_index])
-                                                                                                        * (1ull << (j * component.rotate_chunk_size));
+                                                                                                        * (integral_type(1) << (j * component.rotate_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[5][0].column, cur_config.constraints[5][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.rotate_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[5][j + 1].column, cur_config.constraints[5][j + 1].row - gate_config[gate_index])
-                                                                                                        * (1ull << (j * component.rotate_chunk_size));
+                                                                                                        * (integral_type(1) << (j * component.rotate_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
                     config_index++;
                 }
 
-                for (int i = 0; i < 5; ++i) {
+                for (int i = 0; i < 25; ++i) {
                     auto cur_config = config[config_index];
                     constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index])
                                                           + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
@@ -705,14 +734,14 @@ namespace nil {
                     constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize4_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize4_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize4_chunk_size));
                     } 
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize4_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize4_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize4_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
@@ -721,38 +750,38 @@ namespace nil {
 
                 // rho/phi
                 for (int i = 1; i < 25; ++i) {
-                    auto r = component.rho_offsets[i];
+                    auto r = 3 * component.rho_offsets[i];
 
                     auto cur_config = config[config_index];
-                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * (1ull << (192 - r))
+                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * (integral_type(1) << (192 - r))
                                                           + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
                     gate_index++;
-                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row - gate_config[gate_index]) * (1ull << r)
+                    constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row - gate_config[gate_index]) * (integral_type(1) << r)
                                                           + var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index])));
                     gate_index++;
                     constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row - gate_config[gate_index])
-                                                          - (1ull << r)
-                                                          + (1ull << 192)));
+                                                          - (integral_type(1) << r)
+                                                          + (integral_type(1) << 192)));
                     gate_index++;
                     constraints.push_back(bp.add_constraint(var(cur_config.constraints[3][0].column, cur_config.constraints[3][0].row - gate_config[gate_index]) 
                                                           - var(cur_config.constraints[3][1].column, cur_config.constraints[3][1].row - gate_config[gate_index])
-                                                          - (1ull << (192 - r))
-                                                          + (1ull << 192)));
+                                                          - (integral_type(1) << (192 - r))
+                                                          + (integral_type(1) << 192)));
                     gate_index++;
                     constraint_type constraint_1 = var(cur_config.constraints[4][0].column, cur_config.constraints[4][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.rotate_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[4][j + 1].column, cur_config.constraints[4][j + 1].row - gate_config[gate_index])
-                                                                                                        * (1ull << (j * component.rotate_chunk_size));
+                                                                                                        * (integral_type(1) << (j * component.rotate_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[5][0].column, cur_config.constraints[5][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.rotate_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[5][j + 1].column, cur_config.constraints[5][j + 1].row - gate_config[gate_index])
-                                                                                                        * (1ull << (j * component.rotate_chunk_size));
+                                                                                                        * (integral_type(1) << (j * component.rotate_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
@@ -760,7 +789,7 @@ namespace nil {
                 }
 
                 // chi
-                for (int i = 0; i < 5; ++i) {
+                for (int i = 0; i < 25; ++i) {
                     auto cur_config = config[config_index];
                     constraints.push_back(bp.add_constraint(component.sparse_3
                                                           - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * 2
@@ -771,14 +800,14 @@ namespace nil {
                     constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.chi_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-                                                                                                            * (1ull << (j * component.chi_chunk_size));
+                                                                                                            * (integral_type(1) << (j * component.chi_chunk_size));
                     } 
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.chi_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-                                                                                                            * (1ull << (j * component.chi_chunk_size));
+                                                                                                            * (integral_type(1) << (j * component.chi_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
@@ -795,14 +824,14 @@ namespace nil {
                     constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize3_num_chunks; ++j) {
                         constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize3_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize3_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_1));
                     gate_index++;
                     constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
                     for (int j = 0; j < component.normalize3_num_chunks; ++j) {
                         constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-                                                                                                    * (1ull << (j * component.normalize3_chunk_size));
+                                                                                                    * (integral_type(1) << (j * component.normalize3_chunk_size));
                     }
                     constraints.push_back(bp.add_constraint(constraint_2));
                     gate_index++;
@@ -989,8 +1018,9 @@ namespace nil {
                     first_selector_index = selector_iterator->second;
                 }
                 
-
-                BOOST_ASSERT(row == start_row_index + component.rows_amount);
+                for (std::size_t i = 0; i < component.gates_amount; ++i) {
+                    assignment.enable_selector(first_selector_index + i, component.gates_rows[i]);
+                }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
@@ -1033,7 +1063,7 @@ namespace nil {
                     auto num_chunks = component.normalize3_num_chunks;
                     std::vector<integral_type> integral_chunks;
                     std::vector<integral_type> integral_normalized_chunks;
-                    integral_type mask = (1 << chunk_size) - 1;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
                     integral_type power = 1;
                     integral_type integral_normalized_sum = 0;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -1041,8 +1071,16 @@ namespace nil {
                         integral_sum >>= chunk_size;
                         integral_normalized_chunks.push_back(component.normalize(integral_chunks.back()));
                         integral_normalized_sum += integral_normalized_chunks.back() * power;
-                        power *= chunk_size;
+                        power <<= chunk_size;
                     }
+                    // std::cout << "chunks:\n";
+                    // for (int j = 0; j < num_chunks; ++j) {
+                    //     std::cout << integral_chunks[j] << "\n";
+                    // }
+                    // std::cout << "normalized chunks:\n";
+                    // for (int j = 0; j < num_chunks; ++j) {
+                    //     std::cout << integral_normalized_chunks[j] << "\n";
+                    // }
                     A_1[index] = value_type(integral_normalized_sum);
 
                     auto cur_config = component.full_configuration[index];
@@ -1059,6 +1097,10 @@ namespace nil {
                     A_1[i] = var_value(assignment, instance_input.inner_state[i]);
                 }
                 config_index += 17;
+                std::cout << "inner_state ^ chunk:\n";
+                for (int i = 0; i < 25; ++i) {
+                    std::cout << A_1[i] << "\n";
+                }
 
                 // theta
                 std::array<value_type, 5> C;
@@ -1072,7 +1114,7 @@ namespace nil {
                     auto num_chunks = component.normalize6_num_chunks;
                     std::vector<integral_type> integral_chunks;
                     std::vector<integral_type> integral_normalized_chunks;
-                    integral_type mask = (1 << chunk_size) - 1;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
                     integral_type power = 1;
                     integral_type integral_normalized_sum = 0;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -1080,7 +1122,7 @@ namespace nil {
                         integral_sum >>= chunk_size;
                         integral_normalized_chunks.push_back(component.normalize(integral_chunks.back()));
                         integral_normalized_sum += integral_normalized_chunks.back() * power;
-                        power *= chunk_size;
+                        power <<= chunk_size;
                     }
                     C[index] = value_type(integral_normalized_sum);
 
@@ -1098,21 +1140,25 @@ namespace nil {
                     }
                 }
                 config_index += 5;
+                std::cout << "theta 0:\n";
+                for (int i = 0; i < 5; ++i) {
+                    std::cout << C[i] << "\n";
+                }
 
                 std::array<value_type, 5> C_rot;
                 for (int index = 0; index < 5; ++index) {
                     integral_type integral_C = integral_type(C[index].data);
-                    integral_type smaller_part = integral_C & ((1 << 3) - 1);
-                    integral_type bigger_part = integral_C >> 3;
-                    integral_type integral_C_rot = (smaller_part << 189) + bigger_part;
+                    integral_type smaller_part = integral_C >> 189;
+                    integral_type bigger_part = integral_C & ((integral_type(1) << 189) - 1);
+                    integral_type integral_C_rot = (bigger_part << 3) + smaller_part;
                     C_rot[index] = value_type(integral_C_rot);
-                    integral_type bound_smaller = smaller_part - (1 << 3) + (integral_type(1) << 192);
+                    integral_type bound_smaller = smaller_part - (integral_type(1) << 3) + (integral_type(1) << 192);
                     integral_type bound_bigger = bigger_part - (integral_type(1) << 189) + (integral_type(1) << 192);
                     auto chunk_size = component.rotate_chunk_size;
                     auto num_chunks = component.rotate_num_chunks;
                     std::vector<integral_type> integral_small_chunks;
                     std::vector<integral_type> integral_big_chunks;
-                    integral_type mask = (1 << chunk_size) - 1;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
                         integral_small_chunks.push_back(bound_smaller & mask);
                         bound_smaller >>= chunk_size;
@@ -1133,16 +1179,20 @@ namespace nil {
                     }
                 }
                 config_index += 5;
+                std::cout << "theta 1:\n";
+                for (int i = 0; i < 5; ++i) {
+                    std::cout << C_rot[i] << "\n";
+                }
 
                 std::array<value_type, 25> A_2;
                 for (int index = 0; index < 25; ++index) {
-                    value_type sum = A_1[index] + C_rot[(index + 1) % 5] + C[(index - 1) % 5];
+                    value_type sum = A_1[index] + C_rot[(index + 1) % 5] + C[(index + 4) % 5];
                     integral_type integral_sum = integral_type(sum.data);
                     auto chunk_size = component.normalize4_chunk_size;
                     auto num_chunks = component.normalize4_num_chunks;
                     std::vector<integral_type> integral_chunks;
                     std::vector<integral_type> integral_normalized_chunks;
-                    integral_type mask = (1 << chunk_size) - 1;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
                     integral_type power = 1;
                     integral_type integral_normalized_sum = 0;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -1150,7 +1200,7 @@ namespace nil {
                         integral_sum >>= chunk_size;
                         integral_normalized_chunks.push_back(component.normalize(integral_chunks.back()));
                         integral_normalized_sum += integral_normalized_chunks.back() * power;
-                        power *= chunk_size;
+                        power <<= chunk_size;
                     }
                     A_2[index] = value_type(integral_normalized_sum);
 
@@ -1166,28 +1216,33 @@ namespace nil {
                     }
                 }
                 config_index += 25;
+                std::cout << "theta 2:\n";
+                for (int i = 0; i < 25; ++i) {
+                    std::cout << A_2[i] << "\n";
+                }
 
                 // rho/phi
-                std::array<std::array<value_type, 5>, 5> B;
+                value_type B[5][5];
                 B[0][0] = A_2[0];
                 for (int index = 1; index < 25; ++index) {
                     int x = index / 5;
                     int y = index % 5;
-                    int r = component.rho_offsets[index];
+                    int r = 3 * component.rho_offsets[index];
                     int minus_r = 192 - r;
                     integral_type integral_A = integral_type(A_2[index].data);
-                    integral_type smaller_part = integral_A & ((1 << r) - 1);
-                    integral_type bigger_part = integral_A >> r;
-                    integral_type integral_A_rot = (smaller_part << minus_r) + bigger_part;
-                    B[y][2*x + 3*y] = value_type(integral_A_rot);
+                    integral_type smaller_part = integral_A >> minus_r;
+                    integral_type bigger_part = integral_A & ((integral_type(1) << minus_r) - 1);
+                    integral_type integral_A_rot = (bigger_part << r) + smaller_part;
+                    B[y][(2*x + 3*y) % 5] = value_type(integral_A_rot);
+                    // std::cout << "parts: " << smaller_part << " " << bigger_part << ' ' << integral_A_rot << "\n";
 
-                    integral_type bound_smaller = smaller_part - (1 << r) + (integral_type(1) << 192);
+                    integral_type bound_smaller = smaller_part - (integral_type(1) << r) + (integral_type(1) << 192);
                     integral_type bound_bigger = bigger_part - (integral_type(1) << minus_r) + (integral_type(1) << 192);
                     auto chunk_size = component.rotate_chunk_size;
                     auto num_chunks = component.rotate_num_chunks;
                     std::vector<integral_type> integral_small_chunks;
                     std::vector<integral_type> integral_big_chunks;
-                    integral_type mask = (1 << chunk_size) - 1;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
                         integral_small_chunks.push_back(bound_smaller & mask);
                         bound_smaller >>= chunk_size;
@@ -1197,7 +1252,7 @@ namespace nil {
 
                     auto cur_config = component.full_configuration[index - 1 + config_index];
                     assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_2[index];
-                    assignment.witness(component.W(cur_config.copy_from.row), cur_config.copy_from.column) = B[y][2*x + 3*y];
+                    assignment.witness(component.W(cur_config.copy_from.row), cur_config.copy_from.column) = B[y][(2*x + 3*y) % 5];
                     assignment.witness(component.W(cur_config.constraints[0][1].row), cur_config.constraints[0][1].column) = value_type(smaller_part);
                     assignment.witness(component.W(cur_config.constraints[0][2].row), cur_config.constraints[0][2].column) = value_type(bigger_part);
                     assignment.witness(component.W(cur_config.constraints[3][0].row), cur_config.constraints[3][0].column) = value_type(bound_smaller);
@@ -1208,6 +1263,12 @@ namespace nil {
                     }
                 }
                 config_index += 24;
+                std::cout << "rho/phi:\n";
+                for (int i = 0; i < 5; ++i) {
+                    for (int j = 0; j < 5; ++j) {
+                        std::cout << B[i][j] << "\n";
+                    }
+                }
 
                 // chi
                 std::array<value_type, 25> A_3;
@@ -1220,7 +1281,7 @@ namespace nil {
                     auto num_chunks = component.chi_num_chunks;
                     std::vector<integral_type> integral_chunks;
                     std::vector<integral_type> integral_chi_chunks;
-                    integral_type mask = (1 << chunk_size) - 1;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
                     integral_type power = 1;
                     integral_type integral_chi_sum = 0;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -1228,7 +1289,7 @@ namespace nil {
                         integral_sum >>= chunk_size;
                         integral_chi_chunks.push_back(component.chi(integral_chunks.back()));
                         integral_chi_sum += integral_chi_chunks.back() * power;
-                        power *= chunk_size;
+                        power <<= chunk_size;
                     }
                     A_3[index] = value_type(integral_chi_sum);
 
@@ -1244,6 +1305,10 @@ namespace nil {
                     }
                 }
                 config_index += 25;
+                std::cout << "chi:\n";
+                for (int i = 0; i < 25; ++i) {
+                    std::cout << A_3[i] << "\n";
+                }
 
                 // iota
                 value_type round_constant = var_value(assignment, instance_input.round_constant);
@@ -1253,7 +1318,7 @@ namespace nil {
                 auto num_chunks = component.normalize3_num_chunks;
                 std::vector<integral_type> integral_chunks;
                 std::vector<integral_type> integral_normalized_chunks;
-                integral_type mask = (1 << chunk_size) - 1;
+                integral_type mask = (integral_type(1) << chunk_size) - 1;
                 integral_type power = 1;
                 integral_type integral_normalized_sum = 0;
                 for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -1261,7 +1326,7 @@ namespace nil {
                     integral_sum >>= chunk_size;
                     integral_normalized_chunks.push_back(component.normalize(integral_chunks.back()));
                     integral_normalized_sum += integral_normalized_chunks.back() * power;
-                    power *= chunk_size;
+                    power <<= chunk_size;
                 }
                 value_type A_4 = value_type(integral_normalized_sum);
                 
@@ -1274,6 +1339,8 @@ namespace nil {
                     assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
                     assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
                 }
+                std::cout << "iota:\n";
+                std::cout << A_4 << "\n";
 
                 return typename component_type::result_type(component, start_row_index);
             }
