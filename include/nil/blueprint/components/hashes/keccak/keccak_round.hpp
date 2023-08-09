@@ -1073,14 +1073,6 @@ namespace nil {
                         integral_normalized_sum += integral_normalized_chunks.back() * power;
                         power <<= chunk_size;
                     }
-                    // std::cout << "chunks:\n";
-                    // for (int j = 0; j < num_chunks; ++j) {
-                    //     std::cout << integral_chunks[j] << "\n";
-                    // }
-                    // std::cout << "normalized chunks:\n";
-                    // for (int j = 0; j < num_chunks; ++j) {
-                    //     std::cout << integral_normalized_chunks[j] << "\n";
-                    // }
                     A_1[index] = value_type(integral_normalized_sum);
 
                     auto cur_config = component.full_configuration[index];
@@ -1097,10 +1089,10 @@ namespace nil {
                     A_1[i] = var_value(assignment, instance_input.inner_state[i]);
                 }
                 config_index += 17;
-                std::cout << "inner_state ^ chunk:\n";
-                for (int i = 0; i < 25; ++i) {
-                    std::cout << A_1[i] << "\n";
-                }
+                // std::cout << "inner_state ^ chunk:\n";
+                // for (int i = 0; i < 25; ++i) {
+                //     std::cout << A_1[i] << "\n";
+                // }
 
                 // theta
                 std::array<value_type, 5> C;
@@ -1140,10 +1132,10 @@ namespace nil {
                     }
                 }
                 config_index += 5;
-                std::cout << "theta 0:\n";
-                for (int i = 0; i < 5; ++i) {
-                    std::cout << C[i] << "\n";
-                }
+                // std::cout << "theta 0:\n";
+                // for (int i = 0; i < 5; ++i) {
+                //     std::cout << C[i] << "\n";
+                // }
 
                 std::array<value_type, 5> C_rot;
                 for (int index = 0; index < 5; ++index) {
@@ -1179,14 +1171,16 @@ namespace nil {
                     }
                 }
                 config_index += 5;
-                std::cout << "theta 1:\n";
-                for (int i = 0; i < 5; ++i) {
-                    std::cout << C_rot[i] << "\n";
-                }
+                // std::cout << "theta 1:\n";
+                // for (int i = 0; i < 5; ++i) {
+                //     std::cout << C_rot[i] << "\n";
+                // }
 
                 std::array<value_type, 25> A_2;
                 for (int index = 0; index < 25; ++index) {
-                    value_type sum = A_1[index] + C_rot[(index + 1) % 5] + C[(index + 4) % 5];
+                    int x = index / 5;
+                    int y = index % 5;
+                    value_type sum = A_1[index] + C_rot[(x + 1) % 5] + C[(x + 4) % 5];
                     integral_type integral_sum = integral_type(sum.data);
                     auto chunk_size = component.normalize4_chunk_size;
                     auto num_chunks = component.normalize4_num_chunks;
@@ -1216,10 +1210,10 @@ namespace nil {
                     }
                 }
                 config_index += 25;
-                std::cout << "theta 2:\n";
-                for (int i = 0; i < 25; ++i) {
-                    std::cout << A_2[i] << "\n";
-                }
+                // std::cout << "theta 2:\n";
+                // for (int i = 0; i < 25; ++i) {
+                //     std::cout << A_2[i] << "\n";
+                // }
 
                 // rho/phi
                 value_type B[5][5];
@@ -1263,12 +1257,12 @@ namespace nil {
                     }
                 }
                 config_index += 24;
-                std::cout << "rho/phi:\n";
-                for (int i = 0; i < 5; ++i) {
-                    for (int j = 0; j < 5; ++j) {
-                        std::cout << B[i][j] << "\n";
-                    }
-                }
+                // std::cout << "rho/phi:\n";
+                // for (int i = 0; i < 5; ++i) {
+                //     for (int j = 0; j < 5; ++j) {
+                //         std::cout << B[i][j] << "\n";
+                //     }
+                // }
 
                 // chi
                 std::array<value_type, 25> A_3;
@@ -1305,42 +1299,44 @@ namespace nil {
                     }
                 }
                 config_index += 25;
-                std::cout << "chi:\n";
-                for (int i = 0; i < 25; ++i) {
-                    std::cout << A_3[i] << "\n";
-                }
+                // std::cout << "chi:\n";
+                // for (int i = 0; i < 25; ++i) {
+                //     std::cout << A_3[i] << "\n";
+                // }
 
                 // iota
-                value_type round_constant = var_value(assignment, instance_input.round_constant);
-                value_type sum = A_3[0] + round_constant;
-                integral_type integral_sum = integral_type(sum.data);
-                auto chunk_size = component.normalize3_chunk_size;
-                auto num_chunks = component.normalize3_num_chunks;
-                std::vector<integral_type> integral_chunks;
-                std::vector<integral_type> integral_normalized_chunks;
-                integral_type mask = (integral_type(1) << chunk_size) - 1;
-                integral_type power = 1;
-                integral_type integral_normalized_sum = 0;
-                for (std::size_t j = 0; j < num_chunks; ++j) {
-                    integral_chunks.push_back(integral_sum & mask);
-                    integral_sum >>= chunk_size;
-                    integral_normalized_chunks.push_back(component.normalize(integral_chunks.back()));
-                    integral_normalized_sum += integral_normalized_chunks.back() * power;
-                    power <<= chunk_size;
+                {
+                    value_type round_constant = var_value(assignment, instance_input.round_constant);
+                    value_type sum = A_3[0] + round_constant;
+                    integral_type integral_sum = integral_type(sum.data);
+                    auto chunk_size = component.normalize3_chunk_size;
+                    auto num_chunks = component.normalize3_num_chunks;
+                    std::vector<integral_type> integral_chunks;
+                    std::vector<integral_type> integral_normalized_chunks;
+                    integral_type mask = (integral_type(1) << chunk_size) - 1;
+                    integral_type power = 1;
+                    integral_type integral_normalized_sum = 0;
+                    for (std::size_t j = 0; j < num_chunks; ++j) {
+                        integral_chunks.push_back(integral_sum & mask);
+                        integral_sum >>= chunk_size;
+                        integral_normalized_chunks.push_back(component.normalize(integral_chunks.back()));
+                        integral_normalized_sum += integral_normalized_chunks.back() * power;
+                        power <<= chunk_size;
+                    }
+                    value_type A_4 = value_type(integral_normalized_sum);
+                    
+                    auto cur_config = component.full_configuration[config_index];
+                    assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_3[0];
+                    assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = round_constant;
+                    assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
+                    assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_normalized_sum)
+                    for (int j = 1; j < num_chunks + 1; ++j) {
+                        assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
+                        assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
+                    }
                 }
-                value_type A_4 = value_type(integral_normalized_sum);
-                
-                auto cur_config = component.full_configuration[config_index];
-                assignment.witness(component.W(cur_config.copy_to[0].row), cur_config.copy_to[0].column) = A_3[0];
-                assignment.witness(component.W(cur_config.copy_to[1].row), cur_config.copy_to[1].column) = round_constant;
-                assignment.witness(component.W(cur_config.constraints[1][0].row), cur_config.constraints[1][0].column) = sum;
-                assignment.witness(component.W(cur_config.constraints[2][0].row), cur_config.constraints[2][0].column) = value_type(integral_normalized_sum);
-                for (int j = 1; j < num_chunks + 1; ++j) {
-                    assignment.witness(component.W(cur_config.constraints[1][j].row), cur_config.constraints[1][j].column) = value_type(integral_chunks[j - 1]);
-                    assignment.witness(component.W(cur_config.constraints[2][j].row), cur_config.constraints[2][j].column) = value_type(integral_normalized_chunks[j - 1]);
-                }
-                std::cout << "iota:\n";
-                std::cout << A_4 << "\n";
+                // std::cout << "iota:\n";
+                // std::cout << A_4 << "\n";
 
                 return typename component_type::result_type(component, start_row_index);
             }
