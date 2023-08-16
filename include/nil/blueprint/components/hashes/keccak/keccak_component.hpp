@@ -27,7 +27,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/blueprint/components/hashes/keccak/keccak_per_chunk.hpp>
+#include <<nil/blueprint/components/hashes/keccak/keccak_round.hpp>
+#include <nil/blueprint/components/hashes/keccak/keccak_padding.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -54,9 +55,12 @@ namespace nil {
                 using var = typename component_type::var;
 
                 using round_component_type = keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                            ArithmetizationParams>,
-                                            WitnessesAmount>;
+                                                                            ArithmetizationParams>, WitnessesAmount>;
                 std::vector<round_component_type> rounds;
+
+                using padding_component_type = keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                            ArithmetizationParams>, WitnessesAmount>;
+                padding_component_type padding;
 
                 using configuration = round_component_type::configuration;
                 std::vector<configuration> full_configuration;
@@ -191,18 +195,22 @@ namespace nil {
                                                          const std::size_t num_round_calls) {
                     std::vector<configuration> result;
                     std::size_t round_rows = round_component_type::rows_amount;
+                    std::size_t padding_rows = padding_component_type::rows_amount;
 
                     std::size_t row = 0,
                                 column = 0;
                     // padding
+                    row += padding_rows;
 
-                    // rounds
+                    //rounds
                     for (std::size_t index = 0; index < num_round_calls; ++index) {
+                        // to sparse representation
                         for (std::size_t i = 0; i < 17; ++i) {
                             result.push_back(configure_pack_unpack(row, column));
                             row = result[i].last_row;
                             column = result[i].last_column;
                         }
+                        // round
                         if (column > 0) {
                             column = 0;
                             row += 1 + 24 * round_rows;
@@ -211,7 +219,7 @@ namespace nil {
                         }
                     }
 
-                    // finalization
+                    // from sparse representation
                     for (std::size_t i = 0; i < 5; ++i) {
                         result.push_back(configure_pack_unpack(row, column));
                         row = result[i].last_row;
@@ -229,6 +237,7 @@ namespace nil {
                     num_round_calls(), \
                     rounds(num_round_calls * 24, \
                             round_component_type(witness, constant, public_input, lookup_rows_, lookup_columns_)), \
+                    padding(padding_component_type(witness, constant, public_input, lookup_rows_, lookup_columns_)), \
                     num_configs(), \
                     full_configuration(configure_all(num_configs, num_round_calls)), \
                     rows_amount(rows())
@@ -344,7 +353,6 @@ namespace nil {
                 using component_type = keccak_component<BlueprintFieldType, ArithmetizationParams,
                                                                 WitnessesAmount>;
                 using var = typename component_type::var;
-                using var_address = typename component_type::var_address;
                 
 
                 BOOST_ASSERT(row == start_row_index + component.rows_amount);
@@ -377,8 +385,12 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using var = typename component_type::var;
-                using var_address = typename component_type::var_address;
 
+                std::vector<std::vector<var>> padded_message = generate_assignments(component.padding, assignment,
+                                                                                    {instance_input.message}, row).output;
+                row += component.padding.rows_amount;
+
+                
 
                 BOOST_ASSERT(row == start_row_index + component.rows_amount);
 

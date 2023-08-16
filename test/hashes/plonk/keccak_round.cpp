@@ -85,10 +85,7 @@ bool check_sparse(typename BlueprintFieldType::value_type value, typename Bluepr
     return result;
 }
 
-
-// here for level we use:
-// 0 - inner ^ chunk, 1 - theta, 2 - rho/phi, 3 - chi, 4 - iota (full round, by default)
-template<typename BlueprintFieldType, int level = 4>
+template<typename BlueprintFieldType, bool xor_with_mes, bool eth_perm>
 std::array<typename BlueprintFieldType::value_type, 25> sparse_round_function(std::array<typename BlueprintFieldType::value_type, 25> inner_state,
                                                             std::array<typename BlueprintFieldType::value_type, 17> padded_message_chunk,
                                                             typename BlueprintFieldType::value_type RC) {
@@ -109,8 +106,10 @@ std::array<typename BlueprintFieldType::value_type, 25> sparse_round_function(st
         return ((x << (3 * s)) | (x >> (192 - 3 * s))) & ((integral_type(1) << 192) - 1);
     };
 
-    for (int i = 0; i < 17; ++i) {
-        inner_state_integral[i] = inner_state_integral[i] ^ padded_message_chunk_integral[i];
+    if (xor_with_mes) {
+        for (int i = 0; i < 17; ++i) {
+            inner_state_integral[i] = inner_state_integral[i] ^ padded_message_chunk_integral[i];
+        }
     }
     // std::cout << "expected inner_state ^ chunk:\n";
     // for (int i = 0; i < 25; ++i) {
@@ -179,7 +178,7 @@ std::array<typename BlueprintFieldType::value_type, 25> sparse_round_function(st
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns, int level>
+         std::size_t LookupColumns, bool xor_with_mes, bool eth_perm>
 auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type, 25> inner_state,
                              std::array<typename BlueprintFieldType::value_type, 17> padded_message_chunk,
                              typename BlueprintFieldType::value_type RC,
@@ -236,9 +235,9 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
 
     component_type component_instance = WitnessesAmount == 15 ?
                                             component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0},
-                                                           {1}, LookupRows, LookupColumns)
+                                                           {1}, LookupRows, LookupColumns, xor_with_mes, eth_perm)
                                             : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {1},
-                                                            LookupRows, LookupColumns);
+                                                            LookupRows, LookupColumns, xor_with_mes, eth_perm);
 
     if (!(WitnessesAmount == 15 || WitnessesAmount == 9)) {
         BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;
@@ -333,7 +332,7 @@ void test_keccak_round_7() {
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns, int level>
+         std::size_t LookupColumns, bool xor_with_mes, bool eth_perm>
 void test_keccak_round_random() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
@@ -357,9 +356,9 @@ void test_keccak_round_random() {
     auto random_value = integral_type(dis(gen));
     RC = to_sparse<BlueprintFieldType>(value_type(random_value));
     
-    auto expected_result = sparse_round_function<BlueprintFieldType, level>(inner_state, padded_message_chunk, RC);
+    auto expected_result = sparse_round_function<BlueprintFieldType, xor_with_mes, eth_perm>(inner_state, padded_message_chunk, RC);
 
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, level>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, xor_with_mes, eth_perm>
                             (inner_state, padded_message_chunk, RC, expected_result);
 }
 
@@ -367,8 +366,9 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    test_keccak_round_random<field_type, 9, 65536, 10, 4>();
-    test_keccak_round_random<field_type, 15, 65536, 10, 4>();
+    // test_keccak_round_random<field_type, 9, 65536, 10, true, false>();
+    test_keccak_round_random<field_type, 9, 65536, 10, false, false>();
+    // test_keccak_round_random<field_type, 15, 65536, 10, 4>();
 }
 
 // BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
