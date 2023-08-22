@@ -27,8 +27,6 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERMUTATION_ARGUMENT_VERIFIER_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERMUTATION_ARGUMENT_VERIFIER_HPP
 
-#include <nil/marshalling/algorithms/pack.hpp>
-
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
@@ -252,8 +250,11 @@ namespace nil {
                                                                    (var(component.W(3), +1) * var(component.W(5), -1) -
                                                                     var(component.W(1), +1) * var(component.W(0), -1)));
 
-                auto constraint_11 = bp.add_constraint(var(component.W(2), +1) - var(component.W(1), +1)*var(component.W(1), +1));
-                auto constraint_12 = bp.add_constraint(var(component.W(0), +1) - var(component.W(1), 0)*(var(component.W(2), +1)- var(component.W(1), +1)));
+                auto constraint_11 =
+                    bp.add_constraint(var(component.W(2), +1) - var(component.W(1), +1) * var(component.W(1), +1));
+                auto constraint_12 =
+                    bp.add_constraint(var(component.W(0), +1) -
+                                      var(component.W(1), 0) * (var(component.W(2), +1) - var(component.W(1), +1)));
 
                 bp.add_gate(first_selector_index + 3, {constraint_9, constraint_10, constraint_11, constraint_12});
             }
@@ -316,10 +317,10 @@ namespace nil {
                 for (row = start_row_index + 2; row < start_row_index + component.m - 1; row += 2) {
                     assignment.enable_selector(first_selector_index + 1, row);
                 }
-                if(row == start_row_index + component.m + 1){
-                    assignment.enable_selector(first_selector_index + 2, row-1);
+                if (row == start_row_index + component.m + 1) {
+                    assignment.enable_selector(first_selector_index + 2, row - 1);
                 }
-                assignment.enable_selector(first_selector_index + 3, row + (component.m & 1) );
+                assignment.enable_selector(first_selector_index + 3, row + (component.m & 1));
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
