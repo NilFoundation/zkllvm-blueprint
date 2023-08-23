@@ -63,6 +63,9 @@ namespace nil {
 
                 const std::size_t gates_amount = 1;
 
+                constexpr static const std::array<typename BlueprintFieldType::value_type, 8> initial_hash_values = {
+                    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+
                 struct input_type {
                     std::vector<var> block_data;
                 };
@@ -141,6 +144,37 @@ namespace nil {
                 sha256<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                        WitnessAmount>;
 
+            namespace detail {
+
+                template<typename BlueprintFieldType, typename ArithmetizationParams>
+                void generate_assignments_constant(
+                    const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type
+                        &instance_input,
+                    const std::size_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+                    for (std::size_t i = 0; i < 8; i++) {
+                        assignment.constant(component.C(0), row + i) =
+                            plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::initial_hash_values[i];
+                    }
+
+                    // process last padding bits;
+                    const std::size_t padding_length = 16 - 4 * (component.num_blocks % 4);
+                    std::vector<typename BlueprintFieldType::value_type> constants2(padding_length);
+                    std::fill(constants2.begin(), constants2.end(), 0);
+                    constants2[0] = 2147483648;
+                    constants2[padding_length - 1] = component.num_blocks << 7;
+
+                    for (int i = 0; i < padding_length; i++) {
+                        assignment.constant(component.C(0), start_row_index + 8 + i) = constants2[i];
+                    }
+                }
+            }    // namespace detail
+
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::result_type generate_assignments(
                 const plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9> &component,
@@ -167,11 +201,6 @@ namespace nil {
                      component.W(6), component.W(7), component.W(8)},
                     {component.C(0)}, {});
 
-                std::array<typename BlueprintFieldType::value_type, 8> constants = {
-                    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
-                for (int i = 0; i < 8; i++) {
-                    assignment.constant(component.C(0), start_row_index + i) = constants[i];
-                }
                 std::array<var, 8> first_block_state = {
                     var(component.C(0), start_row_index, false, var::column_type::constant),
                     var(component.C(0), start_row_index + 1, false, var::column_type::constant),
@@ -217,17 +246,6 @@ namespace nil {
                     curr_block += 4;
                 }
 
-                // process last padding bits;
-                const std::size_t padding_length = 16 - 4 * (component.num_blocks % 4);
-                std::vector<typename BlueprintFieldType::value_type> constants2(padding_length);
-                std::fill(constants2.begin(), constants2.end(), 0);
-                constants2[0] = 2147483648;
-                constants2[padding_length - 1] = component.num_blocks << 7;
-
-                for (int i = 0; i < padding_length; i++) {
-                    assignment.constant(component.C(0), start_row_index + 8 + i) = constants2[i];
-                }
-
                 std::size_t itr = 0;
                 if (curr_block < component.num_blocks) {    // if unprocesssed blocks left
                     std::array<var, 2> input_1;
@@ -238,8 +256,9 @@ namespace nil {
                         itr += 4;
                     }
                     if (component.num_blocks % 4 > 1) {
-                        input_1 = {instance_input.block_data[curr_block++], instance_input.block_data[curr_block++]};
+                        input_1 = {instance_input.block_data[curr_block], instance_input.block_data[curr_block + 1]};
                         itr += 8;
+                        curr_block += 2;
                     }
 
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =
@@ -268,6 +287,8 @@ namespace nil {
 
                 assert(curr_block == component.num_blocks);
 
+                // process last padding bits;
+                const std::size_t padding_length = 16 - 4 * (component.num_blocks % 4);
                 for (std::size_t i = 0; i < padding_length; i++) {
                     input_words_vars[itr + i] =
                         var(component.C(0), start_row_index + 8 + i, false, var::column_type::constant);
@@ -332,6 +353,18 @@ namespace nil {
                     &assignment,
                 const typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
                 const std::size_t start_row_index) {
+
+                std::size_t row = start_row_index + component.rows_amount - 2;
+                using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
+
+                bp.add_copy_constraint({var(component.W(0), row, false), var(component.W(0), row - 3, false)});
+                bp.add_copy_constraint({var(component.W(1), row, false), var(component.W(1), row - 3, false)});
+                bp.add_copy_constraint({var(component.W(2), row, false), var(component.W(2), row - 3, false)});
+                bp.add_copy_constraint({var(component.W(3), row, false), var(component.W(3), row - 3, false)});
+                bp.add_copy_constraint({var(component.W(4), row, false), var(component.W(0), row - 1, false)});
+                bp.add_copy_constraint({var(component.W(5), row, false), var(component.W(1), row - 1, false)});
+                bp.add_copy_constraint({var(component.W(6), row, false), var(component.W(2), row - 1, false)});
+                bp.add_copy_constraint({var(component.W(7), row, false), var(component.W(3), row - 1, false)});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -349,6 +382,8 @@ namespace nil {
                 using var = typename plonk_sha256<BlueprintFieldType, ArithmetizationParams, 9>::var;
                 using ArithmetizationType =
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+
+                detail::generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
 
                 decomposition<ArithmetizationType, BlueprintFieldType, 9> decomposition_instance(
                     {component.W(0), component.W(1), component.W(2), component.W(3), component.W(4), component.W(5),
@@ -406,14 +441,6 @@ namespace nil {
                 }
 
                 const std::size_t padding_length = 16 - 4 * (component.num_blocks % 4);
-                std::vector<typename BlueprintFieldType::value_type> constants2(padding_length);
-                std::fill(constants2.begin(), constants2.end(), 0);
-                constants2[0] = 2147483648;
-                constants2[padding_length - 1] = component.num_blocks << 7;
-
-                for (int i = 0; i < padding_length; i++) {
-                    assignment.constant(component.C(0), start_row_index + 8 + i) = constants2[i];
-                }
 
                 std::size_t itr = 0;
                 if (curr_block < component.num_blocks) {    // if unprocesssed blocks left
@@ -425,8 +452,9 @@ namespace nil {
                         itr += 4;
                     }
                     if (component.num_blocks % 4 > 1) {
-                        input_1 = {instance_input.block_data[curr_block++], instance_input.block_data[curr_block++]};
+                        input_1 = {instance_input.block_data[curr_block], instance_input.block_data[curr_block + 1]};
                         itr += 8;
+                        curr_block += 2;
                     }
 
                     typename decomposition<ArithmetizationType, BlueprintFieldType, 9>::input_type decomposition_input =

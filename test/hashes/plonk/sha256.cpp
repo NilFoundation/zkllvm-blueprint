@@ -92,8 +92,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_test0) {
 
     typename BlueprintFieldType::value_type s = typename BlueprintFieldType::value_type(2).pow(126);
 
-    // test_sha256<BlueprintFieldType>({s, s + 1, s + 2, s + 3}, {0xf5790a69d0a3f69cb85d0b5a233405fb_cppui255,
-    // 0xa47050b703fce590fd6585dd02b175f8_cppui255});
+    test_sha256<BlueprintFieldType>({s, s + 1, s + 2, s + 3}, {0xf5790a69d0a3f69cb85d0b5a233405fb_cppui255,
+    0xa47050b703fce590fd6585dd02b175f8_cppui255});
 
     test_sha256<BlueprintFieldType>({
         0xf5a5fd42d16a20302798ef6ed309979b_cppui255, 0x43003d2320d9f0e8ea9831a92759fb4b_cppui255,
