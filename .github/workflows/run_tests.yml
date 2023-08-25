@@ -33,7 +33,7 @@ jobs:
           path: ./libs/${{ env.LIB_NAME }}
           submodules: recursive
       - name: Compile
-        working-directory: ./libs/${{ env.LIB_NAME }}
+        working-directory: ./libs/${{ env.LIB_NAME }}/scripts
         run: ./ci.sh --verbose --docker compile
       # - name: Archive build results
       #   run: |
