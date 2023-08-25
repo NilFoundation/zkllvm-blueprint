@@ -13,6 +13,8 @@ run_compile() {
     if [ "$USE_DOCKER" = true ]; then
         $DOCKER build -t tests-env "$SCRIPT_DIR/docker"
 
+        ls
+
         $DOCKER run $DOCKER_OPTS \
             --rm \
             --user $(id -u ${USER}):$(id -g ${USER}) \
