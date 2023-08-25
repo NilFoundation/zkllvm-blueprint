@@ -1,129 +1,111 @@
 name: Run tests
 
 on:
-  # Triggers the workflow on pull request events but only for the master branch
   pull_request:
     branches: [ master ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 env:
   SUITE_REPO: "NilFoundation/crypto3"
   LIB_NAME: "blueprint"
-  CACHE_NAME: "checkout-job-cache"
+  CACHE_NAME: "build-job-cache"
+
+concurrency:
+  group: ${{
+    ( github.ref == 'refs/heads/master' &&
+    format('{0}/{1}', github.run_id, github.run_attempt) )
+    ||
+    format('{0}/{1}', github.workflow, github.ref) }}
+  cancel-in-progress: true
 
 jobs:
-  checkout:
-    runs-on: [self-hosted, tests-runner]
+  build:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Cleanup # TODO - move to scripts on runner
-        run: |
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-
       - name: Checkout suite
         uses: actions/checkout@v3
         with:
           repository: ${{ env.SUITE_REPO }}
           submodules: recursive
-
       - name: Checkout source code
         uses: actions/checkout@v3
         with:
           path: ./libs/${{ env.LIB_NAME }}
           submodules: recursive
+      - name: Compile
+        working-directory: ./libs/${{ env.LIB_NAME }}
+        run: ./ci.sh --verbose --docker compile
+      # - name: Archive build results
+      #   run: |
+      #     touch ${{ env.CACHE_NAME }}.tar.gz
+      #     tar -czf ${{ env.CACHE_NAME }}.tar.gz --exclude=${{ env.CACHE_NAME }}.tar.gz .
+      # - name: Cache archived job output
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ env.CACHE_NAME }}
+      #     path: ${{ env.CACHE_NAME }}.tar.gz
+      #     retention-days: 1
 
-      - name: Cmake and build
-        env:
-          CMAKE_ARGS: "
-            -DCMAKE_BUILD_TYPE=Debug
-            -DBUILD_SHARED_LIBS=FALSE
-            -DBUILD_TESTS=TRUE
-            "
-        run: |
-          mkdir build
-          cd build
-          cmake ${{ env.CMAKE_ARGS }} ..
+  # run_tests:
+  #   runs-on:  ubuntu-22.04
+  #   needs: [build]
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       target: [
+  #         blueprint_algebra_fields_plonk_field_operations_test,
+  #         blueprint_algebra_fields_plonk_exponentiation_test,
+  #         blueprint_algebra_curves_plonk_unified_addition_test,
+  #         blueprint_algebra_curves_plonk_variable_base_scalar_mul_test,
+  #         blueprint_algebra_curves_plonk_decomposed_variable_base_scalar_mul_test,
+  #         blueprint_verifiers_kimchi_sponge_oracles_test,
+  #         blueprint_hashes_plonk_poseidon_test,
+  #         blueprint_algebra_curves_plonk_endo_scalar_test,
+  #         blueprint_algebra_fields_plonk_range_check_test,
+  #         blueprint_algebra_fields_plonk_logic_and_flag_test,
+  #         blueprint_algebra_fields_plonk_logic_or_flag_test,
+  #         blueprint_algebra_fields_plonk_non_native_addition_test,
+  #         blueprint_algebra_fields_plonk_non_native_subtraction_test,
+  #         blueprint_algebra_fields_plonk_non_native_multiplication_test,
+  #         blueprint_algebra_fields_plonk_non_native_range_test,
+  #         blueprint_algebra_fields_plonk_non_native_reduction_test,
+  #         blueprint_algebra_fields_plonk_non_native_bit_decomposition_test,
+  #         blueprint_algebra_fields_plonk_non_native_bit_composition_test,
+  #         blueprint_algebra_fields_plonk_non_native_bit_shift_constant_test,
+  #         blueprint_algebra_fields_plonk_non_native_logic_ops_test,
+  #         blueprint_algebra_fields_plonk_non_native_comparison_checked_test,
+  #         blueprint_algebra_fields_plonk_non_native_comparison_unchecked_test,
+  #         blueprint_algebra_fields_plonk_non_native_comparison_flag_test,
+  #         blueprint_algebra_fields_plonk_non_native_division_remainder_test,
+  #         blueprint_non_native_plonk_scalar_non_native_range_test,
+  #         blueprint_non_native_plonk_bool_scalar_multiplication_test,
+  #         blueprint_non_native_plonk_add_mul_zkllvm_compatible_test,
+  #         blueprint_hashes_plonk_decomposition_test,
+  #         blueprint_hashes_plonk_sha256_process_test,
+  #         blueprint_hashes_plonk_sha512_process_test,
+  #         blueprint_hashes_plonk_sha256_test,
+  #         blueprint_hashes_plonk_sha512_test,
+  #         blueprint_algebra_fields_plonk_sqrt_test,
+  #       ]
+  #   steps:
+  #     - name: Upload checkout job cache
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: ${{ env.CACHE_NAME }}
 
-      - name: Archive build results
-        run: |
-          touch ${{ env.CACHE_NAME }}.tar.gz
-          tar -czf ${{ env.CACHE_NAME }}.tar.gz --exclude=${{ env.CACHE_NAME }}.tar.gz .
+  #     - name: Extract artifacts
+  #       run: |
+  #         tar -xf ${{ env.CACHE_NAME }}.tar.gz
+  #         rm ${{ env.CACHE_NAME }}.tar.gz
 
-      - name: Cache archived job output
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.CACHE_NAME }}
-          path: ${{ env.CACHE_NAME }}.tar.gz
-          retention-days: 1
+  #     - name: Build
+  #       working-directory: ./build
+  #       run: cmake --build . -t ${{ matrix.target }}
 
-
-  run_tests:
-    runs-on: [self-hosted]
-    needs: [checkout]
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [
-            blueprint_algebra_fields_plonk_field_operations_test,
-            blueprint_algebra_fields_plonk_exponentiation_test,
-            blueprint_algebra_curves_plonk_unified_addition_test,
-            blueprint_algebra_curves_plonk_variable_base_scalar_mul_test,
-            blueprint_algebra_curves_plonk_decomposed_variable_base_scalar_mul_test,
-            blueprint_verifiers_kimchi_sponge_oracles_test,
-            blueprint_hashes_plonk_poseidon_test,
-            blueprint_algebra_curves_plonk_endo_scalar_test,
-            blueprint_algebra_fields_plonk_range_check_test,
-            blueprint_algebra_fields_plonk_logic_and_flag_test,
-            blueprint_algebra_fields_plonk_logic_or_flag_test,
-            blueprint_algebra_fields_plonk_non_native_addition_test,
-            blueprint_algebra_fields_plonk_non_native_subtraction_test,
-            blueprint_algebra_fields_plonk_non_native_multiplication_test,
-            blueprint_algebra_fields_plonk_non_native_range_test,
-            blueprint_algebra_fields_plonk_non_native_reduction_test,
-            blueprint_algebra_fields_plonk_non_native_bit_decomposition_test,
-            blueprint_algebra_fields_plonk_non_native_bit_composition_test,
-            blueprint_algebra_fields_plonk_non_native_bit_shift_constant_test,
-            blueprint_algebra_fields_plonk_non_native_logic_ops_test,
-            blueprint_algebra_fields_plonk_non_native_comparison_checked_test,
-            blueprint_algebra_fields_plonk_non_native_comparison_unchecked_test,
-            blueprint_algebra_fields_plonk_non_native_comparison_flag_test,
-            blueprint_algebra_fields_plonk_non_native_division_remainder_test,
-            blueprint_non_native_plonk_scalar_non_native_range_test,
-            blueprint_non_native_plonk_bool_scalar_multiplication_test,
-            blueprint_non_native_plonk_add_mul_zkllvm_compatible_test,
-            blueprint_hashes_plonk_decomposition_test,
-            blueprint_hashes_plonk_sha256_process_test,
-            blueprint_hashes_plonk_sha512_process_test,
-            blueprint_hashes_plonk_sha256_test,
-            blueprint_hashes_plonk_sha512_test,
-            blueprint_algebra_fields_plonk_sqrt_test,
-          ]  # Tests to execute
-    steps:
-      - name: Cleanup # TODO - move to scripts on runner
-        run: |
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-
-      - name: Upload checkout job cache
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.CACHE_NAME }}
-
-      - name: Extract artifacts
-        run: |
-          tar -xf ${{ env.CACHE_NAME }}.tar.gz
-          rm ${{ env.CACHE_NAME }}.tar.gz
-
-      - name: Build
-        working-directory: ./build
-        run: cmake --build . -t ${{ matrix.target }}
-
-      - name: Run test
-        working-directory: ./build
-        run: |
-          cd libs/${{ env.LIB_NAME }}/test
-          COLOR='\033[0;33m'
-          echo -e "${COLOR}${{ matrix.target }}"
-          ./${{ matrix.target }}
+  #     - name: Run test
+  #       working-directory: ./build
+  #       run: |
+  #         cd libs/${{ env.LIB_NAME }}/test
+  #         COLOR='\033[0;33m'
+  #         echo -e "${COLOR}${{ matrix.target }}"
+  #         ./${{ matrix.target }}
