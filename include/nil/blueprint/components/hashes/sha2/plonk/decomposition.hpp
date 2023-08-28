@@ -3,6 +3,7 @@
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
 // Copyright (c) 2022 Ekaterina Chukavina <kate@nil.foundation>
+// Copyright (c) 2023 Valeh Farzaliyev <estoniaa@nil.foundation>
 //
 // MIT License
 //
@@ -128,7 +129,7 @@ namespace nil {
                 }
 
                 assignment.witness(component.W(8), row) = data[0];
-                assignment.witness(component.W(8), row + 2) = data[1]; 
+                assignment.witness(component.W(8), row + 2) = data[1];
 
                 assignment.witness(component.W(3), row + 1) = range_chunks[1] * (65536) + range_chunks[0];
                 assignment.witness(component.W(2), row + 1) = range_chunks[3] * (65536) + range_chunks[2];
@@ -196,6 +197,12 @@ namespace nil {
                 const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
+
+                std::size_t row = start_row_index;
+                using var = typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::var;
+
+                bp.add_copy_constraint({var(component.W(8), row, false), instance_input.data[0]});
+                bp.add_copy_constraint({var(component.W(8), row + 2, false), instance_input.data[1]});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
