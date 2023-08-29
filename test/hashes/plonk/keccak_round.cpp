@@ -362,12 +362,36 @@ void test_keccak_round_random() {
                             (inner_state, padded_message_chunk, RC, expected_result);
 }
 
+template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
+         std::size_t LookupColumns, bool xor_with_mes, bool eth_perm>
+void test_keccak_round_not_random() {
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
+
+    std::array<value_type, 25> inner_state;
+    std::array<value_type, 17> padded_message_chunk;
+    value_type RC = value_type(0);
+
+    for (int i = 0; i < 25; ++i) {
+        inner_state[i] = to_sparse<BlueprintFieldType>(i + 1);
+    }
+    for (int i = 0; i < 17; ++i) {
+        padded_message_chunk[i] = 1;
+    }
+    RC = to_sparse<BlueprintFieldType>(0x1000);
+    
+    auto expected_result = sparse_round_function<BlueprintFieldType, xor_with_mes, eth_perm>(inner_state, padded_message_chunk, RC);
+
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, xor_with_mes, eth_perm>
+                            (inner_state, padded_message_chunk, RC, expected_result);
+}
+
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     // test_keccak_round_random<field_type, 9, 65536, 10, true, false>();
-    test_keccak_round_random<field_type, 9, 65536, 10, false, false>();
+    test_keccak_round_not_random<field_type, 15, 65536, 10, false, false>();
     // test_keccak_round_random<field_type, 15, 65536, 10, 4>();
 }
 
