@@ -69,6 +69,7 @@ namespace nil {
                 const std::size_t lookup_columns;
                 
                 const std::size_t num_blocks;
+                const std::size_t num_bits;
                 const std::size_t num_round_calls;
                 const std::size_t num_configs;
 
@@ -230,10 +231,11 @@ namespace nil {
                 }
 
                 #define __keccak_init_macro(witness, constant, public_input, \
-                                                        lookup_rows_, lookup_columns_, num_blocks_) \
+                                                        lookup_rows_, lookup_columns_, num_blocks_, num_bits_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
                     num_blocks(num_blocks_), \
+                    num_bits(num_bits_), \
                     num_round_calls(), \
                     rounds(num_round_calls * 24, \
                             round_component_type(witness, constant, public_input, lookup_rows_, lookup_columns_)), \
@@ -255,19 +257,20 @@ namespace nil {
                                    PublicInputContainerType public_input,
                                    std::size_t lookup_rows_,
                                    std::size_t lookup_columns_,
-                                   std::size_t num_blocks_):
+                                   std::size_t num_blocks_,
+                                   std::size_t num_bits_) :
                     component_type(witness, constant, public_input),
-                    __keccak_init_macro(witness, constant, public_input, lookup_rows_, lookup_columns_, num_blocks_) {};
+                    __keccak_init_macro(witness, constant, public_input, lookup_rows_, lookup_columns_, num_blocks_, num_bits_) {};
 
                 keccak(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                     std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
-                        std::size_t lookup_rows_, std::size_t lookup_columns_, std::size_t num_blocks_) :
+                        std::size_t lookup_rows_, std::size_t lookup_columns_, std::size_t num_blocks_, std::size_t num_bits_) :
                         component_type(witnesses, constants, public_inputs),
                         __keccak_init_macro(witnesses, constants, public_inputs,
-                                            lookup_rows_, lookup_columns_, num_blocks_)
+                                            lookup_rows_, lookup_columns_, num_blocks_, num_bits_) {};
                 {};
 
                 #undef __keccak_init_macro
