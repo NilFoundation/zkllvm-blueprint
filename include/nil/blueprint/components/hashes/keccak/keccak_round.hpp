@@ -95,6 +95,9 @@ namespace nil {
                             buff++;
                         }
                     }
+                    // if (base == 0 && buff < 2 * WitnessesAmount) {
+                    //     buff = 2 * WitnessesAmount - rotate_cells;
+                    // }
                     return buff;
                 }
 
@@ -164,7 +167,7 @@ namespace nil {
                 }
                 std::size_t gates() const {
                     std::size_t res = 0;
-                    for (std::size_t i = 1; i < gates_configuration.size(); ++i) {
+                    for (std::size_t i = 0; i < gates_configuration.size(); ++i) {
                         res += gates_configuration[i].size();
                     }
                     std::cout << "gates num: " << res << std::endl;
@@ -251,6 +254,8 @@ namespace nil {
                 const bool last_round_call;
                 // change permutation on rho/phi step
                 const bool eth_perm;
+                // num columns for the permutation argument
+                const std::size_t limit_permutation_column;
 
                 const std::size_t normalize3_chunk_size;
                 const std::size_t normalize4_chunk_size;
@@ -267,7 +272,7 @@ namespace nil {
                 const std::size_t xor2_cells;
                 const std::size_t xor3_cells;
                 const std::size_t xor5_cells;
-                const std::size_t rotate_cells = 22;
+                const std::size_t rotate_cells = 24;
                 const std::size_t chi_cells;
 
                 const std::size_t xor2_buff;
@@ -290,11 +295,7 @@ namespace nil {
                 const std::size_t last_round_call_row;
                 const std::size_t gates_amount;
 
-                // all words in sparse form
-                const std::size_t word_size = 192;
                 const value_type sparse_3 = 0x6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB_cppui255;
-
-                const std::size_t limit_permutation_column = 7;
 
                 constexpr static const std::array<std::size_t, 25>
                     rho_offsets = {0, 36, 3, 41, 18, 
@@ -497,8 +498,9 @@ namespace nil {
                     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
                     std::pair<std::size_t, std::size_t> cell_copy_from;
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
-                    
-                    if (2 + column > limit_permutation_column) {
+
+                    std::size_t lpc = 7;
+                    if (2 + column > lpc) {
                         copy_to.push_back({last_row + 1, 0});
                         cell_copy_from = {last_row + 1, 1};
                     } else {
@@ -509,7 +511,7 @@ namespace nil {
                     }
                     
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
-                    if (2 + column > limit_permutation_column) {
+                    if (2 + column > lpc) {
                         for (int i = column; i < WitnessesAmount; ++i) {
                             cells.push_back({row, i});
                         }
@@ -553,6 +555,12 @@ namespace nil {
                         constraints[5].push_back(cells[cell_index++]);
                         lookups[1].push_back(constraints[5].back());
                     }
+                    constraints.push_back({cells[cell_index++], cells[cell_index++]});
+
+                    constraints[0].push_back(constraints[6][1]);
+                    constraints[1].push_back(constraints[6][0]);
+                    constraints[2].push_back(constraints[6][0]);
+                    constraints[4].push_back(constraints[6][1]);
                     
                     last_column = cells.back().second + 1 + rotate_buff;
                     last_row = cells.back().first + (last_column / WitnessesAmount);
@@ -755,13 +763,13 @@ namespace nil {
                         config_map[zero_config] = {row};
                     }
 
-                    // for (auto config : config_map) {
-                    //     std::cout << "config: " << config.first.first << ' ' << config.first.second << ": ";
-                    //     for (auto c : config.second) {
-                    //         std::cout << c << ' ';
-                    //     }
-                    //     std::cout << std::endl;
-                    // }
+                    for (auto config : config_map) {
+                        std::cout << "config: " << config.first.first << ' ' << config.first.second << ": ";
+                        for (auto c : config.second) {
+                            std::cout << c << ' ';
+                        }
+                        std::cout << std::endl;
+                    }
                     return config_map;
                 }
 
@@ -806,7 +814,7 @@ namespace nil {
                             num_before++;
                         }
                     }
-                    std::cout << "gates num before: " << num_before << std::endl;
+                    // std::cout << "gates num before: " << num_before << std::endl;
 
                     std::vector<std::vector<configuration>> result;
                     for (auto config: gates_configuration_map) {
@@ -903,17 +911,17 @@ namespace nil {
                     return result;
                 }
 
-                #define __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_) \
+                #define __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
                     xor_with_mes(xor_with_mes_), \
                     last_round_call(last_round_call_),\
                     eth_perm(eth_perm_), \
+                    limit_permutation_column(lpc_), \
                     normalize3_chunk_size(calculate_chunk_size(lookup_rows_, 3)), \
                     normalize4_chunk_size(calculate_chunk_size(lookup_rows_, 4)), \
                     normalize6_chunk_size(calculate_chunk_size(lookup_rows_, 6)), \
                     chi_chunk_size(calculate_chunk_size(lookup_rows_, 2)), \
-                    word_size(192), \
                     normalize3_num_chunks(calculate_num_chunks(3)), \
                     normalize4_num_chunks(calculate_num_chunks(4)), \
                     normalize6_num_chunks(calculate_num_chunks(6)), \
@@ -939,9 +947,10 @@ namespace nil {
                 keccak_round(ContainerType witness, std::size_t lookup_rows_, std::size_t lookup_columns_,
                                                     bool xor_with_mes_ = false,
                                                     bool last_round_call_ = false,
-                                                    bool eth_perm_ = false) :
+                                                    bool eth_perm_ = false,
+                                                    std::size_t lpc_ = 7) :
                     component_type(witness, {}, {}),
-                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_) {};
+                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -950,9 +959,10 @@ namespace nil {
                                    std::size_t lookup_rows_, std::size_t lookup_columns_,
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
-                                   bool eth_perm_ = false) :
+                                   bool eth_perm_ = false,
+                                   std::size_t lpc_ = 7) :
                     component_type(witness, constant, public_input),
-                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_) {};
+                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) {};
 
                 keccak_round(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
@@ -962,9 +972,10 @@ namespace nil {
                     std::size_t lookup_rows_, std::size_t lookup_columns_,
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
-                                   bool eth_perm_ = false) :
+                                   bool eth_perm_ = false,
+                                   std::size_t lpc_ = 7) :
                         component_type(witnesses, constants, public_inputs),
-                        __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_) {};
+                        __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) {};
 
                 #undef __keccak_round_init_macro
             };
@@ -1455,8 +1466,8 @@ namespace nil {
                         }
                         case 7:
                         {
-                            auto r = var(component.C(0), -1, true, var::column_type::constant);
-                            auto minus_r = var(component.C(0), 0, true, var::column_type::constant);
+                            auto r = var(cur_config_vec[i].constraints.back()[0].column, cur_config_vec[i].constraints.back()[0].row - cur_config_vec[i].first_coordinate.row - 1, true);
+                            auto minus_r = var(cur_config_vec[i].constraints.back()[1].column, cur_config_vec[i].constraints.back()[1].row - cur_config_vec[i].first_coordinate.row - 1, true);
 
                             cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1) * minus_r
                                                                 + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
@@ -1538,7 +1549,19 @@ namespace nil {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column, cur_config_vec[i].constraints[j][k + 1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                                                                                 * (integral_type(1) << (k * component.rotate_chunk_size));
                             }
-                            cur_constraints.push_back(bp.add_constraint(constraint_2));
+                            j++;
+                            cur_len = cur_config_vec[i].constraints.size();
+                            if (j >= cur_len) {
+                                gate_type gate(selector_index++, cur_constraints);
+                                bp.add_gate(gate);
+                                cur_constraints.clear();
+                            }
+                            i += j / cur_len;
+                            j %= cur_len;
+
+                            cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                                      * var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                                      - (integral_type(1) << 192)));
 
                             gate_type gate(selector_index++, cur_constraints);
                             bp.add_gate(gate);
@@ -1624,17 +1647,21 @@ namespace nil {
                 std::size_t prev_index = 0;
                 auto config = component.full_configuration;
 
+                std::size_t num_copy_constr = 0;
+
                 if (component.xor_with_mes) {
                     // inner_state ^ chunk
                     for (int i = 0; i < 17 - component.last_round_call; ++i) {
                         bp.add_copy_constraint({instance_input.inner_state[i], var(component.W(config[i].copy_to[0].column), config[i].copy_to[0].row + start_row_index, false)});
                         bp.add_copy_constraint({instance_input.padded_message_chunk[i], var(component.W(config[i].copy_to[1].column), config[i].copy_to[1].row + start_row_index, false)});
+                        num_copy_constr += 2;
                     }
                     config_index += 16;
                     if (component.last_round_call) {
                         bp.add_copy_constraint({instance_input.inner_state[config_index], var(component.W(config[config_index].copy_to[0].column), config[config_index].copy_to[0].row + start_row_index, false)});
                         bp.add_copy_constraint({instance_input.padded_message_chunk[config_index], var(component.W(config[config_index].copy_to[1].column), config[config_index].copy_to[1].row + start_row_index, false)});
                         bp.add_copy_constraint({var(component.C(0), component.last_round_call_row + start_row_index), var(component.W(config[config_index].copy_to[2].column), config[config_index].copy_to[2].row + start_row_index, false)});
+                        num_copy_constr += 3;
                     }
                     config_index += 1;
 
@@ -1642,10 +1669,12 @@ namespace nil {
                     for (int i = 0; i < 17; ++i) {
                         bp.add_copy_constraint({{component.W(config[prev_index + i].copy_from.column), static_cast<int>(config[prev_index + i].copy_from.row + start_row_index), false}, 
                                                 {component.W(config[config_index + i / 5].copy_to[i % 5].column), static_cast<int>(config[config_index + i / 5].copy_to[i % 5].row + start_row_index), false}});
+                        num_copy_constr += 1;
                     }
                     for (int i = 17; i < 25; ++i) {
                         bp.add_copy_constraint({instance_input.inner_state[i],
                                                 {component.W(config[config_index + i / 5].copy_to[i % 5].column), static_cast<int>(config[config_index + i / 5].copy_to[i % 5].row + start_row_index), false}});
+                        num_copy_constr += 1;
                     }
                     config_index += 5;
                     prev_index += 17;
@@ -1653,23 +1682,30 @@ namespace nil {
                     for (int i = 0; i < 25; ++i) {
                         bp.add_copy_constraint({instance_input.inner_state[i],
                                                 {component.W(config[config_index + i / 5].copy_to[i % 5].column), static_cast<int>(config[config_index + i / 5].copy_to[i % 5].row + start_row_index), false}});
+                        num_copy_constr += 1;
                     }
                     config_index += 5;
                 }
                 for (int i = 0; i < 5; ++i) {
                     bp.add_copy_constraint({{component.W(config[prev_index + i].copy_from.column), static_cast<int>(config[prev_index + i].copy_from.row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[0].column), static_cast<int>(config[config_index + i].copy_to[0].row + start_row_index), false}});
+                    bp.add_copy_constraint({{component.W(config[config_index + i].constraints[6][0].column), static_cast<int>(config[config_index + i].constraints[6][0].row + start_row_index), false},
+                                            var(component.C(0), static_cast<int>(config[config_index + i].first_coordinate.row + start_row_index), false, var::column_type::constant)});
+                    num_copy_constr += 2;
                 }
                 config_index += 5;
                 prev_index += 5;
 
                 for (int i = 0; i < 25; ++i) {
+                    std::size_t x = i / 5;
                     bp.add_copy_constraint({{component.W(config[prev_index - 5 + i / 5].copy_to[i % 5].column), static_cast<int>(config[prev_index - 5 + i / 5].copy_to[i % 5].row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[0].column), static_cast<int>(config[config_index + i].copy_to[0].row + start_row_index), false}});
-                    bp.add_copy_constraint({{component.W(config[prev_index + (i + 1) % 5].copy_from.column), static_cast<int>(config[prev_index + (i + 1) % 5].copy_from.row + start_row_index), false},
+                    bp.add_copy_constraint({{component.W(config[prev_index + (x + 1) % 5].copy_from.column), static_cast<int>(config[prev_index + (x + 1) / 5].copy_from.row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[1].column), static_cast<int>(config[config_index + i].copy_to[1].row + start_row_index), false}});
-                    bp.add_copy_constraint({{component.W(config[prev_index + (i + 4) % 5].copy_to[0].column), static_cast<int>(config[prev_index + (i + 4) % 5].copy_to[0].row + start_row_index), false},
+                    bp.add_copy_constraint({{component.W(config[prev_index + (x + 4) % 5].copy_to[0].column), static_cast<int>(config[prev_index + (x + 4) / 5].copy_to[0].row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[2].column), static_cast<int>(config[config_index + i].copy_to[2].row + start_row_index), false}});
+                    num_copy_constr += 3;
+                    std::cout << "num_constr: " << num_copy_constr << std::endl;
                 }
                 config_index += 25;
                 prev_index += 5;
@@ -1678,6 +1714,8 @@ namespace nil {
                 for (int i = 0; i < 24; ++i) {
                     bp.add_copy_constraint({{component.W(config[prev_index + i + 1].copy_from.column), static_cast<int>(config[prev_index + i + 1].copy_from.row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[0].column), static_cast<int>(config[config_index + i].copy_to[0].row + start_row_index), false}});
+                    bp.add_copy_constraint({{component.W(config[config_index + i].constraints[6][0].column), static_cast<int>(config[config_index + i].constraints[6][0].row + start_row_index), false},
+                                            var(component.C(0), static_cast<int>(config[config_index + i].first_coordinate.row + start_row_index), false, var::column_type::constant)});
                 }
 
                 // chi
@@ -1744,11 +1782,9 @@ namespace nil {
                 std::sort(rotate_rows.begin(), rotate_rows.end());
                 for (std::size_t i = 0; i < 5; i++) {
                     assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << 3;
-                    assignment.constant(component.C(0), row + rotate_rows[i] + 1) = integral_type(1) << 189;
                 }
                 for (std::size_t i = 5; i < 29; i++) {
                     assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << (3 * component_type::rho_offsets[i]);
-                    assignment.constant(component.C(0), row + rotate_rows[i] + 1) = integral_type(1) << (192 - 3 * component_type::rho_offsets[i]);
                 }
             }
 
@@ -1976,6 +2012,8 @@ namespace nil {
                     auto cur_config = component.full_configuration[index + config_index];
                     assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = C[index];
                     assignment.witness(component.W(cur_config.copy_from.column), cur_config.copy_from.row + strow) = C_rot[index];
+                    std::cout << "C: " << index << ' ' << cur_config.copy_to[0].column << ' ' << cur_config.copy_to[0].row << "; " << C[index] << '\n';
+                    std::cout << "C_rot: " << cur_config.copy_from.column << ' ' << cur_config.copy_from.row << "; " << C_rot[index] << '\n';
                     assignment.witness(component.W(cur_config.constraints[0][1].column), cur_config.constraints[0][1].row + strow) = value_type(smaller_part);
                     assignment.witness(component.W(cur_config.constraints[0][2].column), cur_config.constraints[0][2].row + strow) = value_type(bigger_part);
                     assignment.witness(component.W(cur_config.constraints[3][0].column), cur_config.constraints[3][0].row + strow) = value_type(copy_bound_smaller);
@@ -1984,6 +2022,8 @@ namespace nil {
                         assignment.witness(component.W(cur_config.constraints[3][j].column), cur_config.constraints[3][j].row + strow) = value_type(integral_small_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[5][j].column), cur_config.constraints[5][j].row + strow) = value_type(integral_big_chunks[j - 1]);
                     }
+                    assignment.witness(component.W(cur_config.constraints[6][0].column), cur_config.constraints[6][0].row + strow) = value_type(integral_type(1) << 3);
+                    assignment.witness(component.W(cur_config.constraints[6][1].column), cur_config.constraints[6][1].row + strow) = value_type(integral_type(1) << 189);
                 }
                 config_index += 5;
                 // std::cout << "theta 1:\n";
@@ -2017,6 +2057,9 @@ namespace nil {
                     assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_1[index];
                     assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = C_rot[(x + 1) % 5];
                     assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = C[(x + 4) % 5];
+                    std::cout << '\n';
+                    std::cout << "C: " << (x + 4) % 5 << ' ' << C[(x + 4) % 5] << '\n';
+                    std::cout << "C_rot: " << (x + 1) % 5 << ' ' << C_rot[(x + 1) % 5] << '\n';
                     assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column), cur_config.constraints[2][0].row + strow) = A_2[index];
                     for (int j = 1; j < num_chunks + 1; ++j) {
@@ -2070,6 +2113,8 @@ namespace nil {
                         assignment.witness(component.W(cur_config.constraints[3][j].column), cur_config.constraints[3][j].row + strow) = value_type(integral_small_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[5][j].column), cur_config.constraints[5][j].row + strow) = value_type(integral_big_chunks[j - 1]);
                     }
+                    assignment.witness(component.W(cur_config.constraints[6][0].column), cur_config.constraints[6][0].row + strow) = value_type(integral_type(1) << r);
+                    assignment.witness(component.W(cur_config.constraints[6][1].column), cur_config.constraints[6][1].row + strow) = value_type(integral_type(1) << minus_r);
                 }
                 config_index += 24;
                 // std::cout << "rho/phi:\n";
