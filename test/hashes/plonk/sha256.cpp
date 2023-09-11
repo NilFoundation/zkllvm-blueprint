@@ -2,6 +2,7 @@
 // Copyright (c) 2021-2022 Mikhail Komarov <nemo@nil.foundation>
 // Copyright (c) 2021-2022 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
+// Copyright (c) 2023 Valeh Farzaliyev <estoniaa@nil.foundation>
 //
 // MIT License
 //
@@ -43,8 +44,10 @@
 
 using namespace nil;
 
-template <typename BlueprintFieldType>
-void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_input, std::array<typename BlueprintFieldType::value_type, 2> expected_res){
+template<typename BlueprintFieldType>
+void test_sha256( std::vector<typename BlueprintFieldType::value_type> public_input,
+                 std::array<typename BlueprintFieldType::value_type, 2>
+                     expected_res) {
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 5;
     constexpr std::size_t ConstantColumns = 2;
@@ -52,29 +55,33 @@ void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_inp
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationParams = crypto3::zk::snark::
+        plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::sha256<ArithmetizationType, 9>;
 
-    std::array<var, 4> input_state_var = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
-        var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input)};
+    std::vector<var> input_state_var;
+    std::size_t BlockSize = public_input.size();
+    for (std::size_t i = 0; i < BlockSize; i++) {
+        input_state_var.push_back(var(0, i, false, var::column_type::public_input));
+    };
 
-    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8},{0},{});
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {}, BlockSize);
 
     typename component_type::input_type instance_input = {input_state_var};
-    auto result_check = [expected_res](AssignmentType &assignment, 
-        typename component_type::result_type &real_res) {
-            std::cout << std::hex << "real_res: " << var_value(assignment, real_res.output[0]).data << " " << var_value(assignment, real_res.output[1]).data << std::endl;
-            assert(var_value(assignment, real_res.output[0]) == expected_res[0] && var_value(assignment, real_res.output[1]) == expected_res[1]);
+    
+    auto result_check = [expected_res](AssignmentType &assignment, typename component_type::result_type &real_res) {
+        std::cout << std::hex << "real_res: " << var_value(assignment, real_res.output[0]).data << " "
+                  << var_value(assignment, real_res.output[1]).data << std::endl;
+        assert(var_value(assignment, real_res.output[0]) == expected_res[0] &&
+               var_value(assignment, real_res.output[1]) == expected_res[1]);
     };
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+       component_instance, public_input, result_check, instance_input);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
@@ -85,8 +92,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_test0) {
 
     typename BlueprintFieldType::value_type s = typename BlueprintFieldType::value_type(2).pow(126);
 
-    test_sha256<BlueprintFieldType>({s, s + 1, s + 2, s + 3}, {0xf5790a69d0a3f69cb85d0b5a233405fb_cppui255, 0xa47050b703fce590fd6585dd02b175f8_cppui255});
-    
+    test_sha256<BlueprintFieldType>({s, s + 1, s + 2, s + 3}, {0xf5790a69d0a3f69cb85d0b5a233405fb_cppui255,
+    0xa47050b703fce590fd6585dd02b175f8_cppui255});
+
     test_sha256<BlueprintFieldType>({
         0xf5a5fd42d16a20302798ef6ed309979b_cppui255, 0x43003d2320d9f0e8ea9831a92759fb4b_cppui255,
         0xdb56114e00fdd4c1f85c892bf35ac9a8_cppui255, 0x9289aaecb1ebd0a96cde606a748b5d71_cppui255},
@@ -108,9 +116,41 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_test0) {
         0xffff0ad7e659772f9534c195c815efc4_cppui255, 0x14ef1e1daed4404c06385d11192e92b_cppui255},
      {0x88b8aa87277a142cbe3d58e7a85ced04_cppui255, 0x4fec5eb57f1828caf06b5fae9c8c67fd_cppui255});
 
-    test_sha256<BlueprintFieldType>({0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64},
+           
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64,
+         0xffffffffffffffff_cppui64},
         {0xf58ac0f0665e3f1886f2eae35542987b_cppui255, 0x9d61cc98e5d3ed2a5a9d8e3b9b7d9f2f_cppui255});
-    test_sha256<BlueprintFieldType>({1, 1, 1, 1}, {0x8e1caeb2418a07d7d88f710dccd882d5_cppui255, 0xb5772c88ae5ca4442ccc46c4518a3d3b_cppui255});
+    test_sha256<BlueprintFieldType>(
+        {0x0000000000000000_cppui64, 0x0000000000000000_cppui64, 0x0000000000000000_cppui64,
+         0x0000000000000000_cppui64},
+        {0xf5a5fd42d16a20302798ef6ed309979b_cppui255, 0x43003d2320d9f0e8ea9831a92759fb4b_cppui255});
+           
+    test_sha256<BlueprintFieldType>(
+        {1, 1, 1, 1}, {0x8e1caeb2418a07d7d88f710dccd882d5_cppui255, 0xb5772c88ae5ca4442ccc46c4518a3d3b_cppui255});
+    
+    test_sha256<BlueprintFieldType>(
+        {}, {0xe3b0c44298fc1c149afbf4c8996fb924_cppui255, 0x27ae41e4649b934ca495991b7852b855_cppui255});
+
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64},
+        {0x787979ee6a78d79a5c6cf1f3ede7cb1d_cppui255, 0x40a6ae9e410062d0b57f848ca083edd6_cppui255});
+    
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64},
+        {0x0156ad310453c9a0456b5bb7aa2fa7c3_cppui255, 0x8f81e6728e51d3a4c337ae0b00ec6c88_cppui255});
+
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64,
+         0x0000000000000000_cppui64, 0x0000000000000000_cppui64, 0x0000000000000000_cppui64,
+         0x0000000000000000_cppui64},
+        {0x66772d09a067f1b181fd802dae4e6357_cppui255, 0x4845413c46b395d5ad2935d6a9a07e6d_cppui255});
+
+    test_sha256<BlueprintFieldType>(
+        {0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64,
+         0xffffffffffffffff_cppui64, 0xffffffffffffffff_cppui64},
+        {0x3126b6d31b1613b600f0db60321ddba5_cppui255, 0x538634dfa615347b96d1992921297b16_cppui255});
+           
 }
 
 BOOST_AUTO_TEST_SUITE_END()
