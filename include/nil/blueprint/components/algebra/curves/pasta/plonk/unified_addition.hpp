@@ -163,7 +163,7 @@ namespace nil {
                 assignment.witness(component.W(2), j) = Q.X;
                 assignment.witness(component.W(3), j) = Q.Y;
                 typename CurveType::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type zero = {
-                    0, 0};
+                    0, 1};
                 if (P.X == zero.X && P.Y == zero.Y) {
                     assignment.witness(component.W(4), j) = Q.X;
                     assignment.witness(component.W(5), j) = Q.Y;
@@ -174,7 +174,7 @@ namespace nil {
                     } else {
                         if (Q.X == P.X && Q.Y == -P.Y) {
                             assignment.witness(component.W(4), j) = 0;
-                            assignment.witness(component.W(5), j) = 0;
+                            assignment.witness(component.W(5), j) = 1;
                         } else {
                             assignment.witness(component.W(4), j) = (P + Q).X;
                             assignment.witness(component.W(5), j) = (P + Q).Y;
@@ -275,7 +275,7 @@ namespace nil {
                 auto constraint_12 = bp.add_constraint(
                     (1 - (var(component.W(2), 0) - var(component.W(0), 0)) * var(component.W(8), 0) -
                         (var(component.W(3), 0) + var(component.W(1), 0)) * var(component.W(9), 0)) *
-                    var(component.W(5), 0));
+                    (1 - var(component.W(5), 0)));
 
                 bp.add_gate(first_selector_index,
                             {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
