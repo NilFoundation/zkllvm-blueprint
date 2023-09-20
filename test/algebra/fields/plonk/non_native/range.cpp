@@ -40,7 +40,7 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/range.hpp>
 
 #include <nil/crypto3/random/algebraic_engine.hpp>
-#include <../test/algebra/fields/plonk/non_native/chop_and_glue_non_native.hpp>
+#include <../test/algebra/fields/plonk/non_native/glue_non_native.hpp>
 
 #include "../../../../test_plonk_component.hpp"
 
@@ -99,21 +99,27 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_non_native_range_test0) {
     using non_native_field_type = typename crypto3::algebra::fields::curve25519_base_field;
     using field_type = crypto3::algebra::curves::pallas::base_field_type;
+    using non_native_policy_type =
+        blueprint::detail::basic_non_native_policy_field_type<
+            field_type,
+            non_native_field_type
+        >;
+    using chunked_non_native_type = typename non_native_policy_type::chopped_value_type;
 
     test_field_range<typename crypto3::algebra::curves::pallas::base_field_type>(
         {455245345345345, 523553453454343, 68753453534534689, 54355345344544}, true);
 
     test_field_range<typename crypto3::algebra::curves::pallas::base_field_type>(
         create_public_input_1_value<field_type, non_native_field_type>(
-            chop_non_native<field_type, non_native_field_type>(1)
+            non_native_policy_type::chop_non_native(1)
         ), true);
     test_field_range<typename crypto3::algebra::curves::pallas::base_field_type>(
         create_public_input_1_value<field_type, non_native_field_type>(
-            chop_non_native<field_type, non_native_field_type>(0)
+            non_native_policy_type::chop_non_native(0)
         ), true);
     test_field_range<typename crypto3::algebra::curves::pallas::base_field_type>(
         create_public_input_1_value<field_type, non_native_field_type>(
-            chop_non_native<field_type, non_native_field_type>(-1)
+            non_native_policy_type::chop_non_native(-1)
         ), true);
 
     nil::crypto3::random::algebraic_engine<non_native_field_type> rand;
@@ -123,7 +129,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_range_test0) {
     for (std::size_t i = 0; i < 10; i++) {
         test_field_range<field_type>(
             create_public_input_1_value<field_type, non_native_field_type>(
-                chop_non_native<field_type, non_native_field_type>(rand())
+                non_native_policy_type::chop_non_native(rand())
             ), true);
     }
 }

@@ -32,7 +32,7 @@
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/ed25519.hpp>
 #include <nil/crypto3/random/algebraic_engine.hpp>
-#include <../test/algebra/fields/plonk/non_native/chop_and_glue_non_native.hpp>
+#include <../test/algebra/fields/plonk/non_native/glue_non_native.hpp>
 
 #include <nil/crypto3/hash/keccak.hpp>
 
@@ -157,14 +157,24 @@ void test_bool_scalar_multiplication(const std::vector<typename BlueprintFieldTy
 
 template<typename FieldType, typename NonNativeCurveType>
 void test_bool_scalar_multiplication_usable(
-    typename NonNativeCurveType::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type point,
+    typename NonNativeCurveType::template g1_type<
+        crypto3::algebra::curves::coordinates::affine
+    >::value_type point,
     typename FieldType::value_type scalar_bool,
-    const bool expected_to_pass) {
+    const bool expected_to_pass
+) {
+
+    using non_native_policy_type =
+        blueprint::detail::basic_non_native_policy_field_type<
+            FieldType,
+            typename NonNativeCurveType::base_field_type
+        >;
 
     std::vector<typename FieldType::value_type> public_input =
         create_public_input<FieldType, typename NonNativeCurveType::base_field_type>(
-            chop_non_native<FieldType, typename NonNativeCurveType::base_field_type>(point.X),
-            chop_non_native<FieldType, typename NonNativeCurveType::base_field_type>(point.Y));
+            non_native_policy_type::chop_non_native(point.X),
+            non_native_policy_type::chop_non_native(point.Y)
+        );
 
     std::vector<typename FieldType::value_type> expected_res;
     if (scalar_bool == 1) {

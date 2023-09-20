@@ -1,21 +1,4 @@
 template<typename FieldType, typename NonNativeFieldType>
-std::array<typename FieldType::value_type, 4> chop_non_native(typename NonNativeFieldType::value_type input) {
-    typename NonNativeFieldType::integral_type input_integral = typename NonNativeFieldType::integral_type(input.data);
-
-    std::array<typename FieldType::value_type, 4> output;
-
-    typename NonNativeFieldType::integral_type base = 1;
-    typename NonNativeFieldType::integral_type mask = (base << 66) - 1;
-
-    output[0] = input_integral & mask;
-    output[1] = (input_integral >> 66) & mask;
-    output[2] = (input_integral >> 132) & mask;
-    output[3] = (input_integral >> 198) & mask;
-
-    return output;
-}
-
-template<typename FieldType, typename NonNativeFieldType>
 typename NonNativeFieldType::value_type glue_non_native(std::array<typename FieldType::value_type, 4> input) {
     typename NonNativeFieldType::integral_type base = 1;
     typename NonNativeFieldType::integral_type chunk_size = (base << 66);

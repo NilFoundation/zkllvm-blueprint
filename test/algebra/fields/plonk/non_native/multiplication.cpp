@@ -44,7 +44,7 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/multiplication.hpp>
 
 #include <nil/crypto3/random/algebraic_engine.hpp>
-#include <../test/algebra/fields/plonk/non_native/chop_and_glue_non_native.hpp>
+#include <../test/algebra/fields/plonk/non_native/glue_non_native.hpp>
 
 #include "../../../../test_plonk_component.hpp"
 
@@ -157,10 +157,15 @@ void test_field_mul_with_stretching(const std::vector<typename FieldType::value_
 
 template<typename FieldType, typename NonNativeFieldType>
 void test_field_mul_useable(typename NonNativeFieldType::value_type a, typename NonNativeFieldType::value_type b) {
-    using chunked_non_native_type = std::array<typename FieldType::value_type, 4>;
-    chunked_non_native_type first = chop_non_native<FieldType, NonNativeFieldType>(a);
-    chunked_non_native_type second = chop_non_native<FieldType, NonNativeFieldType>(b);
-    chunked_non_native_type expected_result = chop_non_native<FieldType, NonNativeFieldType>(a * b);
+    using non_native_policy_type =
+        blueprint::detail::basic_non_native_policy_field_type<
+            FieldType,
+            NonNativeFieldType
+        >;
+    using chunked_non_native_type = typename non_native_policy_type::chopped_value_type;
+    chunked_non_native_type first = non_native_policy_type::chop_non_native(a);
+    chunked_non_native_type second = non_native_policy_type::chop_non_native(b);
+    chunked_non_native_type expected_result = non_native_policy_type::chop_non_native(a * b);
     std::vector<typename FieldType::value_type> public_input =
         create_public_input<FieldType, NonNativeFieldType>(first, second);
     test_field_mul_with_stretching<FieldType, NonNativeFieldType>(public_input, expected_result);
