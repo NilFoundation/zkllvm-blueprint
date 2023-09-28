@@ -74,13 +74,14 @@ void test_unified_addition(std::vector<typename CurveType::base_field_type::valu
 
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
         typename component_type::result_type &real_res) {
-        #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-        std::cout << "unified_addition test: " << "\n";
-        std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
-        std::cout << "input   : " << public_input[2].data << " " << public_input[3].data << "\n";
-        std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
-        std::cout << "real    : " << var_value(assignment, real_res.X).data << " " << var_value(assignment, real_res.Y).data << "\n\n";
-        #endif
+
+        if((expected_res.X != var_value(assignment, real_res.X)) || (expected_res.Y != var_value(assignment, real_res.Y))) {
+            std::cout << "unified_addition failed, expected result differs form circuit output: " << "\n";
+            std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
+            std::cout << "input   : " << public_input[2].data << " " << public_input[3].data << "\n";
+            std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
+            std::cout << "real    : " << var_value(assignment, real_res.X).data << " " << var_value(assignment, real_res.Y).data << "\n\n";
+        }
         assert(expected_res.X == var_value(assignment, real_res.X));
         assert(expected_res.Y == var_value(assignment, real_res.Y));
     };
@@ -97,8 +98,7 @@ void test_unified_addition_with_zeroes() {
     boost::random::mt19937 seed_seq;
     generate_random_point.seed(seed_seq);
 
-    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_algebraic = {0, 1};
-    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_circuits  = {0, 0};
+    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_circuits  = {0, 1};
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = generate_random_point();
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type Q = -P;
 
@@ -146,7 +146,6 @@ void test_unified_addition_random_data() {
 
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = generate_random_point();
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type Q = generate_random_point();
-    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero = {0, 0};
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type expected_res;
 
     std::vector<typename CurveType::base_field_type::value_type> public_input;
@@ -154,6 +153,7 @@ void test_unified_addition_random_data() {
     for (std::size_t i = 0; i < RandomTestsAmount; i++){
         P = generate_random_point();
         Q = generate_random_point();
+<<<<<<< HEAD
 
         if (Q.X == zero.X && Q.Y == zero.Y) {
             expected_res = P;
@@ -168,6 +168,9 @@ void test_unified_addition_random_data() {
                 }
             }
         }
+=======
+        expected_res = P + Q;
+>>>>>>> 1c5f11c9 (zero representation in unified addition component changed from (0,0) to (0,1))
 
         public_input = {P.X, P.Y, Q.X, Q.Y};
         test_unified_addition<CurveType>(public_input, expected_res);
