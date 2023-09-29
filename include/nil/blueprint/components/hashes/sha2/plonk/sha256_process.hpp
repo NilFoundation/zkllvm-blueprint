@@ -607,8 +607,13 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                std::size_t row = start_row_index + 2;
+                std::size_t row = start_row_index;
                 using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams, 9, 1>::var;
+
+                for (std::size_t i = 0; i < 8; i++) {
+                    bp.add_copy_constraint({var(component.W(i), row, false), instance_input.input_state[i]});
+                }
+                row = row + 2;
 
                 for (std::size_t i = 1; i <= 15; ++i) {
                     bp.add_copy_constraint(
@@ -669,10 +674,12 @@ namespace nil {
 
                 row = row + 512;
 
+                bp.add_copy_constraint({var(component.W(2), row - 3, false), var(component.W(4), row, false)});
                 bp.add_copy_constraint({var(component.W(0), row - 1, false), var(component.W(5), row, false)});
                 bp.add_copy_constraint({var(component.W(0), row - 9, false), var(component.W(6), row, false)});
                 bp.add_copy_constraint({var(component.W(0), row - 17, false), var(component.W(7), row, false)});
 
+                bp.add_copy_constraint({var(component.W(4), row - 5, false), var(component.W(4), row + 2, false)});
                 bp.add_copy_constraint({var(component.W(0), row - 8, false), var(component.W(5), row + 2, false)});
                 bp.add_copy_constraint({var(component.W(0), row - 16, false), var(component.W(6), row + 2, false)});
                 bp.add_copy_constraint({var(component.W(0), row - 24, false), var(component.W(7), row + 2, false)});
