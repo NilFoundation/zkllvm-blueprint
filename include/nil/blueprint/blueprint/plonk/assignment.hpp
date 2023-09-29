@@ -66,12 +66,19 @@ namespace nil {
             std::size_t next_selector_index = 0;
             std::uint32_t _allocated_rows = 0;
             std::vector<value_type> _private_storage;
+
+            // each value - allowed row for start component with witness amount = index
+            std::array<std::uint32_t, ArithmetizationParams::witness_columns> _used_rows_for_witness;
+            // each value - allowed row for start component with constant amount = index
+            std::array<std::uint32_t, ArithmetizationParams::constant_columns> _used_rows_for_constant;
         public:
             static constexpr const std::size_t PRIVATE_STORAGE_INDEX = std::numeric_limits<std::size_t>::max();
 
             assignment() :
                     crypto3::zk::snark::plonk_assignment_table<BlueprintFieldType,
                             ArithmetizationParams>() {
+                _used_rows_for_witness.fill(0);
+                _used_rows_for_constant.fill(0);
             }
 
             value_type &selector(std::size_t selector_index, std::uint32_t row_index) {
@@ -97,8 +104,36 @@ namespace nil {
             }
 
             void enable_selector(const std::size_t selector_index, const std::size_t row_index) {
-
                 selector(selector_index, row_index) = BlueprintFieldType::value_type::one();
+            }
+
+            std::uint32_t get_first_free_row(const std::uint32_t witness_amount, const std::uint32_t constant_amount,
+                                             std::uint32_t &witness_idx, std::uint32_t &constant_idx) const {
+                std::uint32_t first_free_row = _allocated_rows;
+                witness_idx = 0;
+                constant_idx = 0;
+                if (_allocated_rows == 0) {
+                    return first_free_row;
+                }
+
+                first_free_row = _used_rows_for_witness[witness_amount - 1];
+
+                if (constant_amount > 0) {
+                    first_free_row = std::max(first_free_row, _used_rows_for_constant[constant_amount - 1]);
+                    for (std::uint32_t i = constant_amount - 1; i < ArithmetizationParams::constant_columns; i++) {
+                        if (_used_rows_for_constant[i] == first_free_row) {
+                            constant_idx = ArithmetizationParams::constant_columns - (i + 1);
+                        }
+                    }
+                }
+
+                for (std::uint32_t i = witness_amount - 1; i < ArithmetizationParams::witness_columns; i++) {
+                    if (_used_rows_for_witness[i] == first_free_row) {
+                        witness_idx = ArithmetizationParams::witness_columns - (i + 1);
+                    }
+                }
+
+                return first_free_row;
             }
 
             void enable_selector(const std::size_t selector_index,
@@ -119,6 +154,15 @@ namespace nil {
                     this->_private_table._witnesses[witness_index].resize(row_index + 1);
 
                 _allocated_rows = std::max(_allocated_rows, row_index + 1);
+
+                for (std::uint32_t i = 0; i < ArithmetizationParams::witness_columns; i++) {
+                    std::uint32_t free_row = row_index;
+                    if (i >= (ArithmetizationParams::witness_columns - witness_index - 1)) {
+                        free_row = row_index + 1;
+                    }
+                    _used_rows_for_witness[i] = std::max(_used_rows_for_witness[i], free_row);
+                }
+
                 return this->_private_table._witnesses[witness_index][row_index];
             }
 
@@ -158,6 +202,15 @@ namespace nil {
                     this->_public_table._constants[constant_index].resize(row_index + 1);
 
                 _allocated_rows = std::max(_allocated_rows, row_index + 1);
+
+                for (std::uint32_t i = 0; i < ArithmetizationParams::constant_columns; i++) {
+                    std::uint32_t free_row = row_index;
+                    if (i >= (ArithmetizationParams::constant_columns - constant_index - 1)) {
+                        free_row = row_index + 1;
+                    }
+                    _used_rows_for_constant[i] = std::max(_used_rows_for_constant[i], free_row);
+                }
+
                 return this->_public_table._constants[constant_index][row_index];
             }
 
