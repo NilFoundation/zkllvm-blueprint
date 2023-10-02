@@ -103,56 +103,17 @@ namespace nil {
 
                 std::size_t calculate_rows() const {
                     std::size_t num_cells = (xor3_cells + xor3_buff) * last_round_call
-                                             * xor_with_mes +                       // xor with last message chunk
+                                             * xor_with_mes +                                       // xor with last message chunk
                                             ((17 - last_round_call) * (xor2_cells + xor2_buff))
-                                             * xor_with_mes +                       // inner_state ^ chunk
-                                            5 * (xor5_cells + xor5_buff) +                        // theta
+                                             * xor_with_mes +                                       // inner_state ^ chunk
+                                            5 * (xor5_cells + xor5_buff) +                          // theta
                                             5 * (rotate_cells + rotate_buff) +                      // theta
-                                            25 * (xor3_cells + xor3_buff) +                       // theta
+                                            25 * (xor3_cells + xor3_buff) +                         // theta
                                             24 * (rotate_cells + rotate_buff) +                     // rho/phi
-                                            25 * (chi_cells + chi_buff) +                        // chi
-                                            xor2_cells;                             // iota
-                    std::size_t num_cells_before = (xor3_cells) * last_round_call
-                                             * xor_with_mes +                       // xor with last message chunk
-                                            ((17 - last_round_call) * (xor2_cells))
-                                             * xor_with_mes +                       // inner_state ^ chunk
-                                            5 * (xor5_cells) +                        // theta
-                                            5 * (rotate_cells) +                      // theta
-                                            25 * (xor3_cells) +                       // theta
-                                            24 * (rotate_cells) +                     // rho/phi
-                                            25 * (chi_cells) +                        // chi
-                                            xor2_cells;                             // iota
-                    std::size_t num_cells_buff = (0 + xor3_buff) * last_round_call
-                                             * xor_with_mes +                       // xor with last message chunk
-                                            ((17 - last_round_call) * (0 + xor2_buff))
-                                             * xor_with_mes +                       // inner_state ^ chunk
-                                            5 * (0 + xor5_buff) +                        // theta
-                                            5 * (0 + rotate_buff) +                      // theta
-                                            25 * (0 + xor3_buff) +                       // theta
-                                            24 * (0 + rotate_buff) +                     // rho/phi
-                                            25 * (0 + chi_buff) +                        // chi
-                                            xor2_cells;                             // iota
-                    std::cout << "rows: " << num_cells / WitnessesAmount + bool(num_cells % WitnessesAmount) << std::endl;
-                    std::cout << "rows before: " << num_cells_before / WitnessesAmount + bool(num_cells_before % WitnessesAmount) << std::endl;
-                    std::cout << "empty cells: " << num_cells_buff + num_cells % WitnessesAmount << std::endl;
-                    std::cout << "empty cells before: " << num_cells_before % WitnessesAmount << std::endl;
+                                            25 * (chi_cells + chi_buff) +                           // chi
+                                            xor2_cells;                                             // iota
                     return num_cells / WitnessesAmount + bool(num_cells % WitnessesAmount);
                 }
-                // std::vector<std::size_t> calculate_gates_rows() const {
-                //     std::vector<std::size_t> res;
-                //     auto cur_selector = gates_configuration[0];
-                //     res.push_back(cur_selector);
-                //     for (std::size_t i = 1; i < gates_configuration.size(); ++i) {
-                //         if (gates_configuration[i] != cur_selector) {
-                //             cur_selector = gates_configuration[i];
-                //             res.push_back(cur_selector);
-                //         }
-                //     }
-                //     // for (int i = 0; i < res.size(); ++i) {
-                //     //     std::cout << res[i] << " ";
-                //     // }
-                //     return res;
-                // }
                 std::size_t calculate_last_round_call_row() const {
                     if (!last_round_call) {
                         return 0;
@@ -170,7 +131,6 @@ namespace nil {
                     for (std::size_t i = 0; i < gates_configuration.size(); ++i) {
                         res += gates_configuration[i].size();
                     }
-                    std::cout << "gates num: " << res << std::endl;
                     return res;
                 }
 
@@ -252,8 +212,6 @@ namespace nil {
                 const bool xor_with_mes;
                 // need to xor last message chunk with 0x80 or 1 only on the last round
                 const bool last_round_call;
-                // change permutation on rho/phi step
-                const bool eth_perm;
                 // num columns for the permutation argument
                 const std::size_t limit_permutation_column;
 
@@ -298,11 +256,10 @@ namespace nil {
                 const value_type sparse_3 = 0x6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB_cppui255;
 
                 constexpr static const std::array<std::size_t, 25>
-                    rho_offsets = {0, 36, 3, 41, 18, 
-                                    1, 44, 10, 45, 2, 
-                                    62, 6, 43, 15, 61, 
-                                    28, 55, 25, 21, 56, 
-                                    27, 20, 39, 8, 14};
+                    rho_offsets = {0, 1,  3,   6, 10, 15, 21,
+                                    28, 36, 45, 55,  2, 14,
+                                    27, 41, 56,  8, 25, 43,
+                                    62, 18, 39, 61, 20, 44};
 
                 struct input_type {
                     std::array<var, 25> inner_state;
@@ -432,21 +389,6 @@ namespace nil {
                     last_row = cells.back().first + (last_column >= WitnessesAmount);
                     last_column %= WitnessesAmount;
 
-                    // std::cout << "normalize " << num_args << ": " << row << ' ' << column << std::endl;
-                    // std::cout << "last coordinate: " << last_row << " " << last_column << std::endl;
-                    // std::cout << "copy from: " << cell_copy_from.first << " " << cell_copy_from.second << std::endl;
-                    // std::cout << "copy to:\n";
-                    // for (auto cell : copy_to) {
-                    //     std::cout << cell.first << " " << cell.second << "\n";
-                    // }
-                    // std::cout << "constraints:\n";
-                    // for (auto constr : constraints) {
-                    //     std::cout << "constraint:\n";
-                    //     for (auto cell : constr) {
-                    //         std::cout << cell.first << " " << cell.second << "\n";
-                    //     }
-                    // }
-
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
@@ -499,8 +441,7 @@ namespace nil {
                     std::pair<std::size_t, std::size_t> cell_copy_from;
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
 
-                    std::size_t lpc = 7;
-                    if (2 + column > lpc) {
+                    if (2 + column > limit_permutation_column) {
                         copy_to.push_back({last_row + 1, 0});
                         cell_copy_from = {last_row + 1, 1};
                     } else {
@@ -511,7 +452,7 @@ namespace nil {
                     }
                     
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
-                    if (2 + column > lpc) {
+                    if (2 + column > limit_permutation_column) {
                         for (int i = column; i < WitnessesAmount; ++i) {
                             cells.push_back({row, i});
                         }
@@ -529,6 +470,8 @@ namespace nil {
                         }
                     }                    
                     std::size_t cell_index = 0;
+                    auto rot_const = cells[cell_index++];
+                    auto minus_rot_const = cells[cell_index++];
                     
                     constraints.push_back({copy_to[0]});
                     constraints[0].push_back(cells[cell_index++]);
@@ -555,7 +498,7 @@ namespace nil {
                         constraints[5].push_back(cells[cell_index++]);
                         lookups[1].push_back(constraints[5].back());
                     }
-                    constraints.push_back({cells[cell_index++], cells[cell_index++]});
+                    constraints.push_back({rot_const, minus_rot_const});
 
                     constraints[0].push_back(constraints[6][1]);
                     constraints[1].push_back(constraints[6][0]);
@@ -565,21 +508,6 @@ namespace nil {
                     last_column = cells.back().second + 1 + rotate_buff;
                     last_row = cells.back().first + (last_column / WitnessesAmount);
                     last_column %= WitnessesAmount;
-
-                    // std::cout << "ROT: " << row << ' ' << column << std::endl;
-                    // std::cout << "last coordinate: " << last_row << " " << last_column << std::endl;
-                    // std::cout << "copy from: " << cell_copy_from.first << " " << cell_copy_from.second << std::endl;
-                    // std::cout << "copy to:\n";
-                    // for (auto cell : copy_to) {
-                    //     std::cout << cell.first << " " << cell.second << "\n";
-                    // }
-                    // std::cout << "constraints:\n";
-                    // for (auto constr : constraints) {
-                    //     std::cout << "constraint:\n";
-                    //     for (auto cell : constr) {
-                    //         std::cout << cell.first << " " << cell.second << "\n";
-                    //     }
-                    // }
                     
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
@@ -642,22 +570,6 @@ namespace nil {
                     // iota
                     result[cur_config] = configure_xor(row, column, 2);
 
-                    // for (int i = 0; i < 50; ++i) {
-                    //     std::cout << "configuration " << i << std::endl;
-                    //     std::cout << "last coordinate: " << result[i].last_coordinate.row << " " << result[i].last_coordinate.column << std::endl;
-                    //     std::cout << "copy from: " << result[i].copy_from.row << " " << result[i].copy_from.column << std::endl;
-                    //     std::cout << "copy to:\n";
-                    //     for (auto cell : result[i].copy_to) {
-                    //         std::cout << cell.row << " " << cell.column << "\n";
-                    //     }
-                    //     std::cout << "constraints:\n";
-                    //     for (auto constr : result[i].constraints) {
-                    //         std::cout << "constraint:\n";
-                    //         for (auto cell : constr) {
-                    //             std::cout << cell.row << " " << cell.column << "\n";
-                    //         }
-                    //     }
-                    // }
                     return result;
                 }
 
@@ -763,58 +675,10 @@ namespace nil {
                         config_map[zero_config] = {row};
                     }
 
-                    for (auto config : config_map) {
-                        std::cout << "config: " << config.first.first << ' ' << config.first.second << ": ";
-                        for (auto c : config.second) {
-                            std::cout << c << ' ';
-                        }
-                        std::cout << std::endl;
-                    }
                     return config_map;
                 }
 
-                std::vector<std::size_t> configure_gates_before() {
-                    std::vector<std::pair<std::size_t, std::size_t>> pairs;
-                    for (std::size_t i = 0; i < full_configuration_size; ++i) {
-                        for (auto constr : full_configuration[i].constraints) {
-                            std::size_t min = constr[0].row;
-                            std::size_t max = constr.back().row;
-                            for (std::size_t j = 0; j < constr.size(); ++j) {
-                                min = std::min(min, constr[j].row);
-                                max = std::max(max, constr[j].row);
-                            }
-                            BOOST_ASSERT(max - min <= 2);
-                            pairs.push_back({min, max});
-                        }
-                    }
-                    std::vector<std::size_t> result;
-                    std::size_t cur_row = 0;
-                    std::size_t cur_constr = 0;
-                    while (cur_row < rows_amount) {
-                        while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 && pairs[cur_constr].first >= cur_row) {
-                            result.push_back(cur_row + 1);
-                            ++cur_constr;
-                        }
-                        if (cur_constr == pairs.size()) {
-                            break;
-                        }
-                        cur_row = pairs[cur_constr].first;
-                    }
-                    return result;
-                }
-
                 std::vector<std::vector<configuration>> configure_gates() {
-
-                    auto gates_before = configure_gates_before();
-                    std::size_t num_before = 1;
-                    std::size_t cur_before = gates_before[0];
-                    for (int i = 1; i < gates_before.size(); ++i) {
-                        if (gates_before[i] != cur_before) {
-                            cur_before = gates_before[i];
-                            num_before++;
-                        }
-                    }
-                    // std::cout << "gates num before: " << num_before << std::endl;
 
                     std::vector<std::vector<configuration>> result;
                     for (auto config: gates_configuration_map) {
@@ -864,20 +728,6 @@ namespace nil {
                         result.push_back(cur_result);
                     }
                     
-                    // for (int i = 0; i < result.size(); ++i) {
-                    //     std::cout << "gate " << i << std::endl;
-                    //     for (int j = 0; j < result[i].size(); ++j) {
-                    //         std::cout << "configuration " << j << std::endl;
-                    //         std::cout << "type: " << " " << result[i][j].first_coordinate.column << std::endl;
-                    //         std::cout << "constraints:\n";
-                    //         for (auto constr : result[i][j].constraints) {
-                    //             std::cout << "constraint:\n";
-                    //             for (auto cell : constr) {
-                    //                 std::cout << cell.row << " " << cell.column << "\n";
-                    //             }
-                    //         }
-                    //     }
-                    // }
                     return result;
                 }
 
@@ -911,12 +761,11 @@ namespace nil {
                     return result;
                 }
 
-                #define __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) \
+                #define __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
                     xor_with_mes(xor_with_mes_), \
                     last_round_call(last_round_call_),\
-                    eth_perm(eth_perm_), \
                     limit_permutation_column(lpc_), \
                     normalize3_chunk_size(calculate_chunk_size(lookup_rows_, 3)), \
                     normalize4_chunk_size(calculate_chunk_size(lookup_rows_, 4)), \
@@ -947,10 +796,9 @@ namespace nil {
                 keccak_round(ContainerType witness, std::size_t lookup_rows_, std::size_t lookup_columns_,
                                                     bool xor_with_mes_ = false,
                                                     bool last_round_call_ = false,
-                                                    bool eth_perm_ = false,
                                                     std::size_t lpc_ = 7) :
                     component_type(witness, {}, {}),
-                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) {};
+                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -959,10 +807,9 @@ namespace nil {
                                    std::size_t lookup_rows_, std::size_t lookup_columns_,
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
-                                   bool eth_perm_ = false,
                                    std::size_t lpc_ = 7) :
                     component_type(witness, constant, public_input),
-                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) {};
+                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) {};
 
                 keccak_round(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
@@ -972,308 +819,12 @@ namespace nil {
                     std::size_t lookup_rows_, std::size_t lookup_columns_,
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
-                                   bool eth_perm_ = false,
                                    std::size_t lpc_ = 7) :
                         component_type(witnesses, constants, public_inputs),
-                        __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, eth_perm_, lpc_) {};
+                        __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) {};
 
                 #undef __keccak_round_init_macro
             };
-
-            // template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
-            // using keccak_round_component =
-            //     keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-            //                                                                    ArithmetizationParams>,
-            //                        WitnessesAmount>;
-
-            // template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-            //          std::enable_if_t<WitnessesAmount >= 9, bool> = true>
-            // void generate_gates(
-            //     const keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-            //                                    WitnessesAmount>
-            //         &component,
-            //     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-            //                                                         ArithmetizationParams>>
-            //         &bp,
-            //     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-            //                                                            ArithmetizationParams>>
-            //         &assignment,
-            //     const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-            //                                             WitnessesAmount>::input_type
-            //         &instance_input,
-            //     const std::size_t first_selector_index) {
-                    
-            //     using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-            //                                                     WitnessesAmount>;
-            //     using var = typename component_type::var;
-            //     using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-            //     using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
-            //     // using lookup_constraint_type = typename crypto3::zk::snark::lookup_constraint<BlueprintFieldType>;
-            //     // using lookup_gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
-            //     using value_type = typename BlueprintFieldType::value_type;
-            //     using integral_type = typename BlueprintFieldType::integral_type;
-
-            //     auto config = component.full_configuration;
-            //     auto gate_config = component.gates_configuration;
-            //     // auto lookup_gate_config = component.lookup_gates_configuration;
-            //     std::size_t config_index = 0;
-            //     std::size_t gate_index = 0;
-            //     // std::size_t lookup_gate_index = 0;
-
-            //     std::vector<constraint_type> constraints;
-            //     // std::vector<lookup_constraint_type> lookup_constraints;
-
-            //     // inner_state ^ chunk
-            //     if (component.xor_with_mes) {
-            //         for (int i = 0; i < 17 - component.last_round_call; ++i) {
-            //             auto cur_config = config[config_index];
-            //             constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index])
-            //                                                 + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                                 - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //             gate_index++;
-            //             constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
-            //             for (int j = 0; j < component.normalize3_num_chunks; ++j) {
-            //                 constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.normalize3_chunk_size));
-            //             } 
-            //             constraints.push_back(bp.add_constraint(constraint_1));
-            //             gate_index++;
-            //             constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
-            //             for (int j = 0; j < component.normalize3_num_chunks; ++j) {
-            //                 constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.normalize3_chunk_size));
-            //             }
-            //             constraints.push_back(bp.add_constraint(constraint_2));
-            //             gate_index++;
-            //             config_index++;
-            //         }
-            //         if (component.last_round_call) {
-            //             auto cur_config = config[config_index];
-            //             constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index])
-            //                                                 + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                                 + var(cur_config.constraints[0][3].column, cur_config.constraints[0][3].row - gate_config[gate_index])
-            //                                                 - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //             gate_index++;
-            //             constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
-            //             for (int j = 0; j < component.normalize4_num_chunks; ++j) {
-            //                 constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.normalize4_chunk_size));
-            //             } 
-            //             constraints.push_back(bp.add_constraint(constraint_1));
-            //             gate_index++;
-            //             constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
-            //             for (int j = 0; j < component.normalize4_num_chunks; ++j) {
-            //                 constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.normalize4_chunk_size));
-            //             }
-            //             constraints.push_back(bp.add_constraint(constraint_2));
-            //             gate_index++;
-            //             config_index++;
-            //         }
-            //     }
-
-            //     // theta
-            //     for (int i = 0; i < 5; ++i) {
-            //         auto cur_config = config[config_index];
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index])
-            //                                               + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                               + var(cur_config.constraints[0][3].column, cur_config.constraints[0][3].row - gate_config[gate_index])
-            //                                               + var(cur_config.constraints[0][4].column, cur_config.constraints[0][4].row - gate_config[gate_index])
-            //                                               + var(cur_config.constraints[0][5].column, cur_config.constraints[0][5].row - gate_config[gate_index])
-            //                                               - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.normalize6_num_chunks; ++j) {
-            //             constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-            //                                                                                         * (integral_type(1) << (j * component.normalize6_chunk_size));
-            //         } 
-            //         constraints.push_back(bp.add_constraint(constraint_1));
-            //         gate_index++;
-            //         constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.normalize6_num_chunks; ++j) {
-            //             constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-            //                                                                                         * (integral_type(1) << (j * component.normalize6_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_2));
-            //         gate_index++;
-            //         config_index++;
-            //     }
-
-            //     for (int i = 0; i < 5; ++i) {
-            //         auto cur_config = config[config_index];
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * (integral_type(1) << 189)
-            //                                               + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row - gate_config[gate_index]) * (integral_type(1) << 3)
-            //                                               + var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row - gate_config[gate_index])
-            //                                               - (integral_type(1) << 3)
-            //                                               + (integral_type(1) << 192)));
-            //         gate_index++;
-            //         constraint_type constraint_1 = var(cur_config.constraints[3][0].column, cur_config.constraints[3][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.rotate_num_chunks; ++j) {
-            //             constraint_1 -= var(cur_config.constraints[3][j + 1].column, cur_config.constraints[3][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.rotate_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_1));
-            //         gate_index++;
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[4][0].column, cur_config.constraints[4][0].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[4][1].column, cur_config.constraints[4][1].row - gate_config[gate_index])
-            //                                               - (integral_type(1) << 189)
-            //                                               + (integral_type(1) << 192)));
-            //         gate_index++;
-            //         constraint_type constraint_2 = var(cur_config.constraints[5][0].column, cur_config.constraints[5][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.rotate_num_chunks; ++j) {
-            //             constraint_2 -= var(cur_config.constraints[5][j + 1].column, cur_config.constraints[5][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.rotate_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_2));
-            //         gate_index++;
-            //         config_index++;
-            //     }
-
-            //     for (int i = 0; i < 25; ++i) {
-            //         auto cur_config = config[config_index];
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index])
-            //                                               + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                               + var(cur_config.constraints[0][3].column, cur_config.constraints[0][3].row - gate_config[gate_index])
-            //                                               - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.normalize4_num_chunks; ++j) {
-            //             constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-            //                                                                                         * (integral_type(1) << (j * component.normalize4_chunk_size));
-            //         } 
-            //         constraints.push_back(bp.add_constraint(constraint_1));
-            //         gate_index++;
-            //         constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.normalize4_num_chunks; ++j) {
-            //             constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-            //                                                                                         * (integral_type(1) << (j * component.normalize4_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_2));
-            //         gate_index++;
-            //         config_index++;
-            //     }
-
-            //     // rho/phi
-            //     for (int i = 1; i < 25; ++i) {
-            //         auto r = 3 * component.rho_offsets[i];
-
-            //         auto cur_config = config[config_index];
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * (integral_type(1) << (192 - r))
-            //                                               + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row - gate_config[gate_index]) * (integral_type(1) << r)
-            //                                               + var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row - gate_config[gate_index])
-            //                                               - (integral_type(1) << r)
-            //                                               + (integral_type(1) << 192)));
-            //         gate_index++;
-            //         constraint_type constraint_1 = var(cur_config.constraints[3][0].column, cur_config.constraints[3][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.rotate_num_chunks; ++j) {
-            //             constraint_1 -= var(cur_config.constraints[3][j + 1].column, cur_config.constraints[3][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.rotate_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_1));
-            //         gate_index++;
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[4][0].column, cur_config.constraints[4][0].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[4][1].column, cur_config.constraints[4][1].row - gate_config[gate_index])
-            //                                               - (integral_type(1) << (192 - r))
-            //                                               + (integral_type(1) << 192)));
-            //         gate_index++;
-            //         constraint_type constraint_2 = var(cur_config.constraints[5][0].column, cur_config.constraints[5][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.rotate_num_chunks; ++j) {
-            //             constraint_2 -= var(cur_config.constraints[5][j + 1].column, cur_config.constraints[5][j + 1].row - gate_config[gate_index])
-            //                                                                                             * (integral_type(1) << (j * component.rotate_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_2));
-            //         gate_index++;
-            //         config_index++;
-            //     }
-
-            //     // chi
-            //     for (int i = 0; i < 25; ++i) {
-            //         auto cur_config = config[config_index];
-            //         constraints.push_back(bp.add_constraint(component.sparse_3
-            //                                               - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index]) * 2
-            //                                               + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                               - var(cur_config.constraints[0][3].column, cur_config.constraints[0][3].row - gate_config[gate_index])
-            //                                               - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.chi_num_chunks; ++j) {
-            //             constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-            //                                                                                                 * (integral_type(1) << (j * component.chi_chunk_size));
-            //         } 
-            //         constraints.push_back(bp.add_constraint(constraint_1));
-            //         gate_index++;
-            //         constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.chi_num_chunks; ++j) {
-            //             constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-            //                                                                                                 * (integral_type(1) << (j * component.chi_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_2));
-            //         gate_index++;
-            //         config_index++;
-            //     }
-
-            //     // iota
-            //     {
-            //         auto cur_config = config[config_index];
-            //         constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row - gate_config[gate_index])
-            //                                             + var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row - gate_config[gate_index]) 
-            //                                             - var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row - gate_config[gate_index])));
-            //         gate_index++;
-            //         constraint_type constraint_1 = var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.normalize3_num_chunks; ++j) {
-            //             constraint_1 -= var(cur_config.constraints[1][j + 1].column, cur_config.constraints[1][j + 1].row - gate_config[gate_index])
-            //                                                                                         * (integral_type(1) << (j * component.normalize3_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_1));
-            //         gate_index++;
-            //         constraint_type constraint_2 = var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row - gate_config[gate_index]);
-            //         for (int j = 0; j < component.normalize3_num_chunks; ++j) {
-            //             constraint_2 -= var(cur_config.constraints[2][j + 1].column, cur_config.constraints[2][j + 1].row - gate_config[gate_index])
-            //                                                                                         * (integral_type(1) << (j * component.normalize3_chunk_size));
-            //         }
-            //         constraints.push_back(bp.add_constraint(constraint_2));
-            //         gate_index++;
-            //         config_index++;
-            //     }
-
-            //     BOOST_ASSERT(config_index == component.full_configuration_size);
-            //     // BOOST_ASSERT(constraints.size() == gate_config.size());
-
-            //     std::size_t prev_selector = gate_config[0];
-            //     std::vector<constraint_type> cur_constraints = {constraints[0]};
-            //     gate_index = 1;
-            //     while (gate_index < gate_config.size()) {
-            //         while (gate_index < gate_config.size() && gate_config[gate_index] == prev_selector) {
-            //             cur_constraints.push_back(constraints[gate_index]);
-            //             ++gate_index;
-            //         }
-            //         if (gate_index == gate_config.size()) {
-            //             break;
-            //         }
-            //         gate_type gate(first_selector_index + prev_selector, cur_constraints);
-            //         bp.add_gate(gate);
-            //         cur_constraints.clear();
-            //         prev_selector = gate_config[gate_index];
-            //     }
-            //     if (!cur_constraints.empty()) {
-            //         gate_type gate(first_selector_index + prev_selector, cur_constraints);
-            //         bp.add_gate(gate);
-            //     }
-            // }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
             using keccak_round_component =
@@ -1466,10 +1017,8 @@ namespace nil {
                         }
                         case 7:
                         {
-                            auto r = var(cur_config_vec[i].constraints.back()[0].column, cur_config_vec[i].constraints.back()[0].row - cur_config_vec[i].first_coordinate.row - 1, true);
-                            auto minus_r = var(cur_config_vec[i].constraints.back()[1].column, cur_config_vec[i].constraints.back()[1].row - cur_config_vec[i].first_coordinate.row - 1, true);
-
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1) * minus_r
+                            cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                                * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1)));
                             
@@ -1483,7 +1032,8 @@ namespace nil {
                             i += j / cur_len;
                             j %= cur_len;
 
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[1][1].column, cur_config_vec[i].constraints[1][1].row - cur_config_vec[i].first_coordinate.row - 1) * r
+                            cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[1][1].column, cur_config_vec[i].constraints[1][1].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                                * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 + var(cur_config_vec[i].constraints[1][2].column, cur_config_vec[i].constraints[1][2].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 - var(cur_config_vec[i].constraints[1][0].column, cur_config_vec[i].constraints[1][0].row - cur_config_vec[i].first_coordinate.row - 1)));
                             
@@ -1499,7 +1049,7 @@ namespace nil {
 
                             cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                                + r
+                                                                + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 - (integral_type(1) << 192)));
                             
                             j++;
@@ -1531,7 +1081,7 @@ namespace nil {
 
                             cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                                + minus_r
+                                                                + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                                 - (integral_type(1) << 192)));
                             
                             j++;
@@ -1549,6 +1099,8 @@ namespace nil {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column, cur_config_vec[i].constraints[j][k + 1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                                                                                 * (integral_type(1) << (k * component.rotate_chunk_size));
                             }
+                            cur_constraints.push_back(bp.add_constraint(constraint_2));
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1660,7 +1212,8 @@ namespace nil {
                     if (component.last_round_call) {
                         bp.add_copy_constraint({instance_input.inner_state[config_index], var(component.W(config[config_index].copy_to[0].column), config[config_index].copy_to[0].row + start_row_index, false)});
                         bp.add_copy_constraint({instance_input.padded_message_chunk[config_index], var(component.W(config[config_index].copy_to[1].column), config[config_index].copy_to[1].row + start_row_index, false)});
-                        bp.add_copy_constraint({var(component.C(0), component.last_round_call_row + start_row_index), var(component.W(config[config_index].copy_to[2].column), config[config_index].copy_to[2].row + start_row_index, false)});
+                        bp.add_copy_constraint({var(component.C(0), component.last_round_call_row + start_row_index, false, var::column_type::constant), 
+                                                var(component.W(config[config_index].copy_to[2].column), config[config_index].copy_to[2].row + start_row_index, false)});
                         num_copy_constr += 3;
                     }
                     config_index += 1;
@@ -1668,12 +1221,12 @@ namespace nil {
                     // theta
                     for (int i = 0; i < 17; ++i) {
                         bp.add_copy_constraint({{component.W(config[prev_index + i].copy_from.column), static_cast<int>(config[prev_index + i].copy_from.row + start_row_index), false}, 
-                                                {component.W(config[config_index + i / 5].copy_to[i % 5].column), static_cast<int>(config[config_index + i / 5].copy_to[i % 5].row + start_row_index), false}});
+                                                {component.W(config[config_index + i % 5].copy_to[i / 5].column), static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index), false}});
                         num_copy_constr += 1;
                     }
                     for (int i = 17; i < 25; ++i) {
                         bp.add_copy_constraint({instance_input.inner_state[i],
-                                                {component.W(config[config_index + i / 5].copy_to[i % 5].column), static_cast<int>(config[config_index + i / 5].copy_to[i % 5].row + start_row_index), false}});
+                                                {component.W(config[config_index + i % 5].copy_to[i / 5].column), static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index), false}});
                         num_copy_constr += 1;
                     }
                     config_index += 5;
@@ -1681,7 +1234,7 @@ namespace nil {
                 } else {
                     for (int i = 0; i < 25; ++i) {
                         bp.add_copy_constraint({instance_input.inner_state[i],
-                                                {component.W(config[config_index + i / 5].copy_to[i % 5].column), static_cast<int>(config[config_index + i / 5].copy_to[i % 5].row + start_row_index), false}});
+                                                {component.W(config[config_index + i % 5].copy_to[i / 5].column), static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index), false}});
                         num_copy_constr += 1;
                     }
                     config_index += 5;
@@ -1697,43 +1250,49 @@ namespace nil {
                 prev_index += 5;
 
                 for (int i = 0; i < 25; ++i) {
-                    std::size_t x = i / 5;
-                    bp.add_copy_constraint({{component.W(config[prev_index - 5 + i / 5].copy_to[i % 5].column), static_cast<int>(config[prev_index - 5 + i / 5].copy_to[i % 5].row + start_row_index), false},
+                    std::size_t x = i % 5;
+                    bp.add_copy_constraint({{component.W(config[prev_index - 5 + i % 5].copy_to[i / 5].column), static_cast<int>(config[prev_index - 5 + i % 5].copy_to[i / 5].row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[0].column), static_cast<int>(config[config_index + i].copy_to[0].row + start_row_index), false}});
-                    bp.add_copy_constraint({{component.W(config[prev_index + (x + 1) % 5].copy_from.column), static_cast<int>(config[prev_index + (x + 1) / 5].copy_from.row + start_row_index), false},
+                    bp.add_copy_constraint({{component.W(config[prev_index + (x + 1) % 5].copy_from.column), static_cast<int>(config[prev_index + (x + 1) % 5].copy_from.row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[1].column), static_cast<int>(config[config_index + i].copy_to[1].row + start_row_index), false}});
-                    bp.add_copy_constraint({{component.W(config[prev_index + (x + 4) % 5].copy_to[0].column), static_cast<int>(config[prev_index + (x + 4) / 5].copy_to[0].row + start_row_index), false},
+                    bp.add_copy_constraint({{component.W(config[prev_index + (x + 4) % 5].copy_to[0].column), static_cast<int>(config[prev_index + (x + 4) % 5].copy_to[0].row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[2].column), static_cast<int>(config[config_index + i].copy_to[2].row + start_row_index), false}});
                     num_copy_constr += 3;
-                    std::cout << "num_constr: " << num_copy_constr << std::endl;
                 }
                 config_index += 25;
                 prev_index += 5;
 
                 // rho/phi
+                std::size_t perm_rho[24] = {1, 10,  7, 11, 17, 18, 3,
+                                        5, 16,  8, 21, 24, 4,
+                                        15, 23, 19, 13, 12, 2,
+                                        20, 14, 22,  9, 6};
                 for (int i = 0; i < 24; ++i) {
-                    bp.add_copy_constraint({{component.W(config[prev_index + i + 1].copy_from.column), static_cast<int>(config[prev_index + i + 1].copy_from.row + start_row_index), false},
+                    bp.add_copy_constraint({{component.W(config[prev_index + perm_rho[i]].copy_from.column), static_cast<int>(config[prev_index + perm_rho[i]].copy_from.row + start_row_index), false},
                                             {component.W(config[config_index + i].copy_to[0].column), static_cast<int>(config[config_index + i].copy_to[0].row + start_row_index), false}});
                     bp.add_copy_constraint({{component.W(config[config_index + i].constraints[6][0].column), static_cast<int>(config[config_index + i].constraints[6][0].row + start_row_index), false},
                                             var(component.C(0), static_cast<int>(config[config_index + i].first_coordinate.row + start_row_index), false, var::column_type::constant)});
                 }
 
                 // chi
-                std::vector<int> perm_index = {14,4,19,9, 5,20,10,0,15, 11,1,16,6,21, 17,7,22,12,2, 23,13,3,18,8};
+                std::size_t perm_chi[24] = {23,  17, 5, 11, 6, 22,
+                                        1, 8,  21, 0, 2, 16,
+                                        15, 19, 12, 7, 3, 4,
+                                        14, 18, 9,  20, 13,  10};
                 std::vector<var> B = {{component.W(config[prev_index].copy_from.column), static_cast<int>(config[prev_index].copy_from.row + start_row_index), false}};
-                for (auto i : perm_index) {
+                for (auto i : perm_chi) {
                     B.push_back({component.W(config[config_index + i].copy_from.column), static_cast<int>(config[config_index + i].copy_from.row + start_row_index), false});
                 }
                 config_index += 24;
                 prev_index += 25;
                 for (int i = 0; i < 25; ++i) {
-                    int x = i / 5;
-                    int y = i % 5;
-                    bp.add_copy_constraint({B[x * 5 + y],
+                    int x = i % 5;
+                    int y = i / 5;
+                    bp.add_copy_constraint({B[x + 5 * y],
                                             {component.W(config[config_index + i].copy_to[0].column), static_cast<int>(config[config_index + i].copy_to[0].row + start_row_index), false}});
-                    bp.add_copy_constraint({B[((x + 1) % 5) * 5 + y],
+                    bp.add_copy_constraint({B[(x + 1) % 5 + 5 * y],
                                             {component.W(config[config_index + i].copy_to[1].column), static_cast<int>(config[config_index + i].copy_to[1].row + start_row_index), false}});
-                    bp.add_copy_constraint({B[((x + 2) % 5) * 5 + y],
+                    bp.add_copy_constraint({B[(x + 2) % 5 + 5 * y],
                                             {component.W(config[config_index + i].copy_to[2].column), static_cast<int>(config[config_index + i].copy_to[2].row + start_row_index), false}});
                 }
                 config_index += 25;
@@ -1784,7 +1343,7 @@ namespace nil {
                     assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << 3;
                 }
                 for (std::size_t i = 5; i < 29; i++) {
-                    assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << (3 * component_type::rho_offsets[i]);
+                    assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << (3 * component_type::rho_offsets[i - 4]);
                 }
             }
 
@@ -1901,7 +1460,7 @@ namespace nil {
                     if (component.last_round_call) {
                         value_type state = var_value(assignment, instance_input.inner_state[16]);
                         value_type message = var_value(assignment, instance_input.padded_message_chunk[16]);
-                        value_type sum = state + message + value_type(component.C(0));
+                        value_type sum = state + message + value_type(2097152);
                         integral_type integral_sum = integral_type(sum.data);
                         auto chunk_size = component.normalize4_chunk_size;
                         auto num_chunks = component.normalize4_num_chunks;
@@ -1922,6 +1481,7 @@ namespace nil {
                         auto cur_config = component.full_configuration[16];
                         assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = state;
                         assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = message;
+                        assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = value_type(2097152);
                         assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + strow) = sum;
                         assignment.witness(component.W(cur_config.constraints[2][0].column), cur_config.constraints[2][0].row + strow) = value_type(integral_normalized_sum);
                         for (int j = 1; j < num_chunks + 1; ++j) {
@@ -1938,17 +1498,13 @@ namespace nil {
                         A_1[i] = var_value(assignment, instance_input.inner_state[i]);
                     }
                 }
-                // std::cout << "inner_state ^ chunk:\n";
-                // for (int i = 0; i < 25; ++i) {
-                //     std::cout << A_1[i] << "\n";
-                // }
 
                 // theta
                 std::array<value_type, 5> C;
                 for (int index = 0; index < 5; ++index) {
                     value_type sum = 0;
                     for (int j = 0; j < 5; ++j) {
-                        sum += A_1[5 * index + j];
+                        sum += A_1[index + 5 * j];
                     }
                     integral_type integral_sum = integral_type(sum.data);
                     auto chunk_size = component.normalize6_chunk_size;
@@ -1968,11 +1524,11 @@ namespace nil {
                     C[index] = value_type(integral_normalized_sum);
 
                     auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_1[5 * index];
-                    assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = A_1[5 * index + 1];
-                    assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = A_1[5 * index + 2];
-                    assignment.witness(component.W(cur_config.copy_to[3].column), cur_config.copy_to[3].row + strow) = A_1[5 * index + 3];
-                    assignment.witness(component.W(cur_config.copy_to[4].column), cur_config.copy_to[4].row + strow) = A_1[5 * index + 4];
+                    assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_1[index];
+                    assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = A_1[index + 5];
+                    assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = A_1[index + 10];
+                    assignment.witness(component.W(cur_config.copy_to[3].column), cur_config.copy_to[3].row + strow) = A_1[index + 15];
+                    assignment.witness(component.W(cur_config.copy_to[4].column), cur_config.copy_to[4].row + strow) = A_1[index + 20];
                     assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column), cur_config.constraints[2][0].row + strow) = value_type(integral_normalized_sum);
                     for (int j = 1; j < num_chunks + 1; ++j) {
@@ -1981,10 +1537,6 @@ namespace nil {
                     }
                 }
                 config_index += 5;
-                // std::cout << "theta 0:\n";
-                // for (int i = 0; i < 5; ++i) {
-                //     std::cout << C[i] << "\n";
-                // }
 
                 std::array<value_type, 5> C_rot;
                 for (int index = 0; index < 5; ++index) {
@@ -2012,8 +1564,6 @@ namespace nil {
                     auto cur_config = component.full_configuration[index + config_index];
                     assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = C[index];
                     assignment.witness(component.W(cur_config.copy_from.column), cur_config.copy_from.row + strow) = C_rot[index];
-                    std::cout << "C: " << index << ' ' << cur_config.copy_to[0].column << ' ' << cur_config.copy_to[0].row << "; " << C[index] << '\n';
-                    std::cout << "C_rot: " << cur_config.copy_from.column << ' ' << cur_config.copy_from.row << "; " << C_rot[index] << '\n';
                     assignment.witness(component.W(cur_config.constraints[0][1].column), cur_config.constraints[0][1].row + strow) = value_type(smaller_part);
                     assignment.witness(component.W(cur_config.constraints[0][2].column), cur_config.constraints[0][2].row + strow) = value_type(bigger_part);
                     assignment.witness(component.W(cur_config.constraints[3][0].column), cur_config.constraints[3][0].row + strow) = value_type(copy_bound_smaller);
@@ -2026,15 +1576,11 @@ namespace nil {
                     assignment.witness(component.W(cur_config.constraints[6][1].column), cur_config.constraints[6][1].row + strow) = value_type(integral_type(1) << 189);
                 }
                 config_index += 5;
-                // std::cout << "theta 1:\n";
-                // for (int i = 0; i < 5; ++i) {
-                //     std::cout << C_rot[i] << "\n";
-                // }
 
                 std::array<value_type, 25> A_2;
                 for (int index = 0; index < 25; ++index) {
-                    int x = index / 5;
-                    int y = index % 5;
+                    int x = index % 5;
+                    int y = index / 5;
                     value_type sum = A_1[index] + C_rot[(x + 1) % 5] + C[(x + 4) % 5];
                     integral_type integral_sum = integral_type(sum.data);
                     auto chunk_size = component.normalize4_chunk_size;
@@ -2057,9 +1603,6 @@ namespace nil {
                     assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_1[index];
                     assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = C_rot[(x + 1) % 5];
                     assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = C[(x + 4) % 5];
-                    std::cout << '\n';
-                    std::cout << "C: " << (x + 4) % 5 << ' ' << C[(x + 4) % 5] << '\n';
-                    std::cout << "C_rot: " << (x + 1) % 5 << ' ' << C_rot[(x + 1) % 5] << '\n';
                     assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column), cur_config.constraints[2][0].row + strow) = A_2[index];
                     for (int j = 1; j < num_chunks + 1; ++j) {
@@ -2068,24 +1611,24 @@ namespace nil {
                     }
                 }
                 config_index += 25;
-                // std::cout << "theta 2:\n";
-                // for (int i = 0; i < 25; ++i) {
-                //     std::cout << A_2[i] << "\n";
-                // }
 
                 // rho/phi
-                value_type B[5][5];
-                B[0][0] = A_2[0];
+                value_type B[25];
+                std::size_t perm[25] = {1, 10,  7, 11, 17, 18, 3,
+                                        5, 16,  8, 21, 24, 4,
+                                        15, 23, 19, 13, 12, 2,
+                                        20, 14, 22,  9, 6,  1};
+                B[0] = A_2[0];
                 for (int index = 1; index < 25; ++index) {
-                    int x = index / 5;
-                    int y = index % 5;
+                    int x = index % 5;
+                    int y = index / 5;
                     int r = 3 * component.rho_offsets[index];
                     int minus_r = 192 - r;
-                    integral_type integral_A = integral_type(A_2[index].data);
+                    integral_type integral_A = integral_type(A_2[perm[index - 1]].data);
                     integral_type smaller_part = integral_A >> minus_r;
                     integral_type bigger_part = integral_A & ((integral_type(1) << minus_r) - 1);
                     integral_type integral_A_rot = (bigger_part << r) + smaller_part;
-                    B[y][(2*x + 3*y) % 5] = value_type(integral_A_rot);
+                    B[perm[index]] = value_type(integral_A_rot);
                     integral_type bound_smaller = smaller_part - (integral_type(1) << r) + (integral_type(1) << 192);
                     integral_type bound_bigger = bigger_part - (integral_type(1) << minus_r) + (integral_type(1) << 192);
                     auto copy_bound_smaller = bound_smaller;
@@ -2103,7 +1646,7 @@ namespace nil {
                     }
 
                     auto cur_config = component.full_configuration[index - 1 + config_index];
-                    assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_2[index];
+                    assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_2[perm[index - 1]];
                     assignment.witness(component.W(cur_config.copy_from.column), cur_config.copy_from.row + strow) = value_type(integral_A_rot);
                     assignment.witness(component.W(cur_config.constraints[0][1].column), cur_config.constraints[0][1].row + strow) = value_type(smaller_part);
                     assignment.witness(component.W(cur_config.constraints[0][2].column), cur_config.constraints[0][2].row + strow) = value_type(bigger_part);
@@ -2117,19 +1660,13 @@ namespace nil {
                     assignment.witness(component.W(cur_config.constraints[6][1].column), cur_config.constraints[6][1].row + strow) = value_type(integral_type(1) << minus_r);
                 }
                 config_index += 24;
-                // std::cout << "rho/phi:\n";
-                // for (int i = 0; i < 5; ++i) {
-                //     for (int j = 0; j < 5; ++j) {
-                //         std::cout << B[i][j] << "\n";
-                //     }
-                // }
 
                 // chi
                 std::array<value_type, 25> A_3;
                 for (int index = 0; index < 25; ++index) {
-                    int x = index / 5;
-                    int y = index % 5;
-                    value_type sum = component.sparse_3 - 2 * B[x][y] + B[(x+1)%5][y] - B[(x+2)%5][y];
+                    int x = index % 5;
+                    int y = index / 5;
+                    value_type sum = component.sparse_3 - 2 * B[x + 5 * y] + B[(x+1)%5 + 5 * y] - B[(x+2)%5 + 5 * y];
                     integral_type integral_sum = integral_type(sum.data);
                     auto chunk_size = component.chi_chunk_size;
                     auto num_chunks = component.chi_num_chunks;
@@ -2148,9 +1685,9 @@ namespace nil {
                     A_3[index] = value_type(integral_chi_sum);
 
                     auto cur_config = component.full_configuration[index + config_index];
-                    assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = B[x][y];
-                    assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = B[(x+1)%5][y];
-                    assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = B[(x+2)%5][y];
+                    assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = B[x + 5 * y];
+                    assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = B[(x+1)%5 + 5 * y];
+                    assignment.witness(component.W(cur_config.copy_to[2].column), cur_config.copy_to[2].row + strow) = B[(x+2)%5 + 5 * y];
                     assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column), cur_config.constraints[2][0].row + strow) = value_type(integral_chi_sum);
                     for (int j = 1; j < num_chunks + 1; ++j) {
@@ -2159,10 +1696,6 @@ namespace nil {
                     }
                 }
                 config_index += 25;
-                // std::cout << "chi:\n";
-                // for (int i = 0; i < 25; ++i) {
-                //     std::cout << A_3[i] << "\n";
-                // }
 
                 // iota
                 value_type A_4;
@@ -2195,18 +1728,11 @@ namespace nil {
                         assignment.witness(component.W(cur_config.constraints[1][j].column), cur_config.constraints[1][j].row + strow) = value_type(integral_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[2][j].column), cur_config.constraints[2][j].row + strow) = value_type(integral_normalized_chunks[j - 1]);
                     }
-                    std::cout << "valuess: " << cur_config.copy_from.column << ' ' << cur_config.copy_from.row + strow << ' ' << var_value(assignment, var(cur_config.copy_from.column, cur_config.copy_from.row + strow)) << "\n";
                 }
-                // std::cout << "result:\n";
-                // std::cout << A_4 << "\n";
-                // for (int i = 1; i < 25; ++i) {
-                //     std::cout << A_3[i] << "\n";
-                // }
 
                 return typename component_type::result_type(component, start_row_index);
             }
 
-        
         }    // namespace components
     }        // namespace blueprint
 }   // namespace nil
