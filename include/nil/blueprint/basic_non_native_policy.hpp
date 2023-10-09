@@ -28,15 +28,19 @@
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
-#include <nil/crypto3/algebra/marshalling.hpp>
-
+#include <nil/crypto3/marshalling/algebra/types/field_element.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
+
+#include <nil/blueprint/detail/basic_non_native_policy.hpp>
+
 
 namespace nil {
     namespace blueprint {
         namespace detail {
+
             template<typename BlueprintFieldType, typename OperatingFieldType>
-            struct basic_non_native_policy_field_type;
+            struct basic_non_native_policy_field_type : public basic_non_native_policy_field_type_base<BlueprintFieldType, OperatingFieldType, chopped_lengths_storage<>> {
+            };
 
             /*
              * Specialization for non-native Ed25519 base field element on Pallas base field
@@ -45,38 +49,9 @@ namespace nil {
             struct basic_non_native_policy_field_type<
                 typename crypto3::algebra::curves::pallas::base_field_type,
                 typename crypto3::algebra::curves::ed25519::base_field_type
-            > {
-                using non_native_field_type = typename crypto3::algebra::curves::ed25519::base_field_type;
-                using native_field_type = typename crypto3::algebra::curves::pallas::base_field_type;
-                using var = crypto3::zk::snark::plonk_variable<typename native_field_type::value_type>;
+            > : public basic_non_native_policy_field_type_base<typename crypto3::algebra::curves::pallas::base_field_type, typename crypto3::algebra::curves::ed25519::base_field_type, chopped_lengths_storage<58, 66, 66, 66>> {
 
-                constexpr static const std::uint32_t native_type_element_bit_length = 66;
-                constexpr static const std::uint32_t native_type_elements_needed =
-                    (non_native_field_type::value_bits + (native_type_element_bit_length - 1))
-                    / native_type_element_bit_length
-                ;
-
-                using non_native_var_type = std::array<var, native_type_elements_needed>;
-                using chopped_value_type = std::array<native_field_type::value_type, native_type_elements_needed>;
-
-                static chopped_value_type chop_non_native(non_native_field_type::value_type input) {
-                    return marshalling::bincode::field<non_native_field_type>
-                        ::split_field_element<native_field_type, native_type_element_bit_length>(input);
-                }
-
-                static non_native_field_type::value_type glue_non_native(chopped_value_type input) {
-                    non_native_field_type::value_type result;
-                    native_field_type::integral_type integral_input;
-                    result = non_native_field_type::value_type(native_field_type::integral_type(input[0].data));
-                    for (std::size_t i = 1; i < ratio; i++) {
-                        std::size_t shift = 0;
-                        for (std::size_t j = 0; j < i; j++) {
-                            shift += chunk_sizes[j];
-                        }
-                        result += non_native_field_type::value_type(native_field_type::integral_type(input[i].data) << shift);
-                    }
-                    return result;
-                }
+                using basic_non_native_policy_field_type_base::chopped_value_type;
 
             };
 
@@ -90,50 +65,22 @@ namespace nil {
                 using non_native_var_type = crypto3::zk::snark::plonk_variable<typename crypto3::algebra::curves::pallas::base_field_type::value_type>;
             };
 
-            /*
-             * Specialization for non-native Pallas scalar field element on Pallas base field
-             */
+            // /*
+            //  * Specialization for non-native Pallas scalar field element on Pallas base field
+            //  */
             template<>
-            struct basic_non_native_policy_field_type<typename crypto3::algebra::curves::pallas::base_field_type,
-                                                      typename crypto3::algebra::curves::pallas::scalar_field_type> {
+            struct basic_non_native_policy_field_type<
+                typename crypto3::algebra::curves::pallas::base_field_type,
+                typename crypto3::algebra::curves::pallas::scalar_field_type
+            > : public basic_non_native_policy_field_type_base<typename crypto3::algebra::curves::pallas::base_field_type, typename crypto3::algebra::curves::pallas::scalar_field_type, chopped_lengths_storage<2, 254>> {
 
-                using non_native_field_type = typename crypto3::algebra::curves::pallas::scalar_field_type;
-                using native_field_type = typename crypto3::algebra::curves::pallas::base_field_type;
-                using var = crypto3::zk::snark::plonk_variable<native_field_type>;
-
-                constexpr static const std::uint32_t native_type_element_bit_length = 254;
-                constexpr static const std::uint32_t native_type_elements_needed =
-                    (non_native_field_type::value_bits + (native_type_element_bit_length - 1))
-                    / native_type_element_bit_length
-                ;
-
-                using non_native_var_type = std::array<var, native_type_elements_needed>;
-                using chopped_value_type = std::array<native_field_type::value_type, native_type_elements_needed>;
-
-                static chopped_value_type chop_non_native(non_native_field_type::value_type input) {
-                    return marshalling::bincode::field<non_native_field_type>
-                        ::split_field_element<native_field_type, native_type_element_bit_length>(input);
-                }
-
-                static non_native_field_type::value_type glue_non_native(chopped_value_type input) {
-                    non_native_field_type::value_type result;
-                    native_field_type::integral_type integral_input;
-                    result = non_native_field_type::value_type(native_field_type::integral_type(input[0].data));
-                    for (std::size_t i = 1; i < ratio; i++) {
-                        std::size_t shift = 0;
-                        for (std::size_t j = 0; j < i; j++) {
-                            shift += chunk_sizes[j];
-                        }
-                        result += non_native_field_type::value_type(native_field_type::integral_type(input[i].data) << shift);
-                    }
-                    return result;
-                }
+                using basic_non_native_policy_field_type_base::chopped_value_type;
 
             };
 
-            /*
-             * Native element type.
-             */
+            // /*
+            //  * Native element type.
+            //  */
             template<typename BlueprintFieldType>
             struct basic_non_native_policy_field_type<BlueprintFieldType, BlueprintFieldType> {
 
@@ -154,8 +101,6 @@ namespace nil {
             template<typename OperatingFieldType>
             using field = typename detail::basic_non_native_policy_field_type<BlueprintFieldType, OperatingFieldType>;
         };
-
-
 
     }    // namespace blueprint
 }    // namespace nil
