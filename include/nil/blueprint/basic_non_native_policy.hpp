@@ -33,26 +33,27 @@
 
 #include <nil/blueprint/detail/basic_non_native_policy.hpp>
 
-
 namespace nil {
     namespace blueprint {
         namespace detail {
 
             template<typename BlueprintFieldType, typename OperatingFieldType>
-            struct basic_non_native_policy_field_type : public basic_non_native_policy_field_type_base<BlueprintFieldType, OperatingFieldType, chopped_lengths_storage<>> {
-            };
+            struct basic_non_native_policy_field_type
+                : public basic_non_native_policy_field_type_base<BlueprintFieldType, OperatingFieldType,
+                                                                 chopped_lengths_storage<>> { };
 
             /*
              * Specialization for non-native Ed25519 base field element on Pallas base field
              */
             template<>
-            struct basic_non_native_policy_field_type<
-                typename crypto3::algebra::curves::pallas::base_field_type,
-                typename crypto3::algebra::curves::ed25519::base_field_type
-            > : public basic_non_native_policy_field_type_base<typename crypto3::algebra::curves::pallas::base_field_type, typename crypto3::algebra::curves::ed25519::base_field_type, chopped_lengths_storage<58, 66, 66, 66>> {
+            struct basic_non_native_policy_field_type<typename crypto3::algebra::curves::pallas::base_field_type,
+                                                      typename crypto3::algebra::curves::ed25519::base_field_type>
+                : public basic_non_native_policy_field_type_base<
+                      typename crypto3::algebra::curves::pallas::base_field_type,
+                      typename crypto3::algebra::curves::ed25519::base_field_type,
+                      chopped_lengths_storage<58, 66, 66, 66>> {
 
                 using basic_non_native_policy_field_type_base::chopped_value_type;
-
             };
 
             /*
@@ -62,20 +63,21 @@ namespace nil {
             struct basic_non_native_policy_field_type<typename crypto3::algebra::curves::pallas::base_field_type,
                                                       typename crypto3::algebra::curves::ed25519::scalar_field_type> {
 
-                using non_native_var_type = crypto3::zk::snark::plonk_variable<typename crypto3::algebra::curves::pallas::base_field_type::value_type>;
+                using non_native_var_type = crypto3::zk::snark::plonk_variable<
+                    typename crypto3::algebra::curves::pallas::base_field_type::value_type>;
             };
 
             // /*
             //  * Specialization for non-native Pallas scalar field element on Pallas base field
             //  */
             template<>
-            struct basic_non_native_policy_field_type<
-                typename crypto3::algebra::curves::pallas::base_field_type,
-                typename crypto3::algebra::curves::pallas::scalar_field_type
-            > : public basic_non_native_policy_field_type_base<typename crypto3::algebra::curves::pallas::base_field_type, typename crypto3::algebra::curves::pallas::scalar_field_type, chopped_lengths_storage<2, 254>> {
+            struct basic_non_native_policy_field_type<typename crypto3::algebra::curves::pallas::base_field_type,
+                                                      typename crypto3::algebra::curves::pallas::scalar_field_type>
+                : public basic_non_native_policy_field_type_base<
+                      typename crypto3::algebra::curves::pallas::base_field_type,
+                      typename crypto3::algebra::curves::pallas::scalar_field_type, chopped_lengths_storage<2, 254>> {
 
                 using basic_non_native_policy_field_type_base::chopped_value_type;
-
             };
 
             // /*
@@ -85,7 +87,6 @@ namespace nil {
             struct basic_non_native_policy_field_type<BlueprintFieldType, BlueprintFieldType> {
 
                 using value_type = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-
             };
         }    // namespace detail
 

@@ -34,7 +34,6 @@
 #include <nil/marshalling/status_type.hpp>
 #include <nil/crypto3/marshalling/multiprecision/types/bitfield.hpp>
 
-
 namespace nil {
     namespace blueprint {
         namespace detail {
@@ -50,8 +49,10 @@ namespace nil {
                 using native_field_t = BlueprintFieldType;
                 using var_t = crypto3::zk::snark::plonk_variable<typename native_field_t::value_type>;
 
-                static constexpr std::size_t chopped_elements_amount = sizeof(chopped_lengths_storage::values)/sizeof(std::size_t);
-                static_assert(chopped_elements_amount != 0, "native_bit_lengths must be specialized for the field types");
+                static constexpr std::size_t chopped_elements_amount =
+                    sizeof(chopped_lengths_storage::values) / sizeof(std::size_t);
+                static_assert(chopped_elements_amount != 0,
+                              "native_bit_lengths must be specialized for the field types");
 
                 using chopped_value_type = std::array<typename native_field_t::value_type, chopped_elements_amount>;
                 using non_native_var_t = std::array<var_t, chopped_elements_amount>;
@@ -69,41 +70,44 @@ namespace nil {
                     // TODO: Check status here?
 
                     auto &members = chopping_field_instance.value();
-                    return convert_to_chopped_value_type(members, std::make_index_sequence<chopped_elements_amount>{});
+                    return convert_to_chopped_value_type(members, std::make_index_sequence<chopped_elements_amount> {});
                 }
 
-                private:
-                    using be_field_base_t = marshalling::field_type<marshalling::option::big_endian>;
+            private:
+                using be_field_base_t = marshalling::field_type<marshalling::option::big_endian>;
 
-                    template <std::size_t bit_length>
-                    using intermediate_t = crypto3::marshalling::types::pure_field_element<
-                        be_field_base_t,
-                        typename native_field_t::value_type,
-                        marshalling::option::fixed_bit_length<bit_length>
-                    >;
+                template<std::size_t bit_length>
+                using intermediate_t =
+                    crypto3::marshalling::types::pure_field_element<be_field_base_t,
+                                                                    typename native_field_t::value_type,
+                                                                    marshalling::option::fixed_bit_length<bit_length>>;
 
-                    // We need to reverse the lengths, because that's how the serialization works. Fields are written from right to left
-                    template <std::size_t Index>
-                    using intermediate_for_index_t = intermediate_t<chopped_lengths_storage::values[chopped_elements_amount-Index-1]>;
+                // We need to reverse the lengths, because that's how the serialization works. Fields are written from
+                // right to left
+                template<std::size_t Index>
+                using intermediate_for_index_t =
+                    intermediate_t<chopped_lengths_storage::values[chopped_elements_amount - Index - 1]>;
 
-                    template <std::size_t... Indices>
-                    static constexpr std::tuple<intermediate_for_index_t<Indices>...> generate_bitfield_tuple(std::index_sequence<Indices...>) {
-                        return {};
-                    }
+                template<std::size_t... Indices>
+                static constexpr std::tuple<intermediate_for_index_t<Indices>...>
+                    generate_bitfield_tuple(std::index_sequence<Indices...>) {
+                    return {};
+                }
 
-                    using chopping_field = nil::crypto3::marshalling::types::bitfield<
-                        be_field_base_t,
-                        decltype(generate_bitfield_tuple(std::make_index_sequence<chopped_elements_amount>{}))
-                    >;
+                using chopping_field = nil::crypto3::marshalling::types::bitfield<
+                    be_field_base_t,
+                    decltype(generate_bitfield_tuple(std::make_index_sequence<chopped_elements_amount> {}))>;
 
-                    template <std::size_t... Indices>
-                    static chopped_value_type convert_to_chopped_value_type(const typename chopping_field::value_type& members, std::index_sequence<Indices...>) {
-                        return {std::get<Indices>(members).value()...};
-                    }
+                template<std::size_t... Indices>
+                static chopped_value_type
+                    convert_to_chopped_value_type(const typename chopping_field::value_type &members,
+                                                  std::index_sequence<Indices...>) {
+                    return {std::get<Indices>(members).value()...};
+                }
             };
 
         }    // namespace detail
-    }    // namespace blueprint
+    }        // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_BASIC_NON_NATIVE_POLICY_DETAIL_HPP
