@@ -114,39 +114,13 @@ namespace nil {
                 LOOKUP_GATE_ADDER_MACRO(lookup_selector_map, _lookup_tables);
             }
 
-            std::size_t add_lookup_gate(const std::initializer_list<constraint_type> &&args) {
+            std::size_t add_lookup_gate(const std::initializer_list<lookup_constraint_type> &&args) {
                 LOOKUP_GATE_ADDER_MACRO(lookup_selector_map, _lookup_tables);
             }
 
             #undef GATE_ADDER_MACRO
             #undef LOOKUP_GATE_ADDER_MACRO
             #undef GENERIC_GATE_ADDER_MACRO
-
-            #define lookup_gate_adder_macro \
-                gate_id_type gate_id = gate_id_type(args); \
-                auto it = selector_map.find(gate_id); \
-                if (it != selector_map.end()) { \
-                    return it->second; \
-                } else { \
-                    std::size_t selector_index = next_selector_index; \
-                    selector_map[gate_id] = selector_index; \
-                    this->_lookup_gates.emplace_back(selector_index, args); \
-                    next_selector_index++; \
-                    return selector_index; \
-                }
-
-            std::size_t add_lookup_gate(const std::vector<lookup_constraint_type> &args) {
-                nil::crypto3::zk::snark::plonk_lookup_gate<BlueprintFieldType, lookup_constraint_type> lookup_gate;
-                lookup_gate.constraints = args;
-                std::size_t selector_index = next_selector_index;
-                //selector_map[next_selector_index] = selector_index;
-                lookup_gate.tag_index = selector_index;
-                this->_lookup_gates.emplace_back(lookup_gate);
-                next_selector_index++;
-                return selector_index;
-            }
-
-            #undef lookup_gate_adder_macro
 
             void add_copy_constraint(const crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> &copy_constraint) {
                 static const std::size_t private_storage_index =
