@@ -37,6 +37,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/detail/split_functions.hpp>
+#include <nil/blueprint/lookup_table_library.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -142,6 +143,95 @@ namespace nil {
                         return result;
                     }
                 };
+
+                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                std::vector<lookup_table_definition> component_custom_lookup_tables(){
+                    std::vector<lookup_table_definition> result = {};
+
+                    // lookup table for sparse values with base = 4
+                    lookup_table_definition base4_lookup_table;
+                    base4_lookup_table.table_name = "sha256_base4";
+                    base4_lookup_table.table.resize(2);
+                    base4_lookup_table.table[0].resize(16384);
+                    base4_lookup_table.table[1].resize(16384);
+                    std::vector<std::size_t> value_sizes = {14};
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(16384);
+                        i++) {
+                        std::vector<bool> value(14);
+                        for (std::size_t j = 0; j < 14; j++) {
+                            value[14 - j - 1] = nil::crypto3::multiprecision::bit_test(i, j);
+                        }
+                        std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> value_chunks =
+                            detail::split_and_sparse<BlueprintFieldType>(value, value_sizes, base4 );
+                        base4_lookup_table.table[0][std::size_t(i)] = value_chunks[0][0];
+                        base4_lookup_table.table[1][std::size_t(i)] = value_chunks[1][0];
+                    }
+                    base4_lookup_table.subtables["full"] = {{0,1}, 0, 16384};
+                    base4_lookup_table.subtables["first"] = {{0}, 0, 16384}; // first column only
+                    result.push_back(base4_lookup_table);  
+                
+                    // lookup table for sparse values with base = 7
+                    lookup_table_definition base7_lookup_table;
+                    base7_lookup_table.table_name = "sha256_base7";
+                    base7_lookup_table.table.resize(2);
+                    base7_lookup_table.table[0].resize(16384);
+                    base7_lookup_table.table[1].resize(16384);
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(16384);
+                        i++) {
+                        std::vector<bool> value(14);
+                        for (std::size_t j = 0; j < 14; j++) {
+                            value[14 - j - 1] = nil::crypto3::multiprecision::bit_test(i, j);
+                        }
+                        std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> value_chunks =
+                            detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,base7);
+                        base7_lookup_table.table[0][std::size_t(i)] = value_chunks[0][0];
+                        base7_lookup_table.table[1][std::size_t(i)] = value_chunks[1][0];
+                    }
+                    base7_lookup_table.subtables["full"] = {{0,1}, 0, 16384};
+                    base7_lookup_table.subtables["first"] = {{0}, 0, 16384}; // first column only
+                    result.push_back(base7_lookup_table);
+
+                    
+                    // lookup table for maj function
+                    lookup_table_definition maj_lookup_table;
+                    maj_lookup_table.table_name = "sha256_maj";
+                    maj_lookup_table.table.resize(2);
+                    maj_lookup_table.table[0].resize(65535);
+                    maj_lookup_table.table[1].resize(65535);
+                    value_sizes = {8};
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(65535);
+                        i++) {
+                        static std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
+                            value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes, base4);
+                        maj_lookup_table.table[0][std::size_t(i)] = value[0][0];
+                        maj_lookup_table.table[1][std::size_t(i)] = i;
+                    }
+                    maj_lookup_table.subtables["full"] = {{0,1}, 0, 65535};
+                    maj_lookup_table.subtables["first"] = {{0}, 0, 65535}; // first column only
+                    result.push_back(maj_lookup_table);
+                    
+                    // lookup table for ch function
+                    lookup_table_definition ch_lookup_table;
+                    ch_lookup_table.table_name = "sha256_ch";
+                    ch_lookup_table.table.resize(2);
+                    ch_lookup_table.table[0].resize(5765041);
+                    ch_lookup_table.table[1].resize(5765041);
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(5765041);
+                        i++) {
+                        static std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
+                            value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes, base7);
+                        ch_lookup_table.table[0][std::size_t(i)] = value[0][0];
+                        ch_lookup_table.table[1][std::size_t(i)] = i;
+                    }
+                    ch_lookup_table.subtables["full"] = {{0,1}, 0, 5765041};
+                    ch_lookup_table.subtables["first"] = {{0}, 0, 5765041}; // first column only
+                    result.push_back(ch_lookup_table);
+                    return result;
+                }
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -723,12 +813,11 @@ namespace nil {
                 generate_circuit(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::input_type
-                        &instance_input,
-                    const std::size_t start_row_index) {
-
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    const typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::input_type  &instance_input,
+                    const std::size_t start_row_index, 
+                    const std::map<std::string, std::size_t> lookup_table_indices
+                ) {
                 detail::generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
                 std::size_t j = start_row_index;
                 j = j + 2;
@@ -1165,62 +1254,10 @@ namespace nil {
                         typename BlueprintFieldType::integral_type(
                             typename BlueprintFieldType::value_type(2).pow(32).data);
                 }
-                /*std::vector<std::size_t> value_sizes = {14};
-                // lookup table for sparse values with base = 4
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(16384);
-                     i++) {
-                    std::vector<bool> value(14);
-                    for (std::size_t j = 0; j < 14; j++) {
-                        value[14 - j - 1] = multiprecision::bit_test(i, j);
-                    }
-                    std::array<std::vector<uint64_t>, 2> value_chunks =
-                        detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base4);
-                    assignment.constant(0)[start_row_index + std::size_t(i)] = value_chunks[0][0];
-                    assignment.constant(1)[start_row_index + std::size_t(i)] = value_chunks[1][0];
-                }
-                // lookup table for sparse values with base = 7
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(16384);
-                     i++) {
-                    std::vector<bool> value(14);
-                    for (std::size_t j = 0; j < 14; j++) {
-                        value[14 - j - 1] = multiprecision::bit_test(i, j);
-                    }
-                    std::array<std::vector<uint64_t>, 2> value_chunks =
-                        detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base7);
-                    assignment.constant(2)[start_row_index + std::size_t(i)] = value_chunks[0][0];
-                    assignment.constant(3)[start_row_index + std::size_t(i)] = value_chunks[1][0];
-                }
-                // lookup table for maj function
-                value_sizes = {8};
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(65535);
-                     i++) {
-                    static std::array<std::vector<typename CurveType::scalar_field_type::integral_type>, 2>
-                        value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base4);
-                    assignment.constant(4)[start_row_index + std::size_t(i)] = value[0][0];
-                    assignment.constant(5)[start_row_index + std::size_t(i)] = i;
-                }
-
-                // lookup table for ch function
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(5765041);
-                     i++) {
-                    static std::array<std::vector<typename CurveType::scalar_field_type::integral_type>, 2>
-                        value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base7);
-                    assignment.constant(4)[start_row_index + std::size_t(i)] = value[0][0];
-                    assignment.constant(5)[start_row_index + std::size_t(i)] = i;
-                }*/
 
                 return typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
-
         }    // namespace components
     }        // namespace blueprint
 }    // namespace nil
