@@ -186,7 +186,9 @@ namespace nil {
                     witnesses[col_idx] = var(component.W(col_idx), 0);
                 }
                 auto constraint = component.op_lookup_constraint(witnesses, lookup_tables_indices);
-                return bp.add_lookup_gate({constraint});
+                auto selector_id =  bp.add_lookup_gate({constraint});
+                std::cout << "selector_id = " << selector_id << std::endl;
+                return selector_id;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>

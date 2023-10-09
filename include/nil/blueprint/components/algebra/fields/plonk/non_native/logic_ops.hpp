@@ -294,7 +294,7 @@ namespace nil {
 
                 virtual crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> op_lookup_constraint(
                     const std::array<var, 2 + 1> &witnesses, 
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const std::map<std::string, std::size_t> lookup_tables_indices
                 ) const {
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> result;
                     result.table_id = lookup_tables_indices.at("binary_xor_table/full");
