@@ -257,7 +257,7 @@ namespace nil {
             // Stretched components do not have a manifest, as they are dynamically generated.
             if constexpr (!blueprint::components::is_component_stretcher<
                                     BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
-                BOOST_ASSERT_MSG(bp.num_gates() ==
+                BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates()==
                                 component_type::get_gate_manifest(component_instance.witness_amount(), 0,
                                                                 component_static_info_args...).get_gates_amount(),
                                 "Component total gates amount does not match actual gates amount.");
@@ -312,7 +312,7 @@ namespace nil {
                                    expected_to_pass, component_static_info_args...);
 
 // How to define it from crypto3 cmake?
-//#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
+// #define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType, ArithmetizationParams>;
             using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<        

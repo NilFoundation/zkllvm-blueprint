@@ -132,7 +132,7 @@ namespace nil {
                 _lookup_library.reserve_table(name);
             }
 
-            std::map<std::string, std::size_t> get_reserved_indices(){
+            const std::map<std::string, std::size_t> &get_reserved_indices(){
                 return _lookup_library.get_reserved_indices();
             }
 

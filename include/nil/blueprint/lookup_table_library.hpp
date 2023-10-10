@@ -98,15 +98,14 @@ namespace nil {
                 reserved_tables.insert(name);
             }
 
-            std::map<std::string, std::size_t> get_reserved_indices(){
-                std::map<std::string, std::size_t> result;
-
+            const std::map<std::string, std::size_t> &get_reserved_indices(){
+                reserved_tables_indices = {};
                 std::size_t i = 1;
                 for (auto &name : reserved_tables){
-                    result[name] = i;
+                    reserved_tables_indices[name] = i;
                     i++;
                 }
-                return result;
+                return reserved_tables_indices;
             }
 
             const std::map<std::string, lookup_table_definition> &get_reserved_tables(){
