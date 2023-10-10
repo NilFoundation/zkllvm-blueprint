@@ -86,10 +86,12 @@ namespace nil {
                 }, {} };
                 tables["binary_xor_table"].subtables["full"] = {{0,1,2}, 0, 3};
             }
+            
             void register_lookup_table(const lookup_table_definition &table){
                 BOOST_ASSERT(tables.find(table.table_name) == tables.end());
                 tables[table.table_name] = table;
             }
+
             void reserve_table(std::string name){
                 std::string table_name = name.substr(0, name.find("/"));
                 BOOST_ASSERT(tables.find(table_name) != tables.end());

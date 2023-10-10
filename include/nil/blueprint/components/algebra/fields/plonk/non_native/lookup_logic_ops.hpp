@@ -41,26 +41,22 @@ namespace nil {
         namespace components {
 
             /*
-                The following logical operations do NOT perform any checks on the input values.
+                The following logical operations perform checks on that input values are boolean.
             */
 
-/*
+
             template<typename ArithmetizationType>
-            class logic_and;
+            class lookup_logic_and;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class logic_and<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                             : public boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system<
-                                                                                                BlueprintFieldType,
-                                                                                                ArithmetizationParams>,
-                                                           2> {
-
+            class lookup_logic_and<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                : public boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system< BlueprintFieldType, ArithmetizationParams>> 
+            {
                 using value_type = typename BlueprintFieldType::value_type;
 
             public:
                 using component_type =
-                    boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                    ArithmetizationParams>, 2>;
+                    boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
 
                 using var = typename component_type::var;
                 using manifest_type = nil::blueprint::plonk_component_manifest;
@@ -68,7 +64,7 @@ namespace nil {
                 class gate_manifest_type : public component_gate_manifest {
                 public:
                     std::uint32_t gates_amount() const override {
-                        return logic_and::gates_amount;
+                        return lookup_logic_and::gates_amount;
                     }
                 };
 
@@ -87,25 +83,50 @@ namespace nil {
                     return component_type::get_rows_amount(witness_amount, lookup_column_amount);
                 }
 
-                virtual crypto3::zk::snark::plonk_constraint<BlueprintFieldType>
-                        op_constraint(const std::array<var, 3> &witnesses) const {
-                    return witnesses[2] - witnesses[0] * witnesses[1];
+                virtual crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> op_lookup_constraint(
+                    const std::array<var, 2 + 1> &witnesses, 
+                    const std::map<std::string, std::size_t> lookup_tables_indices
+                ) const {
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> result;
+                    result.table_id = lookup_tables_indices.at("binary_and_table/full");
+                    result.lookup_input = {witnesses[0], witnesses[1], witnesses[2]};
+                    return result;
                 }
 
                 virtual value_type result_assignment(const std::array<value_type, 2> &input_values) const {
                     return input_values[0] * input_values[1];
                 }
 
+                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                std::vector<lookup_table_definition> component_custom_lookup_tables(){
+                    std::vector<lookup_table_definition> result = {};
+                    lookup_table_definition table = { "binary_and_table", {
+                        {0, 0, 1, 1},
+                        {0, 1, 0, 1},
+                        {0, 1, 1, 0}
+                    }, {} 
+                    };
+                    table.subtables["full"] = {{0,1,2}, 0, 3};
+                    result.push_back(table);
+                    return result;
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables(){
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables["binary_and_table/full"] = 0; // REQUIRED_TABLE
+                    return lookup_tables;
+                }
+
                 template<typename ContainerType>
-                explicit logic_and(ContainerType witness) : component_type(witness, get_manifest()) {};
+                explicit lookup_logic_and(ContainerType witness) : component_type(witness, get_manifest()) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
-                logic_and(WitnessContainerType witness, ConstantContainerType constant,
+                lookup_logic_and(WitnessContainerType witness, ConstantContainerType constant,
                                PublicInputContainerType public_input) :
                     component_type(witness, constant, public_input, get_manifest()) {};
 
-                logic_and(std::initializer_list<typename component_type::witness_container_type::value_type>
+                lookup_logic_and(std::initializer_list<typename component_type::witness_container_type::value_type>
                                witnesses,
                            std::initializer_list<typename component_type::constant_container_type::value_type>
                                constants,
@@ -113,7 +134,7 @@ namespace nil {
                                public_inputs) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
-*/
+
 /*
             template<typename ArithmetizationType>
             class logic_or;

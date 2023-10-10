@@ -184,7 +184,7 @@ namespace nil {
             if constexpr( nil::blueprint::use_custom_lookup_tables<component_type>() ){
                 auto lookup_tables = component_instance.component_custom_lookup_tables();
                 for(auto &t:lookup_tables){
-                    bp.add_lookup_table(t);
+                    bp.register_lookup_table(t);
                 }
             };
 

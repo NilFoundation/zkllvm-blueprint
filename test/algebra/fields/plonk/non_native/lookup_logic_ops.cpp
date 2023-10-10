@@ -96,9 +96,9 @@ void test_logic_component(std::map<std::array<bool, 2>, bool> expected_mapping) 
             component_instance, public_input, result_check(item.second ? 1 : 0), instance_input);
     }
 }
-/*
-BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_and_test) {
-    boilerplate(blueprint::components::logic_and);
+
+BOOST_AUTO_TEST_CASE(blueprint_non_native_lookup_logic_and_test) {
+    boilerplate(blueprint::components::lookup_logic_and);
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
         {{false, false}, false}, {{false, true}, false}, {{true, false}, false}, {{true, true}, true},
@@ -107,6 +107,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_and_test) {
                          hash_type, Lambda, component_type>(expected_mapping);
 }
 
+/*
 BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_or_test) {
     boilerplate(blueprint::components::logic_or);
 
