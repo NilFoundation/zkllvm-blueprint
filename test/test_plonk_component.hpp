@@ -268,8 +268,9 @@ namespace nil {
             }
             // Stretched components do not have a manifest, as they are dynamically generated.
             if constexpr (!blueprint::components::is_component_stretcher<BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
+                std::cout << bp.num_gates() + bp.num_lookup_gates() << " " << component_type::get_gate_manifest(component_instance.witness_amount(), 0, component_static_info_args...).get_gates_amount() << std::endl;
                 BOOST_ASSERT_MSG(
-                    bp.num_gates() == component_type::get_gate_manifest(component_instance.witness_amount(), 0, component_static_info_args...).get_gates_amount(),
+                    bp.num_gates() + bp.num_lookup_gates() == component_type::get_gate_manifest(component_instance.witness_amount(), 0, component_static_info_args...).get_gates_amount(),
                     "Component total gates amount does not match actual gates amount."
                 );
             }
@@ -281,7 +282,15 @@ namespace nil {
             // new_usable_rows zk::pack_tables(bp, first_selector, assignment, reserved_tables, [c0, ..., ck], usable_rows)
             //     fill bp.lookup_tables
             //     fill assignment -- selectors, constants
-            
+
+            if(nil::blueprint::use_lookups<component_type>()){
+                desc.usable_rows_amount = nil::crypto3::zk::snark::detail::pack_lookup_tables(
+                    lookup_table_library.get_reserved_tables(),
+                    bp, assignment, {0, 1, 2},
+                    desc.usable_rows_amount
+                );
+            }
+        
             desc.rows_amount = zk::snark::basic_padding(assignment);
 
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED

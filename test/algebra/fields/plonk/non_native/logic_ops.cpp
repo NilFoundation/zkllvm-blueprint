@@ -128,7 +128,19 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_or_test) {
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_xor_test) {
-    boilerplate(2, blueprint::components::logic_xor);
+    using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    constexpr std::size_t WitnessColumns = (2) + 1; 
+    constexpr std::size_t PublicInputColumns = 1; 
+    constexpr std::size_t ConstantColumns = 3; 
+    constexpr std::size_t SelectorColumns = 2;
+    using ArithmetizationParams = 
+        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, 
+                                                         SelectorColumns>; 
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<field_type, ArithmetizationParams>; 
+    using AssignmentType = blueprint::assignment<ArithmetizationType>; 
+    using hash_type = crypto3::hashes::keccak_1600<256>; 
+    using component_type = blueprint::components::logic_xor<ArithmetizationType>; 
+    constexpr std::size_t Lambda = 1;
 
     std::map<std::array<bool, 2>, bool> expected_mapping = {
         {{false, false}, false}, {{false, true}, true}, {{true, false}, true}, {{true, true}, false},
