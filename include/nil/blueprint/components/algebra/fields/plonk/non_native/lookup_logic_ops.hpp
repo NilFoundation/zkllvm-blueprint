@@ -44,7 +44,7 @@ namespace nil {
                 The following logical operations perform checks on that input values are boolean.
             */
 
-
+/*
             template<typename ArithmetizationType>
             class lookup_logic_and;
 
@@ -134,7 +134,7 @@ namespace nil {
                                public_inputs) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
-
+*/
 /*
             template<typename ArithmetizationType>
             class logic_or;

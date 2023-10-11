@@ -136,7 +136,7 @@ namespace nil {
                 return _lookup_library.get_reserved_indices();
             }
 
-            const std::map<std::string, lookup_table_definition> &get_reserved_tables(){
+            const std::map<std::string, lookup_table_definition*> &get_reserved_tables(){
                 return _lookup_library.get_reserved_tables();
             }
 

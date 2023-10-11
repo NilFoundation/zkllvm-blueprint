@@ -70,33 +70,45 @@ namespace nil {
         template <typename BlueprintFieldType>
         class lookup_table_library{
             using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+            using filled_lookup_table_definition = typename nil::crypto3::zk::snark::detail::filled_lookup_table_definition<BlueprintFieldType>;
+
+            class binary_xor_table_type : public lookup_table_definition{
+            public:
+                binary_xor_table_type(): lookup_table_definition("binary_xor_table"){
+                    this->subtables["full"] = {{0,1,2}, 0, 3};
+                }
+                virtual void generate(){
+                    this->_table = {
+                        {0, 0, 1, 1},
+                        {0, 1, 0, 1},
+                        {0, 1, 1, 0}
+                    };
+                }
+            };
         protected:
-            std::map<std::string, lookup_table_definition> tables;
+            binary_xor_table_type binary_xor_table;
+
+            std::map<std::string, lookup_table_definition*> tables;
             std::set<std::string> reserved_tables;
             std::map<std::string, std::size_t> reserved_tables_indices;
-            std::map<std::string, lookup_table_definition> reserved_tables_map;
+            std::map<std::string, lookup_table_definition*> reserved_tables_map;
             // Last index
         public:
             lookup_table_library(){
                 tables = {};
-                tables["binary_xor_table"] = { "binary_xor_table", {
-                    {0, 0, 1, 1},
-                    {0, 1, 0, 1},
-                    {0, 1, 1, 0}
-                }, {} };
-                tables["binary_xor_table"].subtables["full"] = {{0,1,2}, 0, 3};
+                tables["binary_xor_table"] = &binary_xor_table;
             }
-            
+
             void register_lookup_table(const lookup_table_definition &table){
                 BOOST_ASSERT(tables.find(table.table_name) == tables.end());
-                tables[table.table_name] = table;
+                tables[table.table_name] = &table;
             }
 
             void reserve_table(std::string name){
                 std::string table_name = name.substr(0, name.find("/"));
                 BOOST_ASSERT(tables.find(table_name) != tables.end());
                 std::string subtable_name = name.substr(name.find("/")+1, name.size());
-                BOOST_ASSERT(tables[table_name].subtables.find(subtable_name) != tables[table_name].subtables.end());
+                BOOST_ASSERT(tables[table_name]->subtables.find(subtable_name) != tables[table_name]->subtables.end());
                 reserved_tables.insert(name);
             }
 
@@ -110,18 +122,17 @@ namespace nil {
                 return reserved_tables_indices;
             }
 
-            const std::map<std::string, lookup_table_definition> &get_reserved_tables(){
+            const std::map<std::string, lookup_table_definition*> &get_reserved_tables(){
                 for (auto &name : reserved_tables){
                     std::string table_name = name.substr(0, name.find("/"));
                     BOOST_ASSERT(tables.find(table_name) != tables.end());
                     std::string subtable_name = name.substr(name.find("/")+1, name.size());
-                    BOOST_ASSERT(tables[table_name].subtables.find(subtable_name) != tables[table_name].subtables.end());
+                    BOOST_ASSERT(tables[table_name]->subtables.find(subtable_name) != tables[table_name]->subtables.end());
 
                     if( reserved_tables_map.find(table_name) == reserved_tables_map.end() ){
-                        reserved_tables_map[table_name].table_name = table_name;
-                        reserved_tables_map[table_name].table = std::move(tables[table_name].table);
+                        reserved_tables_map[table_name] = new filled_lookup_table_definition(tables[table_name]);
                     }
-                    reserved_tables_map[table_name].subtables[subtable_name] = std::move(tables[table_name].subtables[subtable_name]);
+                    reserved_tables_map[table_name]->subtables[subtable_name] = std::move(tables[table_name]->subtables[subtable_name]);
                 }
                 return reserved_tables_map;
             }

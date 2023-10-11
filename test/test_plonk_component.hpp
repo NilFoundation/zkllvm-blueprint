@@ -312,7 +312,7 @@ namespace nil {
                                    expected_to_pass, component_static_info_args...);
 
 // How to define it from crypto3 cmake?
-// #define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
+//#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType, ArithmetizationParams>;
             using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<        
