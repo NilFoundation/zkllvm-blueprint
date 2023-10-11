@@ -135,6 +135,8 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/permutation_argument_verifier"
     "verifiers/placeholder/gate_argument_verifier"
     "verifiers/placeholder/gate_component"
+    "verifiers/placeholder/permutation_loop"
+    "verifiers/placeholder/f3_loop"
     )
 
 set(FIELDS_TESTS_FILES
