@@ -38,8 +38,8 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-	    // Uses parameters omega and n
-            // Input: x (challenge, uint64_t) 
+	    // Uses parameters  n, total_bits, omega
+            // Input: x (challenge, originally uint64_t, takes total_bits bits) 
             // Output: vector of triplets < (s,-s,b) >, where s_0 = omega^{x % 2^n}, s_{i+1} = s_i^2,
 	    // b = 0 or 1, showing whether the pair (s,-s) needs reordering
             template<typename ArithmetizationType, typename FieldType>
@@ -109,19 +109,19 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit fri_cosets(ContainerType witness, std::size_t n_, typename BlueprintFieldType::value_type omega_) : component_type(witness, {}, {}, get_manifest()) {};
+                explicit fri_cosets(ContainerType witness, std::size_t n_, std::size_t total_bits_, typename BlueprintFieldType::value_type omega_) : component_type(witness, {}, {}, get_manifest()) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 fri_cosets(WitnessContainerType witness, ConstantContainerType constant,
-                         PublicInputContainerType public_input, std::size_t n_, typename BlueprintFieldType::value_type omega_) :
+                         PublicInputContainerType public_input, std::size_t n_, std::size_t total_bits_, typename BlueprintFieldType::value_type omega_) :
                     component_type(witness, constant, public_input, get_manifest()) {};
 
                 fri_cosets(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                          std::initializer_list<typename component_type::constant_container_type::value_type>
                              constants,
                          std::initializer_list<typename component_type::public_input_container_type::value_type>
-                             public_inputs, std::size_t n_, typename BlueprintFieldType::value_type omega_) :
+                             public_inputs, std::size_t n_, std::size_t total_bits_, typename BlueprintFieldType::value_type omega_) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
@@ -135,7 +135,7 @@ namespace nil {
                 const plonk_fri_division<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fri_cosets<BlueprintFieldType, ArithmetizationParams>::input_type instance_input,
+                const typename plonk_fri_cosets<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 /*
                 const std::size_t j = start_row_index;

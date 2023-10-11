@@ -134,7 +134,7 @@ namespace nil {
                 const plonk_fri_division<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fri_array_swap<BlueprintFieldType, ArithmetizationParams>::input_type instance_input,
+                const typename plonk_fri_array_swap<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 /*
                 const std::size_t j = start_row_index;
