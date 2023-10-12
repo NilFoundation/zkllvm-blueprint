@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
     constexpr std::size_t WitnessColumns = 3; \
     constexpr std::size_t PublicInputColumns = 1; \
     constexpr std::size_t ConstantColumns = 4; \
-    constexpr std::size_t SelectorColumns = 2; \
+    constexpr std::size_t SelectorColumns = 4; \
     using ArithmetizationParams = \
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, \
                                                          SelectorColumns>; \
@@ -97,7 +97,7 @@ void test_logic_component(std::map<std::array<bool, 2>, bool> expected_mapping) 
     }
 }
 
-/*
+
 BOOST_AUTO_TEST_CASE(blueprint_non_native_lookup_logic_and_test) {
     boilerplate(blueprint::components::lookup_logic_and);
 
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_lookup_logic_and_test) {
     test_logic_component<field_type, ArithmetizationParams, AssignmentType,
                          hash_type, Lambda, component_type>(expected_mapping);
 }
-
+/*
 BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_or_test) {
     boilerplate(blueprint::components::logic_or);
 

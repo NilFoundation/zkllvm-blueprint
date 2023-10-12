@@ -44,7 +44,7 @@ namespace nil {
                 The following logical operations perform checks on that input values are boolean.
             */
 
-/*
+
             template<typename ArithmetizationType>
             class lookup_logic_and;
 
@@ -52,8 +52,26 @@ namespace nil {
             class lookup_logic_and<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                 : public boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system< BlueprintFieldType, ArithmetizationParams>> 
             {
+                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+
+                class binary_and_table_type : public lookup_table_definition{
+                public:
+                    binary_and_table_type(): lookup_table_definition("binary_and_table"){
+                        this->subtables["full"] = {{0,1,2}, 0, 3};
+                    }
+                    virtual void generate(){
+                        this->_table = {
+                            {0, 0, 1, 1},
+                            {0, 1, 0, 1},
+                            {0, 0, 0, 1}
+                        };
+                    }
+                };
+
                 using value_type = typename BlueprintFieldType::value_type;
 
+            protected:
+                binary_and_table_type binary_and_table;
             public:
                 using component_type =
                     boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
@@ -97,17 +115,9 @@ namespace nil {
                     return input_values[0] * input_values[1];
                 }
 
-                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
-                std::vector<lookup_table_definition> component_custom_lookup_tables(){
-                    std::vector<lookup_table_definition> result = {};
-                    lookup_table_definition table = { "binary_and_table", {
-                        {0, 0, 1, 1},
-                        {0, 1, 0, 1},
-                        {0, 1, 1, 0}
-                    }, {} 
-                    };
-                    table.subtables["full"] = {{0,1,2}, 0, 3};
-                    result.push_back(table);
+                std::vector<lookup_table_definition *> component_custom_lookup_tables(){
+                    std::vector<lookup_table_definition *> result = {};
+                    result.push_back(&binary_and_table);
                     return result;
                 }
 
@@ -134,7 +144,7 @@ namespace nil {
                                public_inputs) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
-*/
+
 /*
             template<typename ArithmetizationType>
             class logic_or;

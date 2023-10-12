@@ -124,7 +124,7 @@ namespace nil {
                 LOOKUP_GATE_ADDER_MACRO(lookup_selector_map, _lookup_gates);
             }
 
-            void register_lookup_table(const lookup_table_definition &table) {
+            void register_lookup_table(lookup_table_definition *table) {
                 _lookup_library.register_lookup_table(table);
             }
 

@@ -99,9 +99,9 @@ namespace nil {
                 tables["binary_xor_table"] = &binary_xor_table;
             }
 
-            void register_lookup_table(const lookup_table_definition &table){
-                BOOST_ASSERT(tables.find(table.table_name) == tables.end());
-                tables[table.table_name] = &table;
+            void register_lookup_table(lookup_table_definition *table){
+                BOOST_ASSERT(tables.find(table->table_name) == tables.end());
+                tables[table->table_name] = table;
             }
 
             void reserve_table(std::string name){
