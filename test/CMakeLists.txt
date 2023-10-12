@@ -80,6 +80,8 @@ set(PLONK_TESTS_FILES
     "hashes/plonk/sha256_process"
     "hashes/plonk/sha512_process"
     "hashes/plonk/keccak_round"
+    "hashes/plonk/keccak_padding"
+    "hashes/plonk/keccak"
     "hashes/plonk/decomposition"
     "verifiers/kimchi/base_field"
     "verifiers/kimchi/prepare_batch_scalar"
