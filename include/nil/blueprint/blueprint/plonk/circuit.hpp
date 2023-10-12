@@ -38,7 +38,7 @@
 #include <nil/crypto3/zk/snark/arithmetization/plonk/variable.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
-#include <nil/blueprint/lookup_table_library.hpp>
+#include <nil/blueprint/lookup_library.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -76,7 +76,7 @@ namespace nil {
             lookup_gate_selector_map lookup_selector_map = {};
             std::size_t next_selector_index = 0;
         protected:
-            lookup_table_library<BlueprintFieldType> _lookup_library;
+            lookup_library<BlueprintFieldType> _lookup_library;
         public:
             typedef BlueprintFieldType blueprint_field_type;
 
@@ -124,7 +124,7 @@ namespace nil {
                 LOOKUP_GATE_ADDER_MACRO(lookup_selector_map, _lookup_gates);
             }
 
-            void register_lookup_table(lookup_table_definition *table) {
+            void register_lookup_table(std::shared_ptr<lookup_table_definition> table) {
                 _lookup_library.register_lookup_table(table);
             }
 
@@ -136,7 +136,7 @@ namespace nil {
                 return _lookup_library.get_reserved_indices();
             }
 
-            const std::map<std::string, lookup_table_definition*> &get_reserved_tables(){
+            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables(){
                 return _lookup_library.get_reserved_tables();
             }
 

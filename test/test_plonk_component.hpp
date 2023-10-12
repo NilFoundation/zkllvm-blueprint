@@ -184,7 +184,7 @@ namespace nil {
             if constexpr( nil::blueprint::use_custom_lookup_tables<component_type>() ){
                 auto lookup_tables = component_instance.component_custom_lookup_tables();
                 for(auto &t:lookup_tables){
-                    bp.register_lookup_table(t);
+                    bp.register_lookup_table(std::shared_ptr<nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>>(t));
                 }
             };
 
@@ -272,6 +272,7 @@ namespace nil {
                 std::vector<size_t> lookup_columns_indices;
                 for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
                 desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
+                    bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
                     bp, assignment, lookup_columns_indices,
                     desc.usable_rows_amount

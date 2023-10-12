@@ -71,7 +71,7 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
 
             protected:
-                binary_and_table_type binary_and_table;
+                std::shared_ptr<lookup_table_definition> binary_and_table;
             public:
                 using component_type =
                     boolean_lookup_op_component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
@@ -115,9 +115,10 @@ namespace nil {
                     return input_values[0] * input_values[1];
                 }
 
-                std::vector<lookup_table_definition *> component_custom_lookup_tables(){
-                    std::vector<lookup_table_definition *> result = {};
-                    result.push_back(&binary_and_table);
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
+                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                    binary_and_table = std::shared_ptr<lookup_table_definition>(new binary_and_table_type());
+                    result.push_back(binary_and_table);
                     return result;
                 }
 

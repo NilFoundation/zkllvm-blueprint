@@ -107,6 +107,7 @@ BOOST_AUTO_TEST_CASE(blueprint_non_native_lookup_logic_and_test) {
     test_logic_component<field_type, ArithmetizationParams, AssignmentType,
                          hash_type, Lambda, component_type>(expected_mapping);
 }
+
 /*
 BOOST_AUTO_TEST_CASE(blueprint_non_native_logic_or_test) {
     boilerplate(blueprint::components::logic_or);
