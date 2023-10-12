@@ -103,7 +103,6 @@ namespace nil {
             }
 
             void register_lookup_table(std::shared_ptr<lookup_table_definition> table){
-                BOOST_ASSERT(tables.find(table->table_name) == tables.end());
                 tables[table->table_name] = table;
             }
 
@@ -114,20 +113,13 @@ namespace nil {
                 std::string subtable_name = name.substr(name.find("/")+1, name.size());
                 BOOST_ASSERT(tables[table_name]->subtables.find(subtable_name) != tables[table_name]->subtables.end());
                 reserved_tables.insert(name);
+                reserved_tables_indices[name] = reserved_tables.size();
             }
 
             void reservation_done(){
                 if(reserved_all) return;
                 
                 reserved_all = true;
-
-                reserved_tables_indices = {};
-                std::size_t i = 1;
-                for (auto &name : reserved_tables){
-                    reserved_tables_indices[name] = i;
-                    i++;
-                }
-
                 for (auto &name : reserved_tables){
                     std::string table_name = name.substr(0, name.find("/"));
                     BOOST_ASSERT(tables.find(table_name) != tables.end());
@@ -143,7 +135,6 @@ namespace nil {
             }
 
             const std::map<std::string, std::size_t> &get_reserved_indices(){
-                reservation_done();
                 return reserved_tables_indices;
             }
 
