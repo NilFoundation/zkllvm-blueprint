@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
+// Copyright (c) 2023 Elena Tatuzova <e.tatuzova@nil.foundation>
 //
 // MIT License
 //
@@ -66,6 +66,8 @@ namespace nil {
                             {0, 0, 0, 1}
                         };
                     }
+                    virtual std::size_t get_columns_number(){ return 3; }
+                    virtual std::size_t get_rows_number(){ return 4; }
                 };
 
                 using value_type = typename BlueprintFieldType::value_type;

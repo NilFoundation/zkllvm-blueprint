@@ -84,6 +84,8 @@ namespace nil {
                         {0, 1, 1, 0}
                     };
                 }
+                virtual std::size_t get_columns_number(){ return 3; }
+                virtual std::size_t get_rows_number(){ return 4; }
             };
         protected:
             std::shared_ptr<lookup_table_definition> binary_xor_table;
@@ -127,7 +129,7 @@ namespace nil {
                     BOOST_ASSERT(tables[table_name]->subtables.find(subtable_name) != tables[table_name]->subtables.end());
 
                     if( reserved_tables_map.find(table_name) == reserved_tables_map.end() ){
-                        filled_lookup_table_definition *filled_definition = new filled_lookup_table_definition(tables[table_name]);
+                        filled_lookup_table_definition *filled_definition = new filled_lookup_table_definition(*(tables[table_name]));
                         reserved_tables_map[table_name] = std::shared_ptr<lookup_table_definition>(filled_definition);
                     }
                     reserved_tables_map[table_name]->subtables[subtable_name] = tables[table_name]->subtables[subtable_name];
