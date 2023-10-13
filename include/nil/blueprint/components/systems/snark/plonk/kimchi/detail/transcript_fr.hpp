@@ -35,8 +35,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/component.hpp>
 
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/limbs.hpp>

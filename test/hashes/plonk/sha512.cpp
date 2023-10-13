@@ -39,8 +39,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/sha512.hpp>
 
 #include <nil/crypto3/algebra/curves/ed25519.hpp>
@@ -64,7 +64,7 @@ void test_sha512(std::vector<typename BlueprintFieldType::value_type> public_inp
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = blueprint::assignment_proxy<ArithmetizationType>;
 
     using component_type = blueprint::components::sha512<ArithmetizationType>;
 

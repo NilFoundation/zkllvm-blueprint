@@ -27,8 +27,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_FIXED_BASE_MULTIPLICATION_EDWARD25519_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_FIXED_BASE_MULTIPLICATION_EDWARD25519_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/range.hpp>
 #include <nil/blueprint/components/algebra/curves/edwards/plonk/non_native/complete_addition.hpp>
 

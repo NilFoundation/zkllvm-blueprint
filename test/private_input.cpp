@@ -31,8 +31,8 @@
 #include <nil/crypto3/hash/keccak.hpp>
 #include <nil/crypto3/random/algebraic_engine.hpp>
 
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/addition.hpp>
 
 #include "test_plonk_component.hpp"
@@ -51,7 +51,7 @@ void test_add(const typename FieldType::value_type &a, const typename FieldType:
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
-    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint::assignment_proxy<ArithmetizationType>;
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -115,14 +115,15 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_private_input_copy_constraints) {
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<field_type, ArithmetizationParams>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
-    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = nil::blueprint::assignment_proxy<ArithmetizationType>;
 
     using var = crypto3::zk::snark::plonk_variable<typename field_type::value_type>;
 
     using component_type = blueprint::components::addition<ArithmetizationType, field_type, nil::blueprint::basic_non_native_policy<field_type>>;
 
     const std::size_t private_index = AssignmentType::private_storage_index;
-    blueprint::circuit<ArithmetizationType> bp;
+    auto bp_ptr = std::make_shared<blueprint::circuit<ArithmetizationType>>();
+    blueprint::circuit_proxy<ArithmetizationType> bp(bp_ptr, 0);
 
     auto private_1 = var(private_index, 0, false, var::column_type::public_input),
         private_2 = var(private_index, 1, false, var::column_type::public_input),

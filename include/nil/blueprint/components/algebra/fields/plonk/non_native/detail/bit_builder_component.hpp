@@ -27,8 +27,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
@@ -303,7 +303,7 @@ namespace nil {
                 void generate_assignments(
                         const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams>
                             &component,
-                        assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                             &assignment,
                         const std::vector<bool> &input_bits,
                         const std::uint32_t start_row_index) {
@@ -356,9 +356,9 @@ namespace nil {
                 std::size_t generate_gates(
                         const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams>
                             &component,
-                        circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                             &bp,
-                        assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                             &assignment) {
 
                     using var = typename plonk_bit_builder<BlueprintFieldType, ArithmetizationParams>::var;
@@ -405,7 +405,7 @@ namespace nil {
                 void generate_assignments_constant(
                         const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams>
                             &component,
-                        assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                             &assignment,
                         const std::size_t start_row_index) {
 
@@ -418,9 +418,9 @@ namespace nil {
                 void generate_circuit(
                         const plonk_bit_builder<BlueprintFieldType, ArithmetizationParams>
                             &component,
-                        circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                             &bp,
-                        assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                             &assignment,
                         const std::size_t start_row_index) {
 

@@ -28,8 +28,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_CURVE_ELEMENT_TRIPLING_COMPONENT_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_CURVE_ELEMENT_TRIPLING_COMPONENT_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/components/algebra/curves/edwards/plonk/doubling.hpp>
 #include <nil/blueprint/components/algebra/curves/edwards/plonk/addition.hpp>
 

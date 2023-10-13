@@ -92,6 +92,10 @@ namespace nil {
                 return this->_public_table._selectors[selector_index][row_index];
             }
 
+            std::uint32_t selector_column_size(std::uint32_t col_idx) const {
+                return this->_public_table.selector_column_size(col_idx);
+            }
+
             std::uint32_t allocated_rows() const {
                 return assignment_allocated_rows;
             }
@@ -129,6 +133,10 @@ namespace nil {
                 return this->_private_table._witnesses[witness_index][row_index];
             }
 
+            std::uint32_t witness_column_size(std::uint32_t col_idx) const {
+                return this->_private_table.witness_column_size(col_idx);
+            }
+
             value_type &public_input(
                 std::uint32_t public_input_index, std::uint32_t row_index) {
 
@@ -147,6 +155,10 @@ namespace nil {
                 BLUEPRINT_ASSERT(row_index < zk_type::public_input_column_size(public_input_index));
 
                 return zk_type::public_input(public_input_index)[row_index];
+            }
+
+            std::uint32_t public_input_column_size(std::uint32_t col_idx) const {
+                return this->_public_table.public_input_column_size(col_idx);
             }
 
             value_type &constant(
@@ -168,6 +180,10 @@ namespace nil {
                 BLUEPRINT_ASSERT(row_index < zk_type::constant_column_size(constant_index));
 
                 return zk_type::constant(constant_index)[row_index];
+            }
+
+            std::uint32_t constant_column_size(std::uint32_t col_idx) const {
+                return this->_public_table.constant_column_size(col_idx);
             }
 
             value_type private_storage(std::uint32_t storage_index) const {

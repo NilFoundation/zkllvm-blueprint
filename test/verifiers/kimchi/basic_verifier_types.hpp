@@ -41,8 +41,8 @@
 #include <nil/crypto3/zk/snark/systems/plonk/pickles/proof.hpp>
 #include <nil/crypto3/zk/commitments/polynomial/lpc.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/verifier_base_field.hpp>
 
 using namespace nil::crypto3;

@@ -27,8 +27,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_BATCH_VERIFY_BASE_FIELD_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_BATCH_VERIFY_BASE_FIELD_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/proof.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/commitment.hpp>

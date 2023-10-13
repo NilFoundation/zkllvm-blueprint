@@ -32,8 +32,8 @@
 #include <nil/crypto3/algebra/fields/pallas/base_field.hpp>
 #include <nil/crypto3/algebra/fields/vesta/base_field.hpp>
 
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/components/hashes/poseidon/plonk/poseidon_constants.hpp>
@@ -164,7 +164,7 @@ namespace nil {
             typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::result_type
                 generate_assignments(
                     const plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::input_type
                         instance_input,
@@ -251,8 +251,8 @@ namespace nil {
                 plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::rounds_per_row>
             generate_gates(
                 const plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::input_type
                     &instance_input) {
@@ -371,8 +371,8 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename FieldType>
             void generate_copy_constraints(
                 const plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::input_type
                     &instance_input,
@@ -391,8 +391,8 @@ namespace nil {
             typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::result_type
                 generate_circuit(
                     const plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::input_type
                         &instance_input,

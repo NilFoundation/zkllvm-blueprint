@@ -35,8 +35,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/sha256_process.hpp>
 
 #include "../../test_plonk_component.hpp"
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_process) {
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using AssignmentType = blueprint::assignment_proxy<ArithmetizationType>;
 
     using component_type = blueprint::components::sha256_process<ArithmetizationType>;
 

@@ -28,8 +28,8 @@
 #include <nil/marshalling/algorithms/pack.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 #include <nil/blueprint/component.hpp>
 
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/boolean_op_component.hpp>
