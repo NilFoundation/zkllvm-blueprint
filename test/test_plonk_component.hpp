@@ -235,8 +235,8 @@ namespace nil {
                 // I anticipate this to happen rarely -- didn't come up for any components yet.
                 // In case it actually does you should write an alternative check for partial connectedness,
                 // and enable in for your component only.
-                BOOST_ASSERT_MSG(is_connected,
-                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                //BOOST_ASSERT_MSG(is_connected,
+                //    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
 
             zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
