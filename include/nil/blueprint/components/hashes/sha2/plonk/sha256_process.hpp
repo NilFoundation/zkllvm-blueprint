@@ -103,7 +103,7 @@ namespace nil {
 
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
                 constexpr static const std::size_t gates_amount = 10;
-                constexpr static const std::size_t lookup_gates_amount = 4;
+                constexpr static const std::size_t lookup_gates_amount = 6;
 
                 struct input_type {
                     std::array<var, 8> input_state;
@@ -232,8 +232,8 @@ namespace nil {
                             i++
                         ) {
                             static std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
-                                value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes, base4);
-                            this->_table[0].push_back(value[1][0]);
+                                value = detail::reversed_sparse_and_split_maj<BlueprintFieldType>(i, value_sizes, base4);
+                            this->_table[0].push_back(value[0][0]);
                             this->_table[1].push_back(i);
                         }
                     }
@@ -257,7 +257,7 @@ namespace nil {
                             i++
                         ) {
                             static std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
-                                value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes, base7);
+                                value = detail::reversed_sparse_and_split_ch<BlueprintFieldType>(i, value_sizes, base7);
                             this->_table[0].push_back(value[0][0]);
                             this->_table[1].push_back(i);
                         }
@@ -352,41 +352,34 @@ namespace nil {
                         (var(component.W(8), 0) - 3) * (var(component.W(8), 0) - 2) *
                     (var(component.W(8), 0) - 1) * var(component.W(8), 0));*/
 
-                    return bp.add_gate({constraint_1, constraint_2, constraint_3});
+                    bp.add_gate({constraint_1, constraint_2, constraint_3});
 
-                    /*auto lookup_constraint_1 = bp.add_lookup_constraint(
-                        {var(component.W(1), -1), var(component.W(7), -1)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_2 =
-                        bp.add_lookup_constraint({var(component.W(2), -1) * 1024}, {{0, 0, false,
-                    var::column_type::constant}}); auto lookup_constraint_3 = bp.add_lookup_constraint(
-                        {var(component.W(2), -1), var(component.W(2), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_4 =
-                        bp.add_lookup_constraint({var(component.W(3), -1) * 8}, {{0, 0, false,
-                    var::column_type::constant}}); auto lookup_constraint_5 = bp.add_lookup_constraint(
-                        {var(component.W(3), -1), var(component.W(3), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_6 = bp.add_lookup_constraint(
-                        {var(component.W(4), -1), var(component.W(4), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_7 = bp.add_lookup_constraint(
-                        {var(component.W(1), +1), var(component.W(5), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_8 = bp.add_lookup_constraint(
-                        {var(component.W(2), +1), var(component.W(6), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_9 = bp.add_lookup_constraint(
-                        {var(component.W(3), +1), var(component.W(7), +1)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_10 = bp.add_lookup_constraint(
-                        {var(component.W(4), +1), var(component.W(8), +1)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    return bp.add_lookup_gate(,
-                                       {lookup_constraint_1, lookup_constraint_2, lookup_constraint_3,
-                                        lookup_constraint_4, lookup_constraint_5, lookup_constraint_6,
-                                        lookup_constraint_7, lookup_constraint_8, lookup_constraint_9,
-                                        lookup_constraint_10});*/
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), -1), var(component.W(7), -1)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), -1) * 1024}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), -1), var(component.W(2), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(3), -1) * 8}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), -1), var(component.W(3), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), -1), var(component.W(4), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), +1), var(component.W(5), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), +1), var(component.W(6), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), +1), var(component.W(7), +1)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), +1), var(component.W(8), +1)}};
+                    return bp.add_lookup_gate({
+                        lookup_constraint_1, lookup_constraint_2, lookup_constraint_3,
+                        lookup_constraint_4, lookup_constraint_5, lookup_constraint_6,
+                        lookup_constraint_7, lookup_constraint_8, lookup_constraint_9,
+                        lookup_constraint_10
+                    });
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -419,44 +412,36 @@ namespace nil {
                         (var(component.W(8), 0) - 3) * (var(component.W(8), 0) - 2) *
                     (var(component.W(8), 0) - 1) * var(component.W(8), 0));*/
 
-                    return bp.add_gate({constraint_1, constraint_2, constraint_3});
+                    bp.add_gate({constraint_1, constraint_2, constraint_3});
 
-                    /*std::size_t selector_lookup_index = assignment.add_selector(j);
-                    auto lookup_constraint_1 =
-                        bp.add_lookup_constraint({var(component.W(1), +1) * 16}, {{0, 0, false,
-                    var::column_type::constant}}); auto lookup_constraint_2 = bp.add_lookup_constraint(
-                        {var(component.W(1), +1), var(component.W(1), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_3 =
-                        bp.add_lookup_constraint({var(component.W(2), +1) * 128}, {{0, 0, false,
-                    var::column_type::constant}}); auto lookup_constraint_4 = bp.add_lookup_constraint(
-                        {var(component.W(2), +1), var(component.W(2), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_5 =
-                        bp.add_lookup_constraint({var(component.W(4), +1) * 2}, {{0, 0, false,
-                    var::column_type::constant}}); auto lookup_constraint_6 = bp.add_lookup_constraint(
-                        {var(component.W(3), +1), var(component.W(3), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_7 = bp.add_lookup_constraint(
-                        {var(component.W(4), +1), var(component.W(4), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_8 = bp.add_lookup_constraint(
-                        {var(component.W(5), -1), var(component.W(5), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_9 = bp.add_lookup_constraint(
-                        {var(component.W(6), -1), var(component.W(6), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_10 = bp.add_lookup_constraint(
-                        {var(component.W(7), -1), var(component.W(7), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    auto lookup_constraint_11 = bp.add_lookup_constraint(
-                        {var(component.W(8), -1), var(component.W(8), 0)},
-                        {{0, 0, false, var::column_type::constant}, {1, 0, false, var::column_type::constant}});
-                    bp.add_lookup_gate(selector_lookup_index,
-                                       {lookup_constraint_1, lookup_constraint_2, lookup_constraint_3,
-                                        lookup_constraint_4, lookup_constraint_5, lookup_constraint_6,
-                                        lookup_constraint_7, lookup_constraint_8, lookup_constraint_9,
-                                        lookup_constraint_10, lookup_constraint_11});*/
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(1), +1) * 16}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), +1), var(component.W(1), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), +1) * 128}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), +1), var(component.W(2), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(4), +1) * 2}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), +1), var(component.W(3), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), +1), var(component.W(4), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(5), -1), var(component.W(5), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(6), -1), var(component.W(6), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(7), -1), var(component.W(7), 0)}};
+                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(8), -1), var(component.W(8), 0)}};
+                    return bp.add_lookup_gate({
+                        lookup_constraint_1, lookup_constraint_2, lookup_constraint_3,
+                        lookup_constraint_4, lookup_constraint_5, lookup_constraint_6,
+                        lookup_constraint_7, lookup_constraint_8, lookup_constraint_9,
+                        lookup_constraint_10, lookup_constraint_11
+                    });
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
