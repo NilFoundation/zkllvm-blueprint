@@ -231,7 +231,7 @@ namespace nil {
                             i < typename BlueprintFieldType::integral_type(65535);
                             i++
                         ) {
-                            static std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
+                            std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
                                 value = detail::reversed_sparse_and_split_maj<BlueprintFieldType>(i, value_sizes, base4);
                             this->_table[0].push_back(value[0][0]);
                             this->_table[1].push_back(i);
@@ -256,7 +256,7 @@ namespace nil {
                             i < typename BlueprintFieldType::integral_type(5765041);
                             i++
                         ) {
-                            static std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
+                            std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
                                 value = detail::reversed_sparse_and_split_ch<BlueprintFieldType>(i, value_sizes, base7);
                             this->_table[0].push_back(value[0][0]);
                             this->_table[1].push_back(i);
