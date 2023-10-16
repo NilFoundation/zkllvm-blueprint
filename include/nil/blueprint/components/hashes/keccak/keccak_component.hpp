@@ -108,22 +108,25 @@ namespace nil {
                 const std::size_t rows_amount;
                 constexpr static const std::size_t gates_amount = 1;
 
-                const std::size_t round_constant[24] = {1ULL, 0x8082ULL, 0x800000000000808aULL, 0x8000000080008000ULL,
-                                                        0x808bULL, 0x80000001ULL, 0x8000000080008081ULL, 0x8000000000008009ULL,
-                                                        0x8aULL, 0x88ULL, 0x80008009ULL, 0x8000000aULL,
-                                                        0x8000808bULL, 0x800000000000008bULL, 0x8000000000008089ULL, 0x8000000000008003ULL,
-                                                        0x8000000000008002ULL, 0x8000000000000080ULL, 0x800aULL, 0x800000008000000aULL,
-                                                        0x8000000080008081ULL, 0x8000000000008080ULL, 0x80000001ULL, 0x8000000080008008ULL};
+                const std::size_t round_constant[24] = {1, 0x8082, 0x800000000000808a, 0x8000000080008000,
+                                                        0x808b, 0x80000001, 0x8000000080008081, 0x8000000000008009,
+                                                        0x8a, 0x88, 0x80008009, 0x8000000a,
+                                                        0x8000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003,
+                                                        0x8000000000008002, 0x8000000000000080, 0x800a, 0x800000008000000a,
+                                                        0x8000000080008081, 0x8000000000008080, 0x80000001, 0x8000000080008008};
 
                 struct input_type {
                     std::vector<var> message;
                 };
 
                 struct result_type {
-                    std::array<var, 25> final_inner_state;
+                    std::array<var, 5> final_inner_state;
 
                     result_type(const keccak &component, std::size_t start_row_index) {
-                        
+                        for (std::size_t i = 0; i < 5; ++i) {
+                            final_inner_state[i] = var(component.W(component.full_configuration[component.num_configs - 5 + i].copy_from.column),
+                                                        start_row_index + component.full_configuration[component.num_configs - 5 + i].copy_from.row, false);
+                        }
                     }
                 };
 
@@ -300,7 +303,7 @@ namespace nil {
 
                 template<typename ContainerType>
                 keccak(ContainerType witness, std::size_t lookup_rows_,
-                        std::size_t lookup_columns_, std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_) :
+                        std::size_t lookup_columns_, std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_ = 7) :
                     component_type(witness, {}, {}),
                     __keccak_init_macro(witness, {}, {}, lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_) {};
 
@@ -313,7 +316,7 @@ namespace nil {
                                    std::size_t lookup_columns_,
                                    std::size_t num_blocks_,
                                    std::size_t num_bits_,
-                                   std::size_t lpc_) :
+                                   std::size_t lpc_ = 7) :
                     component_type(witness, constant, public_input),
                     __keccak_init_macro(witness, constant, public_input, lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_) {};
 
@@ -321,7 +324,7 @@ namespace nil {
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                     std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type> public_inputs,
-                        std::size_t lookup_rows_, std::size_t lookup_columns_, std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_) :
+                        std::size_t lookup_rows_, std::size_t lookup_columns_, std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_ = 7) :
                         component_type(witnesses, constants, public_inputs),
                         __keccak_init_macro(witnesses, constants, public_inputs,
                                             lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_) {};
@@ -450,7 +453,7 @@ namespace nil {
                         round_input.padded_message_chunk;// = instance_input.message;
                         round_input.inner_state = inner_state;
                         round_input.round_constant = var(component.C(0), row + i, false, var::column_type::constant);
-                        inner_state = generate_assignments(component.rounds[i * 24 + j], assignment, round_input, row);
+                        inner_state = generate_assignments(component.rounds[i * 24 + j], assignment, round_input, row).inner_state;
                         row += component.rounds[i * 24 + j].rows_amount;
                     }
                 }
