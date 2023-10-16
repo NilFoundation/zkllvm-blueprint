@@ -203,7 +203,7 @@ namespace nil {
                     bp.reserve_table(k);
                 }
             };
-            
+
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
             std::size_t start_row = dist(gen);
@@ -280,10 +280,10 @@ namespace nil {
                                 "Component total gates amount does not match actual gates amount.");
             }
 
-            if(nil::blueprint::use_lookups<component_type>()){
+            if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
                 // But now all constants are placed in the first column.
-                // So we reserve the first column for non-lookup constants. 
+                // So we reserve the first column for non-lookup constants.
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
                 std::vector<size_t> lookup_columns_indices;
@@ -334,7 +334,7 @@ namespace nil {
 //#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType, ArithmetizationParams>;
-            using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<        
+            using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
                 Hash, Hash, Lambda, 2
             >;
 

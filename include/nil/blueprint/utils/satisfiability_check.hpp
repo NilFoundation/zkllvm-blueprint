@@ -42,8 +42,8 @@ namespace nil {
 
         template<typename BlueprintFieldType,
                  typename ArithmetizationParams>
-        bool is_satisfied(const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                        ArithmetizationParams>> &bp,
+        bool is_satisfied(circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                              ArithmetizationParams>> &bp,
                           const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                         ArithmetizationParams>> &assignments){
 
@@ -71,6 +71,56 @@ namespace nil {
                             if (!constraint_result.is_zero()) {
                                 std::cout << "Constraint " << j << " from gate " << i << " on row " << selector_row
                                           << " is not satisfied." << std::endl;
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (std::size_t i = 0; i < lookup_gates.size(); i++) {
+                crypto3::zk::snark::plonk_column<BlueprintFieldType> selector =
+                    assignments.crypto3::zk::snark::template plonk_assignment_table<
+                        BlueprintFieldType, ArithmetizationParams>::selector(lookup_gates[i].tag_index);
+
+                for (std::size_t selector_row = 0; selector_row < selector.size(); selector_row++) {
+                    if (!selector[selector_row].is_zero()) {
+                        for (std::size_t j = 0; j < lookup_gates[i].constraints.size(); j++) {
+                            std::vector<typename BlueprintFieldType::value_type> input_values;
+                            input_values.reserve(lookup_gates[i].constraints[j].lookup_input.size());
+                            for (std::size_t k = 0; k < lookup_gates[i].constraints[j].lookup_input.size(); k++) {
+                                input_values.emplace_back(
+                                    lookup_gates[i].constraints[j].lookup_input[k].evaluate(selector_row, assignments));
+                            }
+                            const auto table_name =
+                                bp.get_reserved_indices_right().at(lookup_gates[i].constraints[j].table_id);
+                            try {
+                                const auto &table = bp.get_reserved_tables().at(
+                                    table_name.substr(0, table_name.find("/")))->get_table();
+                                // Search the table for the input values
+                                // We can cache it with sorting, or use KMP, but I need a simple solution first
+                                bool found = false;
+                                BOOST_ASSERT(table.size() == input_values.size());
+                                for (std::size_t k = 0; k < table[0].size(); k++) {
+                                    bool match = true;
+                                    for (std::size_t l = 0; l < table.size(); l++) {
+                                        if (table[l][k] != input_values[l]) {
+                                            match = false;
+                                            break;
+                                        }
+                                    }
+                                    if (match) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    std::cout << "Constraint " << j << " from lookup gate " << i << " on row " << selector_row
+                                            << " is not satisfied." << std::endl;
+                                    return false;
+                                }
+                            } catch (std::out_of_range &e) {
+                                std::cout << "Lookup table " << table_name << " not found." << std::endl;
                                 return false;
                             }
                         }
