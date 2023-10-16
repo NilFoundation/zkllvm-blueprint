@@ -90,7 +90,7 @@ namespace nil {
         }
 
         template<typename fri_type, typename FieldType>
-        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 4, const std::size_t max_step = 1) {
+        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 0, const std::size_t max_step = 1) {
             typename fri_type::params_type params;
             math::polynomial<typename FieldType::value_type> q = {0, 0, 1};
 
@@ -275,7 +275,8 @@ namespace nil {
                     bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
                     bp, assignment, lookup_columns_indices,
-                    desc.usable_rows_amount
+                    desc.usable_rows_amount,
+                    20000
                 );
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
