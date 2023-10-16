@@ -132,11 +132,16 @@ namespace nil {
                 _lookup_library.reserve_table(name);
             }
 
-            const std::map<std::string, std::size_t> &get_reserved_indices(){
-                return _lookup_library.get_reserved_indices();
+            const typename lookup_library<BlueprintFieldType>::left_reserved_type &get_reserved_indices() const {
+                return _lookup_library.get_reserved_indices().left;
             }
 
-            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables(){
+            // used in satisfiability check
+            const typename lookup_library<BlueprintFieldType>::right_reserved_type &get_reserved_indices_right() const {
+                return _lookup_library.get_reserved_indices().right;
+            }
+
+            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() {
                 return _lookup_library.get_reserved_tables();
             }
 

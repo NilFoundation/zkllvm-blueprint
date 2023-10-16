@@ -26,6 +26,8 @@
 
 #define BOOST_TEST_MODULE plonk_sha256_test
 
+#define ZK_PLACEHOLDER_PROFILING_ENABLED 1
+
 #include <boost/test/unit_test.hpp>
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
@@ -51,7 +53,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_process) {
     using BlueprintFieldType = typename curve_type::base_field_type;
     constexpr std::size_t WitnessColumns = 9;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 25;
+    constexpr std::size_t ConstantColumns = 13;
     constexpr std::size_t SelectorColumns = 20;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
