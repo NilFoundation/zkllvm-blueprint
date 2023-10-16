@@ -50,6 +50,14 @@ macro(define_blueprint_test test)
     endif()
 endmacro()
 
+set(COMMON_TEST_FILES
+    "manifest"
+    "detail/huang_lu"
+    "gate_id"
+    "utils/connectedness_check"
+    "private_input"
+    )
+
 set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/multiplication"
     "algebra/fields/plonk/non_native/addition"
@@ -60,17 +68,19 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/bit_composition"
     "algebra/fields/plonk/non_native/bit_shift_constant"
     "algebra/fields/plonk/non_native/logic_ops"
+    "algebra/fields/plonk/non_native/lookup_logic_ops"
     "algebra/fields/plonk/non_native/comparison_checked"
     "algebra/fields/plonk/non_native/comparison_unchecked"
     "algebra/fields/plonk/non_native/comparison_flag"
+    "algebra/fields/plonk/non_native/equality_flag"
     "algebra/fields/plonk/non_native/division_remainder"
     "non_native/plonk/bool_scalar_multiplication"
+    "non_native/plonk/add_mul_zkllvm_compatible"
     "non_native/plonk/scalar_non_native_range"
     )
 
 set(PLONK_TESTS_FILES
     "algebra/curves/plonk/variable_base_scalar_mul"
-    "algebra/curves/plonk/decomposed_variable_base_scalar_mul"
     "algebra/curves/plonk/unified_addition"
     "algebra/curves/plonk/variable_base_endo_scalar_mul"
     "algebra/curves/plonk/endo_scalar"
@@ -182,6 +192,7 @@ SET(ALGEBRA_TESTS_FILES
     ${PAIRING_TESTS_FILES})
 
 SET(ALL_TESTS_FILES
+    ${COMMON_TEST_FILES}
     ${NON_NATIVE_TESTS_FILES}
     ${PLONK_TESTS_FILES}
     ${ALGEBRA_TESTS_FILES}

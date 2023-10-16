@@ -38,15 +38,18 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
+
+#include <sstream>
+#include <string>
 
 namespace nil {
         namespace blueprint {
             namespace components {
 
                 template<typename ArithmetizationType,
-                         typename CurveType,
-                         std::size_t ScalarSize,
-                         std::uint32_t WitnessesAmount>
+                         typename CurveType>
                 class endo_scalar;
                 // Input: x
                 // Output: y
@@ -78,92 +81,127 @@ namespace nil {
                         0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547_cppui255;
                 };
 
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType, std::size_t ScalarSize>
-                class endo_scalar<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, CurveType, ScalarSize, 15>:
-                    public plonk_component<BlueprintFieldType, ArithmetizationParams, 15, 0, 0> {
-                    using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 15, 0, 0>;
-
+                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
+                class endo_scalar<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, CurveType>:
+                    public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
                     using endo_params = endo_scalar_params<CurveType>;
 
                 public:
+                    using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+
                     using var = typename component_type::var;
-                    constexpr static const std::size_t rows_amount = 8;
-                    constexpr static const std::size_t gates_amount = 2;
+                    using manifest_type = nil::blueprint::plonk_component_manifest;
+
+                    class gate_manifest_type : public component_gate_manifest {
+                    public:
+                        std::uint32_t gates_amount() const override {
+                            return endo_scalar::gates_amount;
+                        }
+                    };
+
+                    static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                            std::size_t lookup_column_amount) {
+                        static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                        return manifest;
+                    }
+
+                    static manifest_type get_manifest() {
+                        static manifest_type manifest = manifest_type(
+                            std::shared_ptr<manifest_param>(new manifest_single_value_param(15)),
+                            false
+                        );
+                        return manifest;
+                    }
+
+                    constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                                 std::size_t lookup_column_amount) {
+                        return 8;
+                    }
+
+                    const std::size_t scalar_size;
+
+                    const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                    static constexpr std::size_t gates_amount = 2;
 
                     constexpr static const typename BlueprintFieldType::value_type endo_r = endo_params::endo_r;
                     constexpr static const typename CurveType::base_field_type::value_type endo_q = endo_params::endo_q;
 
                     struct input_type {
                         var scalar;
+
+                        std::vector<var> all_vars() const {
+                            return {scalar};
+                        }
                     };
 
                     struct result_type {
                         var output = var(0, 0, false);
                         result_type(const endo_scalar &component, const input_type &params, std::size_t start_row_index) {
-                            output = var(component.W(6), start_row_index + rows_amount - 1, false, var::column_type::witness);
+                            output = var(component.W(6), start_row_index + component.rows_amount - 1,
+                                         false, var::column_type::witness);
+                        }
+
+                        std::vector<var> all_vars() const {
+                            return {output};
                         }
                     };
 
                     template <typename ContainerType>
-                        endo_scalar(ContainerType witness):
-                            component_type(witness, {}, {}){};
+                        endo_scalar(ContainerType witness, std::size_t scalar_size_):
+                            component_type(witness, {}, {}, get_manifest()),
+                            scalar_size(scalar_size_) {};
 
                     template <typename WitnessContainerType, typename ConstantContainerType, typename PublicInputContainerType>
-                        endo_scalar(WitnessContainerType witness, ConstantContainerType constant, PublicInputContainerType public_input):
-                            component_type(witness, constant, public_input){};
+                        endo_scalar(WitnessContainerType witness, ConstantContainerType constant, PublicInputContainerType public_input, std::size_t scalar_size_):
+                            component_type(witness, constant, public_input, get_manifest()),
+                            scalar_size(scalar_size_) {};
 
                     endo_scalar(
                         std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                         std::initializer_list<typename component_type::constant_container_type::value_type> constants,
-                        std::initializer_list<typename component_type::public_input_container_type::value_type> public_inputs):
-                            component_type(witnesses, constants, public_inputs){};
+                        std::initializer_list<typename component_type::public_input_container_type::value_type>
+                            public_inputs,
+                        std::size_t scalar_size_):
+                            component_type(witnesses, constants, public_inputs, get_manifest()),
+                            scalar_size(scalar_size_) {};
 
                 };
 
-                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType, std::size_t ScalarSize>
+                template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
                 using plonk_endo_scalar =
                     endo_scalar<
                         crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                        CurveType,
-                        ScalarSize,
-                        15
+                        CurveType
                     >;
 
-                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType, std::size_t ScalarSize>
-                    typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::result_type 
+                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
+                    typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                         generate_circuit(
-                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize> &component,
+                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                         circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                         assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::input_type instance_input,
+                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                         const std::uint32_t start_row_index) {
 
-                        auto selector_iterator = assignment.find_selector(component);
-                        std::size_t first_selector_index;
-
-                        if (selector_iterator == assignment.selectors_end()) {
-                            first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                            generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                        } else {
-                            first_selector_index = selector_iterator->second;
-                        }
+                        std::array<std::size_t, 2> selector_indices =
+                            generate_gates(component, bp, assignment, instance_input);
 
                         std::size_t j = start_row_index;
-                        assignment.enable_selector(first_selector_index, j, j + component.rows_amount - 1);
-                        assignment.enable_selector(first_selector_index + 1, j + component.rows_amount - 1);
+                        assignment.enable_selector(selector_indices[0], j, j + component.rows_amount - 1);
+                        assignment.enable_selector(selector_indices[1], j + component.rows_amount - 1);
 
                         generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                        return typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::result_type(component, instance_input, start_row_index);
+                        return typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, instance_input, start_row_index);
                     }
 
-                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType, std::size_t ScalarSize>
-                    typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::result_type 
+                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
+                    typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                         generate_assignments(
-                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize> &component,
+                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                         assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::input_type instance_input,
+                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                         const std::uint32_t start_row_index) {
 
                         std::size_t row = start_row_index;
@@ -171,24 +209,24 @@ namespace nil {
                         const std::size_t crumbs_per_row = 8;
                         const std::size_t bits_per_crumb = 2;
                         const std::size_t bits_per_row =
-                            bits_per_crumb * crumbs_per_row;    // we suppose that ScalarSize % bits_per_row = 0
+                            bits_per_crumb * crumbs_per_row;    // we suppose that scalar_size % bits_per_row = 0
 
                         typename BlueprintFieldType::value_type scalar = var_value(assignment, instance_input.scalar);
                         typename BlueprintFieldType::integral_type integral_scalar =
                             typename BlueprintFieldType::integral_type(scalar.data);
-                        std::array<bool, ScalarSize> bits_msb;
+                        std::vector<bool> bits_msb(component.scalar_size);
                         {
                             nil::marshalling::status_type status;
-                            assert(ScalarSize <= 255);
+                            assert(component.scalar_size <= BlueprintFieldType::modulus_bits);
 
-                            std::array<bool, 255> bits_msb_all =
+                            std::array<bool, BlueprintFieldType::modulus_bits> bits_msb_all =
                                 nil::marshalling::pack<nil::marshalling::option::big_endian>(integral_scalar, status);
-                            
+
                             assert(status == nil::marshalling::status_type::success);
 
-                            std::copy(bits_msb_all.end() - ScalarSize, bits_msb_all.end(), bits_msb.begin());
-                            
-                            for(std::size_t i = 0; i < 255 - ScalarSize; ++i) {
+                            std::copy(bits_msb_all.end() - component.scalar_size, bits_msb_all.end(), bits_msb.begin());
+
+                            for(std::size_t i = 0; i < BlueprintFieldType::modulus_bits - component.scalar_size; ++i) {
                                 assert(bits_msb_all[i] == false);
                             }
                         }
@@ -196,7 +234,7 @@ namespace nil {
                         typename BlueprintFieldType::value_type b = 2;
                         typename BlueprintFieldType::value_type n = 0;
 
-                        assert (ScalarSize % bits_per_row == 0);
+                        assert (component.scalar_size % bits_per_row == 0);
                         for (std::size_t chunk_start = 0; chunk_start < bits_msb.size(); chunk_start += bits_per_row) {
                             assignment.witness(component.W(0), row) = n;
                             assignment.witness(component.W(2), row) = a;
@@ -233,22 +271,19 @@ namespace nil {
                         }
                         auto res = a * component.endo_r + b;
                         assignment.witness(component.W(6), row - 1) = res;
-                        return typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::result_type(component, instance_input, start_row_index);
+                        return typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(component, instance_input, start_row_index);
                     }
 
-                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType, std::size_t ScalarSize>
-                        void generate_gates(
-                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize> &component,
+                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
+                    std::array<std::size_t, 2> generate_gates(
+                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                         circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                         assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::input_type instance_input,
-                        const std::size_t first_selector_index) {
+                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input) {
 
                         using F = typename BlueprintFieldType::value_type;
-                        using var = typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::var;
-
-                        std::size_t selector_index_1 = first_selector_index;
-                        std::size_t selector_index_2 = first_selector_index + 1;
+                        using var =
+                            typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::var;
 
                         auto c_f = [](var x) {
                             return (F(11) * F(6).inversed()) * x + (-F(5) * F(2).inversed()) * x * x +
@@ -261,49 +296,60 @@ namespace nil {
                         };
 
                         auto constraint_1 =
-                            bp.add_constraint(var(component.W(7), 0) * (var(component.W(7), 0) - 1) * (var(component.W(7), 0) - 2) * (var(component.W(7), 0) - 3));
+                            var(component.W(7), 0) * (var(component.W(7), 0) - 1) *
+                            (var(component.W(7), 0) - 2) * (var(component.W(7), 0) - 3);
                         auto constraint_2 =
-                            bp.add_constraint(var(component.W(8), 0) * (var(component.W(8), 0) - 1) * (var(component.W(8), 0) - 2) * (var(component.W(8), 0) - 3));
+                            var(component.W(8), 0) *
+                            (var(component.W(8), 0) - 1) * (var(component.W(8), 0) - 2) * (var(component.W(8), 0) - 3);
                         auto constraint_3 =
-                            bp.add_constraint(var(component.W(9), 0) * (var(component.W(9), 0) - 1) * (var(component.W(9), 0) - 2) * (var(component.W(9), 0) - 3));
+                            var(component.W(9), 0) * (var(component.W(9), 0) - 1) *
+                            (var(component.W(9), 0) - 2) * (var(component.W(9), 0) - 3);
                         auto constraint_4 =
-                            bp.add_constraint(var(component.W(10), 0) * (var(component.W(10), 0) - 1) * (var(component.W(10), 0) - 2) * (var(component.W(10), 0) - 3));
+                            var(component.W(10), 0) * (var(component.W(10), 0) - 1) *
+                            (var(component.W(10), 0) - 2) * (var(component.W(10), 0) - 3);
                         auto constraint_5 =
-                            bp.add_constraint(var(component.W(11), 0) * (var(component.W(11), 0) - 1) * (var(component.W(11), 0) - 2) * (var(component.W(11), 0) - 3));
+                            var(component.W(11), 0) * (var(component.W(11), 0) - 1) *
+                            (var(component.W(11), 0) - 2) * (var(component.W(11), 0) - 3);
                         auto constraint_6 =
-                            bp.add_constraint(var(component.W(12), 0) * (var(component.W(12), 0) - 1) * (var(component.W(12), 0) - 2) * (var(component.W(12), 0) - 3));
+                            var(component.W(12), 0) * (var(component.W(12), 0) - 1) *
+                            (var(component.W(12), 0) - 2) * (var(component.W(12), 0) - 3);
                         auto constraint_7 =
-                            bp.add_constraint(var(component.W(13), 0) * (var(component.W(13), 0) - 1) * (var(component.W(13), 0) - 2) * (var(component.W(13), 0) - 3));
+                            var(component.W(13), 0) * (var(component.W(13), 0) - 1) *
+                            (var(component.W(13), 0) - 2) * (var(component.W(13), 0) - 3);
                         auto constraint_8 =
-                            bp.add_constraint(var(component.W(14), 0) * (var(component.W(14), 0) - 1) * (var(component.W(14), 0) - 2) * (var(component.W(14), 0) - 3));
-                        auto constraint_9 = bp.add_constraint(
+                            var(component.W(14), 0) * (var(component.W(14), 0) - 1) *
+                            (var(component.W(14), 0) - 2) * (var(component.W(14), 0) - 3);
+                        auto constraint_9 =
                             var(component.W(4), 0) - (256 * var(component.W(2), 0) + 128 * c_f(var(component.W(7), 0)) + 64 * c_f(var(component.W(8), 0)) +
                                           32 * c_f(var(component.W(9), 0)) + 16 * c_f(var(component.W(10), 0)) + 8 * c_f(var(component.W(11), 0)) +
-                                          4 * c_f(var(component.W(12), 0)) + 2 * c_f(var(component.W(13), 0)) + c_f(var(component.W(14), 0))));
-                        auto constraint_10 = bp.add_constraint(
+                                          4 * c_f(var(component.W(12), 0)) + 2 * c_f(var(component.W(13), 0)) + c_f(var(component.W(14), 0)));
+                        auto constraint_10 =
                             var(component.W(5), 0) - (256 * var(component.W(3), 0) + 128 * d_f(var(component.W(7), 0)) + 64 * d_f(var(component.W(8), 0)) +
                                           32 * d_f(var(component.W(9), 0)) + 16 * d_f(var(component.W(10), 0)) + 8 * d_f(var(component.W(11), 0)) +
-                                          4 * d_f(var(component.W(12), 0)) + 2 * d_f(var(component.W(13), 0)) + d_f(var(component.W(14), 0))));
-                        auto constraint_11 = bp.add_constraint(
+                                          4 * d_f(var(component.W(12), 0)) + 2 * d_f(var(component.W(13), 0)) + d_f(var(component.W(14), 0)));
+                        auto constraint_11 =
                             var(component.W(1), 0) - ((1 << 16) * var(component.W(0), 0) + (1 << 14) * var(component.W(7), 0) + (1 << 12) * var(component.W(8), 0) +
                                           (1 << 10) * var(component.W(9), 0) + (1 << 8) * var(component.W(10), 0) + (1 << 6) * var(component.W(11), 0) +
-                                          (1 << 4) * var(component.W(12), 0) + (1 << 2) * var(component.W(13), 0) + var(component.W(14), 0)));
+                                          (1 << 4) * var(component.W(12), 0) + (1 << 2) * var(component.W(13), 0) + var(component.W(14), 0));
 
-                        auto constraint_12 = bp.add_constraint(var(component.W(6), 0) - (component.endo_r * var(component.W(4), 0) + var(component.W(5), 0)));
+                        auto constraint_12 = var(component.W(6), 0) -
+                            (component.endo_r * var(component.W(4), 0) + var(component.W(5), 0));
 
-                        bp.add_gate(selector_index_2, {constraint_12});
+                        std::size_t selector_index_1 = bp.add_gate(
+                            {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
+                             constraint_7, constraint_8, constraint_9, constraint_10, constraint_11});
 
-                        bp.add_gate(selector_index_1,
-                                    {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
-                                     constraint_7, constraint_8, constraint_9, constraint_10, constraint_11});
+                        std::size_t selector_index_2 = bp.add_gate({constraint_12});
+
+                        return {selector_index_1, selector_index_2};
                     }
 
-                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType, std::size_t ScalarSize>
+                    template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
                         void generate_copy_constraints(
-                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize> &component,
+                        const plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                         circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                         assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType, ScalarSize>::input_type instance_input,
+                        const typename plonk_endo_scalar<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                         const std::uint32_t start_row_index) {
 
                         std::size_t j = start_row_index;

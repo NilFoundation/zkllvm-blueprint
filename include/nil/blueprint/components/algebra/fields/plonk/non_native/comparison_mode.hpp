@@ -1,6 +1,5 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2022 Mikhail Komarov <nemo@nil.foundation>
-// Copyright (c) 2022 Nikita Kaskov <nbering@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -23,27 +22,23 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_DETAIL_COMPONENT_ID_HPP
-#define CRYPTO3_BLUEPRINT_DETAIL_COMPONENT_ID_HPP
-
-#include <typeinfo>
-#include <string>
-#include <sstream>
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_COMPARISON_MODE_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_COMPARISON_MODE_HPP
 
 namespace nil {
     namespace blueprint {
-        namespace detail {
+        namespace components {
+            // Ordering is important here: the logic differs for FLAG and non-FLAG modes.
+            // We use comparison with comparison_mode::FLAG in order to distinguish between the two cases.
+            enum comparison_mode {
+                FLAG,
+                LESS_THAN,
+                LESS_EQUAL,
+                GREATER_THAN,
+                GREATER_EQUAL,
+            };
+        }   // namespace components
+    }       // namespace blueprint
+}   // namespace nil
 
-            using blueprint_component_id_type = std::string;
-
-            template<typename ComponentType>
-            blueprint_component_id_type get_component_id(const ComponentType& component) {
-                std::stringstream id;
-
-                id << typeid(component).name() << component.get_id();
-                return id.str();
-            }
-        }    // namespace detail
-    }        // namespace blueprint
-}    // namespace nil
-#endif    // CRYPTO3_BLUEPRINT_DETAIL_COMPONENT_ID_HPP
+#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_DETAIL_COMPARISON_MODE_HPP

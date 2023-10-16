@@ -33,6 +33,7 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -40,26 +41,50 @@ namespace nil {
 
             // Input: P, Q - elliptic curve points
             // Output: R = P + Q
-            template<typename ArithmetizationType, typename CurveType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType, typename CurveType>
             class unified_addition;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
             class unified_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                CurveType, 11>:
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 11, 0, 0> {
+                CurveType>:
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
                 static_assert(std::is_same<typename CurveType::base_field_type, BlueprintFieldType>::value);
 
-                constexpr static const std::uint32_t WitnessAmount = 11;
-            
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount, 0, 0>;
-
             public:
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
 
                 using var = typename component_type::var;
+                using manifest_type = plonk_component_manifest;
 
-                constexpr static const std::size_t rows_amount = 1;
-                const std::size_t gates_amount = 1;
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::uint32_t gates_amount() const override {
+                        return unified_addition::gates_amount;
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount) {
+                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(11)),
+                        false
+                    );
+                    return manifest;
+                }
+
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount) {
+                    return 1;
+                }
+
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                static constexpr const std::size_t gates_amount = 1;
 
                 struct input_type {
                     struct var_ec_point {
@@ -69,6 +94,10 @@ namespace nil {
 
                     var_ec_point P;
                     var_ec_point Q;
+
+                    std::vector<var> all_vars() const {
+                        return {P.x, P.y, Q.x, Q.y};
+                    }
                 };
 
                 struct result_type {
@@ -81,17 +110,21 @@ namespace nil {
 
                     result_type() {
                     }
+
+                    std::vector<var> all_vars() const {
+                        return {X, Y};
+                    }
                 };
 
                 template <typename ContainerType>
-                unified_addition(ContainerType witness):
-                    component_type(witness, {}, {}){};
+                explicit unified_addition(ContainerType witness):
+                    component_type(witness, {}, {}, get_manifest()){};
 
                 template <typename WitnessContainerType, typename ConstantContainerType,
                     typename PublicInputContainerType>
                 unified_addition(WitnessContainerType witness, ConstantContainerType constant,
                         PublicInputContainerType public_input):
-                    component_type(witness, constant, public_input){};
+                    component_type(witness, constant, public_input, get_manifest()){};
 
                 unified_addition(std::initializer_list<
                         typename component_type::witness_container_type::value_type> witnesses,
@@ -99,23 +132,22 @@ namespace nil {
                         typename component_type::constant_container_type::value_type> constants,
                                std::initializer_list<
                         typename component_type::public_input_container_type::value_type> public_inputs):
-                    component_type(witnesses, constants, public_inputs){};
+                    component_type(witnesses, constants, public_inputs, get_manifest()){};
             };
 
             template<typename BlueprintFieldType,
                      typename ArithmetizationParams,
-                     typename CurveType,
-                     std::int32_t WitnessAmount>
+                     typename CurveType>
             using plonk_native_unified_addition =
                 unified_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                CurveType, WitnessAmount>;
+                CurveType>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-            typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::result_type
+            typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                 generate_assignments(
-                    const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11> &component,
+                    const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::input_type instance_input,
+                    const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                     const std::uint32_t start_row_index) {
 
                 const std::size_t j = start_row_index;
@@ -189,84 +221,84 @@ namespace nil {
                     assignment.witness(component.W(8), j) = 0;
                 }
 
-                return typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::result_type(
+                return typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
                     component, start_row_index);
             }
-            
+
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-            void generate_gates(
-                const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11> &component,
+            std::size_t generate_gates(
+                const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::input_type &instance_input,
-                const std::size_t first_selector_index) {
+                const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type &instance_input) {
 
-                using var = typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::var;
+                using var =
+                    typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::var;
 
                 auto constraint_1 =
-                    bp.add_constraint((var(component.W(2), 0) - var(component.W(0), 0)) *
-                                      ((var(component.W(2), 0) - var(component.W(0), 0)) *
-                                       var(component.W(10), 0) - (var(component.W(3), 0) - var(component.W(1), 0))));
+                    (var(component.W(2), 0) - var(component.W(0), 0)) *
+                    ((var(component.W(2), 0) - var(component.W(0), 0)) *
+                     var(component.W(10), 0) - (var(component.W(3), 0) - var(component.W(1), 0)));
                 auto constraint_2 =
-                    bp.add_constraint((1 - (var(component.W(2), 0) - var(component.W(0), 0)) * var(component.W(8), 0)) *
-                                      (2 * var(component.W(1), 0) * var(component.W(10), 0) - 3 * var(component.W(0), 0) * var(component.W(0), 0)));
+                    (1 - (var(component.W(2), 0) - var(component.W(0), 0)) * var(component.W(8), 0)) *
+                    (2 * var(component.W(1), 0) * var(component.W(10), 0) -
+                     3 * var(component.W(0), 0) * var(component.W(0), 0));
 
-                auto constraint_3 = bp.add_constraint(
+                auto constraint_3 =
                     (var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(2), 0) -
                      var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(0), 0)) *
                     (var(component.W(10), 0) * var(component.W(10), 0) - var(component.W(0), 0) -
-                     var(component.W(2), 0) - var(component.W(4), 0)));
-                auto constraint_4 = bp.add_constraint(
+                     var(component.W(2), 0) - var(component.W(4), 0));
+                auto constraint_4 =
                     (var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(2), 0) -
                      var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(0), 0)) *
                     (var(component.W(10), 0) * (var(component.W(0), 0) - var(component.W(4), 0)) -
-                     var(component.W(1), 0) - var(component.W(5), 0)));
-                auto constraint_5 = bp.add_constraint(
+                     var(component.W(1), 0) - var(component.W(5), 0));
+                auto constraint_5 =
                     (var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(3), 0) +
                      var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(1), 0)) *
                     (var(component.W(10), 0) * var(component.W(10), 0) - var(component.W(0), 0) -
-                     var(component.W(2), 0) - var(component.W(4), 0)));
-                auto constraint_6 = bp.add_constraint(
+                     var(component.W(2), 0) - var(component.W(4), 0));
+                auto constraint_6 =
                     (var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(3), 0) +
                      var(component.W(0), 0) * var(component.W(2), 0) * var(component.W(1), 0)) *
                     (var(component.W(10), 0) * (var(component.W(0), 0) - var(component.W(4), 0)) -
-                     var(component.W(1), 0) - var(component.W(5), 0)));
+                     var(component.W(1), 0) - var(component.W(5), 0));
                 auto constraint_7 =
-                    bp.add_constraint((1 - var(component.W(0), 0) * var(component.W(6), 0)) *
-                        (var(component.W(4), 0) - var(component.W(2), 0)));
+                    (1 - var(component.W(0), 0) * var(component.W(6), 0)) *
+                        (var(component.W(4), 0) - var(component.W(2), 0));
                 auto constraint_8 =
-                    bp.add_constraint((1 - var(component.W(0), 0) * var(component.W(6), 0)) *
-                        (var(component.W(5), 0) - var(component.W(3), 0)));
+                    (1 - var(component.W(0), 0) * var(component.W(6), 0)) *
+                        (var(component.W(5), 0) - var(component.W(3), 0));
                 auto constraint_9 =
-                    bp.add_constraint((1 - var(component.W(2), 0) * var(component.W(7), 0)) *
-                        (var(component.W(4), 0) - var(component.W(0), 0)));
+                    (1 - var(component.W(2), 0) * var(component.W(7), 0)) *
+                        (var(component.W(4), 0) - var(component.W(0), 0));
                 auto constraint_10 =
-                    bp.add_constraint((1 - var(component.W(2), 0) * var(component.W(7), 0)) *
-                        (var(component.W(5), 0) - var(component.W(1), 0)));
-                auto constraint_11 = bp.add_constraint(
+                    (1 - var(component.W(2), 0) * var(component.W(7), 0)) *
+                        (var(component.W(5), 0) - var(component.W(1), 0));
+                auto constraint_11 =
                     (1 - (var(component.W(2), 0) - var(component.W(0), 0)) * var(component.W(8), 0) -
                         (var(component.W(3), 0) + var(component.W(1), 0)) * var(component.W(9), 0)) *
-                    var(component.W(4), 0));
-                auto constraint_12 = bp.add_constraint(
+                    var(component.W(4), 0);
+                auto constraint_12 =
                     (1 - (var(component.W(2), 0) - var(component.W(0), 0)) * var(component.W(8), 0) -
                         (var(component.W(3), 0) + var(component.W(1), 0)) * var(component.W(9), 0)) *
-                    var(component.W(5), 0));
+                    var(component.W(5), 0);
 
-                bp.add_gate(first_selector_index,
-                            {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
-                             constraint_7, constraint_8, constraint_9, constraint_10, constraint_11,
-                             constraint_12});
+                return bp.add_gate(
+                    {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
+                     constraint_7, constraint_8, constraint_9, constraint_10, constraint_11, constraint_12});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
             void generate_copy_constraints(
-                const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11> &component,
+                const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::input_type &instance_input,
+                const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::var;
+                using var = typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::var;
 
                 bp.add_copy_constraint({instance_input.P.x, var(component.W(0), start_row_index, false)});
                 bp.add_copy_constraint({instance_input.P.y, var(component.W(1), start_row_index, false)});
@@ -275,30 +307,21 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
-            typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::result_type
+            typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                 generate_circuit(
-                    const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11> &component,
+                    const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::input_type &instance_input,
+                    const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type &instance_input,
                     const std::size_t start_row_index){
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
+                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
-                if (selector_iterator == assignment.selectors_end()){
-                    first_selector_index = assignment.allocate_selector(component,
-                        component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
-
-                assignment.enable_selector(first_selector_index, start_row_index);
+                assignment.enable_selector(selector_index, start_row_index);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType, 11>::result_type(
+                return typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type(
                     component, start_row_index);
             }
         }    // namespace components
