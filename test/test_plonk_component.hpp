@@ -203,8 +203,8 @@ namespace nil {
                     bp.reserve_table(k);
                 }
             };
-<<<<<<< HEAD
 
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 
@@ -212,6 +212,8 @@ namespace nil {
 
 >>>>>>> 4a7ea8f2... 222 blueprint lookup tables (#231)
 >>>>>>> Proofs generation and verification updated #222
+=======
+>>>>>>> Added lookup satisfiability check.
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
             std::size_t start_row = dist(gen);
@@ -288,7 +290,7 @@ namespace nil {
                                 "Component total gates amount does not match actual gates amount.");
             }
 
-            if(nil::blueprint::use_lookups<component_type>()){
+            if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
                 // But now all constants are placed in the first column.
 <<<<<<< HEAD
