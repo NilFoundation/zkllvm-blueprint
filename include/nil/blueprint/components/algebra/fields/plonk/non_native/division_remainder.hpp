@@ -89,7 +89,7 @@ namespace nil {
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
-                    static const std::size_t clamp = 5;
+                    static const constexpr std::size_t clamp = 5;
                     std::uint32_t witness_amount;
 
                     gate_manifest_type(std::size_t witness_amount_)
