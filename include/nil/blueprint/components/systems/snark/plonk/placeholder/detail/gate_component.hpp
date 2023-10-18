@@ -107,7 +107,8 @@ namespace nil {
                     };
 
                     static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                           std::size_t lookup_column_amount) {
+                                                           std::size_t lookup_column_amount,
+                                                           std::size_t degree) {
                         gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
                         return manifest;
                     }

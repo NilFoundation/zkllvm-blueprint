@@ -86,7 +86,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     };
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input, m);
+        component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG, m);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)

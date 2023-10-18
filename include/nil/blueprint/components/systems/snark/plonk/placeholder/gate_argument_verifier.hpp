@@ -124,7 +124,7 @@ namespace nil {
                         gate_manifest manifest =
                             gate_manifest(gate_manifest_type(witness_amount, gate_sizes))
                                 .merge_with(mul::get_gate_manifest(witness_amount, lookup_column_amount))
-                                .merge_with(gate_component::get_gate_manifest(witness_amount, lookup_column_amount));
+                                .merge_with(gate_component::get_gate_manifest(witness_amount, lookup_column_amount, *max_degree - 1));
                         return manifest;
                     } else if (*min_degree == 1 && *min_degree == *max_degree) {
                         gate_manifest manifest =
@@ -134,7 +134,7 @@ namespace nil {
                     } else {
                         gate_manifest manifest =
                             gate_manifest(gate_manifest_type(witness_amount, gate_sizes))
-                                .merge_with(gate_component::get_gate_manifest(witness_amount, lookup_column_amount));
+                                .merge_with(gate_component::get_gate_manifest(witness_amount, lookup_column_amount, *min_degree - 1));
                         return manifest;
                     }
                 }

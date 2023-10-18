@@ -63,6 +63,8 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
 
     std::size_t m = signature.size();
 
+    std::vector<std::size_t>::iterator min_degree = std::min_element(signature.begin(), signature.end());
+
     std::array<std::uint32_t, WitnessColumns> witnesses;
     for (std::uint32_t i = 0; i < WitnessColumns; i++) {
         witnesses[i] = i;
@@ -87,9 +89,15 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
         assert(var_value(assignment, real_res.output) == expected_res);
         // std::cout << "expected F: " << expected_res.data << std::endl;
     };
-
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input, signature);
+    if (*min_degree == 1) {
+        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+            component_instance, public_input, result_check, instance_input,
+            nil::crypto3::detail::connectedness_check_type::NONE, signature);
+    } else {
+        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+            component_instance, public_input, result_check, instance_input,
+            nil::crypto3::detail::connectedness_check_type::STRONG, signature);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
@@ -108,9 +116,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test0) {
     typename BlueprintFieldType::value_type expected_res =
         0x1272cd18bbf5cc452e221febe8a6ead95cd8f36cc3f6d5776f3e565fc464171d_cppui255;    // F
 
-    // test<BlueprintFieldType, 4>(public_input, expected_res, {1, 1});
-    // test<BlueprintFieldType, 5>(public_input, expected_res, {1, 1});
-    // test<BlueprintFieldType, 6>(public_input, expected_res, {1, 1});
+    test<BlueprintFieldType, 4>(public_input, expected_res, {1, 1});
+    test<BlueprintFieldType, 5>(public_input, expected_res, {1, 1});
+    test<BlueprintFieldType, 6>(public_input, expected_res, {1, 1});
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
