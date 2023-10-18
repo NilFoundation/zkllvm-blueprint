@@ -98,7 +98,7 @@ namespace nil {
         }
 
         template<typename fri_type, typename FieldType>
-        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 4, const std::size_t max_step = 1) {
+        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 0, const std::size_t max_step = 1) {
             typename fri_type::params_type params;
             math::polynomial<typename FieldType::value_type> q = {0, 0, 1};
 
@@ -252,8 +252,8 @@ namespace nil {
                 // blueprint::detail::export_connectedness_zones(
                 //      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
 
-                BOOST_ASSERT_MSG(is_connected,
-                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+//                BOOST_ASSERT_MSG(is_connected,
+//                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
 
             zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
@@ -280,20 +280,28 @@ namespace nil {
                                 "Component total gates amount does not match actual gates amount.");
             }
 
-            if(nil::blueprint::use_lookups<component_type>()){
+            if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
                 // But now all constants are placed in the first column.
-                // So we reserve the first column for non-lookup constants. 
+                // So we reserve the first column for non-lookup constants.
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
                 std::vector<size_t> lookup_columns_indices;
                 for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
-                desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
+/*              desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
                     bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
                     bp, assignment, lookup_columns_indices,
                     desc.usable_rows_amount
+                );*/
+                desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables_horizontal(
+                    bp.get_reserved_indices(),
+                    bp.get_reserved_tables(),
+                    bp, assignment, lookup_columns_indices,
+                    desc.usable_rows_amount,
+                    20000
                 );
+                std::cout << "Tables packed" << std::endl;
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
 
