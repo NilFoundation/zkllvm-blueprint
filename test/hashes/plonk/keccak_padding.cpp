@@ -130,11 +130,11 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
 
     auto result_check = [expected_result]
                         (AssignmentType &assignment, typename component_type::result_type &real_res) {
-        std::cout << "sizes: " << expected_result.size() << " " << real_res.padded_message.size() << std::endl;
-        // assert(expected_result.size() == real_res.padded_message.size());
+        // std::cout << "sizes: " << expected_result.size() << " " << real_res.padded_message.size() << std::endl;
+        assert(expected_result.size() == real_res.padded_message.size());
         for (int i = 0; i < real_res.padded_message.size(); ++i) {
-            std::cout << "res:\n" << expected_result[i].data << "\n" << var_value(assignment, real_res.padded_message[i]).data << std::endl;
-            // assert(expected_result[i] == var_value(assignment, real_res.padded_message[i]));
+            // std::cout << "res:\n" << expected_result[i].data << "\n" << var_value(assignment, real_res.padded_message[i]).data << std::endl;
+            assert(expected_result[i] == var_value(assignment, real_res.padded_message[i]));
         }
     };
 

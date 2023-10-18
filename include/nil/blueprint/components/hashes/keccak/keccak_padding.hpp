@@ -603,13 +603,13 @@ namespace nil {
 
                 std::size_t gate_row_ind = 0;
                 if (WitnessesAmount == 15) {
-                    assignment.enable_selector(first_selector_index++, component.gates_rows[gate_row_ind++]);
+                    assignment.enable_selector(first_selector_index++, component.gates_rows[gate_row_ind++] + start_row_index);
                 }
                 for (std::size_t i = gate_row_ind; i < component.gates_rows.size() - (bool)(component.last_gate % 7); ++i) {
-                    assignment.enable_selector(first_selector_index, component.gates_rows[gate_row_ind++]);
+                    assignment.enable_selector(first_selector_index, component.gates_rows[gate_row_ind++] + start_row_index);
                 }
                 if (component.last_gate % 7) {
-                    assignment.enable_selector(first_selector_index + 1, component.gates_rows[gate_row_ind]);
+                    assignment.enable_selector(first_selector_index + 1, component.gates_rows[gate_row_ind] + start_row_index);
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
