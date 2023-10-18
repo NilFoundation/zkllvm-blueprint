@@ -38,7 +38,7 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Input: t, array <a1, b1, a2, b2, ..., an, bn> 
+            // Input: t, array <a1, b1, a2, b2, ..., an, bn>
             // Output: <a1,b1,a2,b2,....,an,bn> if t == 0, <b1,a1,b2,a2,....,bn,an> if t == 1
             template<typename ArithmetizationType, typename FieldType>
             class fri_array_swap;
@@ -126,12 +126,12 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             using plonk_fri_array_swap =
-                division<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                fri_array_swap<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                          BlueprintFieldType>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_fri_array_swap<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_fri_division<BlueprintFieldType, ArithmetizationParams> &component,
+                const plonk_fri_array_swap<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_fri_array_swap<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
@@ -164,7 +164,7 @@ namespace nil {
                 auto constraint_2 = var(component.W(1), 0) * var(component.W(3), 0) - 1;
 
                 return bp.add_gate({constraint_1, constraint_2});
-*/		
+*/
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -183,7 +183,7 @@ namespace nil {
                 var component_y = var(component.W(1), static_cast<int>(j), false);
                 bp.add_copy_constraint({instance_input.x, component_x});
                 bp.add_copy_constraint({component_y, instance_input.y});
-*/		
+*/
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -203,7 +203,7 @@ namespace nil {
 
                 return typename plonk_division<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
-*/	
+*/
             }
 
         }    // namespace components

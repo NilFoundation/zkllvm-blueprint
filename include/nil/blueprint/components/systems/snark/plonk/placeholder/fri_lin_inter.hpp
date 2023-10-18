@@ -38,8 +38,8 @@ namespace nil {
     namespace blueprint {
         namespace components {
             // linear interpolation with points (s,y0), (-s,y1) at point alpha
-            // Input: s, y0, y1, alpha  
-            // Output: y = y0 + (y1 - y0)*(s - alpha)/(2s) 
+            // Input: s, y0, y1, alpha
+            // Output: y = y0 + (y1 - y0)*(s - alpha)/(2s)
             template<typename ArithmetizationType, typename FieldType>
             class fri_lin_inter;
 
@@ -83,7 +83,7 @@ namespace nil {
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 struct input_type {
-                    var s, y0, y1, alpha; 
+                    var s, y0, y1, alpha;
 
                     std::vector<var> all_vars() const {
                         return {s, y0, y1, alpha};
@@ -125,12 +125,12 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             using plonk_fri_lin_inter =
-                division<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                fri_lin_inter<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                          BlueprintFieldType>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_fri_division<BlueprintFieldType, ArithmetizationParams> &component,
+                const plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
@@ -163,7 +163,7 @@ namespace nil {
                 auto constraint_2 = var(component.W(1), 0) * var(component.W(3), 0) - 1;
 
                 return bp.add_gate({constraint_1, constraint_2});
-*/		
+*/
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -182,7 +182,7 @@ namespace nil {
                 var component_y = var(component.W(1), static_cast<int>(j), false);
                 bp.add_copy_constraint({instance_input.x, component_x});
                 bp.add_copy_constraint({component_y, instance_input.y});
-*/		
+*/
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -202,7 +202,7 @@ namespace nil {
 
                 return typename plonk_division<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
-*/	
+*/
             }
 
         }    // namespace components
