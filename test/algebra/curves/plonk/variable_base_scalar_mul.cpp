@@ -42,15 +42,17 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/algebra/curves/pasta/plonk/variable_base_scalar_mul_15_wires.hpp>
-#include "test_plonk_component.hpp"
+#include <nil/blueprint/component_stretcher.hpp>
+#include <nil/blueprint/components/algebra/curves/pasta/plonk/variable_base_scalar_mul.hpp>
+#include "../../../test_plonk_component.hpp"
 
 #include "../../zk/include/nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp"
 
-template <typename CurveType>
-void test_variable_base_scalar_mul (std::vector<typename CurveType::base_field_type::value_type> public_input,
-typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type expected){
-    constexpr std::size_t WitnessColumns = 15;
+template <typename CurveType, bool Stretched = false>
+void test_variable_base_scalar_mul (
+		const std::vector<typename CurveType::base_field_type::value_type> &public_input,
+		typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type expected){
+    constexpr std::size_t WitnessColumns = 15 * (Stretched ? 2 : 1);
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 4;
@@ -62,25 +64,17 @@ typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates:
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
-	using component_type = nil::blueprint::components::curve_element_variable_base_scalar_mul<ArithmetizationType, CurveType, 15>;
+	using component_type = nil::blueprint::components::curve_element_variable_base_scalar_mul<ArithmetizationType, CurveType>;
 
 	using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
 	component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},{0},{});
-	
+
 	auto result_check = [&expected, public_input](AssignmentType &assignment,
         typename component_type::result_type &real_res) {
 			typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type R;
 			R.X = var_value(assignment, real_res.X);
 			R.Y = var_value(assignment, real_res.Y);
-
-			#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-		    std::cout << std::hex;
-	        std::cout << "_________________________________________________________________________________________________________________________________________________\n"; 
-			std::cout << "var base scal mul: (" << public_input[0].data << " " << public_input[1].data << ") * " << public_input[2].data << "\n";
-			std::cout << "expected:" << expected.X.data << " " << expected.Y.data << "\n";
-			std::cout << "real    :" << R.X.data << " " << R.Y.data << "\n";
-			#endif
 
 			assert(expected.X == R.X);
 			assert(expected.Y - R.Y == 0); // not (expected.Y == R.Y) because of issue https://github.com/NilFoundation/crypto3-multiprecision/issues/38
@@ -90,13 +84,39 @@ typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates:
     var T_X_var = {0, 0, false, var::column_type::public_input};
     var T_Y_var = {0, 1, false, var::column_type::public_input};
 
-	if (std::is_same<CurveType,nil::crypto3::algebra::curves::pallas>::value) {
-		var high_bit = {0, 3, false, var::column_type::public_input};
-		typename component_type::input_type instance_input = {{T_X_var, T_Y_var},scalar_var, high_bit};
-		nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (component_instance, public_input, result_check, instance_input);
+	if constexpr (Stretched) {
+        using stretched_component_type = nil::blueprint::components::component_stretcher<
+            BlueprintFieldType,
+            ArithmetizationParams,
+            component_type>;
+
+        stretched_component_type stretched_instance(component_instance, WitnessColumns / 2, WitnessColumns);
+
+		if constexpr (std::is_same<CurveType,nil::crypto3::algebra::curves::pallas>::value) {
+			var high_bit = {0, 3, false, var::column_type::public_input};
+			typename component_type::input_type instance_input = {{T_X_var, T_Y_var},scalar_var, high_bit};
+			nil::crypto3::test_component<stretched_component_type, BlueprintFieldType,
+										 ArithmetizationParams, hash_type, Lambda>
+			 	(stretched_instance, public_input, result_check, instance_input);
+		} else {
+			typename component_type::input_type instance_input = {{T_X_var, T_Y_var},scalar_var};
+			nil::crypto3::test_component<stretched_component_type, BlueprintFieldType,
+										 ArithmetizationParams, hash_type, Lambda>
+				(stretched_instance, public_input, result_check, instance_input);
+		}
 	} else {
-		typename component_type::input_type instance_input = {{T_X_var, T_Y_var},scalar_var};
-		nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (component_instance, public_input, result_check, instance_input);
+		if constexpr (std::is_same<CurveType,nil::crypto3::algebra::curves::pallas>::value) {
+			var high_bit = {0, 3, false, var::column_type::public_input};
+			typename component_type::input_type instance_input = {{T_X_var, T_Y_var},scalar_var, high_bit};
+			nil::crypto3::test_component<component_type, BlueprintFieldType,
+										 ArithmetizationParams, hash_type, Lambda>
+			 	(component_instance, public_input, result_check, instance_input);
+		} else {
+			typename component_type::input_type instance_input = {{T_X_var, T_Y_var},scalar_var};
+			nil::crypto3::test_component<component_type, BlueprintFieldType,
+										 ArithmetizationParams, hash_type, Lambda>
+				(component_instance, public_input, result_check, instance_input);
+		}
 	}
 }
 
@@ -139,6 +159,16 @@ typename CurveType::scalar_field_type::value_type shift_scalar(typename CurveTyp
 	return shifted;
 }
 
+template <typename CurveType>
+void test_variable_base_scalar_mul_with_stretching(
+	const std::vector<typename CurveType::base_field_type::value_type> &public_input,
+	typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type expected) {
+
+	test_variable_base_scalar_mul<CurveType, false>(public_input, expected);
+	test_variable_base_scalar_mul<CurveType, true>(public_input, expected);
+}
+
+
 template<typename CurveType>
 void test_vbsm(
 	typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type point,
@@ -157,7 +187,7 @@ void test_vbsm(
 		typename CurveType::base_field_type::value_type shifted_base_value_type_bit;
 		typename CurveType::scalar_field_type::value_type two = 2;
 
-		if (std::is_same<CurveType,nil::crypto3::algebra::curves::pallas>::value) {
+		if constexpr (std::is_same<CurveType, nil::crypto3::algebra::curves::pallas>::value) {
 			if (shifted >= two.pow(254)) {
 				shifted = shifted - two.pow(254);
 				shifted_integral_type = typename CurveType::scalar_field_type::integral_type(shifted.data);
@@ -167,10 +197,12 @@ void test_vbsm(
 				shifted_base_value_type = shifted_integral_type;
 				shifted_base_value_type_bit = 0;
 			}
-			test_variable_base_scalar_mul<CurveType>({point.X, point.Y, shifted_base_value_type, shifted_base_value_type_bit}, expected);
+			test_variable_base_scalar_mul_with_stretching<CurveType>(
+				{point.X, point.Y, shifted_base_value_type, shifted_base_value_type_bit}, expected);
 		} else {
 			shifted_base_value_type = shifted_integral_type;
-			test_variable_base_scalar_mul<CurveType>({point.X, point.Y, shifted_base_value_type}, expected);
+			test_variable_base_scalar_mul_with_stretching<CurveType>(
+				{point.X, point.Y, shifted_base_value_type}, expected);
 		}
 	}
 

@@ -32,9 +32,9 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
-#include <nil/blueprint/detail/get_component_id.hpp>
+#include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/comparison_mode.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/comparison_mode.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -44,9 +44,8 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-            using detail::comparison_mode;
 
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType>
             class comparison_checked;
 
             /*
@@ -75,113 +74,178 @@ namespace nil {
 
                 See comparison_flag if you want to access the result of the comparison instead.
             */
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             class comparison_checked<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>,
-                                     WitnessesAmount> :
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0> {
+                                                                                 ArithmetizationParams>> :
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount,
-                                                       1, 0>;
                 using value_type = typename BlueprintFieldType::value_type;
 
-                static std::size_t chunk_amount_init(std::size_t bits_amount) {
+                static std::size_t chunk_amount_internal(std::size_t bits_amount) {
                     return (bits_amount + chunk_size - 1) / chunk_size;
                 }
                 // We need to pad each of x, y - x up to the nearest multiple of WitnessAmount - 1.
-                static std::size_t padded_chunks_init(std::size_t bits_amount) {
-                    return (chunk_amount_init(bits_amount) + WitnessesAmount - 2) /
-                            (WitnessesAmount - 1) * (WitnessesAmount - 1);
+                static std::size_t padded_chunks_internal(std::size_t witness_amount, std::size_t bits_amount) {
+                    return (chunk_amount_internal(bits_amount) + witness_amount - 2) /
+                            (witness_amount - 1) * (witness_amount - 1);
                 }
 
-                static std::size_t padding_size_init(std::size_t bits_amount) {
-                    return padded_chunks_init(bits_amount) - chunk_amount_init(bits_amount);
+                static std::size_t padding_size_internal(std::size_t witness_amount, std::size_t bits_amount) {
+                    return padded_chunks_internal(witness_amount, bits_amount) - chunk_amount_internal(bits_amount);
                 }
 
-                static std::size_t padding_bits_init(std::size_t bits_amount) {
-                    return padded_chunks_init(bits_amount) * chunk_size - bits_amount;
+                static std::size_t padding_bits_internal(std::size_t witness_amount, std::size_t bits_amount) {
+                    return padded_chunks_internal(witness_amount, bits_amount) * chunk_size - bits_amount;
                 }
 
-                static bool needs_bonus_row_init(comparison_mode mode) {
-                    return WitnessesAmount <= 3 &&
+                static bool needs_bonus_row_internal(std::size_t witness_amount, comparison_mode mode) {
+                    return witness_amount <= 3 &&
                            (mode == comparison_mode::LESS_THAN ||
                             mode == comparison_mode::GREATER_THAN);
                 }
 
-                static std::size_t rows(std::size_t bits_amount, comparison_mode mode) {
-                    return 1 + 2 * padded_chunks_init(bits_amount) / (WitnessesAmount - 1) +
-                           needs_bonus_row_init(mode);
+                static std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t bits_amount,
+                                                        comparison_mode mode) {
+                    return 1 + 2 * padded_chunks_internal(witness_amount, bits_amount) / (witness_amount - 1) +
+                           needs_bonus_row_internal(witness_amount, mode);
                 }
 
-                static bool needs_first_chunk_constraint_init(std::size_t bits_amount) {
+                static bool needs_first_chunk_constraint_internal(std::size_t bits_amount) {
                     return (bits_amount % chunk_size) &&
                            (bits_amount + ((chunk_size - bits_amount % chunk_size) % chunk_size) >=
                                 BlueprintFieldType::modulus_bits - 1);
                 }
 
-                static std::size_t gates(std::size_t bits_amount, comparison_mode mode) {
-                    return 2 + needs_first_chunk_constraint_init(bits_amount);
+                static std::size_t gates_amount_internal(std::size_t bits_amount, comparison_mode mode) {
+                    return 2 + needs_first_chunk_constraint_internal(bits_amount);
                 }
 
-            public:
-                using var = typename component_type::var;
+                static std::size_t chunks_per_row_internal(std::size_t witness_amount) {
+                    return witness_amount - 1;
+                }
 
+                static std::size_t bits_per_row_internal(std::size_t witness_amount, std::size_t bits_amount) {
+                    return chunks_per_row_internal(witness_amount) * chunk_size;
+                }
+
+                void check_params(std::size_t bits_amount, comparison_mode mode) const {
+                    BLUEPRINT_RELEASE_ASSERT(bits_amount > 0 && bits_amount < BlueprintFieldType::modulus_bits - 1);
+                    BLUEPRINT_RELEASE_ASSERT(mode == comparison_mode::LESS_THAN ||
+                                             mode == comparison_mode::GREATER_THAN ||
+                                             mode == comparison_mode::LESS_EQUAL ||
+                                             mode == comparison_mode::GREATER_EQUAL);
+                }
+            public:
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
+
+                using var = typename component_type::var;
+                using manifest_type = nil::blueprint::plonk_component_manifest;
+
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::size_t witness_amount;
+                    std::size_t bits_amount;
+                    comparison_mode mode;
+
+                    gate_manifest_type(std::size_t witness_amount_, std::size_t bits_amount_, comparison_mode mode_)
+                        : witness_amount(witness_amount_), bits_amount(bits_amount_), mode(mode_) {}
+
+                    std::uint32_t gates_amount() const override {
+                        return comparison_checked::gates_amount_internal(bits_amount, mode);
+                    }
+
+                    bool operator<(gate_manifest_type const& other) const {
+                        return witness_amount < other.witness_amount ||
+                               (witness_amount == other.witness_amount && bits_amount < other.bits_amount) ||
+                               (witness_amount == other.witness_amount &&
+                                bits_amount == other.bits_amount && mode < other.mode);
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount,
+                                                       std::size_t bits_amount,
+                                                       comparison_mode mode) {
+                    gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount, bits_amount, mode));
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(
+                            new manifest_range_param(
+                                3, (BlueprintFieldType::modulus_bits - 1 + chunk_size - 1) / chunk_size)),
+                        false
+                    );
+                    return manifest;
+                }
+
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount,
+                                                             std::size_t bits_amount,
+                                                             comparison_mode mode) {
+                    return rows_amount_internal(witness_amount, bits_amount, mode);
+                }
+
+                /*
+                   It's CRITICAL that these three variables remain on top
+                   Otherwise initialization goes in wrong order, leading to arbitrary values.
+                */
                 const std::size_t bits_amount;
                 const comparison_mode mode;
-
                 constexpr static const std::size_t chunk_size = 2;
-                const std::size_t chunk_amount;
+                /* Do NOT move the above variables! */
+
+                const std::size_t chunk_amount = chunk_amount_internal(bits_amount);
                 // Techincally, this is average chunks per row after first.
-                constexpr static const std::size_t chunks_per_row = WitnessesAmount - 1;
-                constexpr static const std::size_t bits_per_row = chunks_per_row * chunk_size;
+                const std::size_t chunks_per_row = chunks_per_row_internal(this->witness_amount());
+                const std::size_t bits_per_row = bits_per_row_internal(this->witness_amount(), bits_amount);
 
-                const std::size_t padded_chunks;
-                const std::size_t padding_size;
-                const std::size_t padding_bits;
+                const std::size_t padded_chunks = padded_chunks_internal(this->witness_amount(), bits_amount);
+                const std::size_t padding_size = padding_size_internal(this->witness_amount(), bits_amount);
+                const std::size_t padding_bits = padding_bits_internal(this->witness_amount(), bits_amount);
 
-                const bool needs_bonus_row;
-                const std::size_t rows_amount;
-                const bool needs_first_chunk_constraint;
-                const std::size_t gates_amount;
+                const bool needs_bonus_row = needs_bonus_row_internal(this->witness_amount(), mode);
+                const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), bits_amount, mode);
+                const bool needs_first_chunk_constraint = needs_first_chunk_constraint_internal(bits_amount);
+                const std::size_t gates_amount = gates_amount_internal(bits_amount, mode);
 
                 struct input_type {
                     var x, y;
+
+                    std::vector<var> all_vars() const {
+                        return {x, y};
+                    }
                 };
 
                 struct result_type {
                     result_type(const comparison_checked &component, std::size_t start_row_index) {}
+
+                    std::vector<var> all_vars() const {
+                        return {};
+                    }
                 };
-
-                nil::blueprint::detail::blueprint_component_id_type get_id() const override {
-                    std::stringstream ss;
-                    ss << "_" << WitnessesAmount << "_" << bits_amount << "_" << mode;
-                    return ss.str();
-                }
-
-                #define __comparison_checked_init_macro(bits_amount_, mode_) \
-                    bits_amount(bits_amount_), \
-                    mode(mode_), \
-                    chunk_amount(chunk_amount_init(bits_amount_)), \
-                    padded_chunks(padded_chunks_init(bits_amount_)), \
-                    padding_size(padding_size_init(bits_amount_)), \
-                    padding_bits(padding_bits_init(bits_amount_)), \
-                    needs_bonus_row(needs_bonus_row_init(mode_)), \
-                    rows_amount(rows(bits_amount_, mode_)), \
-                    needs_first_chunk_constraint(needs_first_chunk_constraint_init(bits_amount_)), \
-                    gates_amount(gates(bits_amount_, mode_))
 
                 template <typename ContainerType>
                     comparison_checked(ContainerType witness, std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, {}, {}),
-                        __comparison_checked_init_macro(bits_amount_, mode_) {};
+                        component_type(witness, {}, {}, get_manifest()),
+                        bits_amount(bits_amount_),
+                        mode(mode_) {
+
+                        check_params(bits_amount, mode);
+                    };
 
                 template <typename WitnessContainerType, typename ConstantContainerType,
                           typename PublicInputContainerType>
                     comparison_checked(WitnessContainerType witness, ConstantContainerType constant,
                                        PublicInputContainerType public_input,
                                        std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, constant, public_input),
-                        __comparison_checked_init_macro(bits_amount_, mode_) {};
+                        component_type(witness, constant, public_input, get_manifest()),
+                        bits_amount(bits_amount_),
+                        mode(mode_) {
+
+                    check_params(bits_amount, mode);
+                };
 
                 comparison_checked(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
@@ -189,23 +253,22 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t bits_amount_, comparison_mode mode_) :
-                        component_type(witnesses, constants, public_inputs),
-                        __comparison_checked_init_macro(bits_amount_, mode_) {};
+                        component_type(witnesses, constants, public_inputs, get_manifest()),
+                        bits_amount(bits_amount_),
+                        mode(mode_) {
 
-                #undef __comparison_checked_init_macro
+                    check_params(bits_amount, mode);
+                };
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             using plonk_comparison_checked =
                 comparison_checked<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>,
-                                   WitnessesAmount>;
+                                                                       ArithmetizationParams>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 3, bool> = true>
-            void generate_gates(
-                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::vector<std::size_t> generate_gates(
+                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -213,19 +276,17 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
-                    &instance_input,
-                const std::size_t first_selector_index) {
+                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
 
-                using var = typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                              WitnessesAmount>::var;
+                using var = typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-                using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
+
+                std::vector<std::size_t> selector_indices;
 
                 typename BlueprintFieldType::value_type base_two = 2;
                 std::vector<constraint_type> constraints;
-                constraints.reserve(WitnessesAmount * 2 - 2);
+                constraints.reserve(component.witness_amount() * 2 - 2);
 
                 auto generate_chunk_size_constraint = [](var v, std::size_t size) {
                     constraint_type constraint = v;
@@ -237,18 +298,18 @@ namespace nil {
 
                 // Assert chunk size.
                 for (std::size_t row_idx = 0; row_idx < 2; row_idx++) {
-                    for (std::size_t i = 2 * (1 - row_idx); i < WitnessesAmount; i++) {
+                    for (std::size_t i = 2 * (1 - row_idx); i < component.witness_amount(); i++) {
                         constraint_type chunk_range_constraint =
                             generate_chunk_size_constraint(var(component.W(i), int(row_idx) - 1, true),
                                                            component.chunk_size);
 
-                        constraints.push_back(bp.add_constraint(chunk_range_constraint));
+                        constraints.push_back(chunk_range_constraint);
                     }
                 }
                 // Assert sums. var_idx = 0 is x, var_idx = 1 is diff=y-x.
                 for (int var_idx = 0; var_idx < 2; var_idx++) {
                     constraint_type sum_constraint = var(component.W(1 + var_idx), -var_idx, true);
-                    for (std::size_t i = 2 + var_idx; i < WitnessesAmount; i++) {
+                    for (std::size_t i = 2 + var_idx; i < component.witness_amount(); i++) {
                         sum_constraint = base_two.pow(component.chunk_size) * sum_constraint +
                                          var(component.W(i), -var_idx, true);
                     }
@@ -260,11 +321,10 @@ namespace nil {
                                         base_two.pow(component.chunk_size * component.chunks_per_row) *
                                                     var(component.W(var_idx), -1, true) -
                                         var(component.W(var_idx), 1, true);
-                    constraints.push_back(bp.add_constraint(sum_constraint));
+                    constraints.push_back(sum_constraint);
                 }
 
-                gate_type gate(first_selector_index, constraints);
-                bp.add_gate(gate);
+                selector_indices.push_back(bp.add_gate(constraints));
 
                 std::vector<constraint_type> correctness_constraints;
                 constraint_type diff_constraint = var(component.W(2), 0, true) - var(component.W(0), 0, true) -
@@ -288,17 +348,16 @@ namespace nil {
                         BOOST_ASSERT_MSG(false, "FLAG mode is not supported, use comparison_flag component instead.");
                 }
 
-                gate = gate_type(first_selector_index + 1, correctness_constraints);
-                bp.add_gate(gate);
+                selector_indices.push_back(bp.add_gate(correctness_constraints));
 
-                if (!component.needs_first_chunk_constraint) return;
+                if (!component.needs_first_chunk_constraint) return selector_indices;
                 // If bits_amount is not divisible by chunk size, the first chunk of both x/y - x should be constrained
                 // to be less than 2^{bits_amount % component.chunk_size}.
                 // We actually only need this constraint when y - x can do an unsafe overflow.
                 // Otherwise the constraint on y - x takes care of this.
                 std::vector<constraint_type> first_chunk_range_constraints;
 
-                var size_constraint_var = component.padding_size != WitnessesAmount - 2 ?
+                var size_constraint_var = component.padding_size != component.witness_amount() - 2 ?
                                             var(component.W(2 + component.padding_size), 0, true)
                                           : var(component.W(0), 1, true);
                 constraint_type first_chunk_range_constraint = generate_chunk_size_constraint(
@@ -310,15 +369,13 @@ namespace nil {
                     generate_chunk_size_constraint(size_constraint_var, component.bits_amount % component.chunk_size);
                 first_chunk_range_constraints.push_back(first_chunk_range_constraint);
 
-                gate = gate_type(first_selector_index + 2, first_chunk_range_constraints);
-                bp.add_gate(gate);
+                selector_indices.push_back(bp.add_gate(first_chunk_range_constraints));
+                return selector_indices;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 3, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -326,13 +383,11 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using var = typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                              WitnessesAmount>::var;
+                using var = typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::var;
                 std::uint32_t row = start_row_index;
                 var zero(0, start_row_index, false, var::column_type::constant);
 
@@ -366,13 +421,10 @@ namespace nil {
                 bp.add_copy_constraint({instance_input.y, y_var});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 3, bool> = true>
-            typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::result_type
             generate_circuit(
-                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -380,60 +432,51 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
-
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
+                std::vector<std::size_t> selector_indices =
+                    generate_gates(component, bp, assignment, instance_input);
 
                 std::size_t final_gate_mid_row = start_row_index + component.rows_amount - 2 -
                                                  component.needs_bonus_row;
 
-                assignment.enable_selector(first_selector_index, start_row_index + 1,
+                assignment.enable_selector(selector_indices[0], start_row_index + 1,
                                            final_gate_mid_row, 2);
-                assignment.enable_selector(first_selector_index + 1, final_gate_mid_row + 1);
+                assignment.enable_selector(selector_indices[1], final_gate_mid_row + 1);
 
                 if (component.needs_first_chunk_constraint) {
-                    assignment.enable_selector(first_selector_index + 2, start_row_index);
+                    if (selector_indices.size() != 3) {
+                        std::cerr << "Internal error: comparison_checked component returned the wrong selector amount."
+                                  << std::endl;
+                        std::abort();
+                    }
+                    assignment.enable_selector(selector_indices[2], start_row_index);
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 generate_assignments_constants(component, assignment, instance_input, start_row_index);
 
-                return typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                         WitnessesAmount>::result_type(
+                return typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::result_type(
                         component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 3, bool> = true>
-            typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::result_type
             generate_assignments(
-                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
 
-                using component_type = plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using chunk_type = std::uint8_t;
@@ -534,17 +577,14 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 3, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_assignments_constants(
-                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename plonk_comparison_checked<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 

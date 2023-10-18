@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
+// Copyright (c) 2023 Valeh Farzaliyev <estoniaa@nil.foundation>
 //
 // MIT License
 //
@@ -21,26 +21,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
+// @file Declaration of interfaces for auxiliary components for the LOOKUP_ARGUMENT_VERIFIER component.
+//---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_DETAIL_COMPARISON_MODE_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_DETAIL_COMPARISON_MODE_HPP
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PLACEHOLDER_INPUT_TYPES_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PLACEHOLDER_INPUT_TYPES_HPP
+
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/component.hpp>
+
+#include <nil/blueprint/components/systems/snark/plonk/placeholder/detail/permutation_loop.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
-            namespace detail {
-                // Ordering is important here: the logic differs for FLAG and non-FLAG modes.
-                // We use comparison with comparison_mode::FLAG in order to distinguish between the two cases.
-                enum comparison_mode {
-                    FLAG,
-                    LESS_THAN,
-                    LESS_EQUAL,
-                    GREATER_THAN,
-                    GREATER_EQUAL,
-                };
-            }   // namespace detail
-        }       // namespace components
-    }           // namespace blueprint
-}   // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_NON_NATIVE_DETAIL_COMPARISON_MODE_HPP
+            template<typename T>
+            struct lookup_constraint {
+                T table_id;
+                std::vector<T> lookup_input;
+            };
+
+            template<typename T>
+            struct lookup_gate {
+                T selector;
+                std::vector<lookup_constraint<T>> constraints;
+            };
+
+            template<typename T>
+            struct lookup_table {
+                T selector;
+                std::vector<std::vector<T>> lookup_options;
+            };
+        }    // namespace components
+    }        // namespace blueprint
+}    // namespace nil
+
+#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_LOOKUP_ARGUMENT_VERIFIER_HPP

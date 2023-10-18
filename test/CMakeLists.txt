@@ -50,6 +50,14 @@ macro(define_blueprint_test test)
     endif()
 endmacro()
 
+set(COMMON_TEST_FILES
+    "manifest"
+    "detail/huang_lu"
+    "gate_id"
+    "utils/connectedness_check"
+    "private_input"
+    )
+
 set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/multiplication"
     "algebra/fields/plonk/non_native/addition"
@@ -63,6 +71,7 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/comparison_checked"
     "algebra/fields/plonk/non_native/comparison_unchecked"
     "algebra/fields/plonk/non_native/comparison_flag"
+    "algebra/fields/plonk/non_native/equality_flag"
     "algebra/fields/plonk/non_native/division_remainder"
     "non_native/plonk/bool_scalar_multiplication"
     "non_native/plonk/add_mul_zkllvm_compatible"
@@ -71,7 +80,6 @@ set(NON_NATIVE_TESTS_FILES
 
 set(PLONK_TESTS_FILES
     "algebra/curves/plonk/variable_base_scalar_mul"
-    "algebra/curves/plonk/decomposed_variable_base_scalar_mul"
     "algebra/curves/plonk/unified_addition"
     "algebra/curves/plonk/variable_base_endo_scalar_mul"
     "algebra/curves/plonk/endo_scalar"
@@ -127,6 +135,8 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/permutation_argument_verifier"
     "verifiers/placeholder/gate_argument_verifier"
     "verifiers/placeholder/gate_component"
+    "verifiers/placeholder/f1_loop"
+    "verifiers/placeholder/f3_loop"
     )
 
 set(FIELDS_TESTS_FILES
@@ -183,6 +193,7 @@ SET(ALGEBRA_TESTS_FILES
     ${PAIRING_TESTS_FILES})
 
 SET(ALL_TESTS_FILES
+    ${COMMON_TEST_FILES}
     ${NON_NATIVE_TESTS_FILES}
     ${PLONK_TESTS_FILES}
     ${ALGEBRA_TESTS_FILES}

@@ -42,26 +42,56 @@ namespace nil {
 
             // Input:
             // Output:
-            template<typename ArithmetizationType, typename FieldType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType, typename FieldType>
             class decomposition;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class decomposition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                                BlueprintFieldType, 9>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 0, 0> {
-
-                constexpr static const std::uint32_t WitnessAmount = 9;
-
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount, 0, 0>;
+                                BlueprintFieldType>
+                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
             public:
-                using var = typename component_type::var;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
 
-                constexpr static const std::size_t rows_amount = 3;
-                const std::size_t gates_amount = 1;
+                using var = typename component_type::var;
+                using manifest_type = nil::blueprint::plonk_component_manifest;
+
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::uint32_t gates_amount() const override {
+                        return decomposition::gates_amount;
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount) {
+                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<nil::blueprint::manifest_param>(
+                            new nil::blueprint::manifest_single_value_param(9)),
+                        false
+                    );
+                    return manifest;
+                }
+
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount) {
+                    return 3;
+                }
+
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                constexpr static const std::size_t gates_amount = 1;
 
                 struct input_type {
                     std::array<var, 2> data;
+
+                    std::vector<var> all_vars() const {
+                        return {data[0], data[1]};
+                    }
                 };
 
                 struct result_type {
@@ -77,16 +107,21 @@ namespace nil {
                                   var(component.W(6), start_row_index + 1, false),
                                   var(component.W(7), start_row_index + 1, false)};
                     }
+
+                    std::vector<var> all_vars() const {
+                        return {output[0], output[1], output[2], output[3],
+                                output[4], output[5], output[6], output[7]};
+                    }
                 };
 
                 template<typename ContainerType>
-                decomposition(ContainerType witness) : component_type(witness, {}, {}) {};
+                explicit decomposition(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 decomposition(WitnessContainerType witness, ConstantContainerType constant,
                               PublicInputContainerType public_input) :
-                    component_type(witness, constant, public_input) {};
+                    component_type(witness, constant, public_input, get_manifest()) {};
 
                 decomposition(std::initializer_list<typename component_type::witness_container_type::value_type>
                                   witnesses,
@@ -94,21 +129,21 @@ namespace nil {
                                   constants,
                               std::initializer_list<typename component_type::public_input_container_type::value_type>
                                   public_inputs) :
-                    component_type(witnesses, constants, public_inputs) {};
+                    component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             using plonk_native_decomposition =
                 decomposition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                              BlueprintFieldType, WitnessAmount>;
+                              BlueprintFieldType>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type
+            typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_assignments(
-                    const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                    const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
-                    const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
+                    const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::input_type
                         instance_input,
                     const std::uint32_t start_row_index) {
 
@@ -128,7 +163,7 @@ namespace nil {
                 }
 
                 assignment.witness(component.W(8), row) = data[0];
-                assignment.witness(component.W(8), row + 2) = data[1]; 
+                assignment.witness(component.W(8), row + 2) = data[1];
 
                 assignment.witness(component.W(3), row + 1) = range_chunks[1] * (65536) + range_chunks[0];
                 assignment.witness(component.W(2), row + 1) = range_chunks[3] * (65536) + range_chunks[2];
@@ -140,90 +175,86 @@ namespace nil {
                 assignment.witness(component.W(5), row + 1) = range_chunks[13] * (65536) + range_chunks[12];
                 assignment.witness(component.W(4), row + 1) = range_chunks[15] * (65536) + range_chunks[14];
 
-                return typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
+                return typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            void generate_gates(
-                const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+            std::size_t generate_gates(
+                const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
-                    &instance_input,
-                const std::size_t first_selector_index) {
+                const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
 
-                using var = typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::var;
 
-                std::size_t selector_index = first_selector_index;
-
-                auto constraint_1 = bp.add_constraint(
+                auto constraint_1 =
                     var(component.W(8), -1) - (var(component.W(3), 0) + var(component.W(2), 0) * 0x100000000_cppui255 +
                                                var(component.W(1), 0) * 0x10000000000000000_cppui255 +
-                                               var(component.W(0), 0) * 0x1000000000000000000000000_cppui255));
-                auto constraint_2 = bp.add_constraint(
+                                               var(component.W(0), 0) * 0x1000000000000000000000000_cppui255);
+                auto constraint_2 =
                     var(component.W(8), 1) - (var(component.W(7), 0) + var(component.W(6), 0) * 0x100000000_cppui255 +
                                               var(component.W(5), 0) * 0x10000000000000000_cppui255 +
-                                              var(component.W(4), 0) * 0x1000000000000000000000000_cppui255));
-                auto constraint_3 = bp.add_constraint(var(component.W(3), 0) -
-                                                      (var(component.W(0), -1) + var(component.W(1), -1) * (65536)));
-                auto constraint_4 = bp.add_constraint(var(component.W(2), 0) -
-                                                      (var(component.W(2), -1) + var(component.W(3), -1) * (65536)));
-                auto constraint_5 = bp.add_constraint(var(component.W(1), 0) -
-                                                      (var(component.W(4), -1) + var(component.W(5), -1) * (65536)));
-                auto constraint_6 = bp.add_constraint(var(component.W(0), 0) -
-                                                      (var(component.W(6), -1) + var(component.W(7), -1) * (65536)));
-                auto constraint_7 = bp.add_constraint(var(component.W(7), 0) -
-                                                      (var(component.W(0), +1) + var(component.W(1), +1) * (65536)));
-                auto constraint_8 = bp.add_constraint(var(component.W(6), 0) -
-                                                      (var(component.W(2), +1) + var(component.W(3), +1) * (65536)));
-                auto constraint_9 = bp.add_constraint(var(component.W(5), 0) -
-                                                      (var(component.W(4), +1) + var(component.W(5), +1) * (65536)));
-                auto constraint_10 = bp.add_constraint(var(component.W(4), 0) -
-                                                       (var(component.W(6), +1) + var(component.W(7), +1) * (65536)));
-                bp.add_gate(selector_index,
+                                              var(component.W(4), 0) * 0x1000000000000000000000000_cppui255);
+                auto constraint_3 = var(component.W(3), 0) -
+                                                      (var(component.W(0), -1) + var(component.W(1), -1) * (65536));
+                auto constraint_4 = var(component.W(2), 0) -
+                                                      (var(component.W(2), -1) + var(component.W(3), -1) * (65536));
+                auto constraint_5 = var(component.W(1), 0) -
+                                                      (var(component.W(4), -1) + var(component.W(5), -1) * (65536));
+                auto constraint_6 = var(component.W(0), 0) -
+                                                      (var(component.W(6), -1) + var(component.W(7), -1) * (65536));
+                auto constraint_7 = var(component.W(7), 0) -
+                                                      (var(component.W(0), +1) + var(component.W(1), +1) * (65536));
+                auto constraint_8 = var(component.W(6), 0) -
+                                                      (var(component.W(2), +1) + var(component.W(3), +1) * (65536));
+                auto constraint_9 = var(component.W(5), 0) -
+                                                      (var(component.W(4), +1) + var(component.W(5), +1) * (65536));
+                auto constraint_10 = var(component.W(4), 0) -
+                                                       (var(component.W(6), +1) + var(component.W(7), +1) * (65536));
+                return bp.add_gate(
                             {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
                              constraint_7, constraint_8, constraint_9, constraint_10});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
+                const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
+
+                using var = typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::var;
+                // CRITICAL: these copy constraints might not be sufficient, but are definitely required.
+                // I've added copy constraints for the inputs, but internal ones might be missing
+                // Proceed with care
+                bp.add_copy_constraint({instance_input.data[0], var(component.W(8), start_row_index, false)});
+                bp.add_copy_constraint({instance_input.data[1], var(component.W(8), start_row_index + 2, false)});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type
+            typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_circuit(
-                    const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                    const plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
-                    const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::input_type
+                    const typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::input_type
                         &instance_input,
                     const std::size_t start_row_index) {
 
                 std::size_t j = start_row_index + 1;
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
+                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
-
-                assignment.enable_selector(first_selector_index, j);
+                assignment.enable_selector(selector_index, j);
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
+                return typename plonk_native_decomposition<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
 

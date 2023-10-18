@@ -34,32 +34,58 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/basic_non_native_policy.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
 
-            template<typename ArithmetizationType, typename Ed25519Type, std::uint32_t WitnessesAmount,
-                    typename NonNativePolicyType>
+            template<typename ArithmetizationType, typename Ed25519Type, typename NonNativePolicyType>
             class bool_scalar_multiplication;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class bool_scalar_multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                typename crypto3::algebra::curves::ed25519, 9, basic_non_native_policy<BlueprintFieldType>>:
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 9, 0, 0> {
+                typename crypto3::algebra::curves::ed25519, basic_non_native_policy<BlueprintFieldType>>:
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
-                constexpr static const std::uint32_t WitnessesAmount = 9;
-            
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 0>;
                 using operating_field_type = typename crypto3::algebra::fields::curve25519_base_field;
                 using non_native_policy_type = basic_non_native_policy<BlueprintFieldType>;
 
             public:
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
 
                 using var = typename component_type::var;
+                using manifest_type = nil::blueprint::plonk_component_manifest;
 
-                constexpr static const std::size_t rows_amount = 2;
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::uint32_t gates_amount() const override {
+                        return bool_scalar_multiplication::gates_amount;
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount) {
+                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(
+                            new manifest_single_value_param(9)),
+                        false
+                    );
+                    return manifest;
+                }
+
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount) {
+                    return 2;
+                }
+
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 constexpr static const std::size_t gates_amount = 1;
 
@@ -71,6 +97,12 @@ namespace nil {
 
                     var_ec_point T;
                     var k;
+
+                    std::vector<var> all_vars() const {
+                        return {T.x[0], T.x[1], T.x[2], T.x[3],
+                                T.y[0], T.y[1], T.y[2], T.y[3],
+                                k};
+                    }
                 };
 
                 struct result_type {
@@ -92,17 +124,22 @@ namespace nil {
                             var(component.W(7), start_row_index + 1, false),
                             var(component.W(8), start_row_index + 1, false)};
                     }
+
+                    std::vector<var> all_vars() const {
+                        return {output.x[0], output.x[1], output.x[2], output.x[3],
+                                output.y[0], output.y[1], output.y[2], output.y[3]};
+                    }
                 };
 
                 template <typename ContainerType>
-                bool_scalar_multiplication(ContainerType witness):
-                    component_type(witness, {}, {}){};
+                explicit bool_scalar_multiplication(ContainerType witness):
+                    component_type(witness, {}, {}, get_manifest()){};
 
                 template <typename WitnessContainerType, typename ConstantContainerType,
                     typename PublicInputContainerType>
                 bool_scalar_multiplication(WitnessContainerType witness, ConstantContainerType constant,
                         PublicInputContainerType public_input):
-                    component_type(witness, constant, public_input){};
+                    component_type(witness, constant, public_input, get_manifest()){};
 
                 bool_scalar_multiplication(std::initializer_list<
                         typename component_type::witness_container_type::value_type> witnesses,
@@ -110,29 +147,28 @@ namespace nil {
                         typename component_type::constant_container_type::value_type> constants,
                                std::initializer_list<
                         typename component_type::public_input_container_type::value_type> public_inputs):
-                    component_type(witnesses, constants, public_inputs){};
+                    component_type(witnesses, constants, public_inputs, get_manifest()){};
 
             };
 
             template<typename BlueprintFieldType,
-                     typename ArithmetizationParams,
-                     std::int32_t WitnessesAmount>
+                     typename ArithmetizationParams>
             using plonk_bool_scalar_multiplication =
                 bool_scalar_multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                 typename crypto3::algebra::curves::ed25519,
-                WitnessesAmount,
                 basic_non_native_policy<BlueprintFieldType>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::result_type
+            typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_assignments(
-                    const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
                     const typename plonk_bool_scalar_multiplication<BlueprintFieldType,
-                        ArithmetizationParams, 9>::input_type instance_input,
+                        ArithmetizationParams>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
                 using Ed25519Type = typename crypto3::algebra::curves::ed25519;
-                using var = typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
 
                 std::size_t row = start_row_index;
                 typename Ed25519Type::base_field_type::integral_type b = typename Ed25519Type::base_field_type::integral_type(var_value(assignment, instance_input.k).data);
@@ -152,7 +188,6 @@ namespace nil {
                 assignment.witness(component.W(6), row) = b * T_y_array[1];
                 assignment.witness(component.W(7), row) = b * T_y_array[2];
                 assignment.witness(component.W(8), row) = b * T_y_array[3];
-                std::array<var, 4> Q_y = {var(component.W(5), row), var(component.W(6), row), var(component.W(7), row), var(component.W(8), row)};
                 row++;
                 assignment.witness(component.W(0), row) = T_x_array[0];
                 assignment.witness(component.W(1), row) = T_x_array[1];
@@ -163,57 +198,59 @@ namespace nil {
                 assignment.witness(component.W(6), row) = b * T_x_array[1];
                 assignment.witness(component.W(7), row) = b * T_x_array[2];
                 assignment.witness(component.W(8), row) = b * T_x_array[3];
-                std::array<var, 4> Q_x = {var(component.W(5), row), var(component.W(6), row), var(component.W(7), row), var(component.W(8), row)};
-                
-                return typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
-                    component, start_row_index);
+
+                return typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::result_type
+                    (component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            void generate_gates(
-                const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9> &component,
+            std::size_t generate_gates(
+                const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                const typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
-                const std::size_t first_selector_index) {
-                using var = typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
+                using var = typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto constraint_9 = bp.add_constraint(
-                    var(component.W(4), 0)*( var(component.W(4), 0) - 1));
-                auto constraint_10 = bp.add_constraint(
-                    var(component.W(4), 0) - var(component.W(4), +1));
-                auto constraint_1 = bp.add_constraint(
-                    var(component.W(5), 0) - (var(component.W(0), 0) * var(component.W(4), 0) + (1 - var(component.W(4), 0))));
-                auto constraint_2 = bp.add_constraint(
-                    var(component.W(6), 0) - var(component.W(1), 0) * var(component.W(4), 0));
-                auto constraint_3 = bp.add_constraint(
-                    var(component.W(7), 0) - var(component.W(2), 0) * var(component.W(4), 0));
-                auto constraint_4 = bp.add_constraint(
-                    var(component.W(8), 0) - var(component.W(3), 0) * var(component.W(4), 0));
-                auto constraint_5 = bp.add_constraint(
-                    var(component.W(5), +1) - var(component.W(0), +1) * var(component.W(4), +1));
-                auto constraint_6 = bp.add_constraint(
-                    var(component.W(6), +1) - var(component.W(1), +1) * var(component.W(4), +1));
-                auto constraint_7 = bp.add_constraint(
-                    var(component.W(7), +1) - var(component.W(2), +1) * var(component.W(4), +1));
-                auto constraint_8 = bp.add_constraint(
-                    var(component.W(8), +1) - var(component.W(3), +1) * var(component.W(4), +1));
+                auto constraint_9 =
+                    var(component.W(4), 0) * ( var(component.W(4), 0) - 1);
+                auto constraint_10 =
+                    var(component.W(4), 0) - var(component.W(4), +1);
+                auto constraint_1 =
+                    var(component.W(5), 0) - (var(component.W(0), 0) * var(component.W(4), 0) + (1 - var(component.W(4), 0)));
+                auto constraint_2 =
+                    var(component.W(6), 0) - var(component.W(1), 0) * var(component.W(4), 0);
+                auto constraint_3 =
+                    var(component.W(7), 0) - var(component.W(2), 0) * var(component.W(4), 0);
+                auto constraint_4 =
+                    var(component.W(8), 0) - var(component.W(3), 0) * var(component.W(4), 0);
+                auto constraint_5 =
+                    var(component.W(5), +1) - var(component.W(0), +1) * var(component.W(4), +1);
+                auto constraint_6 =
+                    var(component.W(6), +1) - var(component.W(1), +1) * var(component.W(4), +1);
+                auto constraint_7 =
+                    var(component.W(7), +1) - var(component.W(2), +1) * var(component.W(4), +1);
+                auto constraint_8 =
+                    var(component.W(8), +1) - var(component.W(3), +1) * var(component.W(4), +1);
 
-                bp.add_gate(first_selector_index, 
-                    {constraint_9, constraint_10, 
+                return bp.add_gate(
+                    {constraint_9, constraint_10,
                     constraint_1, constraint_2, constraint_3, constraint_4,
                     constraint_5, constraint_6, constraint_7, constraint_8});
-                
+
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                const typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input,
                 const std::size_t start_row_index) {
-                using var = typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::var;
+                using var = typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
 
                 std::size_t row = start_row_index;
 
@@ -230,29 +267,24 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::result_type
+            typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_circuit(
-                    const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9> &component,
+                    const plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::input_type &instance_input,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
                     const std::size_t start_row_index){
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
+                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
                 std::size_t row = start_row_index;
-                assignment.enable_selector(first_selector_index, row);
+                assignment.enable_selector(selector_index, row);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, row);
 
-                return typename plonk_bool_scalar_multiplication<BlueprintFieldType, ArithmetizationParams, 9>::result_type(
-                    component, start_row_index);
+                return typename plonk_bool_scalar_multiplication<BlueprintFieldType,
+                                                                 ArithmetizationParams>::result_type
+                            (component, start_row_index);
             }
 
         }    // namespace components

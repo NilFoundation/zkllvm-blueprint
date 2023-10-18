@@ -30,34 +30,69 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
 
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType>
             class permutation_verifier;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class permutation_verifier<
-                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, 6>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 6, 0, 0> {
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
-                constexpr static const std::uint32_t WitnessesAmount = 6;
                 constexpr static const std::uint32_t ConstantsAmount = 0;
 
-                using component_type =
-                    plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ConstantsAmount, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 0>;
+
+                constexpr static const std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t m) {
+                    return m + 2;
+                }
 
             public:
                 using var = typename component_type::var;
+                using manifest_type = nil::blueprint::plonk_component_manifest;
 
-                std::size_t rows_amount;
-                std::size_t gates_amount = 4;
                 const std::size_t m;
+
+                std::size_t rows_amount = rows_amount_internal(this->witness_amount(), m);
+                constexpr static const std::size_t gates_amount = 4;
+
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount, std::size_t m) {
+                    return rows_amount_internal(witness_amount, m);
+                }
+
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::uint32_t gates_amount() const override {
+                        return permutation_verifier::gates_amount;
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                       std::size_t m) {
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest =
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(6)), false);
+                    return manifest;
+                }
 
                 struct input_type {
                     std::vector<var> _input;
+
+                    std::vector<var> all_vars() const {
+                        std::vector<var> vars;
+                        vars.insert(vars.end(), _input.begin(), _input.end());
+                        return vars;
+                    }
                 };
 
                 struct result_type {
@@ -68,27 +103,22 @@ namespace nil {
                                   var(component.W(4), start_row_index + component.rows_amount - 2, false),
                                   var(component.W(0), start_row_index + component.rows_amount - 1, false)};
                     }
-                };
 
-                nil::blueprint::detail::blueprint_component_id_type get_id() const override {
-                    std::stringstream ss;
-                    ss << "_" << WitnessesAmount << "_" << m;
-                    return ss.str();
-                }
+                    std::vector<var> all_vars() const {
+                        return {output[0], output[1], output[2]};
+                    }
+                };
 
                 template<typename ContainerType>
-                permutation_verifier(ContainerType witness, std::size_t m_) : component_type(witness, {}, {}), m(m_) {
-                    rows_amount = m_ + 2;
-                };
+                permutation_verifier(ContainerType witness, std::size_t m_) :
+                    component_type(witness, {}, {}, get_manifest()), m(m_) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 permutation_verifier(WitnessContainerType witness, ConstantContainerType constant,
                                      PublicInputContainerType public_input, std::size_t m_) :
-                    component_type(witness, constant, public_input),
-                    m(m_) {
-                    rows_amount = m_ + 2;
-                };
+                    component_type(witness, constant, public_input, get_manifest()),
+                    m(m_) {};
 
                 permutation_verifier(
                     std::initializer_list<typename component_type::witness_container_type::value_type>
@@ -98,29 +128,27 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t m_) :
-                    component_type(witnesses, constants, public_inputs),
-                    m(m_) {
-                    rows_amount = m_ + 2;
-                };
+                    component_type(witnesses, constants, public_inputs, get_manifest()),
+                    m(m_) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::int32_t WitnessAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             using plonk_permutation_verifier = permutation_verifier<
-                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, WitnessAmount>;
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::result_type
+            typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_assignments(
-                    const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6> &component,
+                    const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
-                    const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::input_type
+                    const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
                         instance_input,
                     const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
 
-                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::var;
+                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::var;
 
                 assert(instance_input._input.size() == 3 * component.m + 7);
 
@@ -182,103 +210,95 @@ namespace nil {
                 assignment.witness(component.W(2), row) = Vsigma_y * Vsigma_y;
                 assignment.witness(component.W(3), row) = Vsigma_zetay;
 
-                return typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::result_type(
+                return typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            void generate_gates(
-                const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6> &component,
+            std::vector<std::size_t> generate_gates(
+                const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::input_type
-                    instance_input,
-                const std::size_t first_selector_index) {
+                const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input) {
 
-                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::var;
+                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto constraint_1 =
-                    bp.add_constraint(var(component.W(0), 0) - var(component.W(1), 0) -
-                                      var(component.W(2), 0) * var(component.W(3), 0) - var(component.W(3), +1));
-                auto constraint_2 =
-                    bp.add_constraint(var(component.W(5), 0) - var(component.W(1), 0) -
-                                      var(component.W(4), 0) * var(component.W(3), 0) - var(component.W(3), +1));
+                auto constraint_1 = var(component.W(0), 0) - var(component.W(1), 0) -
+                                    var(component.W(2), 0) * var(component.W(3), 0) - var(component.W(3), +1);
+                auto constraint_2 = var(component.W(5), 0) - var(component.W(1), 0) -
+                                    var(component.W(4), 0) * var(component.W(3), 0) - var(component.W(3), +1);
 
-                auto constraint_3 =
-                    bp.add_constraint(var(component.W(0), +1) -
-                                      var(component.W(0), 0) *
-                                          (var(component.W(1), +1) + var(component.W(2), +1) * var(component.W(3), 0) +
-                                           var(component.W(3), +1)));
-                auto constraint_4 =
-                    bp.add_constraint(var(component.W(5), +1) -
-                                      var(component.W(5), 0) *
-                                          (var(component.W(1), +1) + var(component.W(4), +1) * var(component.W(3), 0) +
-                                           var(component.W(3), +1)));
+                auto constraint_3 = var(component.W(0), +1) -
+                                    var(component.W(0), 0) *
+                                        (var(component.W(1), +1) + var(component.W(2), +1) * var(component.W(3), 0) +
+                                         var(component.W(3), +1));
+                auto constraint_4 = var(component.W(5), +1) -
+                                    var(component.W(5), 0) *
+                                        (var(component.W(1), +1) + var(component.W(4), +1) * var(component.W(3), 0) +
+                                         var(component.W(3), +1));
 
-                bp.add_gate(first_selector_index, {constraint_1, constraint_2, constraint_3, constraint_4});
+                std::size_t first_selector_index =
+                    bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
 
-                auto constraint_5 =
-                    bp.add_constraint(var(component.W(0), 0) -
-                                      var(component.W(0), -1) *
-                                          (var(component.W(1), 0) + var(component.W(2), 0) * var(component.W(3), 0) +
-                                           var(component.W(3), +1)));
-                auto constraint_6 =
-                    bp.add_constraint(var(component.W(5), 0) -
-                                      var(component.W(5), -1) *
-                                          (var(component.W(1), 0) + var(component.W(4), 0) * var(component.W(3), 0) +
-                                           var(component.W(3), +1)));
+                auto constraint_5 = var(component.W(0), 0) -
+                                    var(component.W(0), -1) *
+                                        (var(component.W(1), 0) + var(component.W(2), 0) * var(component.W(3), 0) +
+                                         var(component.W(3), +1));
+                auto constraint_6 = var(component.W(5), 0) -
+                                    var(component.W(5), -1) *
+                                        (var(component.W(1), 0) + var(component.W(4), 0) * var(component.W(3), 0) +
+                                         var(component.W(3), +1));
 
-                bp.add_gate(first_selector_index + 1, {constraint_3, constraint_4, constraint_5, constraint_6});
+                std::size_t second_selector_index =
+                    bp.add_gate({constraint_3, constraint_4, constraint_5, constraint_6});
 
-                auto constraint_7 =
-                    bp.add_constraint(var(component.W(0), 0) -
-                                      var(component.W(0), -1) *
-                                          (var(component.W(1), 0) + var(component.W(2), 0) * var(component.W(3), 0) +
-                                           var(component.W(3), -1)));
-                auto constraint_8 =
-                    bp.add_constraint(var(component.W(5), 0) -
-                                      var(component.W(5), -1) *
-                                          (var(component.W(1), 0) + var(component.W(4), 0) * var(component.W(3), 0) +
-                                           var(component.W(3), -1)));
-                bp.add_gate(first_selector_index + 2, {constraint_7, constraint_8});
+                auto constraint_7 = var(component.W(0), 0) -
+                                    var(component.W(0), -1) *
+                                        (var(component.W(1), 0) + var(component.W(2), 0) * var(component.W(3), 0) +
+                                         var(component.W(3), -1));
+                auto constraint_8 = var(component.W(5), 0) -
+                                    var(component.W(5), -1) *
+                                        (var(component.W(1), 0) + var(component.W(4), 0) * var(component.W(3), 0) +
+                                         var(component.W(3), -1));
+                std::size_t third_selector_index = bp.add_gate({constraint_7, constraint_8});
 
-                auto constraint_9 =
-                    bp.add_constraint(var(component.W(0), 0) - var(component.W(3), 0) * (1 - var(component.W(1), +1)));
-                auto constraint_10 =
-                    bp.add_constraint(var(component.W(4), 0) - (1 - var(component.W(1), 0) - var(component.W(2), 0)) *
-                                                                   (var(component.W(3), +1) * var(component.W(5), -1) -
-                                                                    var(component.W(1), +1) * var(component.W(0), -1)));
+                auto constraint_9 = var(component.W(0), 0) - var(component.W(3), 0) * (1 - var(component.W(1), +1));
+                auto constraint_10 = var(component.W(4), 0) - (1 - var(component.W(1), 0) - var(component.W(2), 0)) *
+                                                                  (var(component.W(3), +1) * var(component.W(5), -1) -
+                                                                   var(component.W(1), +1) * var(component.W(0), -1));
 
-                auto constraint_11 =
-                    bp.add_constraint(var(component.W(2), +1) - var(component.W(1), +1) * var(component.W(1), +1));
-                auto constraint_12 =
-                    bp.add_constraint(var(component.W(0), +1) -
-                                      var(component.W(1), 0) * (var(component.W(2), +1) - var(component.W(1), +1)));
+                auto constraint_11 = var(component.W(2), +1) - var(component.W(1), +1) * var(component.W(1), +1);
+                auto constraint_12 = var(component.W(0), +1) -
+                                     var(component.W(1), 0) * (var(component.W(2), +1) - var(component.W(1), +1));
 
-                bp.add_gate(first_selector_index + 3, {constraint_9, constraint_10, constraint_11, constraint_12});
+                std::size_t fourth_selector_index =
+                    bp.add_gate({constraint_9, constraint_10, constraint_11, constraint_12});
+
+                return {first_selector_index, second_selector_index, third_selector_index, fourth_selector_index};
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6> &component,
+                const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::input_type
+                const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
                     instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
                 std::size_t m = component.m;
 
-                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::var;
+                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::var;
 
                 for (std::size_t i = 0; i < m; i++) {
                     bp.add_copy_constraint({var(component.W(1), row, false), instance_input._input[i]});
                     bp.add_copy_constraint({var(component.W(2), row, false), instance_input._input[m + i]});
-                    // bp.add_copy_constraint({var(component.W(3), row, false), instance_input._input[3 * m + 5 + i &
-                    // 1]});
+                    bp.add_copy_constraint(
+                        {var(component.W(3), row, false), instance_input._input[3 * m + 5 + (i & 1)]});
                     bp.add_copy_constraint({var(component.W(4), row, false), instance_input._input[2 * m + i]});
                     row++;
                 }
@@ -291,40 +311,35 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::result_type
+            typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_circuit(
-                    const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6> &component,
+                    const plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
-                    const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::input_type
+                    const typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
                         instance_input,
                     const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
 
-                using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::var;
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
+                std::vector<std::size_t> selectors = generate_gates(component, bp, assignment, instance_input);
 
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
+                assignment.enable_selector(selectors[0], row);
+
+                for (row = start_row_index + 2; row < start_row_index + component.m - (component.m & 1); row += 2) {
+                    assignment.enable_selector(selectors[1], row);
                 }
-                assignment.enable_selector(first_selector_index, row);
-                for (row = start_row_index + 2; row < start_row_index + component.m - 1; row += 2) {
-                    assignment.enable_selector(first_selector_index + 1, row);
+
+                row = start_row_index + component.m;
+                if (component.m & 1) {
+                    assignment.enable_selector(selectors[2], row - 1);
                 }
-                if (row == start_row_index + component.m + 1) {
-                    assignment.enable_selector(first_selector_index + 2, row - 1);
-                }
-                assignment.enable_selector(first_selector_index + 3, row + (component.m & 1));
+                assignment.enable_selector(selectors[3], row);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams, 6>::result_type(
+                return typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
         }    // namespace components
