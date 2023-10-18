@@ -41,19 +41,6 @@
 
 using namespace nil;
 
-// template<typename _T>
-// struct input_type {
-//     std::vector<_T> f;
-//     std::vector<_T> Se;
-//     std::vector<_T> Ssigma;
-//     _T L0_y;
-//     _T Vsigma_y;
-//     _T Vsigma_zetay;
-//     _T q_pad_y;
-//     _T q_last_y;
-//     std::array<_T, 2> theta;
-// };
-
 template<typename BlueprintFieldType>
 void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
           std::array<typename BlueprintFieldType::value_type, 3> &expected_res) {
@@ -61,7 +48,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     constexpr std::size_t WitnessColumns = 6;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 6;
+    constexpr std::size_t SelectorColumns = 4;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -71,7 +58,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::permutation_verifier<ArithmetizationType, 6>;
+    using component_type = blueprint::components::permutation_verifier<ArithmetizationType>;
 
     std::size_t m = (public_input.size() - 7) / 3;
     component_type component_instance({0, 1, 2, 3, 4, 5}, {}, {}, m);
@@ -84,7 +71,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
 
     auto result_check = [expected_res](AssignmentType &assignment, typename component_type::result_type &real_res) {
         for (std::size_t i = 0; i < 3; i++) {
-            std::cout << "F_" << i << ": " << var_value(assignment, real_res.output[i]).data << std::endl;
+            std::cout << "F_" << i << ": " << std::hex << var_value(assignment, real_res.output[i]).data << std::endl;
         }
         for (std::size_t i = 0; i < 3; i++) {
             assert(var_value(assignment, real_res.output[i]) == expected_res[i]);
@@ -92,7 +79,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     };
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance, public_input, result_check, instance_input, m);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)

@@ -35,7 +35,7 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/components/systems/snark/plonk/placeholder/detail/permutation_loop.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/placeholder/detail/f1_loop.hpp>
 
 #include "../../test_plonk_component.hpp"
 
@@ -48,7 +48,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     constexpr std::size_t WitnessColumns = WitnessAmount;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = WitnessAmount  + 2;
+    constexpr std::size_t SelectorColumns = WitnessAmount;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -58,7 +58,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::detail::permutation_loop<ArithmetizationType, WitnessColumns>;
+    using component_type = blueprint::components::detail::f1_loop<ArithmetizationType>;
 
     std::size_t m = (public_input.size() - 2) / 2;
 
@@ -89,7 +89,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     };
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance, public_input, result_check, instance_input, m);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)

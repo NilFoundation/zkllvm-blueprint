@@ -58,7 +58,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::detail::f3_loop<ArithmetizationType, WitnessColumns>;
+    using component_type = blueprint::components::detail::f3_loop<ArithmetizationType>;
 
     std::size_t m = public_input.size() / 3;
 
@@ -90,7 +90,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     };
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance, public_input, result_check, instance_input, m);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)

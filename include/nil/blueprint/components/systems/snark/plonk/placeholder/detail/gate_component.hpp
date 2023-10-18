@@ -30,30 +30,29 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
             namespace detail {
 
-                template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
+                template<typename ArithmetizationType>
                 class gate_component;
 
-                template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+                template<typename BlueprintFieldType, typename ArithmetizationParams>
                 class gate_component<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    WitnessesAmount>
-                    : public plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 0, 1> {
+                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 1> {
 
                     // constexpr static const std::uint32_t WitnessesAmount = WitnessesAmount;
                     constexpr static const std::uint32_t ConstantsAmount = 0;
 
                     using component_type =
-                        plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, ConstantsAmount, 1>;
+                        plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
 
+                    constexpr static std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t degree) {
 
-                    constexpr static const std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t degree){
-                        
                         if (degree == 0) {
                             return 1;
                         } else {
@@ -66,48 +65,94 @@ namespace nil {
                         }
                     }
 
-                public:
-                    using var = typename component_type::var;
-
-                    constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t degree){
-                        return rows_amount_internal(witness_amount, degree);
+                    static std::size_t gates_amount_internal(std::size_t witness_amount, std::size_t degree) {
+                        return (degree == 0 ? 1 : 2 * witness_amount);
                     }
 
-                    constexpr static std::size_t get_gates_amount(std::size_t witness_amount, std::size_t degree){
-                        return (degree == 0 ? 1 : 2 * witness_amount + 1);
+                public:
+                    using var = typename component_type::var;
+                    using manifest_type = nil::blueprint::plonk_component_manifest;
+
+                    constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                                 std::size_t lookup_column_amount,
+                                                                 std::size_t degree) {
+                        return rows_amount_internal(witness_amount, degree);
                     }
 
                     const std::size_t _d;
                     bool need_extra_row = false;
 
-                    const std::size_t rows_amount = get_rows_amount(WitnessesAmount, _d);
-                    const std::size_t gates_amount = get_gates_amount(WitnessesAmount, _d);
+                    const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), _d);
+                    const std::size_t gates_amount = gates_amount_internal(this->witness_amount(), _d);
 
+                    class gate_manifest_type : public component_gate_manifest {
+                    public:
+                        std::size_t witness_amount;
+                        std::size_t degree;
+
+                        gate_manifest_type(std::size_t witness_amount_, std::size_t degree_) :
+                            witness_amount(witness_amount_), degree(degree_) {
+                        }
+
+                        std::uint32_t gates_amount() const override {
+                            return gate_component::gates_amount_internal(witness_amount, degree);
+                        }
+
+                        bool operator<(const component_gate_manifest *other) const override {
+                            std::size_t other_witness_amount =
+                                dynamic_cast<const gate_manifest_type *>(other)->witness_amount;
+                            return (witness_amount < other_witness_amount) ||
+                                   (witness_amount == other_witness_amount &&
+                                    this->gates_amount() <
+                                        dynamic_cast<const gate_manifest_type *>(other)->gates_amount());
+                        }
+                    };
+
+                    static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                           std::size_t lookup_column_amount,
+                                                           std::size_t degree) {
+                        gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount, degree));
+                        return manifest;
+                    }
+
+                    static manifest_type get_manifest() {
+                        static manifest_type manifest =
+                            manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(3, 15)), false);
+                        return manifest;
+                    }
 
                     struct input_type {
                         var theta;
-                        std::vector<var> constraints;  
+                        std::vector<var> constraints;
                         var selector;
+
+                        std::vector<var> all_vars() const {
+                            std::vector<var> vars;
+                            vars.push_back(theta);
+                            vars.insert(vars.begin() + 1, constraints.begin(), constraints.end());
+                            vars.push_back(selector);
+                            return vars;
+                        }
                     };
 
                     struct result_type {
                         var output;
 
                         result_type(const gate_component &component, std::uint32_t start_row_index) {
-                            output = var(component.W(WitnessesAmount - 1), start_row_index + component.rows_amount - 1,
-                                         false);
+                            output = var(component.W(component.witness_amount() - 1),
+                                         start_row_index + component.rows_amount - 1, false);
+                        }
+
+                        std::vector<var> all_vars() const {
+                            return {output};
                         }
                     };
 
-                    nil::blueprint::detail::blueprint_component_id_type get_id() const override {
-                        std::stringstream ss;
-                        ss << "_" << WitnessesAmount << "_" << gates_amount;
-                        return ss.str();
-                    }
-
                     template<typename ContainerType>
-                    gate_component(ContainerType witness, std::size_t _d_) : component_type(witness, {}, {}), _d(_d_) {
-                        if ( (_d >= 0)  && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
+                    gate_component(ContainerType witness, std::size_t _d_) :
+                        component_type(witness, {}, {}, get_manifest()), _d(_d_) {
+                        std::size_t WitnessesAmount = this->witness_amount();
+                        if ((_d >= 0) && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
                             need_extra_row = true;
                         }
                     };
@@ -116,9 +161,10 @@ namespace nil {
                              typename PublicInputContainerType>
                     gate_component(WitnessContainerType witness, ConstantContainerType constant,
                                    PublicInputContainerType public_input, std::size_t _d_) :
-                        component_type(witness, constant, public_input),
+                        component_type(witness, constant, public_input, get_manifest()),
                         _d(_d_) {
-                        if ( (_d >= 0)  && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
+                        std::size_t WitnessesAmount = this->witness_amount();
+                        if ((_d >= 0) && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
                             need_extra_row = true;
                         }
                     };
@@ -131,9 +177,10 @@ namespace nil {
                         std::initializer_list<typename component_type::public_input_container_type::value_type>
                             public_inputs,
                         std::size_t _d_) :
-                        component_type(witnesses, constants, public_inputs),
+                        component_type(witnesses, constants, public_inputs, get_manifest()),
                         _d(_d_) {
-                        if ( (_d >= 0)  && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
+                        std::size_t WitnessesAmount = this->witness_amount();
+                        if ((_d >= 0) && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
                             need_extra_row = true;
                         }
                     };
@@ -141,28 +188,27 @@ namespace nil {
 
             }    // namespace detail
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             using plonk_gate_component = detail::gate_component<
-                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, WitnessAmount>;
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessAmount,
-                     std::enable_if_t<WitnessAmount >= 3, bool> = true>
-            typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount>::result_type
-                generate_assignments(
-                    const plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessAmount>::input_type instance_input,
-                    const std::size_t start_row_index) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
+                const plonk_gate_component<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input,
+                const std::size_t start_row_index) {
 
                 std::size_t row = start_row_index;
-                using var =
-                    typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount>::var;
+                std::size_t witness_amount = component.witness_amount();
+
+                using var = typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::var;
 
                 typename BlueprintFieldType::value_type q = var_value(assignment, instance_input.selector);
                 typename BlueprintFieldType::value_type theta = var_value(assignment, instance_input.theta);
-                
+
                 std::vector<typename BlueprintFieldType::value_type> assignments;
                 typename BlueprintFieldType::value_type G = BlueprintFieldType::value_type::zero();
 
@@ -178,8 +224,8 @@ namespace nil {
 
                 std::size_t r = 0, j = 0, i = 0;
                 for (i = 0; i < assignments.size(); i++) {
-                    r = i / (WitnessAmount - 1);
-                    j = i % (WitnessAmount - 1) + 1;
+                    r = i / (witness_amount - 1);
+                    j = i % (witness_amount - 1) + 1;
                     assignment.witness(component.W(j), row + r) = assignments[i];
                 }
                 row += r;
@@ -187,7 +233,7 @@ namespace nil {
                     for (r = start_row_index; r <= row; r++) {
                         assignment.witness(component.W(0), r) = theta;
                     }
-                    j = (assignments.size() % (WitnessAmount - 1)) + 1;
+                    j = (assignments.size() % (witness_amount - 1)) + 1;
                     if (component.need_extra_row) {
                         j = 0;
                         row++;
@@ -196,100 +242,96 @@ namespace nil {
 
                 assignment.witness(component.W(j), row) = var_value(assignment, instance_input.constraints[0]);
                 assignment.witness(component.W(j + 1), row) = q;
-                assignment.witness(component.W(WitnessAmount - 1), row) = G;
+                assignment.witness(component.W(witness_amount - 1), row) = G;
 
-                // std::cout << "W(" << j << "," << row << "): " << var_value(assignment, instance_input.constraints[0]).data << "\n";
-                // std::cout << "W(" << j+1 << "," << row << "): " << q.data << "\n";
-                // std::cout << "W(" << WitnessAmount - 1 << "," << row << "): " << G.data << "\n";
-
-                return typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams,
-                                                     WitnessAmount>::result_type(component, start_row_index);
+                return typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::result_type(
+                    component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessAmount,
-                     std::enable_if_t<WitnessAmount >= 3, bool> = true>
-            void generate_gates(
-                const plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount> &component,
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::vector<std::size_t> generate_gates(
+                const plonk_gate_component<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams,
-                                                    WitnessAmount>::input_type instance_input,
-                const std::size_t first_selector_index) {
+                const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input) {
 
-                using var =
-                    typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount>::var;
+                std::size_t witness_amount = component.witness_amount();
+                using var = typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::var;
+
+                std::vector<std::size_t> selectors;
 
                 if (component._d == 0) {
-                    auto constraint_ =
-                        bp.add_constraint(var(component.W(WitnessAmount - 1), 0) -
-                                          var(component.W(1), 0) * var(component.W(0), 0));    // G = q * C_0
-                    bp.add_gate(first_selector_index, {constraint_});
+                    auto constraint_ = var(component.W(witness_amount - 1), 0) -
+                                       var(component.W(1), 0) * var(component.W(0), 0);    // G = q * C_0
+                    selectors.push_back(bp.add_gate({constraint_}));
                 } else {
-                    auto constraint_1 = bp.add_constraint(
-                        var(component.W(2), 0) - var(component.W(1), 0) * var(component.W(0), 0));    // G = theta * C_d
-                    bp.add_gate(first_selector_index, {constraint_1});
+                    auto constraint_1 =
+                        var(component.W(2), 0) - var(component.W(1), 0) * var(component.W(0), 0);    // G = theta * C_d
+                    selectors.push_back(bp.add_gate({constraint_1}));
 
-                    auto constraint_2 = bp.add_constraint(
-                        var(component.W(1), 0) - var(component.W(0), 0) * (var(component.W(WitnessAmount - 1), -1) +
-                                                                           var(component.W(WitnessAmount - 2), -1)));
-                    bp.add_gate(first_selector_index + 1, {constraint_2});
+                    auto constraint_2 =
+                        var(component.W(1), 0) - var(component.W(0), 0) * (var(component.W(witness_amount - 1), -1) +
+                                                                           var(component.W(witness_amount - 2), -1));
+                    selectors.push_back(bp.add_gate({constraint_2}));
 
-                    auto constraint_3 = bp.add_constraint(
+                    auto constraint_3 =
                         var(component.W(2), 0) -
-                        var(component.W(0), 0) * (var(component.W(1), 0) + var(component.W(WitnessAmount - 1), -1)));
-                    bp.add_gate(first_selector_index + 2, {constraint_3});
+                        var(component.W(0), 0) * (var(component.W(1), 0) + var(component.W(witness_amount - 1), -1));
+                    selectors.push_back(bp.add_gate({constraint_3}));
 
-                    for (std::size_t i = 3; i <= WitnessAmount; i++) {
-                        auto constraint_i = bp.add_constraint(
+                    for (std::size_t i = 3; i < witness_amount; i++) {
+                        auto constraint_i =
                             var(component.W(i), 0) -
-                            var(component.W(0), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0)));
-                        bp.add_gate(first_selector_index + i, {constraint_i});
+                            var(component.W(0), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0));
+                        selectors.push_back(bp.add_gate({constraint_i}));
                     }
 
-                    auto constraint_5 = bp.add_constraint(
-                        var(component.W(WitnessAmount - 1), 0) -
-                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(WitnessAmount - 3), -1)));
-                    bp.add_gate(first_selector_index + WitnessAmount + 1, {constraint_5});
+                    auto constraint_5 =
+                        var(component.W(witness_amount - 1), 0) -
+                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 3), -1));
+                    selectors.push_back(bp.add_gate({constraint_5}));
 
-                    auto constraint_6 = bp.add_constraint(
-                        var(component.W(WitnessAmount - 1), 0) -
-                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(WitnessAmount - 2), -1)));
-                    bp.add_gate(first_selector_index + WitnessAmount + 2, {constraint_6});
+                    auto constraint_6 =
+                        var(component.W(witness_amount - 1), 0) -
+                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 2), -1));
+                    selectors.push_back(bp.add_gate({constraint_6}));
 
-                    auto constraint_7 = bp.add_constraint(
-                        var(component.W(WitnessAmount - 1), 0) -
-                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(WitnessAmount - 1), -1)));
-                    bp.add_gate(first_selector_index + WitnessAmount + 3, {constraint_7});
+                    auto constraint_7 =
+                        var(component.W(witness_amount - 1), 0) -
+                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 1), -1));
+                    selectors.push_back(bp.add_gate({constraint_7}));
 
-                    for (std::size_t i = 2; i < WitnessAmount - 1; i++) {
-                        auto constraint_i = bp.add_constraint(
-                            var(component.W(WitnessAmount - 1), 0) -
-                            var(component.W(i), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0)));
-                        bp.add_gate(first_selector_index + WitnessAmount + i + 2, {constraint_i});
+                    for (std::size_t i = 2; i < witness_amount - 1; i++) {
+                        auto constraint_i =
+                            var(component.W(witness_amount - 1), 0) -
+                            var(component.W(i), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0));
+                        selectors.push_back(bp.add_gate({constraint_i}));
                     }
                 }
+
+                return selectors;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessAmount,
-                     std::enable_if_t<WitnessAmount >= 3, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount> &component,
+                const plonk_gate_component<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams,
-                                                    WitnessAmount>::input_type instance_input,
+                const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input,
                 const std::size_t start_row_index) {
 
-                using var =
-                    typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount>::var;
+                using var = typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::var;
 
                 std::size_t row = start_row_index;
+                std::size_t witness_amount = component.witness_amount();
 
                 std::size_t r = 0, j = 0;
                 if (component._d > 0) {
-                    for (std::size_t i = start_row_index; i < component.rows_amount - 1; i++) {
+                    for (std::size_t i = 0; i < component.rows_amount - 1; i++) {
                         bp.add_copy_constraint({var(component.W(0), row + i, false), instance_input.theta});
                     }
                     if (!component.need_extra_row) {
@@ -298,13 +340,13 @@ namespace nil {
                     }
 
                     for (std::size_t i = 0; i < component._d; i++) {
-                        r = (2 * i) / (WitnessAmount - 1);
-                        j = (2 * i) % (WitnessAmount - 1) + 1;
+                        r = (2 * i) / (witness_amount - 1);
+                        j = (2 * i) % (witness_amount - 1) + 1;
                         bp.add_copy_constraint(
                             {var(component.W(j), row + r, false), instance_input.constraints[component._d - i]});
                     }
                     row = start_row_index + component.rows_amount - 1;
-                    j = 2 * component._d % (WitnessAmount - 1) + 1;
+                    j = 2 * component._d % (witness_amount - 1) + 1;
                     if (component.need_extra_row) {
                         j = 0;
                     }
@@ -313,45 +355,34 @@ namespace nil {
                 bp.add_copy_constraint({var(component.W(j + 1), row, false), instance_input.selector});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessAmount,
-                     std::enable_if_t<WitnessAmount >= 3, bool> = true>
-            typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount>::result_type
-                generate_circuit(
-                    const plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                        &assignment,
-                    const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessAmount>::input_type instance_input,
-                    const std::size_t start_row_index) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
+                const plonk_gate_component<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input,
+                const std::size_t start_row_index) {
 
                 std::size_t row = start_row_index;
+                std::size_t witness_amount = component.witness_amount();
 
-                using var =
-                    typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams, WitnessAmount>::var;
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
+                std::vector<std::size_t> selector_indices = generate_gates(component, bp, assignment, instance_input);
 
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
-
-                assignment.enable_selector(first_selector_index, row);
+                assignment.enable_selector(selector_indices[0], row);
 
                 if (component._d > 0) {
                     // first row gates
-                    std::size_t last_gate = (2 * component._d - 1) % (WitnessAmount - 1) + 1;
-                    std::size_t first_row_last_gate = WitnessAmount - 1;
+                    std::size_t last_gate = (2 * component._d - 1) % (witness_amount - 1) + 1;
+                    std::size_t first_row_last_gate = witness_amount - 1;
 
                     if (component.rows_amount == 1 || (component.rows_amount == 2 && component.need_extra_row)) {
                         first_row_last_gate = last_gate;
                     }
 
                     for (std::size_t i = 4; i <= first_row_last_gate; i = i + 2) {
-                        assignment.enable_selector(first_selector_index + i, row);
+                        assignment.enable_selector(selector_indices[i], row);
                     }
 
                     if (component.rows_amount > 1) {
@@ -359,37 +390,39 @@ namespace nil {
                         std::size_t r;
                         std::size_t tmp = 2;
                         for (r = 1; r < component.rows_amount - 2; r++) {
-                            tmp = 2 - ((WitnessAmount - 1) % 2) * (r % 2);
-                            for (std::size_t i = tmp; i <= WitnessAmount; i = i + 2) {
-                                assignment.enable_selector(first_selector_index + i, row + r);
+                            tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
+                            for (std::size_t i = tmp; i <= witness_amount; i = i + 2) {
+                                assignment.enable_selector(selector_indices[i], row + r);
                             }
                         }
 
-                        tmp = 2 - ((WitnessAmount - 1) % 2) * (r % 2);
+                        tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
                         if (component.need_extra_row && r == component.rows_amount - 2) {
                             for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
-                                assignment.enable_selector(first_selector_index + i, row + r);
+                                assignment.enable_selector(selector_indices[i], row + r);
                             }
                             r++;
                         }
 
                         // last row gates
-                        tmp = 2 - (r % 2) * ((WitnessAmount - 1) % 2);
+                        tmp = 2 - (r % 2) * ((witness_amount - 1) % 2);
                         if (component.need_extra_row) {
-                            assignment.enable_selector(first_selector_index + last_gate + 4, row + r);
+                            assignment.enable_selector(selector_indices[last_gate + 3], row + r);
                         } else {
                             for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
-                                assignment.enable_selector(first_selector_index + i, row + r);
+                                assignment.enable_selector(selector_indices[i], row + r);
                             }
-                            assignment.enable_selector(first_selector_index + WitnessAmount + last_gate + 4, row + r);
+                            assignment.enable_selector(selector_indices[witness_amount + last_gate + 3], row + r);
                         }
+                    } else {
+                        assignment.enable_selector(selector_indices[witness_amount + last_gate + 3], row);
                     }
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams,
-                                                     WitnessAmount>::result_type(component, start_row_index);
+                return typename plonk_gate_component<BlueprintFieldType, ArithmetizationParams>::result_type(
+                    component, start_row_index);
             }
         }    // namespace components
     }        // namespace blueprint
