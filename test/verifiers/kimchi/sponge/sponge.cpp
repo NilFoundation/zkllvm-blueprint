@@ -40,45 +40,48 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <../test/verifiers/kimchi/sponge/aux_sponge.hpp>
 
-#include "test_plonk_component.hpp"
+#include "../../../test_plonk_component.hpp"
 
-using namespace nil::crypto3;
+using namespace nil;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_0) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr size_t num_squeezes = 1;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
     std::vector<var> input;
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
     std::vector<typename BlueprintFieldType::value_type> public_input = {0};
     typename BlueprintFieldType::value_type result = 0x2FADBE2852044D028597455BC2ABBD1BC873AF205DFABB8A304600F3E09EEBA8_cppui256;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
-        assert(result == assignment.var_value(real_res.squeezed));
+        assert(result == var_value(assignment, real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0}, {});
+
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -87,26 +90,25 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_0) {
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_1) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr size_t num_squeezes = 1;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = nil::blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
     std::vector<var> input = {{0, 1, false, var::column_type::public_input}};
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
@@ -115,11 +117,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_1) {
 
     typename BlueprintFieldType::value_type result = 0x3D4F050775295C04619E72176746AD1290D391D73FF4955933F9075CF69259FB_cppui256;
     std::cout<<"Result: "<<result.data<<std::endl;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -128,26 +130,25 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_1) {
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_2) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr size_t num_squeezes = 1;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
     std::vector<var> input = {{0, 1, false, var::column_type::public_input}, {0, 2, false, var::column_type::public_input}};
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
@@ -156,11 +157,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_2) {
                                                                         0x2FC4C98E50E0B1AAE6ECB468E28C0B7D80A7E0EEC7136DB0BA0677B84AF0E465_cppui256};
 
     typename BlueprintFieldType::value_type result = 0x336C73D08AD408CEB7D1264867096F0817A1D0558B313312A1207602F23624FE_cppui256;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
-        assert(result == assignment.var_value(real_res.squeezed));
+        assert(result == var_value(assignment, real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -169,27 +170,26 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_2) {
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_3) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr size_t num_squeezes = 1;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
-    std::vector<var> input = {{0, 1, false, var::column_type::public_input}, 
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
+    std::vector<var> input = {{0, 1, false, var::column_type::public_input},
         {0, 2, false, var::column_type::public_input}, {0, 3, false, var::column_type::public_input}};
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
@@ -199,11 +199,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_3) {
                                                                         0x1A842A688E600F012637FE181292F70C4347B5AE0D9EA9CE7CF18592C345CF73_cppui256};
 
     typename BlueprintFieldType::value_type result = 0x3F4B0EABB64E025F920457AF8D090A9F6472CAE11F3D62A749AF544A44941B9B_cppui256;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
         assert(result == assignment.var_value(real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -212,27 +212,26 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_3) {
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_4) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr size_t num_squeezes = 1;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
-    std::vector<var> input = {{0, 1, false, var::column_type::public_input}, 
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
+    std::vector<var> input = {{0, 1, false, var::column_type::public_input},
         {0, 2, false, var::column_type::public_input}, {0, 3, false, var::column_type::public_input}, {0, 4, false, var::column_type::public_input}};
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
@@ -243,11 +242,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_4) {
                                                                         0x12C387C69BDD436F65AB607A4ED7C62714872EDBF800518B58E76F5106650B29_cppui256};
 
     typename BlueprintFieldType::value_type result = 0x165A8CECF6660C6E0054CB9B4DBA9D68047166D7F3CED2F8DC86ED2EBFD3EC47_cppui256;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
-        assert(result == assignment.var_value(real_res.squeezed));
+        assert(result == var_value(assignment, real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -256,27 +255,26 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_4) {
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_5) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr size_t num_squeezes = 1;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
-    std::vector<var> input = {{0, 1, false, var::column_type::public_input}, 
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
+    std::vector<var> input = {{0, 1, false, var::column_type::public_input},
         {0, 2, false, var::column_type::public_input}, {0, 3, false, var::column_type::public_input}, {0, 4, false, var::column_type::public_input},
         {0, 5, false, var::column_type::public_input}};
     var zero(0, 0, false, var::column_type::public_input);
@@ -289,11 +287,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_5) {
                                                                         0x12688FE351ED01F3BB2EB6B0FA2A70FB232654F32B08990DC3A411E527776A89_cppui256};
 
     typename BlueprintFieldType::value_type result = 0x0CA2C3342C2959D7CD94B5C9D4DC55900F5F60B345F714827C8B907752D5A209_cppui256;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
-        assert(result == assignment.var_value(real_res.squeezed));
+        assert(result == var_value(assignment, real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;
@@ -302,26 +300,25 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_5) {
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_double_squeeze) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    using curve_type = algebra::curves::vesta;
+    using curve_type = crypto3::algebra::curves::vesta;
     using BlueprintFieldType = typename curve_type::scalar_field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 15;
-    using ArithmetizationParams = zk::snark::plonk_arithmetization_params<WitnessColumns,
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns,
         PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType,
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     constexpr static const size_t num_squeezes = 2;
-    using component_type = zk::components::aux<num_squeezes, ArithmetizationType, curve_type,
-                                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = blueprint::components::aux<num_squeezes, ArithmetizationType, curve_type>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-    
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
     std::vector<var> input;
     var zero(0, 0, false, var::column_type::public_input);
     typename component_type::params_type params = {input, zero};
@@ -329,11 +326,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_sponge_double_squeeze) {
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
     typename BlueprintFieldType::value_type result = 0x160A4D666FF9427DC907A5358B16C6966EB386213CE7994F87C8970F7DB8CDC3_cppui256;
-    auto result_check = [&result](AssignmentType &assignment, 
+    auto result_check = [&result](AssignmentType &assignment,
         component_type::result_type &real_res) {
-        assert(result == assignment.var_value(real_res.squeezed));
+        assert(result == var_value(assignment, real_res.squeezed));
     };
-    test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (params, public_input, result_check);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "kimchi sponge: " << duration.count() << "ms" << std::endl;

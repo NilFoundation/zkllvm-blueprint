@@ -35,133 +35,132 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/sponge.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                template<size_t num_squeezes,
-                         typename ArithmetizationType,
-                         typename CurveType,
-                         std::size_t... WireIndexes>
-                class aux;
+            template<size_t num_squeezes,
+                        typename ArithmetizationType,
+                        typename CurveType>
+            class aux;
 
-                template<typename BlueprintFieldType,
-                         size_t num_squeezes,
-                         typename ArithmetizationParams,
-                         typename CurveType,
-                         std::size_t W0,
-                         std::size_t W1,
-                         std::size_t W2,
-                         std::size_t W3,
-                         std::size_t W4,
-                         std::size_t W5,
-                         std::size_t W6,
-                         std::size_t W7,
-                         std::size_t W8,
-                         std::size_t W9,
-                         std::size_t W10,
-                         std::size_t W11,
-                         std::size_t W12,
-                         std::size_t W13,
-                         std::size_t W14>
-                class aux<
-                    num_squeezes,
-                    snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    CurveType,
-                    W0, W1, W2, W3,
-                    W4, W5, W6, W7,
-                    W8, W9, W10, W11,
-                    W12, W13, W14> {
+            template<typename BlueprintFieldType,
+                        size_t num_squeezes,
+                        typename ArithmetizationParams,
+                        typename CurveType>
+            class aux<
+                num_squeezes,
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                CurveType> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams> ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    ArithmetizationParams> ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
-                    using sponge_type =
-                        zk::components::kimchi_sponge<ArithmetizationType, CurveType, W0, W1, W2, W3, W4, W5, W6, 
-                                                                            W7, W8, W9, W10, W11, W12, W13, W14>;
-                    sponge_type sponge;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+                using sponge_type =
+                    nil::blueprint::components::kimchi_sponge<ArithmetizationType, CurveType>;
 
+            public:
+                using manifest_type = plonk_component_manifest;
+
+                class gate_manifest_type : public component_gate_manifest {
                 public:
-                    constexpr static const std::size_t selector_seed = 0x0fd2;
-                    constexpr static const std::size_t rows_amount = 200;
-                    constexpr static const std::size_t gates_amount = 0;
-
-                    struct params_type {
-                        std::vector<var> input;
-                        var zero;
-                    };
-
-                    struct result_type {
-                        var squeezed = var(0, 0, false);
-                        result_type(var &input) : squeezed(input) {}
-                        result_type(const params_type &params, const std::size_t &start_row_index) {
-                            squeezed = var(W6, start_row_index + rows_amount - 1, false, var::column_type::witness);
-                        }
-                    };
-
-                    static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                        const params_type &params,
-                        const std::size_t start_row_index){
-
-                        std::size_t row = start_row_index;
-                        sponge_type sponge;
-                        sponge.init_circuit(bp, assignment, params.zero, row);
-                        row += sponge_type::init_rows;
-                        for (std::size_t i = 0; i < params.input.size(); ++i) {
-                            sponge.absorb_circuit(bp, assignment, params.input[i], row);
-                            row += sponge_type::absorb_rows;
-                        }
-                        var sq;
-                        for (size_t i = 0; i < num_squeezes; ++i) {
-                            sq = sponge.squeeze_circuit(bp, assignment, row);
-                            row += sponge_type::squeeze_rows;
-                        }
-                        return {sq};
+                    std::uint32_t gates_amount() const override {
+                        return aux::gates_amount;
                     }
-
-                    static result_type generate_assignments(
-                            blueprint_assignment_table<ArithmetizationType>
-                                &assignment,
-                            const params_type &params,
-                            const std::size_t start_row_index){
-                        std::size_t row = start_row_index;
-
-                        sponge_type sponge;
-                        sponge.init_assignment(assignment, params.zero, row);
-                        row += sponge_type::init_rows;
-                        for (std::size_t i = 0; i < params.input.size(); ++i) {
-                            sponge.absorb_assignment(assignment, params.input[i], row);
-                            row += sponge_type::absorb_rows;
-                        }
-                        var sq;
-                        for (size_t i = 0; i < num_squeezes; ++i) {
-                            sq = sponge.squeeze_assignment(assignment, row);
-                            row += sponge_type::squeeze_rows;
-                        }
-                        return {sq};
-                    }
-
-                    static void generate_gates(
-                        blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &assignment, 
-                        const params_type &params,
-                        const std::size_t first_selector_index) {}
-
-                    static void generate_copy_constraints(
-                            blueprint<ArithmetizationType> &bp,
-                            blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                            const params_type &params,
-                            const std::size_t start_row_index) {}
                 };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount) {
+                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(3)),
+                        true
+                    );
+                    return manifest;
+                }
+
+                constexpr static const std::size_t rows_amount =
+                    sponge_type::init_rows + sponge_type::absorb_rows * num_squeezes +
+                    sponge_type::squeeze_rows * num_squeezes;
+                constexpr static const std::size_t gates_amount = 0;
+
+
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount) {
+                    return rows_amount;
+                }
+
+                struct params_type {
+                    std::vector<var> input;
+                    var zero;
+                };
+
+                struct result_type {
+                    var squeezed = var(0, 0, false);
+                    result_type(var &input) : squeezed(input) {}
+                    result_type(const params_type &params, const std::size_t &start_row_index) {
+                        // TODO: fix the six! need to actually procure this var from output
+                        squeezed = var(6, start_row_index + rows_amount - 1, false, var::column_type::witness);
+                    }
+                };
+
+                static result_type generate_circuit(
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const params_type &params,
+                    const std::size_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+                    sponge_type sponge;
+                    sponge.init_circuit(bp, assignment, params.zero, row);
+                    row += sponge_type::init_rows;
+                    for (std::size_t i = 0; i < params.input.size(); ++i) {
+                        sponge.absorb_circuit(bp, assignment, params.input[i], row);
+                        row += sponge_type::absorb_rows;
+                    }
+                    var sq;
+                    for (size_t i = 0; i < num_squeezes; ++i) {
+                        sq = sponge.squeeze_circuit(bp, assignment, row);
+                        row += sponge_type::squeeze_rows;
+                    }
+                    return {sq};
+                }
+
+                static result_type generate_assignments(
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                    const params_type &params,
+                    const std::size_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+
+                    sponge_type sponge;
+                    sponge.init_assignment(assignment, params.zero, row);
+                    row += sponge_type::init_rows;
+                    for (std::size_t i = 0; i < params.input.size(); ++i) {
+                        sponge.absorb_assignment(assignment, params.input[i], row);
+                        row += sponge_type::absorb_rows;
+                    }
+                    var sq;
+                    for (size_t i = 0; i < num_squeezes; ++i) {
+                        sq = sponge.squeeze_assignment(assignment, row);
+                        row += sponge_type::squeeze_rows;
+                    }
+                    return {sq};
+                }
+            };
+        }    // namespace components
+    }        // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_CURVE_ELEMENT_ENDO_SCALAR_COMPONENT_15_WIRES_HPP
