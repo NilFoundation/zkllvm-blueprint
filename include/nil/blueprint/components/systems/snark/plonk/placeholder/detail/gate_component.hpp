@@ -37,6 +37,11 @@ namespace nil {
         namespace components {
             namespace detail {
 
+                /**
+                 * Description: Polynomial evaluation component for non-constant polynomials using Horner's methods
+                 * Input: theta, C_0, C_1, ..., C_{d-1}, q.
+                 * Output: G = q*(C_0 + theta * C_1 + theta^2 * C_2 + ... + theta^{d-1} * C_{d-1}) % p
+                 */
                 template<typename ArithmetizationType>
                 class gate_component;
 
@@ -45,7 +50,6 @@ namespace nil {
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 1> {
 
-                    // constexpr static const std::uint32_t WitnessesAmount = WitnessesAmount;
                     constexpr static const std::uint32_t ConstantsAmount = 0;
 
                     using component_type =
@@ -53,20 +57,16 @@ namespace nil {
 
                     constexpr static std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t degree) {
 
-                        if (degree == 0) {
-                            return 1;
-                        } else {
-                            std::size_t r = std::ceil(2.0 * degree / (witness_amount - 1));
-                            if ((2 * degree - 1) % (witness_amount - 1) + 1 >= witness_amount - 3) {
-                                r += 1;
-                                // need_extra_row = true;
-                            }
-                            return r;
+                        assert(degree != 0);
+                        std::size_t r = std::ceil(2.0 * degree / (witness_amount - 1));
+                        if ((2 * degree - 1) % (witness_amount - 1) + 1 >= witness_amount - 3) {
+                            r++;
                         }
+                        return r;
                     }
 
-                    static std::size_t gates_amount_internal(std::size_t witness_amount, std::size_t degree) {
-                        return (degree == 0 ? 1 : 2 * witness_amount);
+                    static std::size_t gates_amount_internal(std::size_t witness_amount) {
+                        return 2 * witness_amount;
                     }
 
                 public:
@@ -83,19 +83,17 @@ namespace nil {
                     bool need_extra_row = false;
 
                     const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), _d);
-                    const std::size_t gates_amount = gates_amount_internal(this->witness_amount(), _d);
+                    const std::size_t gates_amount = gates_amount_internal(this->witness_amount());
 
                     class gate_manifest_type : public component_gate_manifest {
                     public:
                         std::size_t witness_amount;
-                        std::size_t degree;
 
-                        gate_manifest_type(std::size_t witness_amount_, std::size_t degree_) :
-                            witness_amount(witness_amount_), degree(degree_) {
+                        gate_manifest_type(std::size_t witness_amount_) : witness_amount(witness_amount_) {
                         }
 
                         std::uint32_t gates_amount() const override {
-                            return gate_component::gates_amount_internal(witness_amount, degree);
+                            return gate_component::gates_amount_internal(witness_amount);
                         }
 
                         bool operator<(const component_gate_manifest *other) const override {
@@ -109,9 +107,8 @@ namespace nil {
                     };
 
                     static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                           std::size_t lookup_column_amount,
-                                                           std::size_t degree) {
-                        gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount, degree));
+                                                           std::size_t lookup_column_amount) {
+                        gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
                         return manifest;
                     }
 
@@ -152,7 +149,7 @@ namespace nil {
                     gate_component(ContainerType witness, std::size_t _d_) :
                         component_type(witness, {}, {}, get_manifest()), _d(_d_) {
                         std::size_t WitnessesAmount = this->witness_amount();
-                        if ((_d >= 0) && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
+                        if ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3) {
                             need_extra_row = true;
                         }
                     };
@@ -164,7 +161,7 @@ namespace nil {
                         component_type(witness, constant, public_input, get_manifest()),
                         _d(_d_) {
                         std::size_t WitnessesAmount = this->witness_amount();
-                        if ((_d >= 0) && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
+                        if ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3) {
                             need_extra_row = true;
                         }
                     };
@@ -180,7 +177,7 @@ namespace nil {
                         component_type(witnesses, constants, public_inputs, get_manifest()),
                         _d(_d_) {
                         std::size_t WitnessesAmount = this->witness_amount();
-                        if ((_d >= 0) && ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3)) {
+                        if ((2 * _d - 1) % (WitnessesAmount - 1) + 1 >= WitnessesAmount - 3) {
                             need_extra_row = true;
                         }
                     };
@@ -229,15 +226,14 @@ namespace nil {
                     assignment.witness(component.W(j), row + r) = assignments[i];
                 }
                 row += r;
-                if (component._d > 0) {
-                    for (r = start_row_index; r <= row; r++) {
-                        assignment.witness(component.W(0), r) = theta;
-                    }
-                    j = (assignments.size() % (witness_amount - 1)) + 1;
-                    if (component.need_extra_row) {
-                        j = 0;
-                        row++;
-                    }
+
+                for (r = start_row_index; r <= row; r++) {
+                    assignment.witness(component.W(0), r) = theta;
+                }
+                j = (assignments.size() % (witness_amount - 1)) + 1;
+                if (component.need_extra_row) {
+                    j = 0;
+                    row++;
                 }
 
                 assignment.witness(component.W(j), row) = var_value(assignment, instance_input.constraints[0]);
@@ -262,53 +258,46 @@ namespace nil {
 
                 std::vector<std::size_t> selectors;
 
-                if (component._d == 0) {
-                    auto constraint_ = var(component.W(witness_amount - 1), 0) -
-                                       var(component.W(1), 0) * var(component.W(0), 0);    // G = q * C_0
-                    selectors.push_back(bp.add_gate({constraint_}));
-                } else {
-                    auto constraint_1 =
-                        var(component.W(2), 0) - var(component.W(1), 0) * var(component.W(0), 0);    // G = theta * C_d
-                    selectors.push_back(bp.add_gate({constraint_1}));
+                auto constraint_1 =
+                    var(component.W(2), 0) - var(component.W(1), 0) * var(component.W(0), 0);    // G = theta * C_d
+                selectors.push_back(bp.add_gate({constraint_1}));
 
-                    auto constraint_2 =
-                        var(component.W(1), 0) - var(component.W(0), 0) * (var(component.W(witness_amount - 1), -1) +
-                                                                           var(component.W(witness_amount - 2), -1));
-                    selectors.push_back(bp.add_gate({constraint_2}));
+                auto constraint_2 =
+                    var(component.W(1), 0) - var(component.W(0), 0) * (var(component.W(witness_amount - 1), -1) +
+                                                                       var(component.W(witness_amount - 2), -1));
+                selectors.push_back(bp.add_gate({constraint_2}));
 
-                    auto constraint_3 =
-                        var(component.W(2), 0) -
-                        var(component.W(0), 0) * (var(component.W(1), 0) + var(component.W(witness_amount - 1), -1));
-                    selectors.push_back(bp.add_gate({constraint_3}));
+                auto constraint_3 =
+                    var(component.W(2), 0) -
+                    var(component.W(0), 0) * (var(component.W(1), 0) + var(component.W(witness_amount - 1), -1));
+                selectors.push_back(bp.add_gate({constraint_3}));
 
-                    for (std::size_t i = 3; i < witness_amount; i++) {
-                        auto constraint_i =
-                            var(component.W(i), 0) -
-                            var(component.W(0), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0));
-                        selectors.push_back(bp.add_gate({constraint_i}));
-                    }
+                for (std::size_t i = 3; i < witness_amount; i++) {
+                    auto constraint_i = var(component.W(i), 0) - var(component.W(0), 0) * (var(component.W(i - 1), 0) +
+                                                                                           var(component.W(i - 2), 0));
+                    selectors.push_back(bp.add_gate({constraint_i}));
+                }
 
-                    auto constraint_5 =
+                auto constraint_5 =
+                    var(component.W(witness_amount - 1), 0) -
+                    var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 3), -1));
+                selectors.push_back(bp.add_gate({constraint_5}));
+
+                auto constraint_6 =
+                    var(component.W(witness_amount - 1), 0) -
+                    var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 2), -1));
+                selectors.push_back(bp.add_gate({constraint_6}));
+
+                auto constraint_7 =
+                    var(component.W(witness_amount - 1), 0) -
+                    var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 1), -1));
+                selectors.push_back(bp.add_gate({constraint_7}));
+
+                for (std::size_t i = 2; i < witness_amount - 1; i++) {
+                    auto constraint_i =
                         var(component.W(witness_amount - 1), 0) -
-                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 3), -1));
-                    selectors.push_back(bp.add_gate({constraint_5}));
-
-                    auto constraint_6 =
-                        var(component.W(witness_amount - 1), 0) -
-                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 2), -1));
-                    selectors.push_back(bp.add_gate({constraint_6}));
-
-                    auto constraint_7 =
-                        var(component.W(witness_amount - 1), 0) -
-                        var(component.W(1), 0) * (var(component.W(0), 0) + var(component.W(witness_amount - 1), -1));
-                    selectors.push_back(bp.add_gate({constraint_7}));
-
-                    for (std::size_t i = 2; i < witness_amount - 1; i++) {
-                        auto constraint_i =
-                            var(component.W(witness_amount - 1), 0) -
-                            var(component.W(i), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0));
-                        selectors.push_back(bp.add_gate({constraint_i}));
-                    }
+                        var(component.W(i), 0) * (var(component.W(i - 1), 0) + var(component.W(i - 2), 0));
+                    selectors.push_back(bp.add_gate({constraint_i}));
                 }
 
                 return selectors;
@@ -330,27 +319,27 @@ namespace nil {
                 std::size_t witness_amount = component.witness_amount();
 
                 std::size_t r = 0, j = 0;
-                if (component._d > 0) {
-                    for (std::size_t i = 0; i < component.rows_amount - 1; i++) {
-                        bp.add_copy_constraint({var(component.W(0), row + i, false), instance_input.theta});
-                    }
-                    if (!component.need_extra_row) {
-                        bp.add_copy_constraint(
-                            {var(component.W(0), row + component.rows_amount - 1, false), instance_input.theta});
-                    }
 
-                    for (std::size_t i = 0; i < component._d; i++) {
-                        r = (2 * i) / (witness_amount - 1);
-                        j = (2 * i) % (witness_amount - 1) + 1;
-                        bp.add_copy_constraint(
-                            {var(component.W(j), row + r, false), instance_input.constraints[component._d - i]});
-                    }
-                    row = start_row_index + component.rows_amount - 1;
-                    j = 2 * component._d % (witness_amount - 1) + 1;
-                    if (component.need_extra_row) {
-                        j = 0;
-                    }
+                for (std::size_t i = 0; i < component.rows_amount - 1; i++) {
+                    bp.add_copy_constraint({var(component.W(0), row + i, false), instance_input.theta});
                 }
+                if (!component.need_extra_row) {
+                    bp.add_copy_constraint(
+                        {var(component.W(0), row + component.rows_amount - 1, false), instance_input.theta});
+                }
+
+                for (std::size_t i = 0; i < component._d; i++) {
+                    r = (2 * i) / (witness_amount - 1);
+                    j = (2 * i) % (witness_amount - 1) + 1;
+                    bp.add_copy_constraint(
+                        {var(component.W(j), row + r, false), instance_input.constraints[component._d - i]});
+                }
+                row = start_row_index + component.rows_amount - 1;
+                j = 2 * component._d % (witness_amount - 1) + 1;
+                if (component.need_extra_row) {
+                    j = 0;
+                }
+
                 bp.add_copy_constraint({var(component.W(j), row, false), instance_input.constraints[0]});
                 bp.add_copy_constraint({var(component.W(j + 1), row, false), instance_input.selector});
             }
@@ -372,51 +361,49 @@ namespace nil {
 
                 assignment.enable_selector(selector_indices[0], row);
 
-                if (component._d > 0) {
-                    // first row gates
-                    std::size_t last_gate = (2 * component._d - 1) % (witness_amount - 1) + 1;
-                    std::size_t first_row_last_gate = witness_amount - 1;
+                // first row gates
+                std::size_t last_gate = (2 * component._d - 1) % (witness_amount - 1) + 1;
+                std::size_t first_row_last_gate = witness_amount - 1;
 
-                    if (component.rows_amount == 1 || (component.rows_amount == 2 && component.need_extra_row)) {
-                        first_row_last_gate = last_gate;
-                    }
+                if (component.rows_amount == 1 || (component.rows_amount == 2 && component.need_extra_row)) {
+                    first_row_last_gate = last_gate;
+                }
 
-                    for (std::size_t i = 4; i <= first_row_last_gate; i = i + 2) {
-                        assignment.enable_selector(selector_indices[i], row);
-                    }
+                for (std::size_t i = 4; i <= first_row_last_gate; i = i + 2) {
+                    assignment.enable_selector(selector_indices[i], row);
+                }
 
-                    if (component.rows_amount > 1) {
-                        // middle row gates
-                        std::size_t r;
-                        std::size_t tmp = 2;
-                        for (r = 1; r < component.rows_amount - 2; r++) {
-                            tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
-                            for (std::size_t i = tmp; i <= witness_amount; i = i + 2) {
-                                assignment.enable_selector(selector_indices[i], row + r);
-                            }
-                        }
-
+                if (component.rows_amount > 1) {
+                    // middle row gates
+                    std::size_t r;
+                    std::size_t tmp = 2;
+                    for (r = 1; r < component.rows_amount - 2; r++) {
                         tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
-                        if (component.need_extra_row && r == component.rows_amount - 2) {
-                            for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
-                                assignment.enable_selector(selector_indices[i], row + r);
-                            }
-                            r++;
+                        for (std::size_t i = tmp; i <= witness_amount; i = i + 2) {
+                            assignment.enable_selector(selector_indices[i], row + r);
                         }
-
-                        // last row gates
-                        tmp = 2 - (r % 2) * ((witness_amount - 1) % 2);
-                        if (component.need_extra_row) {
-                            assignment.enable_selector(selector_indices[last_gate + 3], row + r);
-                        } else {
-                            for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
-                                assignment.enable_selector(selector_indices[i], row + r);
-                            }
-                            assignment.enable_selector(selector_indices[witness_amount + last_gate + 3], row + r);
-                        }
-                    } else {
-                        assignment.enable_selector(selector_indices[witness_amount + last_gate + 3], row);
                     }
+
+                    tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
+                    if (component.need_extra_row && r == component.rows_amount - 2) {
+                        for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
+                            assignment.enable_selector(selector_indices[i], row + r);
+                        }
+                        r++;
+                    }
+
+                    // last row gates
+                    tmp = 2 - (r % 2) * ((witness_amount - 1) % 2);
+                    if (component.need_extra_row) {
+                        assignment.enable_selector(selector_indices[last_gate + 3], row + r);
+                    } else {
+                        for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
+                            assignment.enable_selector(selector_indices[i], row + r);
+                        }
+                        assignment.enable_selector(selector_indices[witness_amount + last_gate + 3], row + r);
+                    }
+                } else {
+                    assignment.enable_selector(selector_indices[witness_amount + last_gate + 3], row);
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);

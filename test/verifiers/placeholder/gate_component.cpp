@@ -91,24 +91,6 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-// BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test0) {
-
-//     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
-
-//     std::vector<typename BlueprintFieldType::value_type> public_input = {
-//         0xc51d84f8427d67ce47566fb043b6415f91196129cb6fd0ea3362f213a0e8cc8_cppui255, // theta
-//         0x854a9d175f7eece4dd7bb82babe799b2369571e75d2386264b512bc4f049ee6_cppui255, // c0
-//         0x25815c120bb2f1c57d7e4d505fb7b901a9e4c4f92b623ddfb3546ecc33482c37_cppui255}; // q
-
-//     typename BlueprintFieldType::value_type expected_res =
-//         0x3ed8ead4c1ba20d7a4e06307f075f36356b96d812918aebf0dd8418f20a36d71_cppui255;
-
-//     // test<BlueprintFieldType, 3>(public_input, expected_res);
-//     test<BlueprintFieldType, 4>(public_input, expected_res);
-//     test<BlueprintFieldType, 5>(public_input, expected_res);
-//     test<BlueprintFieldType, 6>(public_input, expected_res);
-// }
-
 BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
