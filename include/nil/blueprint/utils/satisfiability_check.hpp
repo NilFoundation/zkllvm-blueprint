@@ -78,6 +78,7 @@ namespace nil {
                 }
             }
 
+            bool result = true;
             for (std::size_t i = 0; i < lookup_gates.size(); i++) {
                 crypto3::zk::snark::plonk_column<BlueprintFieldType> selector =
                     assignments.crypto3::zk::snark::template plonk_assignment_table<
@@ -117,7 +118,8 @@ namespace nil {
                                 if (!found) {
                                     std::cout << "Constraint " << j << " from lookup gate " << i << " on row " << selector_row
                                             << " is not satisfied." << std::endl;
-                                    return false;
+                                    result = false;
+                                    //return false;
                                 }
                             } catch (std::out_of_range &e) {
                                 std::cout << "Lookup table " << table_name << " not found." << std::endl;
@@ -127,6 +129,7 @@ namespace nil {
                     }
                 }
             }
+            if(!result) return false;
 
             for (std::size_t i = 0; i < copy_constraints.size(); i++) {
                 if (var_value(assignments, copy_constraints[i].first) !=

@@ -103,8 +103,7 @@ namespace nil {
 
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
                 constexpr static const std::size_t gates_amount = 10;
-                constexpr static const std::size_t lookup_gates_amount = 5;
-
+                constexpr static const std::size_t lookup_gates_amount = 6;
                 struct input_type {
                     std::array<var, 8> input_state;
                     std::array<var, 16> input_words;
@@ -322,12 +321,14 @@ namespace nil {
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::size_t generate_sigma0_gates(
+                std::array<std::size_t,2> generate_sigma0_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment, 
                     const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
+                    std::array<std::size_t, 2> selectors;
+
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
                     typename BlueprintFieldType::integral_type one = 1;
@@ -352,7 +353,7 @@ namespace nil {
                         (var(component.W(8), 0) - 3) * (var(component.W(8), 0) - 2) *
                     (var(component.W(8), 0) - 1) * var(component.W(8), 0));*/
 
-                    bp.add_gate({constraint_1, constraint_2, constraint_3});
+                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3});
 
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
                         {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), -1), var(component.W(7), -1)}};
@@ -374,28 +375,29 @@ namespace nil {
                         {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), +1), var(component.W(7), +1)}};
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
                         {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), +1), var(component.W(8), +1)}};
-                    return bp.add_lookup_gate({
+                    selectors[1] = bp.add_lookup_gate({
                         lookup_constraint_1, 
-//                        lookup_constraint_2, 
+                        lookup_constraint_2, 
                         lookup_constraint_3,
-//                        lookup_constraint_4, 
+                        lookup_constraint_4, 
                         lookup_constraint_5, 
                         lookup_constraint_6,
-//                        lookup_constraint_7, 
-//                        lookup_constraint_8, 
-//                        lookup_constraint_9,
-//                        lookup_constraint_10
+                        lookup_constraint_7, 
+                        lookup_constraint_8, 
+                        lookup_constraint_9,
+                        lookup_constraint_10
                     });
+                    return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::size_t generate_sigma1_gates(
+                std::array<std::size_t, 2> generate_sigma1_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
-
+                    std::array<std::size_t, 2> selectors;
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
                     typename BlueprintFieldType::integral_type one = 1;
@@ -418,7 +420,7 @@ namespace nil {
                         (var(component.W(8), 0) - 3) * (var(component.W(8), 0) - 2) *
                     (var(component.W(8), 0) - 1) * var(component.W(8), 0));*/
 
-                    bp.add_gate({constraint_1, constraint_2, constraint_3});
+                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3});
 
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(1), +1) * 16}};
@@ -442,23 +444,24 @@ namespace nil {
                         {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(7), -1), var(component.W(7), 0)}};
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
                         {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(8), -1), var(component.W(8), 0)}};
-                    return bp.add_lookup_gate({
-//                        lookup_constraint_1, 
-//                        lookup_constraint_2, 
-//                        lookup_constraint_3,
-//                        lookup_constraint_4, 
-//                        lookup_constraint_5, 
-//                        lookup_constraint_6,
-//                        lookup_constraint_7, 
-//                        lookup_constraint_8, 
-//                        lookup_constraint_9,
-//                        lookup_constraint_10, 
-//                        lookup_constraint_11
+                    selectors[1] =  bp.add_lookup_gate({
+                        lookup_constraint_1, 
+                        lookup_constraint_2, 
+                        lookup_constraint_3,
+                        lookup_constraint_4, 
+                        lookup_constraint_5, 
+                        lookup_constraint_6,
+                        lookup_constraint_7, 
+                        lookup_constraint_8, 
+                        lookup_constraint_9,
+                        lookup_constraint_10, 
+                        lookup_constraint_11
                     });
+                    return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::array<std::size_t, 3> generate_message_scheduling_gates(
+                std::array<std::size_t, 5> generate_message_scheduling_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
@@ -467,7 +470,7 @@ namespace nil {
 
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
-                    std::size_t sigma0_selector = generate_sigma0_gates(component, bp, assignment, lookup_tables_indices);
+                    std::array<std::size_t,2> sigma0_selectors = generate_sigma0_gates(component, bp, assignment, lookup_tables_indices);
                     typename BlueprintFieldType::integral_type one = 1;
                     auto m = typename BlueprintFieldType::value_type(2).pow(32);
                     auto constraint_1 =
@@ -481,17 +484,18 @@ namespace nil {
                         (var(component.W(0), +1) - 3) * (var(component.W(0), +1) - 2) *
                                           (var(component.W(0), +1) - 1) * var(component.W(0), +1);
                     std::size_t selector_1 = bp.add_gate({constraint_1, constraint_2});
-                    std::size_t sigma_1_selector = generate_sigma1_gates(component, bp, assignment, lookup_tables_indices);
-                    return {sigma0_selector, selector_1, sigma_1_selector};
+                    std::array<std::size_t,2> sigma_1_selectors = generate_sigma1_gates(component, bp, assignment, lookup_tables_indices);
+                    return {sigma0_selectors[0], sigma0_selectors[1], selector_1, sigma_1_selectors[0], sigma_1_selectors[1]};
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::size_t generate_Sigma0_gates(
+                std::array<std::size_t, 2> generate_Sigma0_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
+                    std::array<std::size_t, 2> selectors;
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
                     typename BlueprintFieldType::integral_type one = 1;
@@ -518,7 +522,8 @@ namespace nil {
                     (var(component.W(6), 0) - 1) * var(component.W(6), 0)); auto constraint_6 =
                         (var(component.W(7), 0) - 3) * (var(component.W(7), 0) - 2) *
                     (var(component.W(7), 0) - 1) * var(component.W(7), 0));*/
-                    bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
+                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
+
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(3), +1) * 8}};
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
@@ -542,29 +547,30 @@ namespace nil {
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
                         {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(8), -1), var(component.W(7), 0)}};
 
-                    auto selector_lookup_index = bp.add_lookup_gate({
-//                        lookup_constraint_1, 
+                    selectors[1] = bp.add_lookup_gate({
+                        lookup_constraint_1, 
                         lookup_constraint_2, 
-//                        lookup_constraint_3,
+                        lookup_constraint_3,
                         lookup_constraint_4, 
-//                        lookup_constraint_5, 
+                        lookup_constraint_5, 
                         lookup_constraint_6,
                         lookup_constraint_7, 
-//                        lookup_constraint_8, 
-//                        lookup_constraint_9,
-//                        lookup_constraint_10, 
-//                        lookup_constraint_11
+                        lookup_constraint_8, 
+                        lookup_constraint_9,
+                        lookup_constraint_10, 
+                        lookup_constraint_11
                     });
-                    return selector_lookup_index;
+                    return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::size_t generate_Sigma1_gates(
+                std::array<std::size_t, 2> generate_Sigma1_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
+                    std::array<std::size_t, 2> selectors;
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
                     typename BlueprintFieldType::integral_type one = 1;
@@ -591,7 +597,7 @@ namespace nil {
                         (var(component.W(4), 0) - 3) * (var(component.W(4), 0) - 2) *
                     (var(component.W(4), 0) - 1) * var(component.W(4), 0));*/
 
-                    bp.add_gate({constraint_1, constraint_2, constraint_3});
+                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3});
 
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
                         {lookup_tables_indices.at("sha256_sparse_base7/first_column"), {var(component.W(3), -1) * 256}};
@@ -616,7 +622,7 @@ namespace nil {
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
                         {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(8), +1), var(component.W(8), 0)}};
 
-                    return bp.add_lookup_gate({
+                    selectors[1] = bp.add_lookup_gate({
 //                        lookup_constraint_1, 
                         lookup_constraint_2, 
 //                        lookup_constraint_3,
@@ -629,23 +635,25 @@ namespace nil {
 //                        lookup_constraint_10, 
 //                        lookup_constraint_11
                     });
+                    return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::size_t generate_Maj_gates(
+                std::array<std::size_t, 2> generate_Maj_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices                
                 ) {
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    std::array<std::size_t, 2> selectors;
 
                     typename BlueprintFieldType::integral_type one = 1;
                     auto constraint_1 =
                         var(component.W(0), 0) + var(component.W(1), 0) * (1 << 16) +
                         var(component.W(2), 0) * (one << 32) + var(component.W(3), 0) * (one << 48) -
                         (var(component.W(0), +1) + var(component.W(1), +1) + var(component.W(4), +1));
-                    bp.add_gate({constraint_1});
+                    selectors[0] = bp.add_gate({constraint_1});
 
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(5), 0), var(component.W(0), 0)}};
@@ -655,18 +663,21 @@ namespace nil {
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(7), 0), var(component.W(2), 0)}};
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4=
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(8), 0), var(component.W(3), 0)}};
-                    return bp.add_lookup_gate({
+                    selectors[1] = bp.add_lookup_gate({
                         lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4
                     });
+                    return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::size_t generate_Ch_gates(
+                std::array<std::size_t, 2> generate_Ch_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
+                    std::array<std::size_t, 2> selectors;
+
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
                     typename BlueprintFieldType::value_type base7_value =
@@ -675,23 +686,24 @@ namespace nil {
                         var(component.W(0), 0) + var(component.W(1), 0) * base7_value.pow(8) +
                         var(component.W(2), 0) * base7_value.pow(16) + var(component.W(3), 0) * base7_value.pow(24) -
                         (var(component.W(0), -1) + 2 * var(component.W(1), -1) + 3 * var(component.W(0), +1));
-                    return bp.add_gate({constraint_1});
+                    selectors[0] =  bp.add_gate({constraint_1});
 
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
-                        {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(5), +1), var(component.W(0), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
-                        {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(6), +1), var(component.W(1), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
-                        {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(7), +1), var(component.W(2), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                        {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(8), +1), var(component.W(3), 0)}};
-                    //return bp.add_lookup_gate(
-                    //    {lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4}
-                    //);
+                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
+                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(5), +1), var(component.W(0), 0)}};
+                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
+                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(6), +1), var(component.W(1), 0)}};
+                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
+                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(7), +1), var(component.W(2), 0)}};
+                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
+                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(8), +1), var(component.W(3), 0)}};
+                    selectors[1] = bp.add_lookup_gate({
+                    //    lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4
+                    });
+                    return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::array<std::size_t, 7> generate_compression_gates(
+                std::array<std::size_t, 11> generate_compression_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
@@ -699,8 +711,8 @@ namespace nil {
                 ) {
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
-                    std::size_t sigma_1_selector = generate_Sigma1_gates(component, bp, assignment, lookup_tables_indices);
-                    std::size_t ch_selector = generate_Ch_gates(component, bp, assignment, lookup_tables_indices);
+                    std::array<std::size_t, 2> sigma_1_selectors = generate_Sigma1_gates(component, bp, assignment, lookup_tables_indices);
+                    std::array<std::size_t, 2> ch_selectors = generate_Ch_gates(component, bp, assignment, lookup_tables_indices);
                     auto m = typename BlueprintFieldType::value_type(2).pow(32);
                     auto constraint_1 =
                         var(component.W(4), +1) -
@@ -726,8 +738,8 @@ namespace nil {
                         (var(component.W(3), +1) - 3) * (var(component.W(3), +1) - 2) * (var(component.W(3), +1) - 1) *
                         var(component.W(3), +1);
                     std::size_t selector_3 = bp.add_gate({constraint_4, constraint_5});
-                    std::size_t maj_selector = generate_Maj_gates(component, bp, assignment, lookup_tables_indices);
-                    std::size_t sigma0_selector = generate_Sigma0_gates(component, bp, assignment, lookup_tables_indices);
+                    std::array<std::size_t,2> maj_selectors = generate_Maj_gates(component, bp, assignment, lookup_tables_indices);
+                    std::array<std::size_t,2> sigma_0_selectors = generate_Sigma0_gates(component, bp, assignment, lookup_tables_indices);
 
                     auto constraint_out_1 = var(component.W(0), +1) + m * var(component.W(4), +1) -
                                                               (var(component.W(0), 0) + var(component.W(4), 0));
@@ -740,12 +752,19 @@ namespace nil {
 
                     std::size_t selector_6 =
                         bp.add_gate({constraint_out_1, constraint_out_2, constraint_out_3, constraint_out_4});
-                    return {sigma_1_selector, sigma0_selector, selector_2, selector_3, maj_selector, ch_selector, selector_6};
+                    return {
+                        sigma_1_selectors[0], sigma_1_selectors[1], 
+                        sigma_0_selectors[0], sigma_0_selectors[1], 
+                        selector_2, selector_3, 
+                        maj_selectors[0], maj_selectors[1],
+                        ch_selectors[0], ch_selectors[1], 
+                        selector_6
+                    };
                 }
             }    // namespace detail
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            std::array<std::size_t, 10> generate_gates(
+            std::array<std::size_t, 16> generate_gates(
                 const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
@@ -757,10 +776,13 @@ namespace nil {
                 auto compression_selectors = detail::generate_compression_gates(component, bp, assignment, lookup_tables_indices);
 
                 return {
-                    message_scheduling_selectors[0], message_scheduling_selectors[1], message_scheduling_selectors[2],
+                    message_scheduling_selectors[0], message_scheduling_selectors[1], 
+                    message_scheduling_selectors[2], message_scheduling_selectors[3],
+                    message_scheduling_selectors[4],
                     compression_selectors[0], compression_selectors[1], compression_selectors[2],
                     compression_selectors[3], compression_selectors[4], compression_selectors[5],
-                    compression_selectors[6]
+                    compression_selectors[6], compression_selectors[7], compression_selectors[8],
+                    compression_selectors[9], compression_selectors[10]
                 };
             }
 
@@ -861,24 +883,34 @@ namespace nil {
                         &instance_input,
                     const std::size_t start_row_index
                 ) {
-
+                
                 detail::generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
                 std::size_t j = start_row_index;
                 j = j + 2;
                 auto selector_indices = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
 
-                assignment.enable_selector(selector_indices[0], j + 1, j + 239, 5);
-                assignment.enable_selector(selector_indices[1], j + 2, j + 239, 5);
-                assignment.enable_selector(selector_indices[2], j + 4, j + 239, 5);
+                // Message selectors
+                assignment.enable_selector(selector_indices[0], j + 1, j + 239, 5);//sigma0
+                assignment.enable_selector(selector_indices[1], j + 1, j + 239, 5);//sigma0
+                assignment.enable_selector(selector_indices[2], j + 2, j + 239, 5);//selector1
+                assignment.enable_selector(selector_indices[3], j + 4, j + 239, 5);//sigma1
+                assignment.enable_selector(selector_indices[4], j + 4, j + 239, 5);//sigma1
+
+                // Compression selectors
                 j = j + 240;
-                assignment.enable_selector(selector_indices[3], j + 1, j + 511, 8);
-                assignment.enable_selector(selector_indices[4], j + 6, j + 511, 8);
-                assignment.enable_selector(selector_indices[5], j + 3, j + 511, 8);
-                assignment.enable_selector(selector_indices[6], j + 4, j + 511, 8);
-                assignment.enable_selector(selector_indices[7], j + 4, j + 511, 8);
-                assignment.enable_selector(selector_indices[8], j + 2, j + 511, 8);
+                assignment.enable_selector(selector_indices[5], j + 1, j + 511, 8); // Sigma1
+                assignment.enable_selector(selector_indices[6], j + 1, j + 511, 8); // Sigma1
+                assignment.enable_selector(selector_indices[7], j + 6, j + 511, 8); // Sigma0
+                assignment.enable_selector(selector_indices[8], j + 6, j + 511, 8); // Sigma0
+                assignment.enable_selector(selector_indices[9], j + 3, j + 511, 8); // selector2
+                assignment.enable_selector(selector_indices[10], j + 4, j + 511, 8); // selector3
+                assignment.enable_selector(selector_indices[11], j + 4, j + 511, 8); // Maj_selector
+                assignment.enable_selector(selector_indices[12], j + 4, j + 511, 8); // Maj_selector
+                assignment.enable_selector(selector_indices[13], j + 2, j + 511, 8); // Ch_selector
+                assignment.enable_selector(selector_indices[14], j + 2, j + 511, 8); // Ch_selector
+
                 j = j + 512;
-                assignment.enable_selector(selector_indices[9], j, j + 2, 2);
+                assignment.enable_selector(selector_indices[15], j, j + 2, 2); // selector6
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 return typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);

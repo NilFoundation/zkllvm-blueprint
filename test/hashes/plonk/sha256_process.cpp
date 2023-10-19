@@ -44,7 +44,6 @@
 #include "../../test_plonk_component.hpp"
 
 using namespace nil;
-
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_sha256_process) {
