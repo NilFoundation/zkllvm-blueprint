@@ -69,29 +69,40 @@ void test_fri_cosets(std::vector<typename FieldType::value_type> public_input,
         var(0, 0, false, var::column_type::public_input)};
 
     typename BlueprintFieldType::integral_type pi_num = typename BlueprintFieldType::integral_type(public_input[0].data);
-    std::array<typename BlueprintFieldType::value_type,3> expected_res = {1,-1,0};
+
+    std::vector<std::array<typename BlueprintFieldType::value_type,3>> expected_res = {};
+
     typename BlueprintFieldType::value_type w_powers = omega;
+    typename BlueprintFieldType::value_type w_pow_x = 1;
+    expected_res.resize(n);
     for(std::size_t i = 0; i < n; i++) {
-        expected_res[0] *= (pi_num % 2 == 1) ? w_powers : 1;
-        expected_res[2] = typename BlueprintFieldType::value_type(pi_num % 2);
+        w_pow_x *= (pi_num % 2 == 1) ? w_powers : 1;
+        // (n-1-i) because the bits in the result are in reverse order
+        expected_res[n-1-i][2] = typename BlueprintFieldType::value_type(pi_num % 2);
         pi_num /= 2;
         w_powers *= w_powers;
     }
-    expected_res[1] = expected_res[0]*(-1);
+    for(std::size_t i = 0; i < n; i++) {
+        expected_res[i][0] = w_pow_x;
+        expected_res[i][1] = expected_res[i][0]*(-1);
+        w_pow_x *= w_pow_x;
+    }
 
-    auto result_check = [&expected_res, public_input, omega](AssignmentType &assignment,
+    auto result_check = [&expected_res, public_input, n, omega](AssignmentType &assignment,
 	    typename component_type::result_type &real_res) {
-            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+//            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "fri_cosets test: " << "\n";
             std::cout << "input   : " << public_input[0].data << " " << omega.data << "\n";
-            std::cout << "expected: {" << expected_res[0].data << "," << expected_res[1].data << "," << expected_res[2].data << "}\n";
-            std::cout << "real    : {" << var_value(assignment, real_res.output[0]).data << "," <<
-                                          var_value(assignment, real_res.output[1]).data << "," <<
-                                          var_value(assignment, real_res.output[2]).data << "}\n\n";
-            #endif
-            assert(expected_res[0] == var_value(assignment, real_res.output[0]));
-            assert(expected_res[1] == var_value(assignment, real_res.output[1]));
-            assert(expected_res[2] == var_value(assignment, real_res.output[2]));
+            std::cout << "expected: {" << expected_res[0][0].data << "," << expected_res[0][1].data << "," << expected_res[0][2].data << ",...}\n";
+            std::cout << "real    : {" << var_value(assignment, real_res.output[0][0]).data << "," <<
+                                          var_value(assignment, real_res.output[0][1]).data << "," <<
+                                          var_value(assignment, real_res.output[0][2]).data << ",...}\n\n";
+//            #endif
+            for(std::size_t i = 0; i < n; i++) {
+                assert(expected_res[i][0] == var_value(assignment, real_res.output[i][0]));
+                assert(expected_res[i][1] == var_value(assignment, real_res.output[i][1]));
+                assert(expected_res[i][2] == var_value(assignment, real_res.output[i][2]));
+            }
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -99,15 +110,15 @@ void test_fri_cosets(std::vector<typename FieldType::value_type> public_input,
         witnesses[i] = i;
     }
     component_type component_instance(witnesses, // witnesses
-                                      std::array<std::uint32_t, 1>{0}, // constants 
+                                      std::array<std::uint32_t, 1>{0}, // constants
                                       std::array<std::uint32_t, 0>{},  // public inputs
                                       n, total_bits, omega);
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (component_instance, public_input, result_check, instance_input, n, total_bits);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda> (component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG, n, total_bits);
 }
 
 template <typename FieldType>
-void field_operations_test() {   
+void field_operations_test() {
 //  Format: test_fri_cosets<FieldType,WitnessColumns>(public_input, n, total_bits, omega)
     for (int i = 14; i < 25; i++){
          test_fri_cosets<FieldType,6>({i}, 3, 64, 2);

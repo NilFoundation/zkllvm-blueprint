@@ -172,27 +172,29 @@ namespace nil {
                 };
 
                 struct result_type {
-                    std::array<var,3> output; // TODO -> vector<array<var,3>>
+                    std::vector<std::array<var,3>> output = {}; // TODO -> vector<array<var,3>>
 
                     result_type(const fri_cosets &component, std::size_t start_row_index) {
                         const std::size_t n = component.n;
                         const std::size_t l = component.six_bl_per_line;
-                        std::size_t i = lfit(n,l) - 1; // the last of the lfit(n,l) lines, numbered from 0
-                        std::size_t j = ((n % l > 0) ? n % l : l) - 1; // the last of 6-blocks numbered from 0 in every line
 
-                        output = { var(component.W(6*j + 3), start_row_index + i, false, var::column_type::witness),
+                        output.clear();
+                        for(std::size_t b = n; b > 0; b--) {
+ 		            std::size_t i = (b-1) / l; // blocks are numbered 0..(n-1). i = row of block b
+                            std::size_t j = (b-1) % l; // j = number of block b in i-th row
+                            output.push_back({ var(component.W(6*j + 3), start_row_index + i, false, var::column_type::witness),
                                    var(component.W(6*j + 4), start_row_index + i, false, var::column_type::witness),
-                                   var(component.W(6*j + 5), start_row_index + i, false, var::column_type::witness) };
+                                   var(component.W(6*j + 5), start_row_index + i, false, var::column_type::witness) });
+
+                        }
                     }
 
                     std::vector<var> all_vars() const {
-                        std::vector<var> res = {output[0],output[1],output[2]};
-                     // intended for future extension
-                     /*
+                        std::vector<var> res = {};
+
                         for(auto & e : output) {
                             res.push_back(e[0]); res.push_back(e[1]); res.push_back(e[2]);
                         }
-                     */
                         return res;
                     }
                 };
