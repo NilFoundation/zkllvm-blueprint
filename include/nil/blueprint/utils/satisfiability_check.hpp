@@ -83,9 +83,11 @@ namespace nil {
                 crypto3::zk::snark::plonk_column<BlueprintFieldType> selector =
                     assignments.crypto3::zk::snark::template plonk_assignment_table<
                         BlueprintFieldType, ArithmetizationParams>::selector(lookup_gates[i].tag_index);
+                std::cout << "Tag index = " << lookup_gates[i].tag_index << std::endl;
 
                 for (std::size_t selector_row = 0; selector_row < selector.size(); selector_row++) {
                     if (!selector[selector_row].is_zero()) {
+                        std::cout << "Selector row = " << selector_row << std::endl;
                         for (std::size_t j = 0; j < lookup_gates[i].constraints.size(); j++) {
                             std::vector<typename BlueprintFieldType::value_type> input_values;
                             input_values.reserve(lookup_gates[i].constraints[j].lookup_input.size());
@@ -96,16 +98,22 @@ namespace nil {
                             const auto table_name =
                                 bp.get_reserved_indices_right().at(lookup_gates[i].constraints[j].table_id);
                             try {
-                                const auto &table = bp.get_reserved_tables().at(
-                                    table_name.substr(0, table_name.find("/")))->get_table();
+                                std::string main_table_name = table_name.substr(0, table_name.find("/"));
+                                std::string subtable_name = table_name.substr(table_name.find("/") + 1, table_name.size()-1);
+
+                                const auto &table = bp.get_reserved_tables().at(main_table_name)->get_table();
+                                const auto &subtable = bp.get_reserved_tables().at(main_table_name)->subtables.at(subtable_name);
+
+                                std::size_t columns_number = subtable.column_indices.size();
+
                                 // Search the table for the input values
                                 // We can cache it with sorting, or use KMP, but I need a simple solution first
                                 bool found = false;
-//                                BOOST_ASSERT(table.size() == input_values.size());
+                                BOOST_ASSERT(columns_number == input_values.size());
                                 for (std::size_t k = 0; k < table[0].size(); k++) {
                                     bool match = true;
-                                    for (std::size_t l = 0; l < table.size(); l++) {
-                                        if (table[l][k] != input_values[l]) {
+                                    for (std::size_t l = 0; l < columns_number; l++) {
+                                        if (table[subtable.column_indices[l]][k] != input_values[l]) {
                                             match = false;
                                             break;
                                         }
@@ -116,7 +124,12 @@ namespace nil {
                                     }
                                 }
                                 if (!found) {
-                                    std::cout << "Constraint " << j << " from lookup gate " << i << " on row " << selector_row
+                                    std::cout << "Input values:";
+                                    for(std::size_t k = 0; k < input_values.size(); k++){
+                                        std::cout << input_values[k] << " ";
+                                    }
+                                    std::cout << std::endl;
+                                    std::cout << "Constraint " << j << " from lookup gate " << i << " from table " << table_name << " on row " << selector_row
                                             << " is not satisfied." << std::endl;
                                     result = false;
                                     //return false;

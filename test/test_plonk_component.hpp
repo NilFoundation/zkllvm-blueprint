@@ -206,7 +206,7 @@ namespace nil {
             
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
-            std::size_t start_row = dist(gen);
+            std::size_t start_row = 0;
 
             if constexpr (PrivateInput) {
                 for (std::size_t i = 0; i < public_input.size(); i++) {

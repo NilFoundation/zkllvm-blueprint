@@ -170,6 +170,7 @@ namespace nil {
                         std::vector<std::size_t> value_sizes = {14};
 
                         // lookup table for sparse values with base = 4
+                        std::cout << "sha256_sparse_base4" << std::endl;
                         for (typename BlueprintFieldType::integral_type i = 0;
                             i < typename BlueprintFieldType::integral_type(16384);
                             i++
@@ -180,9 +181,11 @@ namespace nil {
                             }
                             std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> value_chunks =
                                 detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,  base4 );
+                            std::cout << value_chunks[0][0] << " " << value_chunks[1][0] << std::endl;
                             this->_table[0].push_back(value_chunks[0][0]);
                             this->_table[1].push_back(value_chunks[1][0]);
                         }                
+                        std::cout << "=============================" << std::endl;
                     }
                     
                     virtual std::size_t get_columns_number(){return 2;}
@@ -886,6 +889,7 @@ namespace nil {
                 
                 detail::generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
                 std::size_t j = start_row_index;
+                std::cout << "Start_row_index = " << start_row_index << std::endl;
                 j = j + 2;
                 auto selector_indices = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
 
