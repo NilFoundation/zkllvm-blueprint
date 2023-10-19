@@ -90,14 +90,21 @@ void test_fri_cosets(std::vector<typename FieldType::value_type> public_input,
 
     auto result_check = [&expected_res, public_input, n, omega](AssignmentType &assignment,
 	    typename component_type::result_type &real_res) {
-//            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "fri_cosets test: " << "\n";
-            std::cout << "input   : " << public_input[0].data << " " << omega.data << "\n";
-            std::cout << "expected: {" << expected_res[0][0].data << "," << expected_res[0][1].data << "," << expected_res[0][2].data << ",...}\n";
-            std::cout << "real    : {" << var_value(assignment, real_res.output[0][0]).data << "," <<
-                                          var_value(assignment, real_res.output[0][1]).data << "," <<
-                                          var_value(assignment, real_res.output[0][2]).data << ",...}\n\n";
-//            #endif
+            std::cout << "input   : " << std::hex << public_input[0].data << " " << std::hex << omega.data << "\n";
+            std::cout << "expected: {" <<  std::hex <<expected_res[0][0].data << "," <<
+                                           std::hex << expected_res[0][1].data << "," <<
+                                           std::dec << expected_res[0][2].data << ",...}\n";
+            std::cout << "real    : {";
+            for(std::size_t i = 0; i < n; i++) {
+                std::cout << std::hex << var_value(assignment, real_res.output[i][0]).data << "," <<
+                                          std::hex << var_value(assignment, real_res.output[i][1]).data << "," <<
+                                          std::dec << var_value(assignment, real_res.output[i][2]).data;
+                if (i < n-1) { std::cout << ",\n"; }
+            }
+            std::cout << "}\n\n";
+            #endif
             for(std::size_t i = 0; i < n; i++) {
                 assert(expected_res[i][0] == var_value(assignment, real_res.output[i][0]));
                 assert(expected_res[i][1] == var_value(assignment, real_res.output[i][1]));
@@ -126,6 +133,10 @@ void field_operations_test() {
     test_fri_cosets<FieldType,12>({46744073709551615}, 4, 64, 2);
     test_fri_cosets<FieldType,12>({46744073709551615}, 3, 64, 2);
     test_fri_cosets<FieldType,12>({46744073709551615}, 5, 64, 2);
+// more realistic data
+    test_fri_cosets<FieldType,6>({0xa53a16c34fb833b5_cppui255}, 4, 64,
+        0x1ff2863fd35bfc59e51f3693bf37e2d841d1b5fbed4138f755a638bec8750abd_cppui255
+    );
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
