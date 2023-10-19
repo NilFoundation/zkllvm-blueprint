@@ -550,14 +550,15 @@ namespace nil {
                 using var = typename component_type::var;
 
                 std::size_t config_index = 0;
+                std::size_t input_index = 0;
                 std::size_t strow = start_row_index;
 
                 while (config_index < component.full_configuration.size() - (component.shift != 0)) {
                     auto config = component.full_configuration[config_index];
-                    bp.add_copy_constraint({instance_input.message[config_index],
+                    bp.add_copy_constraint({instance_input.message[input_index++],
                                             var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
-                    if (config_index == 1 && component.shift != 0) {
-                        bp.add_copy_constraint({instance_input.message[config_index],
+                    if (config_index == 0 && component.shift != 0) {
+                        bp.add_copy_constraint({instance_input.message[input_index++],
                                                 var(component.W(config.copy_to[1].column), config.copy_to[1].row + strow, false)});
                     }
                     config_index++;

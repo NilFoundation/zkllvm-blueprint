@@ -83,9 +83,9 @@ namespace nil {
                 std::vector<round_component_type> rounds_false_false;
                 std::vector<round_component_type> rounds;
 
-                // using padding_component_type = keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                //                                                             ArithmetizationParams>, WitnessesAmount>;
-                // padding_component_type padding;
+                using padding_component_type = keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                            ArithmetizationParams>, WitnessesAmount>;
+                padding_component_type padding;
 
                 using configuration = typename round_component_type::configuration;
                 std::vector<configuration> full_configuration;
