@@ -48,7 +48,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
 
     constexpr std::size_t WitnessColumns = WitnessAmount;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
+    constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 2 * WitnessAmount + 1 + 3;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
@@ -69,7 +69,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     for (std::uint32_t i = 0; i < WitnessColumns; i++) {
         witnesses[i] = i;
     }
-    component_type component_instance(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>(),
+    component_type component_instance(witnesses, std::array<std::uint32_t, 1>(), std::array<std::uint32_t, 1>(),
                                       signature);
 
     std::vector<var> gates;
@@ -89,7 +89,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
         assert(var_value(assignment, real_res.output) == expected_res);
         // std::cout << "expected F: " << expected_res.data << std::endl;
     };
-    if (*min_degree == 1) {
+    if (signature.size() == 1 && signature[0] == 1) {
         crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
             component_instance, public_input, result_check, instance_input,
             nil::crypto3::detail::connectedness_check_type::NONE, signature);
@@ -102,19 +102,36 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        0x3c670eabac71e05f3e29255748e080b2ec288a774fdf4c3b6b7685183f2186c0_cppui255,     // theta
+        0x6e152a2ee7cd62e55993e72b0c32aeb48241c792f48d789cbe35606a72f3c45_cppui255,      // C_1_0
+        0x30457a793c861dd0044f6f5bcfb8775b99dd2313c7686f120f1f334997fcbea0_cppui255};    // q_2
+
+    typename BlueprintFieldType::value_type expected_res =
+        0x274f55a187ab99ed7946f85953dc499dee73941bbfeefe80a74c0fe42d254fb4_cppui255;    // F
+
+    test<BlueprintFieldType, 4>(public_input, expected_res, {1});
+    test<BlueprintFieldType, 5>(public_input, expected_res, {1});
+    test<BlueprintFieldType, 6>(public_input, expected_res, {1});
+}
+
 BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test0) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {
-        0xc51d84f8427d67ce47566fb043b6415f91196129cb6fd0ea3362f213a0e8cc8_cppui255,      // theta
-        0x854a9d175f7eece4dd7bb82babe799b2369571e75d2386264b512bc4f049ee6_cppui255,      // C_1_0
-        0x25815c120bb2f1c57d7e4d505fb7b901a9e4c4f92b623ddfb3546ecc33482c37_cppui255,     // q_1
-        0x38e1a856aae5cf012d142449cfe878b1a827f08fec4ac2d1724b7ebf37d3a637_cppui255,     // C_2_0
-        0x393d97b04bc5d4490ae53903974c1d0aa65e11b4e9ae487a1d3aede2f6edec92_cppui255};    // q_2
+        0x3b68a611d0a4896cf54a3130a166367ce9e3c02584842d117ceca4e7e5100e00_cppui255,     // theta
+        0x775559d0e51d93ff23e78cfb5b51b797225769e058e37729fb8ed291234d62_cppui255,       // C_1_0
+        0x1c454f840f62d7deb28c1161f420930ccc521572e68af58150fe9fdd42246b7c_cppui255,     // q_1
+        0x3713eddbd6e7723d5ec49d4865af9a764ba0877d4d54659b1ad2ee3ae0efe344_cppui255,     // C_2_0
+        0x1e251c5521af2a481096841a65deb34bfac8a09a05096b6f83db060bbf823217_cppui255};    // q_2
 
     typename BlueprintFieldType::value_type expected_res =
-        0x1272cd18bbf5cc452e221febe8a6ead95cd8f36cc3f6d5776f3e565fc464171d_cppui255;    // F
+        0x1196613de39bdeef57744700e540ba900d8be069a0dc963bce25ae3b550c2a37_cppui255;    // F
 
     test<BlueprintFieldType, 4>(public_input, expected_res, {1, 1});
     test<BlueprintFieldType, 5>(public_input, expected_res, {1, 1});
@@ -138,7 +155,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
     };
 
     typename BlueprintFieldType::value_type expected_res =
-        0xf335699d7ec4a77dda90354e42f908f80fccd1f32c367ed493bd8610993986d_cppui255;    // F
+        0x33ceac2f8ef925e1f95a6d60334a8e4e3a9c5a925ecd73d6f8a676a5e56efc6c_cppui255;    // F
 
     test<BlueprintFieldType, 4>(public_input, expected_res, {3, 1, 1});
     test<BlueprintFieldType, 5>(public_input, expected_res, {3, 1, 1});
@@ -162,7 +179,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test2) {
     };
 
     typename BlueprintFieldType::value_type expected_res =
-        0xf335699d7ec4a77dda90354e42f908f80fccd1f32c367ed493bd8610993986d_cppui255;    // F
+        0x1c347e1b881df3bce20b36de4249336d1e650ec283955b9d5ec16c0ab319e51a_cppui255;    // F
 
     test<BlueprintFieldType, 4>(public_input, expected_res, {1, 1, 3});
     test<BlueprintFieldType, 5>(public_input, expected_res, {1, 1, 3});
@@ -186,7 +203,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test3) {
     };
 
     typename BlueprintFieldType::value_type expected_res =
-        0xf335699d7ec4a77dda90354e42f908f80fccd1f32c367ed493bd8610993986d_cppui255;    // F
+        0x160e3212397bc43fab22922a46f77280c614ab11fc9567c4659b035d46c29827_cppui255;    // F
 
     test<BlueprintFieldType, 4>(public_input, expected_res, {1, 3, 1});
     test<BlueprintFieldType, 5>(public_input, expected_res, {1, 3, 1});
