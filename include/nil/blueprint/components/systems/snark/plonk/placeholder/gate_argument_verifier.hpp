@@ -139,13 +139,13 @@ namespace nil {
 
                 struct input_type {
                     var theta;
-                    std::vector<var> gates;
+                    std::vector<var> constraints;
                     std::vector<var> selectors;
 
                     std::vector<var> all_vars() const {
                         std::vector<var> vars;
                         vars.push_back(theta);
-                        vars.insert(vars.end(), gates.begin(), gates.end());
+                        vars.insert(vars.end(), constraints.begin(), constraints.end());
                         vars.insert(vars.end(), selectors.begin(), selectors.end());
                         return vars;
                     }
@@ -249,7 +249,7 @@ namespace nil {
                         mul mul_instance =
                             mul(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>());
 
-                        typename mul::input_type mul_input = {instance_input.gates[start], instance_input.selectors[i]};
+                        typename mul::input_type mul_input = {instance_input.constraints[start], instance_input.selectors[i]};
                         typename mul::result_type mul_result =
                             generate_assignments(mul_instance, assignment, mul_input, row);
                         G.push_back(mul_result.output);
@@ -259,8 +259,8 @@ namespace nil {
                                                                       std::array<std::uint32_t, 1>(), c_size - 1);
 
                         std::vector<var> constraints;
-                        constraints.insert(constraints.begin(), instance_input.gates.begin() + start,
-                                           instance_input.gates.begin() + start + component.gate_sizes[i]);
+                        constraints.insert(constraints.begin(), instance_input.constraints.begin() + start,
+                                           instance_input.constraints.begin() + start + component.gate_sizes[i]);
                         typename gate_component::input_type gate_input = {instance_input.theta, constraints,
                                                                           instance_input.selectors[i]};
 
@@ -364,7 +364,7 @@ namespace nil {
                     if (component.gate_sizes[i] == 1) {
                         mul mul_instance =
                             mul(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>());
-                        typename mul::input_type mul_input = {instance_input.gates[start], instance_input.selectors[i]};
+                        typename mul::input_type mul_input = {instance_input.constraints[start], instance_input.selectors[i]};
                         typename mul::result_type mul_result =
                             generate_circuit(mul_instance, bp, assignment, mul_input, row);
 
@@ -375,8 +375,8 @@ namespace nil {
                             gate_component(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>(),
                                            component.gate_sizes[i] - 1);
                         std::vector<var> constraints;
-                        constraints.insert(constraints.begin(), instance_input.gates.begin() + start,
-                                           instance_input.gates.begin() + start + component.gate_sizes[i]);
+                        constraints.insert(constraints.begin(), instance_input.constraints.begin() + start,
+                                           instance_input.constraints.begin() + start + component.gate_sizes[i]);
                         typename gate_component::input_type gate_input = {instance_input.theta, constraints,
                                                                           instance_input.selectors[i]};
 

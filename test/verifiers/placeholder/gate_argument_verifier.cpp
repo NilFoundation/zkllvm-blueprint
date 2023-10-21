@@ -72,17 +72,17 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     component_type component_instance(witnesses, std::array<std::uint32_t, 1>(), std::array<std::uint32_t, 1>(),
                                       signature);
 
-    std::vector<var> gates;
+    std::vector<var> constraints;
     std::vector<var> selectors;
     std::size_t ctr = 0;
     var theta = var(0, ctr++, false, var::column_type::public_input);
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < signature[i]; j++) {
-            gates.push_back(var(0, ctr++, false, var::column_type::public_input));
+            constraints.push_back(var(0, ctr++, false, var::column_type::public_input));
         }
         selectors.push_back(var(0, ctr++, false, var::column_type::public_input));
     }
-    typename component_type::input_type instance_input = {theta, gates, selectors};
+    typename component_type::input_type instance_input = {theta, constraints, selectors};
 
     auto result_check = [expected_res](AssignmentType &assignment, typename component_type::result_type &real_res) {
         std::cout << "F: 0x" << std::hex << var_value(assignment, real_res.output).data << std::endl;
