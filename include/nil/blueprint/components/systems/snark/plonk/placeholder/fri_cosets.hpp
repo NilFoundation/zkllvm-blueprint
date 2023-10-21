@@ -62,17 +62,24 @@ namespace nil {
 		    const std::size_t l = witness_amount / 6; // number of 6-blocks per row
                     const std::size_t last_l = n % l; // 6-blocks in transition row. If 0, no transition row exists
                     const std::size_t sixb_rows = lfit(n,l); // number of rows with 6-blocks
-                    const std::size_t bl2 = lfit(total_bits-n,3);
-                    const std::size_t remaining_bl2 = bl2 - ((last_l > 0)? 3*(l - last_l) : 0);
+                    const std::size_t octs = lfit(total_bits-n,3);
+                    const std::size_t remaining_octs = octs - ((last_l > 0)? 6*(l - last_l)-1 : 0);
 
-                    return (sixb_rows > 1) + (sixb_rows > 2) + 1 + (2*remaining_bl2 > witness_amount) + (remaining_bl2 > 0);
+                    return (sixb_rows > 1) + (sixb_rows > 2) + 1 + (remaining_octs > 0);
                 }
 
 
                 static std::size_t rows_amount_internal(std::size_t witness_amount,
                                                         std::size_t n,
                                                         std::size_t total_bits) {
-                    return lfit(6*n + 2*lfit(total_bits-n,3), witness_amount ); // bits in chunks of 3, stored in 2-blocks
+
+                    std::size_t trans_6_bl_space = 6*n % witness_amount; // space occupied by 6-blocks in transition line
+                    // space for octs in transition line
+                    std::size_t trans_line_octs = (trans_6_bl_space > 0) ? witness_amount-1 - trans_6_bl_space : 0;
+
+                    return lfit(6*n, witness_amount)
+                           + lfit(lfit(total_bits-n,3) - trans_line_octs, witness_amount-1 ) // bits in chunks of 3 in all cols but the 1st
+                           + 1; // the row for storing 0
                 }
 
             public:
@@ -99,25 +106,21 @@ namespace nil {
                         std::size_t l = witness_amount / 6;       std::size_t o_l = o_witness_amount / 6;
                         std::size_t last_l = n % l;               std::size_t o_last_l = o_n % o_l;
                         std::size_t sixb_rows = lfit(n,l);        std::size_t o_sixb_rows = lfit(o_n,o_l);
-                        std::size_t bl2 = lfit(total_bits-n,3);   std::size_t o_bl2 = lfit(o_total_bits-o_n,3);
+                        std::size_t octs = lfit(total_bits-n,3);   std::size_t o_octs = lfit(o_total_bits-o_n,3);
 
-                        std::size_t remaining_bl2 = bl2 - ((last_l > 0)? 3*(l - last_l) : 0);
-                        std::size_t o_remaining_bl2 = o_bl2 - ((o_last_l > 0)? 3*(o_l - o_last_l) : 0);
+                        std::size_t remaining_octs = octs - ((last_l > 0)? 6*(l - last_l)-1 : 0);
+                        std::size_t o_remaining_octs = o_octs - ((o_last_l > 0)? 6*(o_l - o_last_l)-1 : 0);
 
-                        std::array<std::size_t,7> gates = { witness_amount,
+                        std::array<std::size_t,5> gates = { witness_amount,
                                                           last_l,
-                                                          remaining_bl2 % (3*l),
                                                           (sixb_rows > 1),
                                                           (sixb_rows > 2),
-                                                          (remaining_bl2 > 0),
-                                                          (2*remaining_bl2 > witness_amount) };
-                        std::array<std::size_t,7> o_gates = { o_witness_amount,
+                                                          (remaining_octs > 0) };
+                        std::array<std::size_t,5> o_gates = { o_witness_amount,
                                                             o_last_l,
-                                                            o_remaining_bl2 % (3*o_l),
                                                             (o_sixb_rows > 1),
                                                             (o_sixb_rows > 2),
-                                                            (o_remaining_bl2 > 0),
-                                                            (2*o_remaining_bl2 > o_witness_amount) };
+                                                            (o_remaining_octs > 0) };
                         return (gates < o_gates);
                     }
                 };
@@ -158,8 +161,7 @@ namespace nil {
                 // aliases and derivatives
                 const std::size_t WA = this->witness_amount();
                 const std::size_t six_bl_per_line = WA / 6; // 6-blocks per line
-                const std::size_t two_bl_per_line = WA / 2; // 2-block per line
-                const std::size_t two_blocks_count = lfit(total_bits-n,3); // number of 2-blocks
+                const std::size_t octs_blocks_count = lfit(total_bits-n,3); // number of 2-blocks
 
                 const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), n, total_bits);
 
@@ -172,7 +174,7 @@ namespace nil {
                 };
 
                 struct result_type {
-                    std::vector<std::array<var,3>> output = {}; // TODO -> vector<array<var,3>>
+                    std::vector<std::array<var,3>> output = {};
 
                     result_type(const fri_cosets &component, std::size_t start_row_index) {
                         const std::size_t n = component.n;
@@ -185,7 +187,6 @@ namespace nil {
                             output.push_back({ var(component.W(6*j + 3), start_row_index + i, false, var::column_type::witness),
                                    var(component.W(6*j + 4), start_row_index + i, false, var::column_type::witness),
                                    var(component.W(6*j + 5), start_row_index + i, false, var::column_type::witness) });
-
                         }
                     }
 
@@ -211,7 +212,6 @@ namespace nil {
                     n(n_),
                     total_bits(total_bits_),
                     omega(omega_) {
-
                 };
 
                 fri_cosets(std::initializer_list<
@@ -227,7 +227,6 @@ namespace nil {
                     n(n_),
                     total_bits(total_bits_),
                     omega(omega_) {
-
                 };
             };
 
@@ -247,11 +246,9 @@ namespace nil {
 
                 using value_type = typename BlueprintFieldType::value_type;
 
-                const std::size_t i0 = start_row_index;
+                const std::size_t WA = component.WA;
                 const std::size_t n = component.n;
                 const std::size_t l = component.six_bl_per_line;
-                const std::size_t bl2 = component.two_blocks_count;
-                const std::size_t bl2_line = component.two_bl_per_line;
 
                 typename BlueprintFieldType::integral_type x_decomp =
                                typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.x).data);
@@ -262,7 +259,7 @@ namespace nil {
                 // fill the 6-blocks
                 // top-down part
                 for(std::size_t b = 0; b < n; b++) {
-		    std::size_t i = i0 + b / l;
+		    std::size_t i = start_row_index + b / l;
                     std::size_t j = b % l;
                     assignment.witness(component.W(6*j),i) = value_type(x_decomp);
                     assignment.witness(component.W(6*j+1),i) = w_power;
@@ -274,20 +271,28 @@ namespace nil {
                 }
                 // down-top part
                 for(std::size_t b = n; b > 0; b--) {
-		    std::size_t i = i0 + (b-1) / l;
+		    std::size_t i = start_row_index + (b-1) / l;
                     std::size_t j = (b-1) % l;
                     assignment.witness(component.W(6*j+3),i) = coset_element;
                     assignment.witness(component.W(6*j+4),i) = (-1)*coset_element;
                     coset_element = coset_element * coset_element;
                 }
 
-                for(std::size_t b = 0; b < bl2; b++) {
-                    std::size_t i = i0 + (3*n + b)/bl2_line;
-                    std::size_t j = (3*n + b) % bl2_line;
-                    assignment.witness(component.W(2*j),i) = value_type(x_decomp);
-                    assignment.witness(component.W(2*j+1),i) = value_type(x_decomp % 8);
+                std::size_t i = (6*n) / WA;
+                std::size_t j = (6*n) % WA;
+                assignment.witness(component.W(j),start_row_index + i) = value_type(x_decomp);
+                j++;
+                while(i < component.rows_amount-1) {
+                    assignment.witness(component.W(j),start_row_index + i) = value_type(x_decomp % 8);
                     x_decomp = x_decomp / 8;
+                    j++;
+                    if (j == WA) {
+                        i++;
+                        assignment.witness(component.W(0),start_row_index + i) = value_type(x_decomp);
+                        j = 1;
+                    }
                 }
+
                 return typename plonk_fri_cosets<BlueprintFieldType, ArithmetizationParams>::result_type(component, start_row_index);
             }
 
@@ -305,6 +310,8 @@ namespace nil {
                 bp.add_copy_constraint({instance_input.x, var(component.W(0), start_row_index, false)});
                 bp.add_copy_constraint({var(0, start_row_index, false, var::column_type::constant),
                                         var(component.W(1), start_row_index, false)});
+                bp.add_copy_constraint({var(0, start_row_index + 1, false, var::column_type::constant),
+                                        var(component.W(0), start_row_index + component.rows_amount - 1, false)});
             }
 
             template<typename BlueprintFieldType,
@@ -325,45 +332,46 @@ namespace nil {
                 const std::size_t l = component.six_bl_per_line;
                 const std::size_t sixb_rows = lfit(component.n,l); // number of rows with 6-blocks
                 const std::size_t last_l = component.n % l; // 6-blocks in transition row. If 0, no transition row exists
-
-                const std::size_t bl2 = component.two_blocks_count;
-                const std::size_t bl2_line = component.two_bl_per_line;
+                const std::size_t octs = component.octs_blocks_count;
 
                 std::size_t selector_index;
 
                 std::vector<constraint_type> six_block;
-                std::vector<constraint_type> two_block;
+                std::vector<constraint_type> oct_line;
                 std::vector<constraint_type> cs;
-                constraint_type first_W2 = var(component.W(1),0)*var(component.W(5),0) + 1 - var(component.W(5),0) - var(component.W(2),0);
+                constraint_type first_W2 = var(component.W(1),0)*var(component.W(5),0) + 1-var(component.W(5),0) - var(component.W(2),0);
 
                 // Store typical constraints for every column
                 six_block.resize(WA);
                 for(std::size_t j = 0; j < l; j++) {
-                    six_block[6*j]   = var(component.W(6*j),0) - 2*var(component.W(6*((j+1) % l)),(j+1)/l) - var(component.W(6*j+5),0);
-                    six_block[6*j+1] = var(component.W(6*j+1),0) -
-                                       var(component.W(6*((l+j-1) % l) + 1), -(j == 0)) * var(component.W(6*((l+j-1) % l) + 1), -(j == 0));
-                    six_block[6*j+2] = var(component.W(6*j + 2),0) -
-                                           var(component.W(6*((l+j-1) % l) + 2), -(j == 0))*
-                                           (var(component.W(6*j + 1),0)*var(component.W(6*j + 5),0) + 1 - var(component.W(6*j + 5),0));
-                    six_block[6*j+3] = var(component.W(6*j + 3),0) -
-                                       var(component.W(6*((j+1) % l) + 3),(j+1)/l)*var(component.W(6*((j+1) % l) + 3),(j+1)/l);
-                    six_block[6*j+4] = var(component.W(6*j + 3),0) + var(component.W(6*j + 4),0);
-                    six_block[6*j+5] = (1 - var(component.W(6*j + 5),0)) * var(component.W(6*j + 5),0);
+                    var W0 = var(component.W(6*j),0),
+                        W1 = var(component.W(6*j + 1),0),
+                        W2 = var(component.W(6*j + 2),0),
+                        W3 = var(component.W(6*j + 3),0),
+                        W4 = var(component.W(6*j + 4),0),
+                        W5 = var(component.W(6*j + 5),0),
+                        W0next = var(component.W(6*((j+1) % l)),(j+1)/l),
+                        W1prev = var(component.W(6*((l+j-1) % l) + 1), -(j == 0)),
+                        W2prev = var(component.W(6*((l+j-1) % l) + 2), -(j == 0)),
+                        W3next = var(component.W(6*((j+1) % l) + 3),(j+1)/l);
+
+                    six_block[6*j]   = W0 - 2*W0next - W5;
+                    six_block[6*j+1] = W1 - W1prev * W1prev;
+                    six_block[6*j+2] = W2 - W2prev * (W1*W5 + 1-W5);
+                    six_block[6*j+3] = W3 - W3next * W3next;
+                    six_block[6*j+4] = W3 + W4;
+                    six_block[6*j+5] = (1 - W5) * W5;
                 }
 
-                two_block.resize(WA);
-                for(std::size_t j = 0; j < bl2_line; j++) {
-                    two_block[2*j] = var(component.W(2*j),0)
-                                - 8* var(component.W(2*((j+1) % bl2_line)),(j+1)/bl2_line) - var(component.W(2*j + 1),0);
-                    two_block[2*j+1] = var(component.W(2*j + 1),0) *
-                                       (var(component.W(2*j + 1),0) - 1)*
-                                       (var(component.W(2*j + 1),0) - 2)*
-                                       (var(component.W(2*j + 1),0) - 3)*
-                                       (var(component.W(2*j + 1),0) - 4)*
-                                       (var(component.W(2*j + 1),0) - 5)*
-                                       (var(component.W(2*j + 1),0) - 6)*
-                                       (var(component.W(2*j + 1),0) - 7);
+                oct_line.resize(WA);
+                oct_line[0] = var(component.W(0),1);
+                for(std::size_t j = WA-1; j > 0; j--) {
+                    var Wj = var(component.W(j),0);
+                    oct_line[0] *= 8;
+                    oct_line[0] += Wj;
+                    oct_line[j] = Wj * (Wj - 1) * (Wj - 2) * (Wj - 3) * (Wj - 4) * (Wj - 5) * (Wj - 6) * (Wj - 7);
                 }
+                oct_line[0] -= var(component.W(0),0);
 
                 if (sixb_rows > 1) { // there is a starting row which is not final (gate type 1)
                     cs = {six_block[0]};
@@ -395,49 +403,33 @@ namespace nil {
                 cs.push_back(six_block[6*(last-1)+4]);
                 cs.push_back(six_block[6*(last-1)+5]);
 
-                if (last_l > 0) { // the 2-blocks start in the middle of the line
-                    if (6*last_l + 2*bl2 <= WA) { // this is actually the last row
-                        // standard constraints for all 2-blocks except the last one
-                        cs.insert(cs.end(),
-                                  std::next(two_block.begin(),6*last_l),
-                                  std::next(two_block.begin(),6*last_l + 2*(bl2 - 1))
-                                 );
-                        cs.push_back(var(component.W(6*last_l + 2*(bl2 - 1)),0) -
-                                     var(component.W(6*last_l + 2*(bl2 - 1) + 1),0));
-                        cs.push_back(two_block[6*last_l + 2*(bl2 - 1) + 1]);
-                    } else { // 2-block don't end there
-                        cs.insert(cs.end(),
-                                  std::next(two_block.begin(),6*last_l),
-                                  two_block.end());
+                if (last_l > 0) { // there are octets on the transition line
+                    constraint_type mid = var(component.W(0),1);
+
+                    for(std::size_t j = WA-1; j > 6*last_l; j--) {
+                        mid *= 8;
+                        mid += var(component.W(j),0);
                     }
+                    mid -= var(component.W(6*last_l),0);
+                    cs.push_back(mid);
+
+                    cs.insert(cs.end(),
+                              std::next(oct_line.begin(),6*last_l + 1),
+                              oct_line.end());
                 }
                 selector_index = bp.add_gate(cs); // type 3 gate
                 // Applying gate type 3 to line (sixb_rows - 1)
                 assignment.enable_selector(selector_index, start_row_index + sixb_rows - 1);
 
                 // the number of 2-blocks not fitting on the "transition" line
-                std::size_t remaining_bl2 = bl2 - (last_l > 0 ? bl2_line - 3*last_l : 0);
-                if (remaining_bl2 > bl2_line) {
-                    selector_index = bp.add_gate(two_block); // type 4 gate
-                    // Applying gate type 4 to lines sixb_rows -- (sixb_rows + lfit(remaining_bl2,bl2_line) - 2)
-                    for(std::size_t i = 0; i < lfit(remaining_bl2,bl2_line) - 1; i++) {
+                std::size_t remaining_octs = octs - (last_l > 0 ? 6*(l - last_l)-1 : 0);
+                if (remaining_octs > 0) {
+                    selector_index = bp.add_gate(oct_line); // type 4 gate
+                    // Applying gate type 4 to lines sixb_rows -- (sixb_rows + lfit(remaining_octs,WA-1) - 2)
+                    for(std::size_t i = 0; i < lfit(remaining_octs, WA - 1); i++) {
                         assignment.enable_selector(selector_index, start_row_index + sixb_rows + i);
                     }
                 }
-
-                std::size_t last_bl2 = remaining_bl2 % bl2_line; // number of 2-blocks in the last 2-block line
-                if (last_bl2 == 0) { last_bl2 = bl2_line; }
-                if (remaining_bl2 > 0) { // if 2-blocks don't all fit into transition row (gate type 5)
-                    cs.clear();
-                    cs.insert(cs.end(),two_block.begin(),std::next(two_block.begin(),2*(last_bl2-1)));
-                    cs.push_back(var(component.W(2*(last_bl2-1)),0) - var(component.W(2*(last_bl2-1) + 1),0));
-                    cs.push_back(two_block[2*last_bl2 - 1]);
-                    selector_index = bp.add_gate(cs);
-                    // Applying gate type 5 to line (sixb_rows + lfit(remaining_bl2, bl2_line) - 1)
-                    assignment.enable_selector(selector_index,
-                                               start_row_index + sixb_rows + lfit(remaining_bl2, bl2_line) - 1);
-                }
-
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 generate_assignments_constant(component, assignment, instance_input, start_row_index);
 
@@ -452,6 +444,7 @@ namespace nil {
                 const std::size_t start_row_index) {
 
                 assignment.constant(component.C(0), start_row_index) = component.omega;
+                assignment.constant(component.C(0), start_row_index + 1) = 0; // a zero to make a copy-constraint with
             }
         }    // namespace components
     }        // namespace blueprint
