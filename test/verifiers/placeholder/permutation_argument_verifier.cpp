@@ -63,11 +63,26 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     std::size_t m = (public_input.size() - 7) / 3;
     component_type component_instance({0, 1, 2, 3, 4, 5}, {}, {}, m);
 
-    std::vector<var> input_vars;
-    for (int i = 0; i < 3 * m + 7; i++) {
-        input_vars.push_back(var(0, i, false, var::column_type::public_input));
+    std::vector<var> f, Se, Ssigma;
+    var L0, V, V_zeta, q_last, q_pad;
+    std::array<var, 2> thetas;
+    for (int i = 0; i < m; i++) {
+        f.push_back(var(0, i, false, var::column_type::public_input));
     }
-    typename component_type::input_type instance_input = {input_vars};
+    for (int i = 0; i < m; i++) {
+        Se.push_back(var(0, m + i, false, var::column_type::public_input));
+    }
+    for (int i = 0; i < m; i++) {
+        Ssigma.push_back(var(0, 2 * m + i, false, var::column_type::public_input));
+    }
+    L0 = var(0, 3 * m, false, var::column_type::public_input);
+    V = var(0, 3 * m + 1, false, var::column_type::public_input);
+    V_zeta = var(0, 3 * m + 2, false, var::column_type::public_input);
+    q_last = var(0, 3 * m + 3, false, var::column_type::public_input);
+    q_pad = var(0, 3 * m + 4, false, var::column_type::public_input);
+    thetas[0] = var(0, 3 * m + 5, false, var::column_type::public_input);
+    thetas[1] = var(0, 3 * m + 6, false, var::column_type::public_input);
+    typename component_type::input_type instance_input = {f, Se, Ssigma, L0, V, V_zeta, q_last, q_pad, thetas};
 
     auto result_check = [expected_res](AssignmentType &assignment, typename component_type::result_type &real_res) {
         for (std::size_t i = 0; i < 3; i++) {
@@ -79,7 +94,12 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     };
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG, m);
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        nil::crypto3::detail::connectedness_check_type::STRONG,
+        m);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)

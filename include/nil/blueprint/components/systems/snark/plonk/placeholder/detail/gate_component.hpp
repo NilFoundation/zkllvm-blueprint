@@ -99,10 +99,7 @@ namespace nil {
                         bool operator<(const component_gate_manifest *other) const override {
                             std::size_t other_witness_amount =
                                 dynamic_cast<const gate_manifest_type *>(other)->witness_amount;
-                            return (witness_amount < other_witness_amount) ||
-                                   (witness_amount == other_witness_amount &&
-                                    this->gates_amount() <
-                                        dynamic_cast<const gate_manifest_type *>(other)->gates_amount());
+                            return witness_amount < other_witness_amount;
                         }
                     };
 

@@ -86,11 +86,29 @@ namespace nil {
                 }
 
                 struct input_type {
-                    std::vector<var> _input;
+                    std::vector<var> f;
+                    std::vector<var> Se;
+                    std::vector<var> Ssigma;
+                    var L0;
+                    var V;
+                    var V_zeta;
+                    var q_last;
+                    var q_pad;
+                    std::array<var, 2> thetas;
+
 
                     std::vector<var> all_vars() const {
                         std::vector<var> vars;
-                        vars.insert(vars.end(), _input.begin(), _input.end());
+                        vars.insert(vars.end(), f.begin(), f.end());
+                        vars.insert(vars.end(), Se.begin(), Se.end());
+                        vars.insert(vars.end(), Ssigma.begin(), Ssigma.end());
+                        vars.push_back(L0);
+                        vars.push_back(V);
+                        vars.push_back(V_zeta);
+                        vars.push_back(q_last);
+                        vars.push_back(q_pad);
+                        vars.push_back(thetas[0]);
+                        vars.push_back(thetas[1]);
                         return vars;
                     }
                 };
@@ -150,34 +168,34 @@ namespace nil {
 
                 using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::var;
 
-                assert(instance_input._input.size() == 3 * component.m + 7);
+                assert(instance_input.f.size() == component.m);
 
                 std::size_t m = component.m;
 
                 std::vector<typename BlueprintFieldType::value_type> f, Se, Ssigma;
                 for (std::size_t i = 0; i < m; i++) {
-                    f.push_back(var_value(assignment, instance_input._input[i]));
-                    Se.push_back(var_value(assignment, instance_input._input[m + i]));
-                    Ssigma.push_back(var_value(assignment, instance_input._input[2 * m + i]));
+                    f.push_back(var_value(assignment, instance_input.f[i]));
+                    Se.push_back(var_value(assignment, instance_input.Se[i]));
+                    Ssigma.push_back(var_value(assignment, instance_input.Ssigma[i]));
                 }
                 typename BlueprintFieldType::value_type one = BlueprintFieldType::value_type::one();
                 typename BlueprintFieldType::value_type fe = one;
                 typename BlueprintFieldType::value_type fsigma = one;
 
                 typename BlueprintFieldType::value_type theta_1 =
-                    var_value(assignment, instance_input._input[3 * m + 5]);
+                    var_value(assignment, instance_input.thetas[0]);
                 typename BlueprintFieldType::value_type theta_2 =
-                    var_value(assignment, instance_input._input[3 * m + 6]);
+                    var_value(assignment, instance_input.thetas[1]);
 
-                typename BlueprintFieldType::value_type L0_y = var_value(assignment, instance_input._input[3 * m]);
+                typename BlueprintFieldType::value_type L0_y = var_value(assignment, instance_input.L0);
                 typename BlueprintFieldType::value_type Vsigma_y =
-                    var_value(assignment, instance_input._input[3 * m + 1]);
+                    var_value(assignment, instance_input.V);
                 typename BlueprintFieldType::value_type Vsigma_zetay =
-                    var_value(assignment, instance_input._input[3 * m + 2]);
+                    var_value(assignment, instance_input.V_zeta);
                 typename BlueprintFieldType::value_type q_last_y =
-                    var_value(assignment, instance_input._input[3 * m + 3]);
+                    var_value(assignment, instance_input.q_last);
                 typename BlueprintFieldType::value_type q_pad_y =
-                    var_value(assignment, instance_input._input[3 * m + 4]);
+                    var_value(assignment, instance_input.q_pad);
 
                 for (std::size_t i = 0; i < m; i++) {
                     fe = fe * (f[i] + theta_1 * Se[i] + theta_2);
@@ -295,19 +313,19 @@ namespace nil {
                 using var = typename plonk_permutation_verifier<BlueprintFieldType, ArithmetizationParams>::var;
 
                 for (std::size_t i = 0; i < m; i++) {
-                    bp.add_copy_constraint({var(component.W(1), row, false), instance_input._input[i]});
-                    bp.add_copy_constraint({var(component.W(2), row, false), instance_input._input[m + i]});
+                    bp.add_copy_constraint({var(component.W(1), row, false), instance_input.f[i]});
+                    bp.add_copy_constraint({var(component.W(2), row, false), instance_input.Se[i]});
                     bp.add_copy_constraint(
-                        {var(component.W(3), row, false), instance_input._input[3 * m + 5 + (i & 1)]});
-                    bp.add_copy_constraint({var(component.W(4), row, false), instance_input._input[2 * m + i]});
+                        {var(component.W(3), row, false), instance_input.thetas[(i & 1)]});
+                    bp.add_copy_constraint({var(component.W(4), row, false), instance_input.Ssigma[i]});
                     row++;
                 }
-                bp.add_copy_constraint({var(component.W(1), row, false), instance_input._input[3 * m + 3]});
-                bp.add_copy_constraint({var(component.W(2), row, false), instance_input._input[3 * m + 4]});
-                bp.add_copy_constraint({var(component.W(3), row, false), instance_input._input[3 * m]});
+                bp.add_copy_constraint({var(component.W(1), row, false), instance_input.q_last});
+                bp.add_copy_constraint({var(component.W(2), row, false), instance_input.q_pad});
+                bp.add_copy_constraint({var(component.W(3), row, false), instance_input.L0});
                 row++;
-                bp.add_copy_constraint({var(component.W(1), row, false), instance_input._input[3 * m + 1]});
-                bp.add_copy_constraint({var(component.W(3), row, false), instance_input._input[3 * m + 2]});
+                bp.add_copy_constraint({var(component.W(1), row, false), instance_input.V});
+                bp.add_copy_constraint({var(component.W(3), row, false), instance_input.V_zeta});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>

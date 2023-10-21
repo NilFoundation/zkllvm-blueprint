@@ -44,14 +44,15 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class basic_constraints_verifier<
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 1> {
+                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 1> {
 
-                constexpr static const std::uint32_t ConstantsAmount = 0;
+                constexpr static const std::uint32_t ConstantsAmount = 1;
 
                 constexpr static const std::size_t rows_amount_internal(std::size_t witness_amount,
                                                                         const std::vector<std::size_t> &gate_sizes) {
 
                     std::size_t r = 0;
+
                     for (std::size_t i = 0; i < gate_sizes.size(); i++) {
                         if (gate_sizes[i] == 1) {
                             r += mul::get_rows_amount(witness_amount, 0);
@@ -59,16 +60,13 @@ namespace nil {
                             r += gate_component::get_rows_amount(witness_amount, 0, gate_sizes[i] - 1);
                         }
                     }
-                    r += std::ceil(gate_sizes.size() * 1.0 / (witness_amount - 1));
-                    return r;
-                }
 
-                constexpr static const std::size_t gates_amount_internal(std::size_t witness_amount,
-                                                                         const std::vector<std::size_t> &gate_sizes) {
-                    if (gate_sizes.size() < witness_amount) {
-                        return 1;
+                    if (gate_sizes.size() > 1) {
+                        std::size_t total_deg = std::accumulate(gate_sizes.begin(), gate_sizes.end() - 1, 0);
+                        r += gate_component::get_rows_amount(witness_amount, 0, total_deg);
                     }
-                    return 3;
+
+                    return r;
                 }
 
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
@@ -91,52 +89,45 @@ namespace nil {
 
                 const std::vector<std::size_t> gate_sizes;
                 const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), gate_sizes);
-                const std::size_t gates_amount = gates_amount_internal(this->witness_amount(), gate_sizes);
+                constexpr static const std::size_t gates_amount = 0;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
-                    std::vector<std::size_t> gate_sizes;
-                    std::size_t witness_amount;
-
-                    gate_manifest_type(std::size_t witness_amount_, std::vector<std::size_t> &gate_sizes_) :
-                        witness_amount(witness_amount_), gate_sizes(gate_sizes_) {
-                    }
-
                     std::uint32_t gates_amount() const override {
-                        return basic_constraints_verifier::gates_amount_internal(witness_amount, gate_sizes);
-                    }
-
-                    bool operator<(const component_gate_manifest *other) const override {
-                        std::size_t other_witness_amount =
-                            dynamic_cast<const gate_manifest_type *>(other)->witness_amount;
-                        return witness_amount < other_witness_amount;
+                        return 0;
                     }
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
                                                        std::size_t lookup_column_amount,
                                                        std::vector<std::size_t> &gate_sizes) {
+
                     std::vector<std::size_t>::iterator min_degree =
                         std::min_element(gate_sizes.begin(), gate_sizes.end());
                     std::vector<std::size_t>::iterator max_degree =
                         std::max_element(gate_sizes.begin(), gate_sizes.end());
+
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                     if (*min_degree == 1 && *max_degree > *min_degree) {
-                        gate_manifest manifest =
-                            gate_manifest(gate_manifest_type(witness_amount, gate_sizes))
-                                .merge_with(mul::get_gate_manifest(witness_amount, lookup_column_amount))
-                                .merge_with(gate_component::get_gate_manifest(witness_amount, lookup_column_amount, *max_degree - 1));
-                        return manifest;
+                        manifest = manifest.merge_with(mul::get_gate_manifest(witness_amount, lookup_column_amount))
+                                       .merge_with(gate_component::get_gate_manifest(
+                                           witness_amount, lookup_column_amount, *max_degree - 1));
+
                     } else if (*min_degree == 1 && *min_degree == *max_degree) {
-                        gate_manifest manifest =
-                            gate_manifest(gate_manifest_type(witness_amount, gate_sizes))
-                                .merge_with(mul::get_gate_manifest(witness_amount, lookup_column_amount));
-                        return manifest;
+                        manifest = manifest.merge_with(mul::get_gate_manifest(witness_amount, lookup_column_amount));
+
                     } else {
-                        gate_manifest manifest =
-                            gate_manifest(gate_manifest_type(witness_amount, gate_sizes))
-                                .merge_with(gate_component::get_gate_manifest(witness_amount, lookup_column_amount, *min_degree - 1));
-                        return manifest;
+                        manifest = manifest.merge_with(
+                            gate_component::get_gate_manifest(witness_amount, lookup_column_amount, *min_degree - 1));
                     }
+
+                    if (gate_sizes.size() > 1 && *max_degree == 1) {
+                        std::size_t total_deg = std::accumulate(gate_sizes.begin(), gate_sizes.end() - 1, 0);
+                        manifest = manifest.merge_with(
+                            gate_component::get_gate_manifest(witness_amount, lookup_column_amount, total_deg));
+                    }
+
+                    return manifest;
                 }
 
                 static manifest_type get_manifest() {
@@ -148,13 +139,13 @@ namespace nil {
 
                 struct input_type {
                     var theta;
-                    std::vector<var> gates;
+                    std::vector<var> constraints;
                     std::vector<var> selectors;
 
                     std::vector<var> all_vars() const {
                         std::vector<var> vars;
                         vars.push_back(theta);
-                        vars.insert(vars.end(), gates.begin(), gates.end());
+                        vars.insert(vars.end(), constraints.begin(), constraints.end());
                         vars.insert(vars.end(), selectors.begin(), selectors.end());
                         return vars;
                     }
@@ -164,8 +155,12 @@ namespace nil {
                     var output;
 
                     result_type(const basic_constraints_verifier &component, std::uint32_t start_row_index) {
-                        output = var(component.W(component.witness_amount() - 1),
-                                     start_row_index + component.rows_amount - 1, false);
+                        if (component.gate_sizes.size() == 1 && component.gate_sizes[0] == 1) {
+                            output = var(component.W(2), start_row_index + component.rows_amount - 1, false);
+                        } else {
+                            output = var(component.W(component.witness_amount() - 1),
+                                         start_row_index + component.rows_amount - 1, false);
+                        }
                     }
 
                     std::vector<var> all_vars() const {
@@ -202,6 +197,25 @@ namespace nil {
                 crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_constant(
+                const plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input,
+                const std::size_t start_row_index) {
+                // std::vector<std::size_t>::iterator max_size =
+                    // std::max_element(component.gate_sizes.begin(), component.gate_sizes.end());
+                // if (*max_size > 1) {
+                    assignment.constant(component.C(0), start_row_index) = BlueprintFieldType::value_type::zero();
+                    assignment.constant(component.C(0), start_row_index + 1) = BlueprintFieldType::value_type::one();
+                // }else{
+                    // assignment.constant(component.C(0), start_row_index + 1) = BlueprintFieldType::value_type::one();
+                // }
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_assignments(
                     const plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams> &component,
@@ -235,7 +249,7 @@ namespace nil {
                         mul mul_instance =
                             mul(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>());
 
-                        typename mul::input_type mul_input = {instance_input.gates[start], instance_input.selectors[i]};
+                        typename mul::input_type mul_input = {instance_input.constraints[start], instance_input.selectors[i]};
                         typename mul::result_type mul_result =
                             generate_assignments(mul_instance, assignment, mul_input, row);
                         G.push_back(mul_result.output);
@@ -245,8 +259,8 @@ namespace nil {
                                                                       std::array<std::uint32_t, 1>(), c_size - 1);
 
                         std::vector<var> constraints;
-                        constraints.insert(constraints.begin(), instance_input.gates.begin() + start,
-                                           instance_input.gates.begin() + start + component.gate_sizes[i]);
+                        constraints.insert(constraints.begin(), instance_input.constraints.begin() + start,
+                                           instance_input.constraints.begin() + start + component.gate_sizes[i]);
                         typename gate_component::input_type gate_input = {instance_input.theta, constraints,
                                                                           instance_input.selectors[i]};
 
@@ -259,25 +273,34 @@ namespace nil {
                     start += component.gate_sizes[i];
                 }
 
-                std::size_t r = 0, j = 0;
-                for (std::size_t i = 0; i < G.size(); i++) {
-                    r = i / (witness_amount - 1);
-                    j = i % (witness_amount - 1);
-                    assignment.witness(component.W(j), row + r) = var_value(assignment, G[i]);
-                }
+                if (n_sl > 1) {
+                    std::size_t total_deg =
+                        std::accumulate(component.gate_sizes.begin(), component.gate_sizes.end() - 1, 0);
 
-                std::size_t k = witness_amount - 1;
-                typename BlueprintFieldType::value_type sum = 0;
-                for (std::size_t rr = 0; rr <= r; rr++) {
-                    for (std::size_t i = 0; i < k; i++) {
-                        if (k * rr + i >= G.size()) {
-                            break;
+                    gate_component final_gate = gate_component(witnesses, std::array<std::uint32_t, 0>(),
+                                                               std::array<std::uint32_t, 1>(), total_deg);
+
+                    std::vector<var> constraints;
+                    std::size_t j = 0, sum = 0;
+                    for (std::size_t i = 0; i <= total_deg; i++) {
+                        if (i == sum) {
+                            constraints.push_back(G[j]);
+                            sum += component.gate_sizes[j];
+                            j++;
+                        } else {
+                            constraints.push_back(
+                                var(component.C(0), start_row_index, false, var::column_type::constant));
                         }
-                        sum += var_value(assignment, G[k * rr + i]);
                     }
-                    assignment.witness(component.W(witness_amount - 1), row + r) = sum;
+                    var q = var(component.C(0), start_row_index + 1, false, var::column_type::constant);
+
+                    typename gate_component::input_type gate_input = {instance_input.theta, constraints, q};
+
+                    typename gate_component::result_type gate_i_result =
+                        generate_assignments(final_gate, assignment, gate_input, row);
+
+                    row += final_gate.rows_amount;
                 }
-                row += r;
 
                 return
                     typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -293,45 +316,7 @@ namespace nil {
                 const typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
                     instance_input) {
 
-                using var = typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::var;
-
-                using term = typename crypto3::zk::snark::plonk_constraint<BlueprintFieldType>::base_type;
-
-                std::size_t witness_amount = component.witness_amount();
-                std::size_t n_sl = component.gate_sizes.size();
-                std::size_t last_pos = n_sl % witness_amount;
-
-                std::vector<std::size_t> selectors;
-
-                if (n_sl < witness_amount) {
-                    term constraint_1 = var(component.W(witness_amount - 1), 0);
-                    for (std::size_t j = 0; j < last_pos; j++) {
-                        constraint_1 = constraint_1 - var(component.W(j), 0);
-                    }
-                    selectors.push_back(bp.add_gate({constraint_1}));
-                } else {
-                    term constraint_1 = var(component.W(witness_amount - 1), 0);
-                    for (std::size_t j = 0; j < witness_amount - 1; j++) {
-                        constraint_1 = constraint_1 - var(component.W(j), 0);
-                    }
-                    selectors.push_back(bp.add_gate({constraint_1}));
-
-                    term constraint_2 =
-                        var(component.W(witness_amount - 1), 0) - var(component.W(witness_amount - 1), -1);
-                    for (std::size_t j = 0; j < witness_amount - 1; j++) {
-                        constraint_2 = constraint_2 - var(component.W(j), 0);
-                    }
-                    selectors.push_back(bp.add_gate({constraint_2}));
-
-                    term constraint_3 =
-                        var(component.W(witness_amount - 1), 0) - var(component.W(witness_amount - 1), -1);
-                    for (std::size_t j = 0; j < last_pos; j++) {
-                        constraint_3 = constraint_3 - var(component.W(j), 0);
-                    }
-                    selectors.push_back(bp.add_gate({constraint_3}));
-                }
-
-                return selectors;
+                return {};
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -343,43 +328,6 @@ namespace nil {
                 const typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
                     instance_input,
                 const std::size_t start_row_index) {
-
-                using var = typename plonk_basic_constraints_verifier<BlueprintFieldType, ArithmetizationParams>::var;
-                std::size_t row = start_row_index;
-                std::size_t n_sl = component.gate_sizes.size();
-                std::size_t witness_amount = component.witness_amount();
-
-                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
-                    ArithmetizationType;
-
-                using gate_component = detail::gate_component<ArithmetizationType>;
-                using mul = multiplication<ArithmetizationType, BlueprintFieldType,
-                                           basic_non_native_policy<BlueprintFieldType>>;
-
-                std::vector<std::size_t> row_positions;
-                std::size_t r = 0;
-                for (std::size_t i = 0; i < n_sl; i++) {
-                    if (component.gate_sizes[i] == 1) {
-                        r = mul::get_rows_amount(witness_amount, 0);    // or r = 1;
-                    } else {
-                        r = gate_component::get_rows_amount(witness_amount, 0, component.gate_sizes[i] - 1);
-                    }
-                    row += r;
-                    row_positions.push_back(row);
-                }
-                assert(row_positions.size() == n_sl);
-
-                for (std::size_t i = 0; i < n_sl; i++) {
-                    std::size_t j = i % witness_amount;
-                    std::size_t r = i / (witness_amount - 1);
-                    if (component.gate_sizes[i] == 1) {
-                        bp.add_copy_constraint(
-                            {var(component.W(j), row + r, false), var(component.W(2), row_positions[i] - 1, false)});
-                    } else {
-                        bp.add_copy_constraint({var(component.W(j), row + r, false),
-                                                var(component.W(witness_amount - 1), row_positions[i] - 1, false)});
-                    }
-                }
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -405,52 +353,76 @@ namespace nil {
                 std::size_t n_sl = component.gate_sizes.size();
                 std::size_t witness_amount = component.witness_amount();
 
-                std::vector<typename BlueprintFieldType::value_type> G;
                 std::vector<std::uint32_t> witnesses;
                 for (std::uint32_t i = 0; i < witness_amount; i++) {
                     witnesses.push_back(component.W(i));
                 }
 
                 std::size_t start = 0;
+                std::vector<var> G;
                 for (std::size_t i = 0; i < n_sl; i++) {
                     if (component.gate_sizes[i] == 1) {
                         mul mul_instance =
                             mul(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>());
-                        typename mul::input_type mul_input = {instance_input.gates[start], instance_input.selectors[i]};
+                        typename mul::input_type mul_input = {instance_input.constraints[start], instance_input.selectors[i]};
                         typename mul::result_type mul_result =
                             generate_circuit(mul_instance, bp, assignment, mul_input, row);
 
+                        G.push_back(mul_result.output);
                         row += mul_instance.rows_amount;
                     } else {
                         gate_component gate_instance =
                             gate_component(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>(),
                                            component.gate_sizes[i] - 1);
                         std::vector<var> constraints;
-                        constraints.insert(constraints.begin(), instance_input.gates.begin() + start,
-                                           instance_input.gates.begin() + start + component.gate_sizes[i]);
+                        constraints.insert(constraints.begin(), instance_input.constraints.begin() + start,
+                                           instance_input.constraints.begin() + start + component.gate_sizes[i]);
                         typename gate_component::input_type gate_input = {instance_input.theta, constraints,
                                                                           instance_input.selectors[i]};
 
                         typename gate_component::result_type gate_i_result =
                             generate_circuit(gate_instance, bp, assignment, gate_input, row);
+                        G.push_back(gate_i_result.output);
                         row += gate_instance.rows_amount;
                     }
                     start += component.gate_sizes[i];
                 }
 
+                if (n_sl > 1) {
+                    
+                    generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
+
+                    std::size_t total_deg =
+                        std::accumulate(component.gate_sizes.begin(), component.gate_sizes.end() - 1, 0);
+
+                    gate_component final_gate = gate_component(witnesses, std::array<std::uint32_t, 0>(),
+                                                               std::array<std::uint32_t, 1>(), total_deg);
+
+                    std::vector<var> constraints;
+                    std::size_t j = 0, sum = 0;
+                    for (std::size_t i = 0; i <= total_deg; i++) {
+                        if (i == sum) {
+                            constraints.push_back(G[j]);
+                            sum += component.gate_sizes[j];
+                            j++;
+                        } else {
+                            constraints.push_back(
+                                var(component.C(0), start_row_index, false, var::column_type::constant));
+                        }
+                    }
+                    var q = var(component.C(0), start_row_index + 1, false, var::column_type::constant);
+
+                    typename gate_component::input_type gate_input = {instance_input.theta, constraints, q};
+
+                    typename gate_component::result_type gate_i_result =
+                        generate_circuit(final_gate, bp, assignment, gate_input, row);
+
+                    row += final_gate.rows_amount;
+                }
+
                 std::vector<std::size_t> selectors = generate_gates(component, bp, assignment, instance_input);
 
-                assignment.enable_selector(selectors[0], row);
-
-                if (n_sl >= witness_amount) {
-                    row++;
-                    std::size_t n = n_sl / witness_amount;
-                    while (n--) {
-                        assignment.enable_selector(selectors[1], row);
-                        row++;
-                    }
-                    assignment.enable_selector(selectors[2], row);
-                }
+                assert(selectors.empty());
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
