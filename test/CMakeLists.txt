@@ -136,6 +136,11 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/fri_cosets"
     "verifiers/placeholder/fri_lin_inter"
     "verifiers/placeholder/fri_array_swap"
+    "verifiers/placeholder/permutation_argument_verifier"
+    "verifiers/placeholder/gate_argument_verifier"
+    "verifiers/placeholder/gate_component"
+    "verifiers/placeholder/f1_loop"
+    "verifiers/placeholder/f3_loop"
     )
 
 set(FIELDS_TESTS_FILES

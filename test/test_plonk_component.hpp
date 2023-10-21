@@ -283,7 +283,7 @@ namespace nil {
 
             if(nil::blueprint::use_lookups<component_type>()){
                 // Components with lookups may use constant columns.
-                // But now all constants are placed in the first column.
+                // But now all constants are placed in the first column
                 // So we reserve the first column for non-lookup constants.
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
