@@ -46,13 +46,12 @@ namespace nil {
 
                 constexpr static const std::uint32_t ConstantsAmount = 0;
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 0>;
-
                 constexpr static const std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t m) {
                     return m + 2;
                 }
 
             public:
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 0>;
                 using var = typename component_type::var;
                 using manifest_type = nil::blueprint::plonk_component_manifest;
 
