@@ -39,16 +39,23 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-            // compute the number of lines if we need to place o object with pl object per line
-            template<typename T1, typename T2>
-            T1 lfit(T1 o, T2 pl) {
-                 return o/pl + (o % pl > 0);
-            }
+            namespace detail {
+                // compute the number of lines if we need to place o object with pl object per line
+                template<typename T1, typename T2>
+                T1 lfit(T1 o, T2 pl) {
+                    return o/pl + (o % pl > 0);
+                }
+            } // namespace detail
 
-	    // Uses parameters  n, total_bits, omega
+            // Uses parameters  n, total_bits, omega
             // Input: x (challenge, originally uint64_t, takes total_bits bits)
             // Output: vector of triplets < (s,-s,b) >, where s_0 = omega^{x % 2^n}, s_{i+1} = s_i^2,
-	    // b = 0 or 1, showing whether the pair (s,-s) needs reordering
+            // b = 0 or 1, showing whether the pair (s,-s) needs reordering
+            // For details see https://www.notion.so/nilfoundation/FRI-cosets-generator-910475aa46e54bdc986407d178428a8a?pvs=4
+            //
+
+            using detail::lfit;
+
             template<typename ArithmetizationType, typename FieldType>
             class fri_cosets;
 
@@ -59,7 +66,7 @@ namespace nil {
                 public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
 
                 static std::size_t gates_amount_internal(std::size_t witness_amount, std::size_t n, std::size_t total_bits) {
-		    const std::size_t l = witness_amount / 6; // number of 6-blocks per row
+                    const std::size_t l = witness_amount / 6; // number of 6-blocks per row
                     const std::size_t last_l = n % l; // 6-blocks in transition row. If 0, no transition row exists
                     const std::size_t sixb_rows = lfit(n,l); // number of rows with 6-blocks
                     const std::size_t octs = lfit(total_bits-n,3);
@@ -86,6 +93,18 @@ namespace nil {
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
 
                 class gate_manifest_type : public component_gate_manifest {
+
+                    std::array<std::size_t,5> gates_footprint(std::size_t WA, std::size_t N, std::size_t TB) const {
+                        std::size_t l = WA / 6;
+                        std::size_t last_l = N % l;
+                        std::size_t sixb_rows = lfit(N,l);
+                        std::size_t octs = lfit(TB-N,3);
+
+                        std::size_t remaining_octs = octs - ((last_l > 0)? 6*(l - last_l)-1 : 0);
+
+                        return { WA, last_l, (sixb_rows > 1), (sixb_rows > 2), (remaining_octs > 0) };
+                    }
+
                 public:
                     std::size_t witness_amount;
                     std::size_t n;
@@ -103,24 +122,8 @@ namespace nil {
                         std::size_t o_n = dynamic_cast<const gate_manifest_type*>(other)->n;
                         std::size_t o_total_bits = dynamic_cast<const gate_manifest_type*>(other)->total_bits;
 
-                        std::size_t l = witness_amount / 6;       std::size_t o_l = o_witness_amount / 6;
-                        std::size_t last_l = n % l;               std::size_t o_last_l = o_n % o_l;
-                        std::size_t sixb_rows = lfit(n,l);        std::size_t o_sixb_rows = lfit(o_n,o_l);
-                        std::size_t octs = lfit(total_bits-n,3);   std::size_t o_octs = lfit(o_total_bits-o_n,3);
-
-                        std::size_t remaining_octs = octs - ((last_l > 0)? 6*(l - last_l)-1 : 0);
-                        std::size_t o_remaining_octs = o_octs - ((o_last_l > 0)? 6*(o_l - o_last_l)-1 : 0);
-
-                        std::array<std::size_t,5> gates = { witness_amount,
-                                                          last_l,
-                                                          (sixb_rows > 1),
-                                                          (sixb_rows > 2),
-                                                          (remaining_octs > 0) };
-                        std::array<std::size_t,5> o_gates = { o_witness_amount,
-                                                            o_last_l,
-                                                            (o_sixb_rows > 1),
-                                                            (o_sixb_rows > 2),
-                                                            (o_remaining_octs > 0) };
+                        std::array<std::size_t,5> gates = gates_footprint(witness_amount,n,total_bits);
+                        std::array<std::size_t,5> o_gates = gates_footprint(o_witness_amount,o_n,o_total_bits);
                         return (gates < o_gates);
                     }
                 };
@@ -182,7 +185,7 @@ namespace nil {
 
                         output.clear();
                         for(std::size_t b = n; b > 0; b--) {
- 		            std::size_t i = (b-1) / l; // blocks are numbered 0..(n-1). i = row of block b
+                            std::size_t i = (b-1) / l; // blocks are numbered 0..(n-1). i = row of block b
                             std::size_t j = (b-1) % l; // j = number of block b in i-th row
                             output.push_back({ var(component.W(6*j + 3), start_row_index + i, false, var::column_type::witness),
                                    var(component.W(6*j + 4), start_row_index + i, false, var::column_type::witness),
@@ -259,7 +262,7 @@ namespace nil {
                 // fill the 6-blocks
                 // top-down part
                 for(std::size_t b = 0; b < n; b++) {
-		    std::size_t i = start_row_index + b / l;
+                    std::size_t i = start_row_index + b / l;
                     std::size_t j = b % l;
                     assignment.witness(component.W(6*j),i) = value_type(x_decomp);
                     assignment.witness(component.W(6*j+1),i) = w_power;
@@ -271,7 +274,7 @@ namespace nil {
                 }
                 // down-top part
                 for(std::size_t b = n; b > 0; b--) {
-		    std::size_t i = start_row_index + (b-1) / l;
+                    std::size_t i = start_row_index + (b-1) / l;
                     std::size_t j = (b-1) % l;
                     assignment.witness(component.W(6*j+3),i) = coset_element;
                     assignment.witness(component.W(6*j+4),i) = (-1)*coset_element;
@@ -338,7 +341,6 @@ namespace nil {
 
                 std::vector<constraint_type> six_block;
                 std::vector<constraint_type> oct_line;
-                std::vector<constraint_type> cs;
                 constraint_type first_W2 = var(component.W(1),0)*var(component.W(5),0) + 1-var(component.W(5),0) - var(component.W(2),0);
 
                 // Store typical constraints for every column
@@ -373,14 +375,16 @@ namespace nil {
                 }
                 oct_line[0] -= var(component.W(0),0);
 
+                std::vector<constraint_type> cs1;
                 if (sixb_rows > 1) { // there is a starting row which is not final (gate type 1)
-                    cs = {six_block[0]};
-                    cs.push_back(first_W2);
-                    cs.insert(cs.end(),std::next(six_block.begin(),3),six_block.end());
-                    selector_index = bp.add_gate(cs); // type 1 gate
+                    cs1 = {six_block[0]};
+                    cs1.push_back(first_W2);
+                    cs1.insert(cs1.end(),std::next(six_block.begin(),3),six_block.end());
+                    selector_index = bp.add_gate(cs1); // type 1 gate
                     // Applying gate type 1 to line 0
                     assignment.enable_selector(selector_index, start_row_index);
                 }
+
                 if (sixb_rows > 2) { // there is a middle row (gate type 2)
                     selector_index = bp.add_gate(six_block); // type 2 gate
                     // Applying gate type 2 to lines 1--(sixb_rows - 2)
@@ -390,18 +394,19 @@ namespace nil {
                 }
 
                 // The gate for the line where the 6-blocks end
+                std::vector<constraint_type> cs3;
                 std::size_t last = (last_l > 0)? last_l : l; // The number of the last 6-block in the row
-                cs = {six_block[0]};
+                cs3 = {six_block[0]};
                 if (sixb_rows > 1) { // if the first 6-block is a regular middle 6-block, otherwise there's no "previous"
-                    cs.push_back(six_block[1]);
-                    cs.push_back(six_block[2]);
+                    cs3.push_back(six_block[1]);
+                    cs3.push_back(six_block[2]);
                 } else {
-                    cs.push_back(first_W2);
+                    cs3.push_back(first_W2);
                 }
-                cs.insert(cs.end(),std::next(six_block.begin(),3),std::next(six_block.begin(),6*(last-1)+3));
-                cs.push_back(var(component.W(6*(last - 1) + 3),0) - var(component.W(6*(last - 1) + 2),0));
-                cs.push_back(six_block[6*(last-1)+4]);
-                cs.push_back(six_block[6*(last-1)+5]);
+                cs3.insert(cs3.end(),std::next(six_block.begin(),3),std::next(six_block.begin(),6*(last-1)+3));
+                cs3.push_back(var(component.W(6*(last - 1) + 3),0) - var(component.W(6*(last - 1) + 2),0));
+                cs3.push_back(six_block[6*(last-1)+4]);
+                cs3.push_back(six_block[6*(last-1)+5]);
 
                 if (last_l > 0) { // there are octets on the transition line
                     constraint_type mid = var(component.W(0),1);
@@ -411,13 +416,13 @@ namespace nil {
                         mid += var(component.W(j),0);
                     }
                     mid -= var(component.W(6*last_l),0);
-                    cs.push_back(mid);
+                    cs3.push_back(mid);
 
-                    cs.insert(cs.end(),
+                    cs3.insert(cs3.end(),
                               std::next(oct_line.begin(),6*last_l + 1),
                               oct_line.end());
                 }
-                selector_index = bp.add_gate(cs); // type 3 gate
+                selector_index = bp.add_gate(cs3); // type 3 gate
                 // Applying gate type 3 to line (sixb_rows - 1)
                 assignment.enable_selector(selector_index, start_row_index + sixb_rows - 1);
 
