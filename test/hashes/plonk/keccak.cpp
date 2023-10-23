@@ -80,8 +80,8 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
 
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
-    using component_type = nil::blueprint::components::keccak<ArithmetizationType, WitnessesAmount>;
-    using var = typename component_type::var;
+    using component_type = nil::blueprint::components::keccak<ArithmetizationType>;
+    using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
     // std::cout << "message:\n";
@@ -106,18 +106,18 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
         }
     };
 
-    component_type component_instance = WitnessesAmount == 15 ?
-                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0},
-                                                           {1}, LookupRows, LookupColumns, num_blocks, num_bits, 7)
-                                            : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {1},
-                                                            LookupRows, LookupColumns, num_blocks, num_bits, 7);
-
     if (!(WitnessesAmount == 15 || WitnessesAmount == 9)) {
         BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;
     }
+    std::array<std::uint32_t, WitnessesAmount> witnesses;
+    for (std::uint32_t i = 0; i < WitnessesAmount; i++) {
+        witnesses[i] = i;
+    }
+    component_type component_instance = component_type(witnesses, std::array<std::uint32_t, 1>{0}, std::array<std::uint32_t, 1>{0},
+                                                            LookupRows, LookupColumns, num_blocks, num_bits, 7);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        boost::get<component_type>(component_instance), public_input, result_check, instance_input);
+        component_instance, public_input, result_check, instance_input);
 }
 
 // works

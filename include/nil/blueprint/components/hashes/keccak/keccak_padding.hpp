@@ -27,22 +27,25 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/blueprint/components/hashes/keccak/keccak_round.hpp>
+#include <nil/marshalling/algorithms/pack.hpp>
+
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType>
             class keccak_padding;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             class keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>,
-                                     WitnessesAmount> :
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0> {
+                                                                                 ArithmetizationParams>> :
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams,
-                                                       WitnessesAmount, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
                 using value_type = typename BlueprintFieldType::value_type;
 
             public:
@@ -138,6 +141,43 @@ namespace nil {
                 };
 
                 using var = typename component_type::var;
+                using manifest_type = nil::blueprint::plonk_component_manifest;
+
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::size_t witness_amount;
+                    std::size_t num_blocks;
+                    std::size_t shift;
+                    std::size_t last_gate;
+                    static const std::size_t clamp = 15;
+
+                    gate_manifest_type(std::size_t witness_amount_, std::size_t num_blocks_, std::size_t shift_, std::size_t last_gate_)
+                        : witness_amount(std::min(witness_amount_, clamp)), num_blocks(num_blocks_), shift(shift_), last_gate(last_gate_) {};
+
+                    std::uint32_t gates_amount() const override {
+                        return keccak_padding::get_gates_amount(witness_amount, num_blocks, shift, last_gate) + num_blocks;
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount,
+                                                       std::size_t num_blocks,
+                                                       std::size_t num_bits) {
+                    auto shift = num_blocks * 64 - num_bits;
+                    auto last_gate = calculate_last_gate(witness_amount, num_blocks);
+                    gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount, num_blocks,
+                                                                                     shift, last_gate));
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<nil::blueprint::manifest_param>(
+                            new nil::blueprint::manifest_single_value_param(9)),
+                        true
+                    );
+                    return manifest;
+                }
                 
                 const std::size_t lookup_rows;
                 const std::size_t lookup_columns;
@@ -146,26 +186,29 @@ namespace nil {
 
                 const std::size_t num_blocks;
                 const std::size_t num_bits;
-                const std::size_t bits_per_block = 64;
-                std::size_t shift;
-                std::size_t num_padding_zeros;
+                std::size_t shift = get_shift();
+                std::size_t num_padding_zeros = calculate_num_padding_zeros();
 
-                padding_gate first_gate_15;
-                std::size_t last_gate;
-                std::size_t confs_per_gate;
-                const std::vector<configuration> full_configuration;
-                std::vector<std::size_t> gates_rows;
-                const std::vector<std::size_t> gates_configuration;
-                const std::vector<std::size_t> lookup_gates_configuration;
+                padding_gate first_gate_15 = calculate_first_gate_15();
+                std::size_t last_gate = calculate_last_gate(this->witness_amount(), num_blocks);
+                std::size_t confs_per_gate = calculate_confs_per_gate(this->witness_amount());
+                const std::vector<configuration> full_configuration = configure_all(this->witness_amount());
+                std::vector<std::size_t> gates_rows = calculate_gates_rows(this->witness_amount());
+                // const std::vector<std::size_t> lookup_gates_configuration = configure_lookup_gates(this->witness_amount());
 
-                const std::size_t rows_amount;
-                const std::size_t gates_amount;
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), full_configuration.back().copy_to.back().row);
+                const std::size_t gates_amount = get_gates_amount(this->witness_amount(), shift, last_gate, full_configuration.size());
+                const std::size_t lookup_gates_amount = num_blocks;
 
                 struct input_type {
                     // initial message = message[0] * 2^(64 * (num_blocks - 1)) + ... + message[num_blocks - 2] * 2^64 + message[num_blocks - 1]
                     // all message[i] are 64-bit for i > 0
                     // message[0] is <= 64-bit
                     std::vector<var> message;
+
+                    std::vector<var> all_vars() const {
+                        return message;
+                    }
                 };
 
                 struct result_type {
@@ -180,15 +223,19 @@ namespace nil {
                             padded_message.push_back(var(component.C(0), start_row_index, false));
                         }
                     }
+
+                    std::vector<var> all_vars() const {
+                        return padded_message;
+                    }
                 };
 
                 std::size_t get_shift() {
                     return num_blocks * 64 - num_bits;
                 }
 
-                padding_gate padding(std::size_t row = 0) {
-                    if (WitnessesAmount == 9) return padding_9(row);
-                    if (WitnessesAmount == 15) return padding_15(row);
+                padding_gate padding(std::size_t witness_amount, std::size_t row = 0) {
+                    if (witness_amount == 9) return padding_9(row);
+                    if (witness_amount == 15) return padding_15(row);
                     throw std::runtime_error("Unsupported number of witnesses");
                     return padding_gate();
                 }
@@ -226,31 +273,31 @@ namespace nil {
                     res.range_check = {{0 + row,8}, {0 + row,9}};
                     return res;
                 }
-                std::size_t calculate_last_gate() {
-                    if (WitnessesAmount == 9) {
+                static std::size_t calculate_last_gate(std::size_t witness_amount, std::size_t num_blocks) {
+                    if (witness_amount == 9) {
                         return num_blocks % 5;
-                    } else if (WitnessesAmount == 15) {
+                    } else if (witness_amount == 15) {
                         if (num_blocks <= 2) {
                             return 7;
                         }
                         return (num_blocks - 2) % 6;
                     }
                 }
-                std::size_t calculate_confs_per_gate() {
-                    if (WitnessesAmount == 9) {
+                std::size_t calculate_confs_per_gate(std::size_t witness_amount) {
+                    if (witness_amount == 9) {
                         return 5;
-                    } else if (WitnessesAmount == 15) {
+                    } else if (witness_amount == 15) {
                         return 6;
                     }
                 }
 
-                std::vector<configuration> configure_batching() {
+                std::vector<configuration> configure_batching(std::size_t witness_amount) {
                     std::vector<configuration> result;
 
                     std::size_t conf_ind = 0;
                     std::size_t row = 1;
 
-                    while (conf_ind < num_blocks - 2 * (WitnessesAmount == 15)) {
+                    while (conf_ind < num_blocks - 2 * (witness_amount == 15)) {
                         auto pg = padding(row);
                         std::size_t j = 0;
                         {
@@ -266,7 +313,7 @@ namespace nil {
                             j++;
                             conf_ind++;
                         }
-                        while ((j < confs_per_gate) && (conf_ind < num_blocks - 2 * (WitnessesAmount == 15))) {
+                        while ((j < confs_per_gate) && (conf_ind < num_blocks - 2 * (witness_amount == 15))) {
                             configuration conf;
                             conf.last_coordinate = pg.second[j];
                             conf.copy_to = {pg.value[j]};
@@ -279,14 +326,14 @@ namespace nil {
                             j++;
                             conf_ind++;
                         }
-                        if (WitnessesAmount == 9) row += 3;
-                        if (WitnessesAmount == 15) row += 2;
+                        if (witness_amount == 9) row += 3;
+                        if (witness_amount == 15) row += 2;
                     }
 
                     return result;
                 }
 
-                std::vector<configuration> configure_all() {
+                std::vector<configuration> configure_all(std::size_t witness_amount) {
                     std::vector<configuration> result;
                     if (shift == 0) {
                         std::size_t row = 0,
@@ -302,7 +349,7 @@ namespace nil {
                             result.push_back(conf);
                         }
                     } else {
-                        if (WitnessesAmount % 15 == 0) {
+                        if (witness_amount % 15 == 0) {
                             configuration conf0;
                             conf0.copy_to = {{0, 0}, {0, 1}};
                             conf0.constraints = {{{0, 1}, {0, 5}, {0, 7}},
@@ -321,19 +368,19 @@ namespace nil {
                             result.push_back(conf1);
                         }
 
-                        auto batch_configs = configure_batching();
+                        auto batch_configs = configure_batching(witness_amount);
                         result.insert(result.end(), batch_configs.begin(), batch_configs.end());
                     }
 
                     return result;
                 }
 
-                std::vector<std::size_t> calculate_gates_rows() {
+                std::vector<std::size_t> calculate_gates_rows(std::size_t witness_amount) {
                     std::vector<std::size_t> res;
                     std::size_t incr = 3;
                     std::size_t block_per_gate = 5; 
                     std::size_t first_block = 0;                    
-                    if (WitnessesAmount == 15) {
+                    if (witness_amount == 15) {
                         res.push_back(0);
                         incr = 2;
                         block_per_gate = 6;
@@ -347,62 +394,46 @@ namespace nil {
                     return res;
                 }
 
-                std::size_t gates() {
+                static std::size_t get_gates_amount(std::size_t witness_amount,
+                                                    std::size_t num_blocks,
+                                                    std::size_t shift,
+                                                    std::size_t last_gate) {
                     if (shift == 0) {
                         return 0;
                     }
-                    if (WitnessesAmount == 9) {
-                        if (last_gate == 0 || last_gate == full_configuration.size()) {
+                    if (witness_amount == 9) {
+                        if (last_gate == 0 || last_gate == num_blocks - 1) {
                             return 1;
                         }
                         return 2;
                     }
-                    if (WitnessesAmount == 15) {
+                    if (witness_amount == 15) {
                         if (last_gate == 7) {
                             return 1;
                         }
-                        if (last_gate == 0 || last_gate == full_configuration.size() - 2) {
+                        if (last_gate == 0 || last_gate == num_blocks - 3) {
                             return 2;
                         }
                         return 3;
                     }
                     throw std::runtime_error("Unsupported number of witnesses");
                 }
-                std::size_t rows() {
-                    return full_configuration.back().copy_to.back().row;
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t rows_amount) {
+                    return rows_amount;
                 }
-
-                #define __keccak_padding_init_macro(lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_) \
-                    lookup_rows(lookup_rows_), \
-                    lookup_columns(lookup_columns_), \
-                    num_blocks(num_blocks_), \
-                    num_bits(num_bits_), \
-                    limit_permutation_column(lpc_), \
-                    shift(get_shift()), \
-                    num_padding_zeros(calculate_num_padding_zeros()), \
-                    first_gate_15(calculate_first_gate_15()), \
-                    last_gate(calculate_last_gate()), \
-                    confs_per_gate(calculate_confs_per_gate()), \
-                    full_configuration(configure_all()), \
-                    gates_rows(calculate_gates_rows()), \
-                    gates_amount(gates()), \
-                    rows_amount(rows())
-
-                template<typename ContainerType>
-                keccak_padding(ContainerType witness, std::size_t lookup_rows_, std::size_t lookup_columns_,
-                                                        std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_) :
-                    component_type(witness, {}, {}),
-                    __keccak_padding_init_macro(lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_) {};
-
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 keccak_padding(WitnessContainerType witness, ConstantContainerType constant,
                                    PublicInputContainerType public_input,
                                    std::size_t lookup_rows_, std::size_t lookup_columns_,
-                                   std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_):
-                    component_type(witness, constant, public_input),
-                    __keccak_padding_init_macro(lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_) {};
+                                   std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_ = 7):
+                        component_type(witness, constant, public_input, get_manifest()),
+                        lookup_rows(lookup_rows_),
+                        lookup_columns(lookup_columns_),
+                        num_blocks(num_blocks_),
+                        num_bits(num_bits_),
+                        limit_permutation_column(lpc_) {};
 
                 keccak_padding(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
@@ -410,25 +441,27 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t lookup_rows_, std::size_t lookup_columns_,
-                    std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_) :
-                        component_type(witnesses, constants, public_inputs),
-                        __keccak_padding_init_macro(lookup_rows_, lookup_columns_, num_blocks_, num_bits_, lpc_)
-                {};
+                    std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_ = 7) :
+                        component_type(witnesses, constants, public_inputs, get_manifest()),
+                        lookup_rows(lookup_rows_),
+                        lookup_columns(lookup_columns_),
+                        num_blocks(num_blocks_),
+                        num_bits(num_bits_),
+                        limit_permutation_column(lpc_) {};
 
-                #undef __keccak_padding_init_macro
+
+                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             using padding_component =
                 keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                               ArithmetizationParams>,
-                                   WitnessesAmount>;
+                                                                               ArithmetizationParams>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
-            void generate_gates(
-                const padding_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::vector<std::size_t> generate_gates(
+                const padding_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -436,22 +469,18 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
-                    &instance_input,
-                const std::size_t first_selector_index) {
+                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
                     
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
-                auto selector_index = first_selector_index;
+                std::vector<std::size_t> selector_indexes;
                 auto config = component.full_configuration;
-                auto gate_config = component.gates_configuration;
                 // auto lookup_gate_config = component.lookup_gates_configuration;
                 std::size_t config_index = 0;
                 std::size_t gate_index = 0;
@@ -462,23 +491,22 @@ namespace nil {
 
                 if (component.shift > 0) {
                     std::vector<constraint_type> cur_constraints;
-                    if (WitnessesAmount == 15) {
+                    if (component.witness_amount() == 15) {
                         for (std::size_t i = 0; i < 2; ++i) {
                             auto cur_config = config[config_index];
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
-                                                                - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
-                                                                - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row)));
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
-                                                                - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
-                                                                - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row)));
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row)
-                                                                - (integral_type(1) << (64 - component.shift))
-                                                                + (integral_type(1) << 64)
-                                                                - var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row)));
+                            cur_constraints.push_back(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
+                                                    - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
+                                                    - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row));
+                            cur_constraints.push_back(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
+                                                    - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
+                                                    - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row));
+                            cur_constraints.push_back(var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row)
+                                                    - (integral_type(1) << (64 - component.shift))
+                                                    + (integral_type(1) << 64)
+                                                    - var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
                             config_index++;
                         }
-                        gate_type gate(selector_index++, cur_constraints);
-                        bp.add_gate(gate);
+                        selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
                         cur_constraints.clear();
                     }
@@ -488,51 +516,49 @@ namespace nil {
                     if (component.gates_amount - gate_index - (bool)(component.last_gate % 7) > 0) {
                         for (int i = 0; i < component.confs_per_gate; ++i) {
                             auto cur_config = config[config_index];
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
-                                                                - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
-                                                                - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row)));
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
-                                                                - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
-                                                                - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row)));
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row)
-                                                                - (integral_type(1) << (64 - component.shift))
-                                                                + (integral_type(1) << 64)
-                                                                - var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row)));
+                            cur_constraints.push_back(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
+                                                    - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
+                                                    - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row));
+                            cur_constraints.push_back(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
+                                                    - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
+                                                    - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row));
+                            cur_constraints.push_back(var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row)
+                                                    - (integral_type(1) << (64 - component.shift))
+                                                    + (integral_type(1) << 64)
+                                                    - var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
                             config_index++;
                         }
-                        gate_type gate(selector_index++, cur_constraints);
-                        bp.add_gate(gate);
+                        selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
                         cur_constraints.clear();
                     }
                     if (component.last_gate % 7) {
                         for (int i = 0; i < component.last_gate; ++i) {
                             auto cur_config = config[config_index];
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
-                                                                - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
-                                                                - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row)));
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
-                                                                - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
-                                                                - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row)));
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row)
-                                                                - (integral_type(1) << (64 - component.shift))
-                                                                + (integral_type(1) << 64)
-                                                                - var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row)));
+                            cur_constraints.push_back(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
+                                                    - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
+                                                    - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row));
+                            cur_constraints.push_back(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
+                                                    - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
+                                                    - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row));
+                            cur_constraints.push_back(var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row)
+                                                    - (integral_type(1) << (64 - component.shift))
+                                                    + (integral_type(1) << 64)
+                                                    - var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
                             config_index++;
                         }
-                        gate_type gate(selector_index, cur_constraints);
-                        bp.add_gate(gate);
+                        selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
                     }
                 }
                 BOOST_ASSERT(gate_index == component.gates_amount);
+
+                return selector_indexes;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const padding_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const padding_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -540,24 +566,23 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
 
                 std::size_t config_index = 0;
+                std::size_t input_index = 0;
                 std::size_t strow = start_row_index;
 
                 while (config_index < component.full_configuration.size() - (component.shift != 0)) {
                     auto config = component.full_configuration[config_index];
-                    bp.add_copy_constraint({instance_input.message[config_index],
+                    bp.add_copy_constraint({instance_input.message[input_index++],
                                             var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
-                    if (config_index == 1 && component.shift != 0) {
-                        bp.add_copy_constraint({instance_input.message[config_index],
+                    if (config_index == 0 && component.shift != 0) {
+                        bp.add_copy_constraint({instance_input.message[input_index++],
                                                 var(component.W(config.copy_to[1].column), config.copy_to[1].row + strow, false)});
                     }
                     config_index++;
@@ -569,13 +594,10 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
-            typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename padding_component<BlueprintFieldType, ArithmetizationParams>::result_type
             generate_circuit(
-                const padding_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const padding_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -583,33 +605,25 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
 
-                auto selector_iterator = assignment.find_selector(component);
-                std::size_t first_selector_index;
-                if (selector_iterator == assignment.selectors_end()) {
-                    first_selector_index = assignment.allocate_selector(component, component.gates_amount);
-                    generate_gates(component, bp, assignment, instance_input, first_selector_index);
-                } else {
-                    first_selector_index = selector_iterator->second;
-                }
+                auto selector_indexes = generate_gates(component, bp, assignment, instance_input);
+                std::size_t ind = 0;
 
                 std::size_t gate_row_ind = 0;
-                if (WitnessesAmount == 15) {
-                    assignment.enable_selector(first_selector_index++, component.gates_rows[gate_row_ind++] + start_row_index);
+                if (component.witness_amount() == 15) {
+                    assignment.enable_selector(selector_indexes[ind++], component.gates_rows[gate_row_ind++] + start_row_index);
                 }
                 for (std::size_t i = gate_row_ind; i < component.gates_rows.size() - (bool)(component.last_gate % 7); ++i) {
-                    assignment.enable_selector(first_selector_index, component.gates_rows[gate_row_ind++] + start_row_index);
+                    assignment.enable_selector(selector_indexes[ind], component.gates_rows[gate_row_ind++] + start_row_index);
                 }
                 if (component.last_gate % 7) {
-                    assignment.enable_selector(first_selector_index + 1, component.gates_rows[gate_row_ind] + start_row_index);
+                    assignment.enable_selector(selector_indexes[ind] + 1, component.gates_rows[gate_row_ind] + start_row_index);
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
@@ -618,26 +632,21 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
-            typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename padding_component<BlueprintFieldType, ArithmetizationParams>::result_type
             generate_assignments(
-                const padding_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const padding_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t strow = start_row_index;
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
@@ -678,11 +687,9 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_assignments_constant(
-                const padding_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const padding_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -690,13 +697,11 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
 
                 assignment.constant(component.C(0), start_row_index) = 0;
             }

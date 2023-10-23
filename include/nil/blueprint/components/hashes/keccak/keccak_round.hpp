@@ -27,6 +27,15 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
+#include <nil/marshalling/algorithms/pack.hpp>
+
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
+
+#include <nil/crypto3/random/algebraic_engine.hpp>
+
 #include <vector>
 #include <array>
 #include <map>
@@ -36,17 +45,15 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-            template<typename ArithmetizationType, std::uint32_t WitnessesAmount>
+            template<typename ArithmetizationType>
             class keccak_round;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             class keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>,
-                                     WitnessesAmount> :
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, WitnessesAmount, 1, 0> {
+                                                                                 ArithmetizationParams>> :
+                public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams,
-                                                       WitnessesAmount, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
@@ -74,7 +81,7 @@ namespace nil {
                                     : chi_num_chunks * 2 + 5;
                     return res;
                 }
-                std::size_t calculate_buff(std::size_t base = 0) {
+                std::size_t calculate_buff(std::size_t witness_amount, std::size_t base = 0) {
                     std::size_t buff = 0;
                     std::size_t cells = base == 3 ? xor2_cells
                                     : base == 4 ? xor3_cells
@@ -82,14 +89,14 @@ namespace nil {
                                     : base == 7 ? chi_cells
                                     : rotate_cells;
                     if (base == 6) {
-                        return WitnessesAmount * ((cells - 1) / WitnessesAmount + 1) - cells;
+                        return witness_amount * ((cells - 1) / witness_amount + 1) - cells;
                     }
-                    if (WitnessesAmount % 9 == 0) {
+                    if (witness_amount % 9 == 0) {
                         while (cells % 3 != 0) {
                             cells++;
                             buff++;
                         }
-                    } else if (WitnessesAmount % 15 == 0) {
+                    } else if (witness_amount % 15 == 0) {
                         while (cells % 5 != 0) {
                             cells++;
                             buff++;
@@ -101,7 +108,7 @@ namespace nil {
                     return buff;
                 }
 
-                std::size_t calculate_rows() const {
+                std::size_t calculate_rows(std::size_t witness_amount) const {
                     std::size_t num_cells = (xor3_cells + xor3_buff) * last_round_call
                                              * xor_with_mes +                                       // xor with last message chunk
                                             ((17 - last_round_call) * (xor2_cells + xor2_buff))
@@ -112,7 +119,7 @@ namespace nil {
                                             24 * (rotate_cells + rotate_buff) +                     // rho/phi
                                             25 * (chi_cells + chi_buff) +                           // chi
                                             xor2_cells;                                             // iota
-                    return num_cells / WitnessesAmount + bool(num_cells % WitnessesAmount);
+                    return num_cells / witness_amount + bool(num_cells % witness_amount);
                 }
                 std::size_t calculate_last_round_call_row() const {
                     if (!last_round_call) {
@@ -126,7 +133,7 @@ namespace nil {
                     }
                     return res;
                 }
-                std::size_t gates() const {
+                static std::size_t get_gates_amount() {
                     std::size_t res = 0;
                     for (std::size_t i = 0; i < gates_configuration.size(); ++i) {
                         res += gates_configuration[i].size();
@@ -135,6 +142,50 @@ namespace nil {
                 }
 
             public:
+                using manifest_type = nil::blueprint::plonk_component_manifest;
+
+                class gate_manifest_type : public component_gate_manifest {
+                public:
+                    std::size_t witness_amount;
+                    bool xor_with_mes;
+                    bool last_round_call;
+                    std::size_t limit_permutation_column;
+
+                    static const std::size_t clamp = 15;
+
+                    gate_manifest_type(std::size_t witness_amount_,
+                                       bool xor_with_mes_,
+                                       bool last_round_call_,
+                                       std::size_t limit_permutation_column_)
+                        : witness_amount(std::min(witness_amount_, clamp)),
+                            xor_with_mes(xor_with_mes_),
+                            last_round_call(last_round_call_),
+                            limit_permutation_column(limit_permutation_column_) {}
+
+                    std::uint32_t gates_amount() const override {
+                        return keccak_round::get_gates_amount();
+                    }
+                };
+
+                static gate_manifest get_gate_manifest(std::size_t witness_amount,
+                                                       std::size_t lookup_column_amount,
+                                                       bool xor_with_mes,
+                                                       bool last_round_call,
+                                                       std::size_t limit_permutation_column) {
+                    gate_manifest manifest =
+                        gate_manifest(gate_manifest_type(witness_amount, xor_with_mes, last_round_call,
+                                                         limit_permutation_column));
+                    return manifest;
+                }
+
+                static manifest_type get_manifest() {
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(
+                            new manifest_range_param(3, 5)),
+                        false
+                    );
+                    return manifest;
+                }
 
                 struct configuration {
                     struct coordinates {
@@ -308,7 +359,7 @@ namespace nil {
                     return result;
                 }
 
-                configuration configure_inner(std::size_t row, std::size_t column, std::size_t num_args,
+                configuration configure_inner(std::size_t witness_amount, std::size_t row, std::size_t column, std::size_t num_args,
                                             std::size_t num_chunks, std::size_t num_cells, std::size_t buff = 0) {
 
                     std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
@@ -324,13 +375,13 @@ namespace nil {
                         }
                     } else {
                         for (int i = 0; i < num_args; ++i) {
-                            copy_to.push_back({last_row + (last_column / WitnessesAmount),
-                                                            (last_column++) % WitnessesAmount});
+                            copy_to.push_back({last_row + (last_column / witness_amount),
+                                                            (last_column++) % witness_amount});
                         }
                     }
                     
                     std::pair<std::size_t, std::size_t> cell_copy_from;
-                    std::size_t final_row = (column + num_cells - 1) / WitnessesAmount + row;
+                    std::size_t final_row = (column + num_cells - 1) / witness_amount + row;
                     if (final_row == copy_to[0].first) {
                         cell_copy_from = {final_row, copy_to.back().second + 1};
                     } else {
@@ -339,28 +390,28 @@ namespace nil {
                     
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
                     if (num_args + column > limit_permutation_column) {
-                        for (int i = column; i < WitnessesAmount; ++i) {
+                        for (int i = column; i < witness_amount; ++i) {
                             cells.push_back({row, i});
                         }
-                        std::size_t cells_left = num_cells - WitnessesAmount + column;
+                        std::size_t cells_left = num_cells - witness_amount + column;
                         std::size_t cur_row = row + 1,
                                     cur_column = num_args;
                         while (cur_column < cells_left) {
-                            if (cur_column % WitnessesAmount == cell_copy_from.second && (cur_row + (cur_column / WitnessesAmount) == cell_copy_from.first)) {
+                            if (cur_column % witness_amount == cell_copy_from.second && (cur_row + (cur_column / witness_amount) == cell_copy_from.first)) {
                                 cur_column++;
                                 continue;
                             }
-                            cells.push_back({cur_row + (cur_column / WitnessesAmount), (cur_column++) % WitnessesAmount});
+                            cells.push_back({cur_row + (cur_column / witness_amount), (cur_column++) % witness_amount});
                         }
                     } else {
                         std::size_t cur_row = row,
                                     cur_column = column + num_args;
                         while (cur_column - column < num_cells) {
-                            if (cur_column % WitnessesAmount == cell_copy_from.second && (cur_row + (cur_column / WitnessesAmount) == cell_copy_from.first)) {
+                            if (cur_column % witness_amount == cell_copy_from.second && (cur_row + (cur_column / witness_amount) == cell_copy_from.first)) {
                                 cur_column++;
                                 continue;
                             }
-                            cells.push_back({cur_row + (cur_column / WitnessesAmount), (cur_column++) % WitnessesAmount});
+                            cells.push_back({cur_row + (cur_column / witness_amount), (cur_column++) % witness_amount});
                         }
                     }
                     std::size_t cell_index = 0;
@@ -386,13 +437,13 @@ namespace nil {
                     }
 
                     last_column = cells.back().second + 1 + buff;
-                    last_row = cells.back().first + (last_column >= WitnessesAmount);
-                    last_column %= WitnessesAmount;
+                    last_row = cells.back().first + (last_column >= witness_amount);
+                    last_column %= witness_amount;
 
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
-                configuration configure_xor(std::size_t row, std::size_t column, int num_args) {
+                configuration configure_xor(std::size_t witness_amount, std::size_t row, std::size_t column, int num_args) {
                     // regular constraints:
                     // sum = arg1 + arg2 + ... + argn
                     // sum = sum_chunk0 + sum_chunk1 * 2^chunk_size + ... + sum_chunkk * 2^(k*chunk_size)
@@ -406,10 +457,10 @@ namespace nil {
                                         : num_args == 3 ? xor3_buff
                                         : xor5_buff;
 
-                    return configure_inner(row, column, num_args, num_chunks, num_cells, buff);
+                    return configure_inner(witness_amount, row, column, num_args, num_chunks, num_cells, buff);
                 }
 
-                configuration configure_chi(std::size_t row, std::size_t column) {
+                configuration configure_chi(std::size_t witness_amount, std::size_t row, std::size_t column) {
                     // regular constraints:
                     // sum = sparse_3 - 2 * a + b - c;
                     // sum = sum_chunk0 + sum_chunk1 * 2^chunk_size + ... + sum_chunkk * 2^(k*chunk_size)
@@ -418,10 +469,10 @@ namespace nil {
                     std::size_t num_args = 3;
                     std::size_t num_cells = chi_num_chunks * 2 + num_args + 2;
 
-                    return configure_inner(row, column, num_args, chi_num_chunks, num_cells, chi_buff);
+                    return configure_inner(witness_amount, row, column, num_args, chi_num_chunks, num_cells, chi_buff);
                 }
 
-                configuration configure_rot(std::size_t row, std::size_t column) {
+                configuration configure_rot(std::size_t witness_amount, std::size_t row, std::size_t column) {
                     // regular constraints:
                     // a = small_part << (192 - r) + big_part;
                     // a_rot = big_part << r + small_part;
@@ -445,28 +496,28 @@ namespace nil {
                         copy_to.push_back({last_row + 1, 0});
                         cell_copy_from = {last_row + 1, 1};
                     } else {
-                        copy_to.push_back({last_row + (last_column / WitnessesAmount),
-                                                        (last_column++) % WitnessesAmount});
-                        cell_copy_from = {last_row + (last_column / WitnessesAmount),
-                                                        (last_column++) % WitnessesAmount};
+                        copy_to.push_back({last_row + (last_column / witness_amount),
+                                                        (last_column++) % witness_amount});
+                        cell_copy_from = {last_row + (last_column / witness_amount),
+                                                        (last_column++) % witness_amount};
                     }
                     
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
                     if (2 + column > limit_permutation_column) {
-                        for (int i = column; i < WitnessesAmount; ++i) {
+                        for (int i = column; i < witness_amount; ++i) {
                             cells.push_back({row, i});
                         }
-                        std::size_t cells_left = num_cells - WitnessesAmount + column;
+                        std::size_t cells_left = num_cells - witness_amount + column;
                         std::size_t cur_row = row + 1,
                                     cur_column = 2;
                         while (cur_column < cells_left) {
-                            cells.push_back({cur_row + (cur_column / WitnessesAmount), (cur_column++) % WitnessesAmount});
+                            cells.push_back({cur_row + (cur_column / witness_amount), (cur_column++) % witness_amount});
                         }
                     } else {
                         std::size_t cur_row = row,
                                     cur_column = column + 2;
                         while (cur_column - column < num_cells) {
-                            cells.push_back({cur_row + (cur_column / WitnessesAmount), (cur_column++) % WitnessesAmount});
+                            cells.push_back({cur_row + (cur_column / witness_amount), (cur_column++) % witness_amount});
                         }
                     }                    
                     std::size_t cell_index = 0;
@@ -506,13 +557,13 @@ namespace nil {
                     constraints[4].push_back(constraints[6][1]);
                     
                     last_column = cells.back().second + 1 + rotate_buff;
-                    last_row = cells.back().first + (last_column / WitnessesAmount);
-                    last_column %= WitnessesAmount;
+                    last_row = cells.back().first + (last_column / witness_amount);
+                    last_column %= witness_amount;
                     
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
-                std::vector<configuration> configure_all() {
+                std::vector<configuration> configure_all(std::size_t witness_amount) {
                     auto result = std::vector<configuration>(full_configuration_size);
                     std::size_t row = 0,
                                 column = 0;
@@ -521,14 +572,14 @@ namespace nil {
                     // inner_state ^ chunk
                     if (xor_with_mes) {
                         for (int i = 0; i < 17 - last_round_call; ++i) {
-                            result[i] = configure_xor(row, column, 2);
+                            result[i] = configure_xor(witness_amount, row, column, 2);
                             row = result[i].last_coordinate.row;
                             column = result[i].last_coordinate.column;
                             cur_config++;
                         }
                         // xor with last message chunk
                         if (last_round_call) {
-                            result[cur_config] = configure_xor(row, column, 3);
+                            result[cur_config] = configure_xor(witness_amount, row, column, 3);
                             row = result[cur_config].last_coordinate.row;
                             column = result[cur_config].last_coordinate.column;
                             cur_config++;
@@ -536,39 +587,39 @@ namespace nil {
                     }
                     // theta
                     for (int i = 0; i < 5; ++i) {
-                        result[cur_config] = configure_xor(row, column, 5);
+                        result[cur_config] = configure_xor(witness_amount, row, column, 5);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     for (int i = 0; i < 5; ++i) {
-                        result[cur_config] = configure_rot(row, column);
+                        result[cur_config] = configure_rot(witness_amount, row, column);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     for (int i = 0; i < 25; ++i) {
-                        result[cur_config] = configure_xor(row, column, 3);
+                        result[cur_config] = configure_xor(witness_amount, row, column, 3);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     // rho/phi
                     for (int i = 0; i < 24; ++i) {
-                        result[cur_config] = configure_rot(row, column);
+                        result[cur_config] = configure_rot(witness_amount, row, column);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     // chi
                     for (int i = 0; i < 25; ++i) {
-                        result[cur_config] = configure_chi(row, column);
+                        result[cur_config] = configure_chi(witness_amount, row, column);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     // iota
-                    result[cur_config] = configure_xor(row, column, 2);
+                    result[cur_config] = configure_xor(witness_amount, row, column, 2);
 
                     return result;
                 }
@@ -792,14 +843,6 @@ namespace nil {
                     last_round_call_row(calculate_last_round_call_row()), \
                     gates_amount(gates())
 
-                template<typename ContainerType>
-                keccak_round(ContainerType witness, std::size_t lookup_rows_, std::size_t lookup_columns_,
-                                                    bool xor_with_mes_ = false,
-                                                    bool last_round_call_ = false,
-                                                    std::size_t lpc_ = 7) :
-                    component_type(witness, {}, {}),
-                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) {};
-
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 keccak_round(WitnessContainerType witness, ConstantContainerType constant,
@@ -808,8 +851,14 @@ namespace nil {
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
                                    std::size_t lpc_ = 7) :
-                    component_type(witness, constant, public_input),
-                    __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) {};
+                        component_type(witness, constant, public_input, get_manifest()),
+                        lookup_rows(lookup_rows_),
+                        lookup_columns(lookup_columns_),
+                        xor_with_mes(xor_with_mes_),
+                        last_round_call(last_round_call_),
+                        limit_permutation_column(lpc_) {
+                    check_params();
+                 };
 
                 keccak_round(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
@@ -820,23 +869,30 @@ namespace nil {
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
                                    std::size_t lpc_ = 7) :
-                        component_type(witnesses, constants, public_inputs),
-                        __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) {};
+                        component_type(witness, constant, public_input, get_manifest()),
+                        lookup_rows(lookup_rows_),
+                        lookup_columns(lookup_columns_),
+                        xor_with_mes(xor_with_mes_),
+                        last_round_call(last_round_call_),
+                        limit_permutation_column(lpc_) {
+                    check_params();
+                 };
 
                 #undef __keccak_round_init_macro
+
+
+                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             using keccak_round_component =
                 keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                               ArithmetizationParams>,
-                                   WitnessesAmount>;
+                                                                               ArithmetizationParams>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_gates(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -844,13 +900,11 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
-                const std::size_t first_selector_index) {
+                const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices) {
                     
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
@@ -1174,11 +1228,9 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -1186,13 +1238,11 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
 
                 std::size_t config_index = 0;
@@ -1305,11 +1355,9 @@ namespace nil {
                                         {component.W(config[config_index].copy_to[1].column), static_cast<int>(config[config_index].copy_to[1].row + start_row_index), false}});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_assignments_constant(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -1317,13 +1365,11 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::size_t row = start_row_index;
@@ -1347,13 +1393,10 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
-            typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::result_type
             generate_circuit(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
@@ -1361,13 +1404,11 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
                 
                 generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
                 
@@ -1397,24 +1438,19 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams, std::uint32_t WitnessesAmount,
-                     std::enable_if_t<WitnessesAmount >= 9, bool> = true>
-            typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                              WitnessesAmount>::result_type
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::result_type
             generate_assignments(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                               WitnessesAmount>
+                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                        WitnessesAmount>::input_type
+                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams,
-                                                                WitnessesAmount>;
+                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using var = typename component_type::var;
