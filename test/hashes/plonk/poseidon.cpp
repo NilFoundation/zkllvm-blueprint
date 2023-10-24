@@ -36,8 +36,8 @@
 
 #include <nil/crypto3/hash/keccak.hpp>
 
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/components/hashes/poseidon/plonk/poseidon.hpp>
 
 #include <nil/crypto3/hash/poseidon.hpp>
@@ -63,7 +63,7 @@ void test_poseidon(std::vector<typename BlueprintFieldType::value_type> public_i
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = blueprint::assignment_proxy<ArithmetizationType>;
+    using AssignmentType = blueprint::assignment<ArithmetizationType>;
 
     using component_type =
         blueprint::components::poseidon<ArithmetizationType, FieldType>;

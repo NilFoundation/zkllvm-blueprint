@@ -29,7 +29,7 @@
 #include <nil/blueprint/components/hashes/sha2/r1cs/sha256_component.hpp>
 #include <nil/blueprint/components/hashes/hash_io.hpp>
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
-#include <nil/blueprint/blueprint/r1cs/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/r1cs/assignment.hpp>
 
 #include <nil/crypto3/hash/sha2.hpp>
 

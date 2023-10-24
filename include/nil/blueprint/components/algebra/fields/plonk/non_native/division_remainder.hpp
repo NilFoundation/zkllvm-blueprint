@@ -29,8 +29,8 @@
 
 #include <nil/marshalling/algorithms/pack.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
@@ -226,10 +226,10 @@ namespace nil {
             std::size_t generate_gates(
                 const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
                     &component,
-                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
                     &bp,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
                 const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
@@ -261,10 +261,10 @@ namespace nil {
             void generate_copy_constraints(
                 const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
                     &component,
-                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
                     &bp,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
                 const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
@@ -289,10 +289,10 @@ namespace nil {
             generate_circuit(
                 const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
                     &component,
-                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                     ArithmetizationParams>>
                     &bp,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
                 const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
@@ -347,7 +347,7 @@ namespace nil {
             generate_assignments(
                 const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
                     &component,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                        ArithmetizationParams>>
                     &assignment,
                 const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type

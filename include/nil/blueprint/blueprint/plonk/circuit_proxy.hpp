@@ -40,8 +40,8 @@ namespace nil {
                  typename ArithmetizationParams>
         class circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                        ArithmetizationParams>>
-            : public crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                    ArithmetizationParams> {
+            : public circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                       ArithmetizationParams>> {
 
             typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                    ArithmetizationParams> ArithmetizationType;
@@ -59,7 +59,6 @@ namespace nil {
             std::set<std::uint32_t> used_lookup_tables;
 
         public:
-            typedef BlueprintFieldType blueprint_field_type;
 
             circuit_proxy(std::shared_ptr<circuit<ArithmetizationType>> circuit, std::uint32_t _id) :
                     circuit_ptr(circuit),
@@ -79,7 +78,7 @@ namespace nil {
                 return used_gates;
             }
 
-            const typename ArithmetizationType::gates_container_type& gates() const {
+            const typename ArithmetizationType::gates_container_type& gates() const override {
                 return circuit_ptr->gates();
             }
 
@@ -87,7 +86,7 @@ namespace nil {
                 return used_copy_constraints;
             }
 
-            const typename ArithmetizationType::copy_constraints_container_type& copy_constraints() const {
+            const typename ArithmetizationType::copy_constraints_container_type& copy_constraints() const override {
                 return circuit_ptr->copy_constraints();
             }
 
@@ -95,7 +94,7 @@ namespace nil {
                 return used_lookup_gates;
             }
 
-            const typename ArithmetizationType::lookup_gates_container_type& lookup_gates() const {
+            const typename ArithmetizationType::lookup_gates_container_type& lookup_gates() const override {
                 return circuit_ptr->lookup_gates();
             }
 
@@ -103,72 +102,82 @@ namespace nil {
                 return used_lookup_tables;
             }
 
-            const typename ArithmetizationType::lookup_tables_type& lookup_tables() const {
+            const typename ArithmetizationType::lookup_tables_type& lookup_tables() const override {
                 return circuit_ptr->lookup_tables();
             }
 
-            std::size_t num_gates() const {
+            std::size_t num_gates() const override {
                 return circuit_ptr->num_gates();
             }
 
-            std::size_t num_lookup_gates() const {
+            std::size_t num_lookup_gates() const override {
                 return circuit_ptr->num_lookup_gates();
             }
 
-            template<typename GateArguments>
-            std::size_t add_gate(const GateArguments &args) {
+            std::size_t add_gate(const std::vector<constraint_type> &args) override {
                 const auto selector_index = circuit_ptr->add_gate(args);
                 used_gates.insert(selector_index);
                 return selector_index;
             }
 
-            std::size_t add_gate(const std::initializer_list<constraint_type> &&args) {
+            std::size_t add_gate(const constraint_type &args) override {
                 const auto selector_index = circuit_ptr->add_gate(args);
                 used_gates.insert(selector_index);
                 return selector_index;
             }
 
-            template<typename GateArguments>
-            std::size_t add_lookup_gate(const GateArguments &args) {
-                const auto next_selector_index = circuit_ptr->add_lookup_gate(args);
-                used_lookup_gates.insert(next_selector_index - 1);
-                return next_selector_index;
+            std::size_t add_gate(const std::initializer_list<constraint_type> &&args) override {
+                const auto selector_index = circuit_ptr->add_gate(args);
+                used_gates.insert(selector_index);
+                return selector_index;
             }
 
-            std::size_t add_lookup_gate(const std::initializer_list<lookup_constraint_type> &&args) {
-                const auto next_selector_index = circuit_ptr->add_lookup_gate(args);
-                used_lookup_gates.insert(next_selector_index - 1);
-                return next_selector_index;
+            std::size_t add_lookup_gate(const std::vector<lookup_constraint_type> &args) override {
+                const auto selector_index = circuit_ptr->add_lookup_gate(args);
+                used_lookup_gates.insert(selector_index);
+                return selector_index;
             }
 
-            void register_lookup_table(std::shared_ptr<lookup_table_definition> table) {
+            std::size_t add_lookup_gate(const lookup_constraint_type &args) override {
+                const auto selector_index = circuit_ptr->add_lookup_gate(args);
+                used_lookup_gates.insert(selector_index);
+                return selector_index;
+            }
+
+            std::size_t add_lookup_gate(const std::initializer_list<lookup_constraint_type> &&args) override {
+                const auto selector_index = circuit_ptr->add_lookup_gate(args);
+                used_lookup_gates.insert(selector_index);
+                return selector_index;
+            }
+
+            void register_lookup_table(std::shared_ptr<lookup_table_definition> table) override {
                 circuit_ptr->register_lookup_table(table);
             }
 
-            void reserve_table(std::string name){
+            void reserve_table(std::string name) override {
                 circuit_ptr->reserve_table(name);
             }
 
-            const std::map<std::string, std::size_t> &get_reserved_indices(){
+            const std::map<std::string, std::size_t> &get_reserved_indices() override {
                 return circuit_ptr->get_reserved_indices();
             }
 
-            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables(){
+            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() override {
                 return circuit_ptr->get_reserved_tables();
             }
 
-            void add_copy_constraint(const crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> &copy_constraint) {
+            void add_copy_constraint(const crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> &copy_constraint) override {
                 circuit_ptr->add_copy_constraint(copy_constraint);
                 if (circuit_ptr->copy_constraints().size() > 0) {
                     used_copy_constraints.insert(circuit_ptr->copy_constraints().size() - 1);
                 }
             }
 
-            std::size_t get_next_selector_index() const {
+            std::size_t get_next_selector_index() const override {
                 return circuit_ptr->get_next_selector_index();
             }
 
-            void export_circuit(std::ostream& os) const {
+            void export_circuit(std::ostream& os) const override {
                 std::ios_base::fmtflags os_flags(os.flags());
 
                 const auto gates = circuit_ptr->gates();

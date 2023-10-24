@@ -27,8 +27,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_BASE_FIELD_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_BASE_FIELD_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/transcript_fq.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
 #include <nil/blueprint/components/algebra/curves/pasta/plonk/types.hpp>

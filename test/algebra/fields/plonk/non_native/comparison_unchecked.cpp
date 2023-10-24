@@ -39,8 +39,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/comparison_unchecked.hpp>
 
@@ -61,7 +61,7 @@ auto test_comparison_unchecked(typename BlueprintFieldType::value_type x,
         WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                  ArithmetizationParams>;
-    using AssignmentType = nil::blueprint::assignment_proxy<ArithmetizationType>;
+    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 

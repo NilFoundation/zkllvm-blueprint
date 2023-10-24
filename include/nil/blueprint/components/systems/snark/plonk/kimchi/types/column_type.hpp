@@ -25,7 +25,7 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_CONSTRAINTS_COLUMN_TYPE_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_CONSTRAINTS_COLUMN_TYPE_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/component.hpp>
 
 namespace nil {

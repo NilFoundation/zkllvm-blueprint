@@ -27,8 +27,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_COMPLETE_ADDITION_EDWARD25519_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_COMPLETE_ADDITION_EDWARD25519_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/multiplication.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/addition.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/subtraction.hpp>
@@ -183,7 +183,7 @@ namespace nil {
             typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                 generate_assignments(
                     const plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                     const std::uint32_t start_row_index) {
 
@@ -389,8 +389,8 @@ namespace nil {
             typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
                 generate_circuit(
                     const plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                    circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                     const std::uint32_t start_row_index) {
 
@@ -529,8 +529,8 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
             void generate_copy_constraints(
                 const plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                 const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                 const std::uint32_t start_row_index) {
 
@@ -564,8 +564,8 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
             void generate_constants(
                 const plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
-                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                 const typename plonk_ed25519_complete_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
                 const std::uint32_t start_row_index) {
 
@@ -627,10 +627,10 @@ namespace nil {
             public:
                 static input_type convert(
                     const input_type &input,
-                    nil::blueprint::assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                            ArithmetizationParams>>
                         &assignment,
-                    nil::blueprint::assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                            ArithmetizationParams>>
                         &tmp_assignment) {
 

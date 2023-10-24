@@ -39,8 +39,8 @@
 
 #include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
 namespace nil {

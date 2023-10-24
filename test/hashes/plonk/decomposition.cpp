@@ -33,8 +33,8 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 #include <nil/blueprint/components/hashes/sha2/plonk/decomposition.hpp>
 
@@ -59,7 +59,7 @@ void test_decomposition(std::vector<typename BlueprintFieldType::value_type> pub
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using AssignmentType = blueprint::assignment_proxy<ArithmetizationType>;
+    using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using component_type = blueprint::components::decomposition<ArithmetizationType, BlueprintFieldType>;
 
     std::array<var, 2> input_state_var = {var(0, 0, false, var::column_type::public_input),

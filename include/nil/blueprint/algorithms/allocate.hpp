@@ -26,7 +26,7 @@
 #ifndef CRYPTO3_ZK_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
 #define CRYPTO3_ZK_COMPONENTS_ALGORITHMS_ALLOCATE_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 
 namespace nil {
     namespace crypto3 {

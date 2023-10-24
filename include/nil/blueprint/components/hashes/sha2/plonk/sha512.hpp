@@ -30,8 +30,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_SHA512_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_SHA512_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/sha512_process.hpp>
@@ -158,8 +158,8 @@ namespace nil {
             typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_circuit(
                     const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                         &assignment,
                     const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
@@ -229,7 +229,7 @@ namespace nil {
             typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::result_type
                 generate_assignments(
                     const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
 
@@ -744,8 +744,8 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             std::array<std::size_t, 5> generate_gates(
                     const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type
                         &instance_input) {
 
@@ -927,8 +927,8 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
                     const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                     const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
 
@@ -957,8 +957,8 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_assignments_constant(
                 const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
@@ -992,10 +992,10 @@ namespace nil {
             public:
                 static input_type convert(
                     const input_type &input,
-                    nil::blueprint::assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                            ArithmetizationParams>>
                         &assignment,
-                    nil::blueprint::assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                            ArithmetizationParams>>
                         &tmp_assignment) {
 

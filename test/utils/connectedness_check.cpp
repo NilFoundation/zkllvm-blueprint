@@ -37,8 +37,8 @@
 #include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/variable.hpp>
@@ -70,8 +70,8 @@ BOOST_AUTO_TEST_CASE(connectedness_check_sanity_tests) {
     using gate_type = zk::snark::plonk_gate<field_type, zk::snark::plonk_constraint<field_type>>;
 
 
-    assignment_proxy<zk::snark::plonk_constraint_system<field_type, ArithmetizationParams>> assignment;
-    circuit_proxy<zk::snark::plonk_constraint_system<field_type, ArithmetizationParams>> bp;
+    assignment<zk::snark::plonk_constraint_system<field_type, ArithmetizationParams>> assignment;
+    circuit<zk::snark::plonk_constraint_system<field_type, ArithmetizationParams>> bp;
 
     std::size_t start_row_index = 4;
 

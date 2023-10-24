@@ -29,8 +29,8 @@
 #include <boost/type_traits.hpp>
 #include <boost/tti/tti.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 namespace nil {
     namespace crypto3 {

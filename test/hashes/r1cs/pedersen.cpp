@@ -36,7 +36,7 @@
 #include <nil/blueprint/components/algebra/curves/twisted_edwards/element_g1.hpp>
 #include <nil/blueprint/components/hashes/pedersen.hpp>
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
-#include <nil/blueprint/blueprint/r1cs/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/r1cs/assignment.hpp>
 
 using namespace nil::crypto3;
 using namespace nil::crypto3::zk;

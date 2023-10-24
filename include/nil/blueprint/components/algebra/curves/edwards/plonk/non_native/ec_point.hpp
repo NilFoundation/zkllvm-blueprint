@@ -27,8 +27,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_EC_POINT_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_EC_POINT_HPP
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/components/non_native/algebra/fields/plonk/multiplication.hpp>
 #include <nil/blueprint/components/non_native/algebra/fields/plonk/addition.hpp>
 #include <nil/blueprint/components/non_native/algebra/fields/plonk/subtraction.hpp>

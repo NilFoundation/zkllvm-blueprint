@@ -34,8 +34,8 @@
 #include <nil/crypto3/hash/keccak.hpp>
 #include <nil/crypto3/random/algebraic_engine.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
@@ -53,7 +53,7 @@ auto test_logic_or_flag(std::vector<typename BlueprintFieldType::value_type> pub
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType =
         nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-    using AssignmentType = nil::blueprint::assignment_proxy<ArithmetizationType>;
+    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 

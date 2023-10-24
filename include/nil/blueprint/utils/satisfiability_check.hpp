@@ -26,8 +26,8 @@
 #ifndef CRYPTO3_BLUEPRINT_UTILS_PLONK_SATISFIABILITY_CHECK_HPP
 #define CRYPTO3_BLUEPRINT_UTILS_PLONK_SATISFIABILITY_CHECK_HPP
 
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/table_description.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint.hpp>
@@ -42,43 +42,31 @@ namespace nil {
 
         template<typename BlueprintFieldType,
                  typename ArithmetizationParams>
-        bool is_satisfied(const circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+        bool is_satisfied(const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                         ArithmetizationParams>> &bp,
-                          const assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                          const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                         ArithmetizationParams>> &assignments){
-
-            std::set<std::uint32_t> rows;
-            const auto shared_rows = assignments.get_shared_used_rows();
-            const auto private_rows = assignments.get_used_rows();
-            rows.insert(shared_rows.begin(), shared_rows.end());
-            rows.insert(private_rows.begin(), private_rows.end());
 
             const std::vector<crypto3::zk::snark::plonk_gate<BlueprintFieldType, crypto3::zk::snark::plonk_constraint<BlueprintFieldType>>> &gates =
                         bp.gates();
-            const std::set<std::uint32_t>& used_gates = bp.get_used_gates();
 
             const std::vector<crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType>> &copy_constraints =
                         bp.copy_constraints();
-            const std::set<std::uint32_t>& used_copy_constraints = bp.get_used_copy_constraints();
 
             const std::vector<crypto3::zk::snark::plonk_lookup_gate<BlueprintFieldType, crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>>> &lookup_gates =
                         bp.lookup_gates();
-            const std::set<std::uint32_t>& used_lookup_gates = bp.get_used_lookup_gates();
 
-            for (const auto& i : used_gates) {
-                if (i >= gates.size()) {
-                    std::cout << "No gate " << i << "\n";
-                    return false;
-                }
+            for (std::size_t i = 0; i < gates.size(); i++) {
                 crypto3::zk::snark::plonk_column<BlueprintFieldType> selector =
-                    assignments.selector(gates[i].selector_index);
+                    assignments.crypto3::zk::snark::template plonk_assignment_table<
+                        BlueprintFieldType, ArithmetizationParams>::selector(gates[i].selector_index);
 
                 for (std::size_t selector_row = 0; selector_row < selector.size(); selector_row++) {
-                    if (!selector[selector_row].is_zero() && rows.find(selector_row) != rows.end()) {
+                    if (!selector[selector_row].is_zero()) {
                         for (std::size_t j = 0; j < gates[i].constraints.size(); j++) {
 
                             typename BlueprintFieldType::value_type constraint_result =
-                                gates[i].constraints[j].evaluate(selector_row, assignments.get());
+                                gates[i].constraints[j].evaluate(selector_row, assignments);
 
                             if (!constraint_result.is_zero()) {
                                 std::cout << "Constraint " << j << " from gate " << i << " on row " << selector_row
@@ -90,11 +78,7 @@ namespace nil {
                 }
             }
 
-            for (const auto& i : used_copy_constraints) {
-                if (i >= copy_constraints.size()) {
-                    std::cout << "No copy constraint " << i << "\n";
-                    return false;
-                }
+            for (std::size_t i = 0; i < copy_constraints.size(); i++) {
                 if (var_value(assignments, copy_constraints[i].first) !=
                     var_value(assignments, copy_constraints[i].second)){
                     std::cout << "Copy constraint number " << i << " is not satisfied."

@@ -26,6 +26,7 @@
 #define CRYPTO3_BLUEPRINT_ASSIGNMENT_PROXY_PLONK_HPP
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -35,6 +36,8 @@ namespace nil {
         template<typename BlueprintFieldType,
                 typename ArithmetizationParams>
         class assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                ArithmetizationParams>>
+        : public assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                 ArithmetizationParams>> {
 
             typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
@@ -49,10 +52,6 @@ namespace nil {
             bool check;
             std::set<std::uint32_t> used_rows;
         public:
-            static constexpr const std::size_t private_storage_index = assignment<ArithmetizationType>::private_storage_index;
-
-            using assignment_type =
-                    assignment<ArithmetizationType>;
 
             assignment_proxy(std::shared_ptr<assignment<ArithmetizationType>> assignment,
                              std::shared_ptr<std::set<std::uint32_t>> shared_input,
@@ -91,20 +90,20 @@ namespace nil {
                 return *shared_input_rows_ptr;
             }
 
-            std::uint32_t rows_amount() const {
+            std::uint32_t rows_amount() const override {
                 return assignment_ptr->rows_amount();
             }
 
-            std::uint32_t allocated_rows() const {
+            std::uint32_t allocated_rows() const override {
                 return assignment_ptr->allocated_rows();
             }
 
-            value_type &selector(std::size_t selector_index, std::uint32_t row_index) {
+            value_type &selector(std::size_t selector_index, std::uint32_t row_index) override {
                 used_rows.insert(row_index);
                 return assignment_ptr->selector(selector_index, row_index);
             }
 
-            value_type selector(std::size_t selector_index, std::uint32_t row_index) const {
+            value_type selector(std::size_t selector_index, std::uint32_t row_index) const override {
                 if (check && used_rows.find(row_index) == used_rows.end() && shared_input_rows_ptr->find(row_index) == shared_input_rows_ptr->end()) {
                     std::cout << id << ": Not found selector " << selector_index << " on row " << row_index << std::endl;
                     BLUEPRINT_ASSERT(false);
@@ -112,20 +111,20 @@ namespace nil {
                 return assignment_ptr->selector(selector_index, row_index);
             }
 
-            const column_type& selector(std::uint32_t index) const {
+            const column_type& selector(std::uint32_t index) const override {
                 return assignment_ptr->crypto3::zk::snark::template plonk_assignment_table<
                         BlueprintFieldType, ArithmetizationParams>::selector(index);
             }
 
-            std::uint32_t selector_column_size(std::uint32_t col_idx) const {
+            std::uint32_t selector_column_size(std::uint32_t col_idx) const override {
                 return assignment_ptr->selector_column_size(col_idx);
             }
 
-            constexpr std::uint32_t selectors_amount() const {
+            std::uint32_t selectors_amount() const override {
                 return assignment_ptr->selectors_amount();
             }
 
-            void enable_selector(const std::size_t selector_index, const std::size_t row_index) {
+            void enable_selector(const std::size_t selector_index, const std::size_t row_index) override {
                 used_rows.insert(row_index);
                 assignment_ptr->enable_selector(selector_index, row_index);
             }
@@ -133,19 +132,19 @@ namespace nil {
             void enable_selector(const std::size_t selector_index,
                                  const std::size_t begin_row_index,
                                  const std::size_t end_row_index,
-                                 const std::size_t index_step = 1) {
+                                 const std::size_t index_step = 1) override {
                 for (auto i = begin_row_index; i < end_row_index; i = i + index_step) {
                     used_rows.insert(i);
                 }
                 assignment_ptr->enable_selector(selector_index, begin_row_index, end_row_index, index_step);
             }
 
-            value_type &witness(std::uint32_t witness_index, std::uint32_t row_index) {
+            value_type &witness(std::uint32_t witness_index, std::uint32_t row_index) override {
                 used_rows.insert(row_index);
                 return assignment_ptr->witness(witness_index, row_index);
             }
 
-            value_type witness(std::uint32_t witness_index, std::uint32_t row_index) const {
+            value_type witness(std::uint32_t witness_index, std::uint32_t row_index) const override {
                 if (check && used_rows.find(row_index) == used_rows.end() && shared_input_rows_ptr->find(row_index) == shared_input_rows_ptr->end()) {
                     std::cout << id << ": Not found witness " << witness_index << " on row " << row_index << std::endl;
                     BLUEPRINT_ASSERT(false);
@@ -153,22 +152,22 @@ namespace nil {
                 return assignment_ptr->witness(witness_index, row_index);
             }
 
-            std::uint32_t witnesses_amount() const {
+            std::uint32_t witnesses_amount() const override {
                 return assignment_ptr->witnesses_amount();
             }
 
-            std::uint32_t witness_column_size(std::uint32_t index) const {
+            std::uint32_t witness_column_size(std::uint32_t index) const override {
                 return assignment_ptr->witness_column_size(index);
             }
 
             value_type &public_input(
-                std::uint32_t public_input_index, std::uint32_t row_index) {
+                std::uint32_t public_input_index, std::uint32_t row_index) override {
                 shared_input_rows_ptr->insert(row_index);
                 return assignment_ptr->public_input(public_input_index, row_index);
             }
 
             value_type public_input(
-                std::uint32_t public_input_index, std::uint32_t row_index) const {
+                std::uint32_t public_input_index, std::uint32_t row_index) const override {
                 if (check && used_rows.find(row_index) == used_rows.end() && shared_input_rows_ptr->find(row_index) == shared_input_rows_ptr->end()) {
                     std::cout << id << ": Not found public_input " << public_input_index << " on row " << row_index << std::endl;
                     BLUEPRINT_ASSERT(false);
@@ -176,21 +175,21 @@ namespace nil {
                 return assignment_ptr->public_input(public_input_index, row_index);
             }
 
-            std::uint32_t public_inputs_amount() const {
+            std::uint32_t public_inputs_amount() const override {
                 return assignment_ptr->public_inputs_amount();
             }
 
-            std::uint32_t public_input_column_size(std::uint32_t index) const {
+            std::uint32_t public_input_column_size(std::uint32_t index) const override {
                 return assignment_ptr->public_input_column_size(index);
             }
 
             value_type &constant(
-                std::uint32_t constant_index, std::uint32_t row_index) {
+                std::uint32_t constant_index, std::uint32_t row_index) override {
                 used_rows.insert(row_index);
                 return assignment_ptr->constant(constant_index, row_index);
             }
 
-            value_type constant(std::uint32_t constant_index, std::uint32_t row_index) const {
+            value_type constant(std::uint32_t constant_index, std::uint32_t row_index) const override {
                 if (check && used_rows.find(row_index) == used_rows.end() && shared_input_rows_ptr->find(row_index) == shared_input_rows_ptr->end()) {
                     std::cout << id << ": Not found constant " << constant_index << " on row " << row_index << std::endl;
                     BLUEPRINT_ASSERT(false);
@@ -198,37 +197,37 @@ namespace nil {
                 return assignment_ptr->constant(constant_index, row_index);
             }
 
-            std::uint32_t constants_amount() const {
+            std::uint32_t constants_amount() const override {
                 return assignment_ptr->constants_amount();
             }
 
-            std::uint32_t constant_column_size(std::uint32_t index) const {
+            std::uint32_t constant_column_size(std::uint32_t index) const override {
                 return assignment_ptr->constant_column_size(index);
             }
 
-            value_type private_storage(std::uint32_t storage_index) const {
+            value_type private_storage(std::uint32_t storage_index) const override {
                 return assignment_ptr->private_storage(storage_index);
             }
 
-            value_type &private_storage(std::uint32_t storage_index) {
+            value_type &private_storage(std::uint32_t storage_index) override {
                 return assignment_ptr->private_storage(storage_index);
             }
 
             // Not required to be called; get_private_storage will automatically resize
             // But you might want to use this to clear
-            void resize_private_storage(std::uint32_t new_size) {
+            void resize_private_storage(std::uint32_t new_size) override {
                 assignment_ptr->resize_private_storage(new_size);
             }
 
-            void clear_private_storage() {
+            void clear_private_storage() override {
                 assignment_ptr->clear_private_storage();
             }
 
-            std::size_t private_storage_size() const {
+            std::size_t private_storage_size() const override {
                 return assignment_ptr->private_storage_size();
             }
 
-            void export_table(std::ostream& os, bool wide_export = false) const {
+            void export_table(std::ostream& os, bool wide_export = false) const override {
                 std::ios_base::fmtflags os_flags(os.flags());
 
                 std::uint32_t witnesses_size = ArithmetizationParams::witness_columns;
@@ -330,6 +329,60 @@ namespace nil {
                 const crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type> &input_var) {
             input_assignment.get_shared_used_rows().insert(input_var.rotation);
         }
+
+        template<typename BlueprintFieldType,
+                typename ArithmetizationParams>
+        bool is_satisfied(const circuit_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                ArithmetizationParams>> &bp,
+                          const assignment_proxy<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                  ArithmetizationParams>> &assignments){
+
+            using variable_type = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+            std::set<std::uint32_t> rows;
+            const auto shared_rows = assignments.get_shared_used_rows();
+            const auto private_rows = assignments.get_used_rows();
+            rows.insert(shared_rows.begin(), shared_rows.end());
+            rows.insert(private_rows.begin(), private_rows.end());
+
+            const std::vector<crypto3::zk::snark::plonk_gate<BlueprintFieldType,
+                              crypto3::zk::snark::plonk_constraint<BlueprintFieldType>>> &gates = bp.gates();
+            const std::set<std::uint32_t>& used_gates = bp.get_used_gates();
+
+            const std::vector<crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType>> &copy_constraints =
+                    bp.copy_constraints();
+            const std::set<std::uint32_t>& used_copy_constraints = bp.get_used_copy_constraints();
+
+            for (const auto& i : used_gates) {
+                if (i >= gates.size()) {
+                    std::cout << "No gate " << i << "\n";
+                    return false;
+                }
+
+                crypto3::math::expression_for_each_variable_visitor<variable_type> visitor(
+                        [&assignments](const variable_type& var) {
+                            if (var.rotation >= 0) {
+                                var_value(assignments, var);
+                            }
+                        }
+                );
+
+                for (const auto& constraint : gates[i].constraints) {
+                    visitor.visit(constraint);
+                }
+            }
+
+            for (const auto& i : used_copy_constraints) {
+                if (i >= copy_constraints.size()) {
+                    std::cout << "No copy constraint " << i << "\n";
+                    return false;
+                }
+                var_value(assignments, copy_constraints[i].first);
+                var_value(assignments, copy_constraints[i].second);
+            }
+
+            return true;
+        }
+
     }    // namespace blueprint
 }    // namespace nil
 #endif    // CRYPTO3_BLUEPRINT_ASSIGNMENT_PROXY_PLONK_HPP

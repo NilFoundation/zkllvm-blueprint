@@ -46,8 +46,8 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 
-#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
-#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 //#include <nil/blueprint/utils/table_profiling.hpp>
 #include <nil/blueprint/utils/satisfiability_check.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
@@ -120,7 +120,7 @@ namespace nil {
         public:
             virtual typename ComponentType::result_type operator()(
                 const ComponentType&,
-                nil::blueprint::assignment_proxy<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                             ArithmetizationParams>>&,
                 const typename ComponentType::input_type&,
                 const std::uint32_t) const = 0;
@@ -132,7 +132,7 @@ namespace nil {
         public:
             typename ComponentType::result_type operator()(
                 const ComponentType &component,
-                nil::blueprint::assignment_proxy<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                             ArithmetizationParams>>
                     &assignment,
                 const typename ComponentType::input_type &instance_input,
@@ -151,7 +151,7 @@ namespace nil {
             using assigner_type =
                 std::function<typename ComponentType::result_type(
                     const ComponentType&,
-                    nil::blueprint::assignment_proxy<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                    nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                             ArithmetizationParams>>&,
                     const typename ComponentType::input_type&,
                     const std::uint32_t)>;
@@ -161,7 +161,7 @@ namespace nil {
 
             typename ComponentType::result_type operator()(
                 const ComponentType &component,
-                nil::blueprint::assignment_proxy<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                             ArithmetizationParams>>
                     &assignment,
                 const typename ComponentType::input_type &instance_input,
@@ -187,11 +187,8 @@ namespace nil {
             using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
             using component_type = ComponentType;
 
-            auto bp_ptr = std::make_shared<blueprint::circuit<ArithmetizationType>>();
-            blueprint::circuit_proxy<ArithmetizationType> bp(bp_ptr, 0);
-            auto assignment_ptr = std::make_shared<blueprint::assignment<ArithmetizationType>>();
-            auto shared_input_ptr = std::make_shared<std::set<std::uint32_t>>();
-            blueprint::assignment_proxy<ArithmetizationType> assignment(assignment_ptr, shared_input_ptr, 0);
+            blueprint::circuit<ArithmetizationType> bp;
+            blueprint::assignment<ArithmetizationType> assignment;
 
             if constexpr( nil::blueprint::use_custom_lookup_tables<component_type>() ){
                 auto lookup_tables = component_instance.component_custom_lookup_tables();
@@ -232,14 +229,14 @@ namespace nil {
                 bool is_connected;
                 if (connectedness_check == detail::connectedness_check_type::STRONG) {
                     is_connected = check_strong_connectedness(
-                        assignment.get(),
-                        bp.get(),
+                        assignment,
+                        bp,
                         instance_input.all_vars(),
                         component_result.all_vars(), start_row, component_instance.rows_amount);
                 } else if (connectedness_check == detail::connectedness_check_type::WEAK) {
                     is_connected = check_weak_connectedness(
-                        assignment.get(),
-                        bp.get(),
+                        assignment,
+                        bp,
                         instance_input.all_vars(),
                         component_result.all_vars(), start_row, component_instance.rows_amount);
                 } else if (connectedness_check == detail::connectedness_check_type::NONE) {
@@ -294,11 +291,11 @@ namespace nil {
                 desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
                     bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
-                    *bp_ptr, *assignment_ptr, lookup_columns_indices,
+                    bp, assignment, lookup_columns_indices,
                     desc.usable_rows_amount
                 );
             }
-            desc.rows_amount = zk::snark::basic_padding(*assignment_ptr);
+            desc.rows_amount = zk::snark::basic_padding(assignment);
 
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
@@ -514,7 +511,7 @@ namespace nil {
         template<typename BlueprintFieldType, typename ArithmetizationParams, typename ComponentType>
         std::function<typename ComponentType::result_type(
                 const ComponentType&,
-                nil::blueprint::assignment_proxy<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                         ArithmetizationParams>>&,
                 const typename ComponentType::input_type&,
                 const std::uint32_t)>
@@ -524,7 +521,7 @@ namespace nil {
 
             return [&patches]
                     (const ComponentType &component,
-                     nil::blueprint::assignment_proxy<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                     nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                                                 ArithmetizationParams>>
                          &assignment,
                      const typename ComponentType::input_type &instance_input,

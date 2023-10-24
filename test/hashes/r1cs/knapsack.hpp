@@ -35,7 +35,7 @@
 
 #include <nil/blueprint/components/hashes/knapsack/r1cs/knapsack_component.hpp>
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
-#include <nil/blueprint/blueprint/r1cs/assignment_proxy.hpp>
+#include <nil/blueprint/blueprint/r1cs/assignment.hpp>
 
 using namespace nil::crypto3::algebra;
 using namespace nil::crypto3::zk;
