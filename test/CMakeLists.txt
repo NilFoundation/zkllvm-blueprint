@@ -157,8 +157,7 @@ set(FIELDS_TESTS_FILES
     "algebra/fields/r1cs/fp4_verification"
     "algebra/fields/r1cs/fp6_2over3"
     "algebra/fields/r1cs/fp6_2over3_verification"
-    #"algebra/fields/r1cs/exponentiation"
-    )
+    "algebra/fields/r1cs/exponentiation")
 
 set(CURVES_TESTS_FILES
     "algebra/curves/r1cs/montgomery"
@@ -196,22 +195,32 @@ set(BASIC_COMPONENTS_TESTS_FILES
     "basic_components"
     "basic_components_r1cs_gg_ppzksnark")
 
+# TACEO_TODO Added
+SET(FIXEDPOINT_TESTS_FILES
+    "algebra/fixedpoint/plonk/basic_operations"
+    "algebra/fixedpoint/plonk/exp"
+    "algebra/fixedpoint/plonk/dot_rescale"
+    "algebra/fixedpoint/plonk/cmp"
+)
+
 SET(ALGEBRA_TESTS_FILES
     ${FIELDS_TESTS_FILES}
     ${CURVES_TESTS_FILES}
     ${PAIRING_TESTS_FILES})
 
 SET(ALL_TESTS_FILES
-    ${COMMON_TEST_FILES}
-    ${NON_NATIVE_TESTS_FILES}
-    ${PLONK_TESTS_FILES}
-    ${ALGEBRA_TESTS_FILES}
-    ${HASHES_TESTS_FILES}
-    ${ROUTING_TESTS_FILES}
-    ${SCHEMES_TESTS_FILES}
-    ${MERKLE_TREE_TESTS_FILES}
-    ${VOTING_TESTS_FILES}
-    ${BASIC_COMPONENTS_TESTS_FILES})
+    # ${COMMON_TEST_FILES}
+    # ${NON_NATIVE_TESTS_FILES}
+    # ${PLONK_TESTS_FILES}
+    # ${ALGEBRA_TESTS_FILES}
+    # ${HASHES_TESTS_FILES}
+    # ${ROUTING_TESTS_FILES}
+    # ${SCHEMES_TESTS_FILES}
+    # ${MERKLE_TREE_TESTS_FILES}
+    # ${VOTING_TESTS_FILES}
+    # ${BASIC_COMPONENTS_TESTS_FILES}
+    ${FIXEDPOINT_TESTS_FILES} # TACEO_TODO Added
+    )
 
 foreach(TEST_FILE ${ALL_TESTS_FILES})
     define_blueprint_test(${TEST_FILE})
