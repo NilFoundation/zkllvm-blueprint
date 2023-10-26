@@ -91,7 +91,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test1) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
     test<BlueprintFieldType, 6>(public_input, expected_res);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test2) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test2) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test2) {
     test<BlueprintFieldType, 8>(public_input, expected_res);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test3) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test3) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 

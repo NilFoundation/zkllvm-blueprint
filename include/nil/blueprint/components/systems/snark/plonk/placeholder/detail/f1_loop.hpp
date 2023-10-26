@@ -24,8 +24,8 @@
 // @file Declaration of interfaces for auxiliary components for the LOOKUP_ARGUMENT_VERIFIER component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_LOOKUP_ARGUMENT_VERIFIER_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_LOOKUP_ARGUMENT_VERIFIER_HPP
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_F1_LOOP_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_F1_LOOP_HPP
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
@@ -45,9 +45,6 @@ namespace nil {
 
                     constexpr static const std::uint32_t ConstantsAmount = 0;
 
-                    using component_type =
-                        plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
-
                     constexpr static const std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t n) {
 
                         std::size_t r = std::ceil(3.0 * n / (witness_amount - 1));
@@ -61,6 +58,8 @@ namespace nil {
                     }
 
                 public:
+                    using component_type =
+                        plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
                     using var = typename component_type::var;
                     using manifest_type = nil::blueprint::plonk_component_manifest;
 
@@ -539,4 +538,4 @@ namespace nil {
     }        // namespace blueprint
 }    // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_LOOKUP_ARGUMENT_VERIFIER_HPP
+#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_F3_LOOP_HPP
