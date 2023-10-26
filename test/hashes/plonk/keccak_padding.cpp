@@ -150,7 +150,8 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
                         LookupRows, LookupColumns, num_blocks, num_bits, 7);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        boost::get<component_type>(component_instance), public_input, result_check, instance_input);
+            component_instance, public_input, result_check, instance_input,
+            nil::crypto3::detail::connectedness_check_type::STRONG, num_blocks, num_bits, 7);
 }
 
 // works

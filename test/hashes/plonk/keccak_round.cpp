@@ -154,7 +154,7 @@ std::array<typename BlueprintFieldType::value_type, 25> sparse_round_function(st
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns, bool xor_with_mes, bool last_round_call, std::size_t last_prem_col = 7>
+         std::size_t LookupColumns, bool xor_with_mes, bool last_round_call, std::size_t last_perm_col = 7>
 auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type, 25> inner_state,
                              std::array<typename BlueprintFieldType::value_type, 17> padded_message_chunk,
                              typename BlueprintFieldType::value_type RC,
@@ -172,7 +172,7 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
 
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
-    using component_type = nil::blueprint::components::keccak_round<ArithmetizationType, WitnessesAmount>;
+    using component_type = nil::blueprint::components::keccak_round<ArithmetizationType>;
     using var = typename component_type::var;
 
     std::vector<typename BlueprintFieldType::value_type> public_input;
@@ -203,15 +203,16 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
         }
     };
 
-    component_type component_instance = WitnessesAmount == 15 ?
-                                            component_type({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, {0},
-                                                           {1}, LookupRows, LookupColumns, xor_with_mes, last_round_call, last_prem_col)
-                                            : component_type({0, 1, 2, 3, 4, 5, 6, 7, 8}, {0}, {1},
-                                                            LookupRows, LookupColumns, xor_with_mes, last_round_call, last_prem_col);
-
     if (!(WitnessesAmount == 15 || WitnessesAmount == 9)) {
         BOOST_ASSERT_MSG(false, "Please add support for WitnessesAmount that you passed here!") ;
     }
+    std::array<std::uint32_t, WitnessesAmount> witnesses;
+    for (std::uint32_t i = 0; i < WitnessesAmount; i++) {
+        witnesses[i] = i;
+    }
+    component_type component_instance =
+        component_type(witnesses, std::array<std::uint32_t, 1>{0}, std::array<std::uint32_t, 1>{0}, 
+                        LookupRows, LookupColumns, xor_with_mes, last_round_call, last_perm_col);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         boost::get<component_type>(component_instance), public_input, result_check, instance_input);
@@ -342,7 +343,7 @@ void test_keccak_round_not_random() {
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns, bool xor_with_mes, bool last_round_call, std::size_t last_prem_col = 7>
+         std::size_t LookupColumns, bool xor_with_mes, bool last_round_call, std::size_t last_perm_col = 7>
 void test_keccak_round_random() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
@@ -369,7 +370,7 @@ void test_keccak_round_random() {
     
     auto expected_result = sparse_round_function<BlueprintFieldType, xor_with_mes, last_round_call>(inner_state, padded_message_chunk, RC);
 
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, xor_with_mes, last_round_call, last_prem_col>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, xor_with_mes, last_round_call, last_perm_col>
                             (inner_state, padded_message_chunk, RC, expected_result);
 }
 

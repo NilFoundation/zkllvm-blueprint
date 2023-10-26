@@ -34,6 +34,8 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
+#include <iostream>
+
 namespace nil {
     namespace blueprint {
         namespace components {
@@ -147,26 +149,26 @@ namespace nil {
                 public:
                     std::size_t witness_amount;
                     std::size_t num_blocks;
-                    std::size_t shift;
+                    std::size_t num_bits;
                     std::size_t last_gate;
-                    static const std::size_t clamp = 15;
+                    static constexpr const std::size_t clamp = 15;
 
-                    gate_manifest_type(std::size_t witness_amount_, std::size_t num_blocks_, std::size_t shift_, std::size_t last_gate_)
-                        : witness_amount(std::min(witness_amount_, clamp)), num_blocks(num_blocks_), shift(shift_), last_gate(last_gate_) {};
+                    gate_manifest_type(std::size_t witness_amount_, std::size_t num_blocks_, std::size_t num_bits_, std::size_t last_gate_)
+                        : witness_amount(std::min(witness_amount_, clamp)), num_blocks(num_blocks_), num_bits(num_bits_), last_gate(last_gate_) {};
 
                     std::uint32_t gates_amount() const override {
-                        return keccak_padding::get_gates_amount(witness_amount, num_blocks, shift, last_gate) + num_blocks;
+                        return keccak_padding::get_gates_amount(witness_amount, num_blocks, num_bits, last_gate);
                     }
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
                                                        std::size_t lookup_column_amount,
                                                        std::size_t num_blocks,
-                                                       std::size_t num_bits) {
-                    auto shift = num_blocks * 64 - num_bits;
+                                                       std::size_t num_bits,
+                                                       std::size_t limit_permutation_column) {
                     auto last_gate = calculate_last_gate(witness_amount, num_blocks);
                     gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount, num_blocks,
-                                                                                     shift, last_gate));
+                                                                                     num_bits, last_gate));
                     return manifest;
                 }
 
@@ -192,12 +194,12 @@ namespace nil {
                 padding_gate first_gate_15 = calculate_first_gate_15();
                 std::size_t last_gate = calculate_last_gate(this->witness_amount(), num_blocks);
                 std::size_t confs_per_gate = calculate_confs_per_gate(this->witness_amount());
-                const std::vector<configuration> full_configuration = configure_all(this->witness_amount());
+                const std::vector<configuration> full_configuration = configure_all(this->witness_amount(), num_blocks, num_bits, limit_permutation_column);
                 std::vector<std::size_t> gates_rows = calculate_gates_rows(this->witness_amount());
                 // const std::vector<std::size_t> lookup_gates_configuration = configure_lookup_gates(this->witness_amount());
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), full_configuration.back().copy_to.back().row);
-                const std::size_t gates_amount = get_gates_amount(this->witness_amount(), shift, last_gate, full_configuration.size());
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), lookup_columns, num_blocks, num_bits, limit_permutation_column);
+                const std::size_t gates_amount = get_gates_amount(this->witness_amount(), num_blocks, shift, last_gate);
                 const std::size_t lookup_gates_amount = num_blocks;
 
                 struct input_type {
@@ -233,13 +235,13 @@ namespace nil {
                     return num_blocks * 64 - num_bits;
                 }
 
-                padding_gate padding(std::size_t witness_amount, std::size_t row = 0) {
+                static padding_gate padding(std::size_t witness_amount, std::size_t row = 0) {
                     if (witness_amount == 9) return padding_9(row);
                     if (witness_amount == 15) return padding_15(row);
                     throw std::runtime_error("Unsupported number of witnesses");
                     return padding_gate();
                 }
-                padding_gate padding_9(std::size_t row = 0) {
+                static padding_gate padding_9(std::size_t row = 0) {
                     padding_gate res;
                     res.relay = {-1 + row, 0};
                     res.value = {{-1 + row, 1}, {-1 + row, 3}, {0 + row, 0}, {0 + row, 2}, {1 + row, 0}};
@@ -249,7 +251,7 @@ namespace nil {
                     res.range_check = {{1 + row, 4}, {1 + row, 5}, {1 + row, 6}, {1 + row, 7}, {1 + row, 8}};
                     return res;
                 }
-                padding_gate padding_15(std::size_t row = 0) {
+                static padding_gate padding_15(std::size_t row = 0) {
                     padding_gate res;
                     res.relay = {-1 + row, 11};
                     res.value = {{0 + row,0}, {0 + row,1}, {0 + row,2}, {1 + row,0}, {1 + row,1}, {1 + row,2}};
@@ -282,20 +284,24 @@ namespace nil {
                         }
                         return (num_blocks - 2) % 6;
                     }
+                    throw std::runtime_error("Unsupported number of witnesses");
                 }
-                std::size_t calculate_confs_per_gate(std::size_t witness_amount) {
+                static std::size_t calculate_confs_per_gate(std::size_t witness_amount) {
                     if (witness_amount == 9) {
                         return 5;
                     } else if (witness_amount == 15) {
                         return 6;
                     }
+                    throw std::runtime_error("Unsupported number of witnesses");
                 }
 
-                std::vector<configuration> configure_batching(std::size_t witness_amount) {
+                static std::vector<configuration> configure_batching(std::size_t witness_amount,
+                                                                    std::size_t num_blocks) {
                     std::vector<configuration> result;
 
                     std::size_t conf_ind = 0;
                     std::size_t row = 1;
+                    std::size_t confs_per_gate = calculate_confs_per_gate(witness_amount);
 
                     while (conf_ind < num_blocks - 2 * (witness_amount == 15)) {
                         auto pg = padding(row);
@@ -333,7 +339,11 @@ namespace nil {
                     return result;
                 }
 
-                std::vector<configuration> configure_all(std::size_t witness_amount) {
+                static std::vector<configuration> configure_all(std::size_t witness_amount,
+                                                                std::size_t num_blocks, 
+                                                                std::size_t num_bits,
+                                                                std::size_t limit_permutation_column) {
+                    std::size_t shift = num_blocks * 64 - num_bits;
                     std::vector<configuration> result;
                     if (shift == 0) {
                         std::size_t row = 0,
@@ -368,7 +378,7 @@ namespace nil {
                             result.push_back(conf1);
                         }
 
-                        auto batch_configs = configure_batching(witness_amount);
+                        auto batch_configs = configure_batching(witness_amount, num_blocks);
                         result.insert(result.end(), batch_configs.begin(), batch_configs.end());
                     }
 
@@ -396,9 +406,9 @@ namespace nil {
 
                 static std::size_t get_gates_amount(std::size_t witness_amount,
                                                     std::size_t num_blocks,
-                                                    std::size_t shift,
+                                                    std::size_t num_bits,
                                                     std::size_t last_gate) {
-                    if (shift == 0) {
+                    if (num_blocks * 64 - num_bits == 0) {
                         return 0;
                     }
                     if (witness_amount == 9) {
@@ -418,8 +428,14 @@ namespace nil {
                     }
                     throw std::runtime_error("Unsupported number of witnesses");
                 }
-                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t rows_amount) {
-                    return rows_amount;
+                static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                    std::size_t lookup_column_amount,
+                                                    std::size_t num_blocks,
+                                                    std::size_t num_bits, 
+                                                    std::size_t limit_permutation_column) {
+                    auto conf = configure_all(witness_amount, num_blocks, num_bits, limit_permutation_column);
+
+                    return conf.back().constraints.back().back().row;
                 }
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
@@ -516,9 +532,9 @@ namespace nil {
                     if (component.gates_amount - gate_index - (bool)(component.last_gate % 7) > 0) {
                         for (int i = 0; i < component.confs_per_gate; ++i) {
                             auto cur_config = config[config_index];
-                            cur_constraints.push_back(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
+                            cur_constraints.push_back(constraint_type(var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row)
                                                     - var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) * (integral_type(1) << component.shift)
-                                                    - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row));
+                                                    - var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row)));
                             cur_constraints.push_back(var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row)
                                                     - var(cur_config.constraints[1][1].column, cur_config.constraints[1][1].row) * (integral_type(1) << component.shift)
                                                     - var(cur_config.constraints[1][2].column, cur_config.constraints[1][2].row));
