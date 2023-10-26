@@ -56,8 +56,9 @@ namespace nil {
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
+                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
 
-                std::size_t calculate_chunk_size(std::size_t num_rows, std::size_t base) {
+                static std::size_t calculate_chunk_size(std::size_t num_rows, std::size_t base) {
                     std::size_t chunk_size = 0;
                     std::size_t power = base;
                     while (power < num_rows) {
@@ -66,28 +67,22 @@ namespace nil {
                     }
                     return chunk_size * 3;
                 }
-                std::size_t calculate_num_chunks(std::size_t base = 0) {
-                    std::size_t chunk_size = base == 3 ? normalize3_chunk_size
-                                            : base == 4 ? normalize4_chunk_size
-                                            : base == 6 ? normalize6_chunk_size
-                                            : chi_chunk_size;
+                static std::size_t calculate_num_chunks(std::size_t num_rows, std::size_t base = 2) {
+                    std::size_t chunk_size = calculate_chunk_size(num_rows, base);
                     std::size_t res = 192 / chunk_size + bool(192 % chunk_size);
                     return res;
                 }
-                std::size_t calculate_num_cells(std::size_t base = 0) {
-                    std::size_t res = base == 3 ? normalize3_num_chunks * 2 + 2 + 2
-                                    : base == 4 ? normalize4_num_chunks * 2 + 3 + 2
-                                    : base == 6 ? normalize6_num_chunks * 2 + 5 + 2
-                                    : chi_num_chunks * 2 + 5;
+                static std::size_t calculate_num_cells(std::size_t num_rows, std::size_t base = 2) {
+                    std::size_t res = base == 3 ? 2 + 2
+                                    : base == 4 ? 3 + 2
+                                    : base == 6 ? 5 + 2
+                                    : 5;
+                    res += 2 * calculate_num_chunks(num_rows, base);
                     return res;
                 }
-                std::size_t calculate_buff(std::size_t witness_amount, std::size_t base = 0) {
+                static std::size_t calculate_buff(std::size_t witness_amount, std::size_t num_rows, std::size_t base = 0) {
                     std::size_t buff = 0;
-                    std::size_t cells = base == 3 ? xor2_cells
-                                    : base == 4 ? xor3_cells
-                                    : base == 6 ? xor5_cells
-                                    : base == 7 ? chi_cells
-                                    : rotate_cells;
+                    std::size_t cells = calculate_num_cells(num_rows, base);
                     if (base == 6) {
                         return witness_amount * ((cells - 1) / witness_amount + 1) - cells;
                     }
@@ -108,7 +103,23 @@ namespace nil {
                     return buff;
                 }
 
-                std::size_t calculate_rows(std::size_t witness_amount) const {
+                static std::size_t get_rows_amount(std::size_t witness_amount, 
+                                                    std::size_t lookup_column_amount,
+                                                    std::size_t num_rows,
+                                                    bool xor_with_mes, 
+                                                    bool last_round_call,
+                                                    std::size_t limit_permutation_column) {
+                    std::size_t xor2_cells = calculate_num_cells(num_rows, 2);
+                    std::size_t xor3_cells = calculate_num_cells(num_rows, 3);
+                    std::size_t xor5_cells = calculate_num_cells(num_rows, 5);
+                    std::size_t rotate_cells = 24;
+                    std::size_t chi_cells = calculate_num_cells(num_rows, 3);
+                    std::size_t xor2_buff = calculate_buff(witness_amount, num_rows, 2);
+                    std::size_t xor3_buff = calculate_buff(witness_amount, num_rows, 3);
+                    std::size_t xor5_buff = calculate_buff(witness_amount, num_rows, 5);
+                    std::size_t rotate_buff = 0;
+                    std::size_t chi_buff = calculate_buff(witness_amount, num_rows, 3);
+
                     std::size_t num_cells = (xor3_cells + xor3_buff) * last_round_call
                                              * xor_with_mes +                                       // xor with last message chunk
                                             ((17 - last_round_call) * (xor2_cells + xor2_buff))
@@ -133,7 +144,10 @@ namespace nil {
                     }
                     return res;
                 }
-                static std::size_t get_gates_amount() {
+                static std::size_t get_gates_amount(std::size_t witness_amount,
+                                                    bool xor_with_mes,
+                                                    bool last_round_call,
+                                                    std::size_t limit_permutation_column) {
                     std::size_t res = 0;
                     for (std::size_t i = 0; i < gates_configuration.size(); ++i) {
                         res += gates_configuration[i].size();
@@ -141,6 +155,78 @@ namespace nil {
                     return res;
                 }
 
+                virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base(std::size_t base, std::size_t num) {
+                    typename BlueprintFieldType::integral_type result = 0;
+                    typename BlueprintFieldType::integral_type normalized_result = 0;
+                    while (num > 0) {
+                        result = result * 8 + (num % base);
+                        normalized_result = normalized_result * 8 + (num % base) & 1;
+                        num /= base;
+                    }
+                    return {result, normalized_result};
+                }
+                virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base_chi(std::size_t num) {
+                    std::size_t base = 5;
+                    int table[5] = {0, 1, 1, 0, 0};
+                    typename BlueprintFieldType::integral_type result = 0;
+                    typename BlueprintFieldType::integral_type chi_result = 0;
+                    while (num > 0) {
+                        result = result * 8 + (num % base);
+                        chi_result = chi_result * 8 + table[(num % base)];
+                        num /= base;
+                    }
+                    return {result, chi_result};
+                }
+ 
+                class normalize_table_type : public lookup_table_definition{
+                    std::size_t base;
+                public:
+                    normalize_table_type(std::size_t base_): lookup_table_definition("keccak_normalize" + std::to_string(base_) + "_table"), base(base_) {
+                        this->subtables["full"] = {{0,1}, 0, 65536};
+                    }
+                    virtual void generate(){
+                        this->_table.resize(2);
+                        std::vector<std::size_t> value_sizes = {8};
+
+                        for (typename BlueprintFieldType::integral_type i = 0;
+                            i < typename BlueprintFieldType::integral_type(65536);
+                            i++
+                        ) {
+                            std::array<typename BlueprintFieldType::integral_type, 2> value = to_base(base, i);
+                            this->_table[0].push_back(value[0]);
+                            this->_table[1].push_back(value[1]);
+                        }
+                    }
+                    virtual std::size_t get_columns_number(){ return 2; }
+                    virtual std::size_t get_rows_number(){ return 65536; }
+                };
+                class chi_table_type : public lookup_table_definition{
+                public:
+                    chi_table_type(): lookup_table_definition("keccak_chi_table") {
+                        this->subtables["full"] = {{0,1}, 0, 65536};
+                    }
+                    virtual void generate(){
+                        this->_table.resize(2);
+                        std::vector<std::size_t> value_sizes = {8};
+
+                        for (typename BlueprintFieldType::integral_type i = 0;
+                            i < typename BlueprintFieldType::integral_type(65536);
+                            i++
+                        ) {
+                            std::array<typename BlueprintFieldType::integral_type, 2> value = to_base_chi(i);
+                            this->_table[0].push_back(value[0]);
+                            this->_table[1].push_back(value[1]);
+                        }
+                    }
+                    virtual std::size_t get_columns_number(){ return 2; }
+                    virtual std::size_t get_rows_number(){ return 65536; }
+                };
+
+            protected:
+                std::shared_ptr<lookup_table_definition> normalize3_table;
+                std::shared_ptr<lookup_table_definition> normalize4_table;
+                std::shared_ptr<lookup_table_definition> normalize6_table;
+                std::shared_ptr<lookup_table_definition> chi_table;
             public:
                 using manifest_type = nil::blueprint::plonk_component_manifest;
 
@@ -151,7 +237,7 @@ namespace nil {
                     bool last_round_call;
                     std::size_t limit_permutation_column;
 
-                    static const std::size_t clamp = 15;
+                    static constexpr const std::size_t clamp = 15;
 
                     gate_manifest_type(std::size_t witness_amount_,
                                        bool xor_with_mes_,
@@ -163,7 +249,7 @@ namespace nil {
                             limit_permutation_column(limit_permutation_column_) {}
 
                     std::uint32_t gates_amount() const override {
-                        return keccak_round::get_gates_amount();
+                        return keccak_round::get_gates_amount(witness_amount, xor_with_mes, last_round_call, limit_permutation_column);
                     }
                 };
 
@@ -359,7 +445,8 @@ namespace nil {
                     return result;
                 }
 
-                configuration configure_inner(std::size_t witness_amount, std::size_t row, std::size_t column, std::size_t num_args,
+                static configuration configure_inner(std::size_t witness_amount, std::size_t limit_permutation_column, 
+                                            std::size_t row, std::size_t column, std::size_t num_args,
                                             std::size_t num_chunks, std::size_t num_cells, std::size_t buff = 0) {
 
                     std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
@@ -443,7 +530,7 @@ namespace nil {
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
-                configuration configure_xor(std::size_t witness_amount, std::size_t row, std::size_t column, int num_args) {
+                static configuration configure_xor(std::size_t witness_amount, std::size_t limit_permutation_column, std::size_t row, std::size_t column, int num_args) {
                     // regular constraints:
                     // sum = arg1 + arg2 + ... + argn
                     // sum = sum_chunk0 + sum_chunk1 * 2^chunk_size + ... + sum_chunkk * 2^(k*chunk_size)
@@ -457,10 +544,10 @@ namespace nil {
                                         : num_args == 3 ? xor3_buff
                                         : xor5_buff;
 
-                    return configure_inner(witness_amount, row, column, num_args, num_chunks, num_cells, buff);
+                    return configure_inner(witness_amount, limit_permutation_column, row, column, num_args, num_chunks, num_cells, buff);
                 }
 
-                configuration configure_chi(std::size_t witness_amount, std::size_t row, std::size_t column) {
+                static configuration configure_chi(std::size_t witness_amount, std::size_t limit_permutation_column, std::size_t row, std::size_t column) {
                     // regular constraints:
                     // sum = sparse_3 - 2 * a + b - c;
                     // sum = sum_chunk0 + sum_chunk1 * 2^chunk_size + ... + sum_chunkk * 2^(k*chunk_size)
@@ -469,10 +556,10 @@ namespace nil {
                     std::size_t num_args = 3;
                     std::size_t num_cells = chi_num_chunks * 2 + num_args + 2;
 
-                    return configure_inner(witness_amount, row, column, num_args, chi_num_chunks, num_cells, chi_buff);
+                    return configure_inner(witness_amount, limit_permutation_column, row, column, num_args, chi_num_chunks, num_cells, chi_buff);
                 }
 
-                configuration configure_rot(std::size_t witness_amount, std::size_t row, std::size_t column) {
+                static configuration configure_rot(std::size_t witness_amount, std::size_t limit_permutation_column, std::size_t row, std::size_t column) {
                     // regular constraints:
                     // a = small_part << (192 - r) + big_part;
                     // a_rot = big_part << r + small_part;
@@ -485,8 +572,8 @@ namespace nil {
 
                     std::size_t last_row = row,
                                 last_column = column;
-                    std::size_t num_chunks = rotate_num_chunks;
-                    std::size_t num_cells = rotate_cells;
+                    std::size_t num_chunks = 8;
+                    std::size_t num_cells = 24;
                 
                     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
                     std::pair<std::size_t, std::size_t> cell_copy_from;
@@ -556,14 +643,18 @@ namespace nil {
                     constraints[2].push_back(constraints[6][0]);
                     constraints[4].push_back(constraints[6][1]);
                     
-                    last_column = cells.back().second + 1 + rotate_buff;
+                    last_column = cells.back().second + 1 + calculate_rot_buff(num_chunks);
                     last_row = cells.back().first + (last_column / witness_amount);
                     last_column %= witness_amount;
                     
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
-                std::vector<configuration> configure_all(std::size_t witness_amount) {
+                static std::vector<configuration> configure_all(std::size_t witness_amount,
+                                                                bool xor_with_mes,
+                                                                bool last_round_call,
+                                                                std::size_t limit_permutation_column) {
+                    std::size_t full_configuration_size = 17 * xor_with_mes + 85;
                     auto result = std::vector<configuration>(full_configuration_size);
                     std::size_t row = 0,
                                 column = 0;
@@ -572,14 +663,14 @@ namespace nil {
                     // inner_state ^ chunk
                     if (xor_with_mes) {
                         for (int i = 0; i < 17 - last_round_call; ++i) {
-                            result[i] = configure_xor(witness_amount, row, column, 2);
+                            result[i] = configure_xor(witness_amount, limit_permutation_column, row, column, 2);
                             row = result[i].last_coordinate.row;
                             column = result[i].last_coordinate.column;
                             cur_config++;
                         }
                         // xor with last message chunk
                         if (last_round_call) {
-                            result[cur_config] = configure_xor(witness_amount, row, column, 3);
+                            result[cur_config] = configure_xor(witness_amount, limit_permutation_column, row, column, 3);
                             row = result[cur_config].last_coordinate.row;
                             column = result[cur_config].last_coordinate.column;
                             cur_config++;
@@ -587,45 +678,49 @@ namespace nil {
                     }
                     // theta
                     for (int i = 0; i < 5; ++i) {
-                        result[cur_config] = configure_xor(witness_amount, row, column, 5);
+                        result[cur_config] = configure_xor(witness_amount, limit_permutation_column, row, column, 5);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     for (int i = 0; i < 5; ++i) {
-                        result[cur_config] = configure_rot(witness_amount, row, column);
+                        result[cur_config] = configure_rot(witness_amount, limit_permutation_column, row, column);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     for (int i = 0; i < 25; ++i) {
-                        result[cur_config] = configure_xor(witness_amount, row, column, 3);
+                        result[cur_config] = configure_xor(witness_amount, limit_permutation_column, row, column, 3);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     // rho/phi
                     for (int i = 0; i < 24; ++i) {
-                        result[cur_config] = configure_rot(witness_amount, row, column);
+                        result[cur_config] = configure_rot(witness_amount, limit_permutation_column, row, column);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     // chi
                     for (int i = 0; i < 25; ++i) {
-                        result[cur_config] = configure_chi(witness_amount, row, column);
+                        result[cur_config] = configure_chi(witness_amount, limit_permutation_column, row, column);
                         row = result[cur_config].last_coordinate.row;
                         column = result[cur_config].last_coordinate.column;
                         cur_config++;
                     }
                     // iota
-                    result[cur_config] = configure_xor(witness_amount, row, column, 2);
+                    result[cur_config] = configure_xor(witness_amount, limit_permutation_column, row, column, 2);
 
                     return result;
                 }
 
-                std::map<std::pair<std::size_t, std::size_t>, std::vector<std::size_t>> configure_map() {
-                    auto config = full_configuration;
+                static std::map<std::pair<std::size_t, std::size_t>, 
+                        std::vector<std::size_t>> configure_map(std::size_t witness_amount,
+                                                                bool xor_with_mes,
+                                                                bool last_round_call,
+                                                                std::size_t limit_permutation_column) {
+                    auto config = configure_all(witness_amount, xor_with_mes, last_round_call, limit_permutation_column);
                     std::size_t row = 0,
                                 column = 0;
                     std::size_t cur_config = 0;
@@ -812,6 +907,28 @@ namespace nil {
                     return result;
                 }
 
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
+                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                    normalize3_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(3));
+                    normalize4_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(4));
+                    normalize6_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(6));
+                    chi_table = std::shared_ptr<lookup_table_definition>(new chi_table_type());
+                    result.push_back(normalize3_table);
+                    result.push_back(normalize4_table);
+                    result.push_back(normalize6_table);
+                    result.push_back(chi_table);
+                    return result;
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables(){
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables["keccak_normalize3_table/full"] = 0; // REQUIRED_TABLE
+                    lookup_tables["keccak_normalize4_table/full"] = 0; // REQUIRED_TABLE
+                    lookup_tables["keccak_normalize6_table/full"] = 0; // REQUIRED_TABLE
+                    lookup_tables["keccak_chi_table/full"] = 0; // REQUIRED_TABLE
+                    return lookup_tables;
+                }
+
                 #define __keccak_round_init_macro(lookup_rows_, lookup_columns_, xor_with_mes_, last_round_call_, lpc_) \
                     lookup_rows(lookup_rows_), \
                     lookup_columns(lookup_columns_), \
@@ -857,7 +974,7 @@ namespace nil {
                         xor_with_mes(xor_with_mes_),
                         last_round_call(last_round_call_),
                         limit_permutation_column(lpc_) {
-                    check_params();
+                    // check_params();
                  };
 
                 keccak_round(
@@ -869,20 +986,16 @@ namespace nil {
                                    bool xor_with_mes_ = false,
                                    bool last_round_call_ = false,
                                    std::size_t lpc_ = 7) :
-                        component_type(witness, constant, public_input, get_manifest()),
+                        component_type(witnesses, constants, public_inputs, get_manifest()),
                         lookup_rows(lookup_rows_),
                         lookup_columns(lookup_columns_),
                         xor_with_mes(xor_with_mes_),
                         last_round_call(last_round_call_),
                         limit_permutation_column(lpc_) {
-                    check_params();
+                    // check_params();
                  };
 
                 #undef __keccak_round_init_macro
-
-
-                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
-
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -891,7 +1004,7 @@ namespace nil {
                                                                                ArithmetizationParams>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            void generate_gates(
+            std::vector<std::size_t> generate_gates(
                 const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
                     &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
@@ -924,7 +1037,7 @@ namespace nil {
                 // std::vector<lookup_constraint_type> lookup_constraints;
 
                 std::size_t index = 0;
-                std::size_t selector_index = first_selector_index;
+                std::size_t selector_index = 0;
                 for (auto gm: gate_map) {
                     std::vector<configuration> cur_config_vec = gate_config[index];
                     std::size_t i = 0, j = 0, cur_len = 0;
@@ -932,9 +1045,9 @@ namespace nil {
                     switch (gm.first.first) {
                         case 2: 
                         {
-                            cur_constraints.push_back(bp.add_constraint(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                                + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                                - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1)));
+                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                    - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1));
                             
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
