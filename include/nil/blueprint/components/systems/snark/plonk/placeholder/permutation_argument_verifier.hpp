@@ -95,7 +95,6 @@ namespace nil {
                     var q_pad;
                     std::array<var, 2> thetas;
 
-
                     std::vector<var> all_vars() const {
                         std::vector<var> vars;
                         vars.insert(vars.end(), f.begin(), f.end());
@@ -181,20 +180,14 @@ namespace nil {
                 typename BlueprintFieldType::value_type fe = one;
                 typename BlueprintFieldType::value_type fsigma = one;
 
-                typename BlueprintFieldType::value_type theta_1 =
-                    var_value(assignment, instance_input.thetas[0]);
-                typename BlueprintFieldType::value_type theta_2 =
-                    var_value(assignment, instance_input.thetas[1]);
+                typename BlueprintFieldType::value_type theta_1 = var_value(assignment, instance_input.thetas[0]);
+                typename BlueprintFieldType::value_type theta_2 = var_value(assignment, instance_input.thetas[1]);
 
                 typename BlueprintFieldType::value_type L0_y = var_value(assignment, instance_input.L0);
-                typename BlueprintFieldType::value_type Vsigma_y =
-                    var_value(assignment, instance_input.V);
-                typename BlueprintFieldType::value_type Vsigma_zetay =
-                    var_value(assignment, instance_input.V_zeta);
-                typename BlueprintFieldType::value_type q_last_y =
-                    var_value(assignment, instance_input.q_last);
-                typename BlueprintFieldType::value_type q_pad_y =
-                    var_value(assignment, instance_input.q_pad);
+                typename BlueprintFieldType::value_type Vsigma_y = var_value(assignment, instance_input.V);
+                typename BlueprintFieldType::value_type Vsigma_zetay = var_value(assignment, instance_input.V_zeta);
+                typename BlueprintFieldType::value_type q_last_y = var_value(assignment, instance_input.q_last);
+                typename BlueprintFieldType::value_type q_pad_y = var_value(assignment, instance_input.q_pad);
 
                 for (std::size_t i = 0; i < m; i++) {
                     fe = fe * (f[i] + theta_1 * Se[i] + theta_2);
@@ -314,8 +307,7 @@ namespace nil {
                 for (std::size_t i = 0; i < m; i++) {
                     bp.add_copy_constraint({var(component.W(1), row, false), instance_input.f[i]});
                     bp.add_copy_constraint({var(component.W(2), row, false), instance_input.Se[i]});
-                    bp.add_copy_constraint(
-                        {var(component.W(3), row, false), instance_input.thetas[(i & 1)]});
+                    bp.add_copy_constraint({var(component.W(3), row, false), instance_input.thetas[(i & 1)]});
                     bp.add_copy_constraint({var(component.W(4), row, false), instance_input.Ssigma[i]});
                     row++;
                 }

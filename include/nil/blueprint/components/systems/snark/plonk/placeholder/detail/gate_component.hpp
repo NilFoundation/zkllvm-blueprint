@@ -52,9 +52,6 @@ namespace nil {
 
                     constexpr static const std::uint32_t ConstantsAmount = 0;
 
-                    using component_type =
-                        plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
-
                     constexpr static std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t degree) {
 
                         assert(degree != 0);
@@ -70,6 +67,9 @@ namespace nil {
                     }
 
                 public:
+                    using component_type =
+                        plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
+
                     using var = typename component_type::var;
                     using manifest_type = nil::blueprint::plonk_component_manifest;
 
@@ -208,7 +208,6 @@ namespace nil {
                 typename BlueprintFieldType::value_type G = BlueprintFieldType::value_type::zero();
 
                 typename BlueprintFieldType::value_type tmp;
-
                 for (std::size_t i = 1; i <= component._d; i++) {
                     tmp = var_value(assignment, instance_input.constraints[component._d - i + 1]);
                     assignments.push_back(tmp);
@@ -377,7 +376,7 @@ namespace nil {
                     std::size_t tmp = 2;
                     for (r = 1; r < component.rows_amount - 2; r++) {
                         tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
-                        for (std::size_t i = tmp; i <= witness_amount; i = i + 2) {
+                        for (std::size_t i = tmp; i < witness_amount; i = i + 2) {
                             assignment.enable_selector(selector_indices[i], row + r);
                         }
                     }
@@ -385,6 +384,12 @@ namespace nil {
                     tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
                     if (component.need_extra_row && r == component.rows_amount - 2) {
                         for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
+                            assignment.enable_selector(selector_indices[i], row + r);
+                        }
+                        r++;
+                    } 
+                    if( !component.need_extra_row && r == component.rows_amount - 2) {
+                        for (std::size_t i = tmp; i < witness_amount; i = i + 2) {
                             assignment.enable_selector(selector_indices[i], row + r);
                         }
                         r++;

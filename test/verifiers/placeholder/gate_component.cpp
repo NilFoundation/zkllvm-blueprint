@@ -86,12 +86,17 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     };
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG, m);
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        nil::crypto3::detail::connectedness_check_type::STRONG,
+        m);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test1) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 
@@ -109,7 +114,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
     test<BlueprintFieldType, 6>(public_input, expected_res);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test2) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test2) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 
@@ -130,7 +135,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test2) {
     test<BlueprintFieldType, 8>(public_input, expected_res);
 }
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test3) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test3) {
 
     using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
 
@@ -152,5 +157,30 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test3) {
     test<BlueprintFieldType, 8>(public_input, expected_res);
 }
 
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test4) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        0x1f91750ec43107c824e1b79cb0e5b0ce2d5a99ee4d931726955dd619926b3ac8_cppui255,  // theta
+        1,                                                                          // c0
+        0x1b058d4ad7a64a076158339af0f28f31b92d727545c3d63fc2d682721d7849fc_cppui255,  // c1
+        0x13c8cbb50c4a86600d432cc5340ef1bfa78bb5a35c9381e67b1fe23584a5c12_cppui255,   // c2
+        0x3628c1c830ae70a28bf4129c6a01662df74ded3b0529e820fdc3ccf8377ee0e2_cppui255,  // c3
+        0x1f36ae1c91b093f88ab05c97230c85bdd79c4d791ac2b0e8bf5c7889bb80aafd_cppui255,  // c4
+        0x27b1ece6c803fcf6de3fd9aa5207378466f574a6e9b30e188b1158962fec34cf_cppui255,  // c5
+        0x31acc41a65db47a663c27d691157e2f9dcf92de98d482f347c6fa0a78e67d988_cppui255,  // c6
+        0x2f971ec81c0309f69e82434a3c6596a509f586fa36712e7fd965ab31ce83b8c2_cppui255,  // c7 
+        0xcb0e17a777c9ade431b8751afd8057cdd15f74a6795dedd6c1f56bdcdfcff41_cppui255};  // q
+
+    typename BlueprintFieldType::value_type expected_res =
+        0xa98684e2e2f94ea94934ca0cf06778ccda845b247f2eb226eff63171181a160_cppui255;
+
+    test<BlueprintFieldType, 4>(public_input, expected_res);
+    test<BlueprintFieldType, 5>(public_input, expected_res);
+    test<BlueprintFieldType, 6>(public_input, expected_res);
+    test<BlueprintFieldType, 7>(public_input, expected_res);
+    test<BlueprintFieldType, 8>(public_input, expected_res);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
