@@ -48,7 +48,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     constexpr std::size_t WitnessColumns = WitnessAmount;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = WitnessAmount;
+    constexpr std::size_t SelectorColumns = WitnessAmount + (WitnessAmount - 1) / 3;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -121,6 +121,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test0) {
     test<BlueprintFieldType, 5>(public_input, expected_res);
     test<BlueprintFieldType, 6>(public_input, expected_res);
     test<BlueprintFieldType, 7>(public_input, expected_res);
+    test<BlueprintFieldType, 8>(public_input, expected_res);
+    test<BlueprintFieldType, 9>(public_input, expected_res);
+    test<BlueprintFieldType, 10>(public_input, expected_res);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test1) {
@@ -184,6 +187,51 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test2) {
     test<BlueprintFieldType, 5>(public_input, expected_res);
     test<BlueprintFieldType, 6>(public_input, expected_res);
     test<BlueprintFieldType, 7>(public_input, expected_res);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test3) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*beta: */
+        0x815e5816cf879a118c629f6f724e75486494f53371ad59a031e8acf03199b88_cppui255,
+        /*gamma: */
+        0x257158c4ad84265ed8011284ea62f8d24834881034b1d1bf2bdf6dfd0d87aab6_cppui255,
+        0x1b5ed497136f6e508532fd859a0cb4fdad54c84549a665d5d580943fa88bb5de_cppui255,
+        0x45d83c89ccb02eceedf188623a5cc960fe523678bb70567bcfcada4a8f1d7aa_cppui255};
+
+    typename BlueprintFieldType::value_type expected_res =
+        0x3df91b519c56c1661226abe86c59cd26f3a63c2dbaac2cdeecb286d4735dcbf2_cppui255;
+
+    test<BlueprintFieldType, 4>(public_input, expected_res);
+    test<BlueprintFieldType, 5>(public_input, expected_res);
+    test<BlueprintFieldType, 6>(public_input, expected_res);
+    test<BlueprintFieldType, 7>(public_input, expected_res);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test4) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*beta: */
+        0x815e5816cf879a118c629f6f724e75486494f53371ad59a031e8acf03199b88_cppui255,
+        /*gamma: */
+        0x257158c4ad84265ed8011284ea62f8d24834881034b1d1bf2bdf6dfd0d87aab6_cppui255,
+        0x1b5ed497136f6e508532fd859a0cb4fdad54c84549a665d5d580943fa88bb5de_cppui255,
+        0x45d83c89ccb02eceedf188623a5cc960fe523678bb70567bcfcada4a8f1d7aa_cppui255,
+        0x1601b0e7bc9d588bfd28ebc94bc310654ab24669f26645d575cbfb1423cb0f90_cppui255,
+        0x3cd9714e6b5440733518b80c64a3aaa050516c848b3a09c456d2c99112f396c3_cppui255};
+
+    typename BlueprintFieldType::value_type expected_res =
+        0x3368f12ac6c75aceaed6f7f2e9af9926674370ddb3d12c00c83c225cc6b88380_cppui255;
+
+    test<BlueprintFieldType, 4>(public_input, expected_res);
+    test<BlueprintFieldType, 5>(public_input, expected_res);
+    test<BlueprintFieldType, 6>(public_input, expected_res);
+    test<BlueprintFieldType, 7>(public_input, expected_res);
+    test<BlueprintFieldType, 8>(public_input, expected_res);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

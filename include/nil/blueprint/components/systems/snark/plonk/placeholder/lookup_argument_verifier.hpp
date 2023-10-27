@@ -681,7 +681,11 @@ namespace nil {
                 if (h_output_col == 0) {
                     h_output_col = witness_amount - 1;
                 }
-                var h_var = var(component.W(h_output_col), row - 1, false);
+                std::size_t h_row_offset = 1;
+                if(3*m + 1 <= witness_amount){
+                    h_row_offset = 2;
+                }
+                var h_var = var(component.W(h_output_col), row - h_row_offset, false);
                 row += f1_loop::get_rows_amount(witness_amount, 0, lu_value_size);
                 row += f1_loop::get_rows_amount(witness_amount, 0, lu_input_size);
                 row += mul::get_rows_amount(witness_amount, 0);

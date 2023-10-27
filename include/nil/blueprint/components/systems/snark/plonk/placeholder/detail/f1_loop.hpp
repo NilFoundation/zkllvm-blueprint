@@ -54,6 +54,10 @@ namespace nil {
                     }
 
                     constexpr static std::size_t gates_amount_internal(std::size_t witness_amount, std::size_t n) {
+                        if (witness_amount % 3 != 1) {
+                            return witness_amount + (witness_amount - 1) / 3;
+                        }
+
                         return witness_amount;
                     }
 
@@ -130,8 +134,11 @@ namespace nil {
                             if (j == 0) {
                                 j = WitnessesAmount - 1;
                             }
-
-                            output = var(component.W(j), start_row_index + component.rows_amount - 1, false);
+                            if (3 * component.m + 1 <= WitnessesAmount) {
+                                output = var(component.W(j), start_row_index, false);
+                            } else {
+                                output = var(component.W(j), start_row_index + component.rows_amount - 1, false);
+                            }
                         }
 
                         std::vector<var> all_vars() const {
@@ -205,6 +212,9 @@ namespace nil {
                     assignment.witness(component.W(j), row + r) = assignments[i];
                 }
                 row += r;
+                if (row - start_row_index < 1) {
+                    row++;
+                }
                 for (r = start_row_index; r <= row; r++) {
                     if (witness_amount % 3 == 1) {
                         if ((r - start_row_index) % 2 == 0) {
@@ -350,6 +360,24 @@ namespace nil {
                                      var(component.W(j - 1), 0));    // h_new = h_old * ((1+beta)gamma + s_0 + beta t_0)
                         selectors.push_back(bp.add_gate({constraint_}));
                     }
+
+                    auto constraint_5 =
+                        var(component.W(3), +1) -
+                        var(component.W(witness_amount - 1), 0) *
+                            ((1 + var(component.W(0), 0)) * var(component.W(0), -1) + var(component.W(1), +1) +
+                             var(component.W(0), 0) * var(component.W(2), +1));    // h = (1+beta)gamma + s_0 + beta t_0
+                    selectors.push_back(bp.add_gate({constraint_5}));
+
+                    for (std::size_t j = 6; j < witness_amount; j = j + 3) {
+                        auto constraint_ =
+                            var(component.W(j), +1) -
+                            var(component.W(j - 3), +1) *
+                                ((1 + var(component.W(0), 0)) * var(component.W(0), -1) + var(component.W(j - 2), +1) +
+                                 var(component.W(0), 0) *
+                                     var(component.W(j - 1),
+                                         +1));    // h_new = h_old * ((1+beta)gamma + s_0 + beta t_0)
+                        selectors.push_back(bp.add_gate({constraint_}));
+                    }
                 } else {
 
                     auto constraint_2 =
@@ -405,6 +433,24 @@ namespace nil {
                                      var(component.W(j - 1), 0));    // h_new = h_old * ((1+beta)gamma + s_0 + beta t_0)
                         selectors.push_back(bp.add_gate({constraint_}));
                     }
+
+                    auto constraint_5 =
+                        var(component.W(3), +1) -
+                        var(component.W(witness_amount - 1), -1) *
+                            ((1 + var(component.W(0), 0)) * var(component.W(0), -1) + var(component.W(1), +1) +
+                             var(component.W(0), 0) * var(component.W(2), +1));    // h = (1+beta)gamma + s_0 + beta t_0
+                    selectors.push_back(bp.add_gate({constraint_5}));
+
+                    for (std::size_t j = 6; j < witness_amount; j = j + 3) {
+                        auto constraint_ =
+                            var(component.W(j), +1) -
+                            var(component.W(j - 3), +1) *
+                                ((1 + var(component.W(0), 0)) * var(component.W(0), -1) + var(component.W(j - 2), +1) +
+                                 var(component.W(0), 0) *
+                                     var(component.W(j - 1),
+                                         +1));    // h_new = h_old * ((1+beta)gamma + s_0 + beta t_0)
+                        selectors.push_back(bp.add_gate({constraint_}));
+                    }
                 }
                 return selectors;
             }
@@ -445,6 +491,9 @@ namespace nil {
                     std::size_t j_last = (r == component.rows_amount - 1) ? last_j : witness_amount;
                     for (std::size_t j = 1; j < j_last; j++) {
                         auto tmp = (r * (witness_amount - 1) + j);
+                        if (tmp >= 3 * component.m) {
+                            break;
+                        }
                         if (tmp % 3 == 1) {
                             bp.add_copy_constraint({var(component.W(j), row + r, false), instance_input.s[tmp / 3]});
                         } else if (tmp % 3 == 2) {
@@ -476,55 +525,76 @@ namespace nil {
                 std::vector<std::size_t> selectors = generate_gates(component, bp, assignment, instance_input);
 
                 assignment.enable_selector(selectors[0], row);
-
                 std::size_t last_j = (3 * component.m) % (witness_amount - 1);
                 if (last_j == 0) {
                     last_j = witness_amount - 1;
                 }
 
-                std::size_t r = 0;
-                if (witness_amount % 3 == 1) {
-                    for (r = 0; r < component.rows_amount - 1; r++) {
-                        for (std::size_t j = 3; j < witness_amount; j = j + 3) {
-                            if (r == 0 && j == 3)
-                                continue;
-                            else {
-                                assignment.enable_selector(selectors[(r & 1) * (witness_amount / 3) + (j / 3)],
-                                                           row + r);
+                if (3 * component.m + 1 > witness_amount) {
+                    std::size_t r = 0;
+                    if (witness_amount % 3 == 1) {
+                        for (r = 0; r < component.rows_amount - 1; r++) {
+                            for (std::size_t j = 3; j < witness_amount; j = j + 3) {
+                                if (r == 0 && j == 3)
+                                    continue;
+                                else {
+                                    assignment.enable_selector(selectors[(r & 1) * (witness_amount / 3) + (j / 3)],
+                                                               row + r);
+                                }
                             }
                         }
-                    }
-                    r = component.rows_amount - 1;
-                    for (std::size_t j = 3; j <= last_j; j = j + 3) {
-                        assignment.enable_selector(selectors[(2 - (r & 1)) * (witness_amount / 3) + (j / 3)], row + r);
-                    }
-                } else if (witness_amount % 3 == 2) {
-                    std::size_t pos = 0, start_j = 0, end_j = witness_amount - 1;
-                    for (r = 0; r < component.rows_amount; r++) {
-                        start_j = 3 - (r % 3);
-                        if (r == component.rows_amount - 1) {
-                            end_j = last_j;
+                        r = component.rows_amount - 1;
+                        for (std::size_t j = 3; j <= last_j; j = j + 3) {
+                            assignment.enable_selector(selectors[(2 - (r & 1)) * (witness_amount / 3) + (j / 3)],
+                                                       row + r);
                         }
-                        for (std::size_t j = start_j; j <= end_j; j = j + 3) {
-                            if (r == 0 && j == 3)
-                                continue;
-                            pos = (r % 3) * (witness_amount / 3) + ((j + (r % 3)) / 3);
-                            assignment.enable_selector(selectors[pos], row + r);
+                    } else if (witness_amount % 3 == 2) {
+                        std::size_t pos = 0, start_j = 0, end_j = witness_amount - 1;
+                        std::size_t scale = 1;
+                        for (r = 0; r < component.rows_amount - 1; r++) {
+                            start_j = 3 - (r % 3);
+                            for (std::size_t j = start_j; j < witness_amount; j = j + 3) {
+                                if (r == 0 && j == 3)
+                                    continue;
+                                pos = (r % 3) * (witness_amount / 3) + ((j + (r % 3)) / 3);
+                                assignment.enable_selector(selectors[pos], row + r);
+                            }
+                        }
+                        r = component.rows_amount - 1;
+                        start_j = 3 - (r % 3);
+                        std::size_t offset = 0;
+                        if (r % 3 == 0) {
+                            offset = witness_amount - 1;
+                        }
+                        for (std::size_t j = start_j; j <= last_j; j = j + 3) {
+                            pos = (r % 3) * (witness_amount / 3) + ((j + (r % 3)) / 3) + offset;
+                            assignment.enable_selector(selectors[pos], row + r - (r % 3 == 0));
+                        }
+                    } else {
+                        std::size_t pos = 0, start_j = 0, end_j = witness_amount - 1;
+                        for (r = 0; r < component.rows_amount - 1; r++) {
+                            start_j = r % 3 + 3 * ((r % 3) == 0);
+                            for (std::size_t j = start_j; j < witness_amount; j = j + 3) {
+                                if (r == 0 && j == 3)
+                                    continue;
+                                pos = (r % 3) * (witness_amount / 3) + ((j + (r % 3)) / 3) - (r % 3 == 2);
+                                assignment.enable_selector(selectors[pos], row + r);
+                            }
+                        }
+                        r == component.rows_amount - 1;
+                        start_j = r % 3 + 3 * ((r % 3) == 0);
+                        std::size_t offset = 0;
+                        if (r % 3 == 0) {
+                            offset = witness_amount - 1;
+                        }
+                        for (std::size_t j = start_j; j <= last_j; j = j + 3) {
+                            pos = (r % 3) * (witness_amount / 3) + ((j + (r % 3)) / 3) - (r % 3 == 2) + offset;
+                            assignment.enable_selector(selectors[pos], row + r - (r % 3 == 0));
                         }
                     }
                 } else {
-                    std::size_t pos = 0, start_j = 0, end_j = witness_amount - 1;
-                    for (r = 0; r < component.rows_amount; r++) {
-                        start_j = r % 3 + 3 * ((r % 3) == 0);
-                        if (r == component.rows_amount - 1) {
-                            end_j = last_j;
-                        }
-                        for (std::size_t j = start_j; j <= end_j; j = j + 3) {
-                            if (r == 0 && j == 3)
-                                continue;
-                            pos = (r % 3) * (witness_amount / 3) + ((j + (r % 3)) / 3) - (r % 3 == 2);
-                            assignment.enable_selector(selectors[pos], row + r);
-                        }
+                    for (std::size_t j = 6; j <= last_j; j = j + 3) {
+                        assignment.enable_selector(selectors[j / 3], row);
                     }
                 }
 

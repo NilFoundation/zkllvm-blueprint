@@ -376,7 +376,7 @@ namespace nil {
                     std::size_t tmp = 2;
                     for (r = 1; r < component.rows_amount - 2; r++) {
                         tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
-                        for (std::size_t i = tmp; i <= witness_amount; i = i + 2) {
+                        for (std::size_t i = tmp; i < witness_amount; i = i + 2) {
                             assignment.enable_selector(selector_indices[i], row + r);
                         }
                     }
@@ -384,6 +384,12 @@ namespace nil {
                     tmp = 2 - ((witness_amount - 1) % 2) * (r % 2);
                     if (component.need_extra_row && r == component.rows_amount - 2) {
                         for (std::size_t i = tmp; i <= last_gate; i = i + 2) {
+                            assignment.enable_selector(selector_indices[i], row + r);
+                        }
+                        r++;
+                    } 
+                    if( !component.need_extra_row && r == component.rows_amount - 2) {
+                        for (std::size_t i = tmp; i < witness_amount; i = i + 2) {
                             assignment.enable_selector(selector_indices[i], row + r);
                         }
                         r++;

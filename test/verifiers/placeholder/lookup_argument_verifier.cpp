@@ -52,7 +52,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     constexpr std::size_t WitnessColumns = WitnessAmount;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 5 * WitnessAmount;
+    constexpr std::size_t SelectorColumns = 10 * WitnessAmount;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -306,10 +306,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test) {
         0x19278da4bf5d19e98a445ebadc0910733d4ad48527b3417af89b9571a7b886c4_cppui255,
         0x20faeea92ea55a96f57dea87d5ce112778185cb59ef6a1252242d571d1a3f3aa_cppui255};    // F
 
-    // test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+    test<BlueprintFieldType, 4>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    // test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
     //                             gate_constraint_lookup_input_sizes, lookup_tables_size,
     //                             lookup_table_lookup_options_sizes, lookup_table_columns_number);
-
+    test<BlueprintFieldType, 7>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
@@ -401,6 +409,314 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test1) {
         0x246009173489a2c898257f798838fbbf15099b5e311b765e0114cbb017472baa_cppui255,
         0x1f4800182b9b832ceaca69367a60809745976e7793157079f305358ecc0d1034_cppui255,
         0x3784c3bbe15ea3db50780f6d73698cd40e98f82aafdc6dfd62f7d3f29aa4f1ff_cppui255};    // F
+
+    test<BlueprintFieldType, 4>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 7>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test2) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::size_t lookup_gates_size = 1;
+    std::size_t lookup_tables_size = 1;
+    std::vector<std::size_t> gate_constraints_sizes = {1};
+    std::vector<std::size_t> gate_constraint_lookup_input_sizes = {3};
+    std::vector<std::size_t> lookup_table_lookup_options_sizes = {1};
+    std::vector<std::size_t> lookup_table_columns_number = {3};
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*theta: */
+        0x1d7f68089e58314bd0fd09de62903aa5ec3268b574f97bf7cad8e1af15952f05_cppui255,
+        /*beta: */
+        0x815e5816cf879a118c629f6f724e75486494f53371ad59a031e8acf03199b88_cppui255,
+        /*gamma: */
+        0x257158c4ad84265ed8011284ea62f8d24834881034b1d1bf2bdf6dfd0d87aab6_cppui255,
+        /*alpha: */
+        0xc5f37c144b3d9a3727c15cb2860927aa1852b09741fa40473fc9eb1787dc89e_cppui255,
+        /*V_L: */
+        0x3d71d8822355d24ec28a4689490af52a0edec77b1a1e1a336b00136ca5b2aa55_cppui255,
+        0x39bfbccba576b46aadd07a1269e2167a8af30ee2f5b63d18da633976f8d39b90_cppui255,
+        /*q_last_0: */
+        0x289716269efe8d211ed1c4b73cf3a1a8a92c4f35b60c88610e2a2274a9462e4d_cppui255,
+        0x3938ee6f665648111b1fb38692685fc58d13dd96eb282fa132df606fc13c24ff_cppui255,
+        /*q_blind_0: */
+        0x2ce4873d86986fd9fd9f80e3d17f77086d77fa3600ffcc14a5b151735026659_cppui255,
+        0x1d9d793626a197fb1ca1b02a9283241f3de2f6291d8e3009ef5c5a2f90ccb87b_cppui255,
+        /*L_0: */
+        0x3c64fd8ec24abf24f8ff563202680a359bc5d73caac1096da418e429324017db_cppui255,
+        /*gate selectors: */
+        0x3c64fd8ec24abf24f8ff563202680a359bc5d73caac1096da418e429324017db_cppui255,
+        /*table_ids: */
+        1,
+        /*lookup gate constraint lookup inputs: */
+        0x3c64fd8ec24abf24f8ff563202680a359bc5d73caac1096da418e429324017db_cppui255, 0x0_cppui255, 0x0_cppui255,
+        /*lookup tables selcetors: */
+        0x1835a3d6c64d2cbc4854ed08838c5cb178c38be251bc63a735bc4624ef775382_cppui255,
+        /* lookup tables lookup option: */
+        0x3d3c325d1c415801ca4b9f57fe82a5e5ee1dd4f0cd544d2bac86cf6507d1411b_cppui255,
+        0x1af97179aa0bd4ba7e094db08509b6cbacec4fed8db50f972262a7ace7a61268_cppui255,
+        0x40343edb5eb0ff0af2bebd16c1a46206109f759e22c1d8a79a76ef546951c1c_cppui255,
+        /*lookup tables shifted selcetors: */
+        0x1b61b2f62241a3d026348fb3f38c07218775858811553d73a6f5c9de607b465e_cppui255,
+        /* lookup tables shifted lookup option: */
+        0x175e6f086c5693df7708a3e28771c101266b8e2e2f291fe92d4e5ae919e62a42_cppui255,
+        0x40343edb5eb0ff0af2bebd16c1a46206109f759e22c1d8a79a76ef546951c1c_cppui255,
+        0x3c64fd8ec24abf24f8ff563202680a359bc5d73caac1096da418e429324017db_cppui255,
+        /* sorted :*/
+        0xaae87d4c1a9c5f67fd8d128e52c19df71cae8ae988616ccdf64469b1f622167_cppui255,
+        0x88ac88639b105ff6b4c74b858b9a6956b54ec13dc00aa5db193d934078a6744_cppui255,
+        0x22cf6baa70e28b08de79a41bffe3ba33dff26ef9269dee9488688f53652a3f6c_cppui255,
+        0x3ad0b47143a7797996a7583b7b976d1d65dd0dfb82c24e3095d5ad597451ebd8_cppui255,
+        0x2882c884e7588cb74da62fb359b02d5143f2eff9d3e475112caee5f237f5265c_cppui255};
+
+    std::array<typename BlueprintFieldType::value_type, 4> expected_res = {
+        0x1d38affafcaea87529bfbd1eecfb8bdfec63c8477ef34d81ed7524a4b3dfd0ee_cppui255,
+        0x1517c78abe81de6b6ab6cea789d87b139ae198de67059be4da160d4eef47a120_cppui255,
+        0x1c6d84769c65a19b6291825efc7e31c970629504b4c88816a90e7d339ebe2252_cppui255,
+        0x3c74bf9104f97f4019d75b317c1df2629f1f421002b7abc02344d53707b21de2_cppui255};    // F
+
+    test<BlueprintFieldType, 4>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 7>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test3) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::size_t lookup_gates_size = 1;
+    std::size_t lookup_tables_size = 1;
+    std::vector<std::size_t> gate_constraints_sizes = {1};
+    std::vector<std::size_t> gate_constraint_lookup_input_sizes = {3};
+    std::vector<std::size_t> lookup_table_lookup_options_sizes = {1};
+    std::vector<std::size_t> lookup_table_columns_number = {3};
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*theta: */
+        0xc51d84f8427d67ce47566fb043b6415f91196129cb6fd0ea3362f213a0e8cc8_cppui255,
+        /*beta: */
+        0x234beb2f67e10c0b52a8162be56be6d0b441bfb15b18ea41167ff3eb6f07160e_cppui255,
+        /*gamma: */
+        0x1855e317848ad8aa18904176c2af32d853dfc7698d97dc19b608992e6bdaa052_cppui255,
+        /*alpha: */
+        0x17f36241082dc5dc4e12968736300a389c2cbab471ace605aa7eb8d1cc91016f_cppui255,
+        /*V_L: */
+        0x2aad0ea7357d6d6bc3e696cb9f53a669b36ef1888fd3daefda299547d5222873_cppui255,
+        0x20d25dca706ce16e69797886802260ca4dbfbde1dbc488d97c44af1b752dc2cb_cppui255,
+        /*q_last_0: */
+        0x30895ee54f09f37d02e99a406c6c8af394e4dd638575bb48bb97498bea211940_cppui255,
+        0x2afc6ee2bd64a76ce5d5a2345bed6c99dd4452d7d1712321e497c67b3906a86c_cppui255,
+        /*q_blind_0: */
+        0x31849db7e2ccf46d25b15a478e4da18972e88efdeccd4525110e636f945a2b3c_cppui255,
+        0x16c598e3d182c4be8e8c706fd77a79e03918b7cd335d74768864041a54a195eb_cppui255,
+        /*L_0: */
+        0x2342576902db29a6082f737d90dd8ceca2aa402444b829d177859040ca028f33_cppui255,
+        /*gate selectors: */
+        0x2342576902db29a6082f737d90dd8ceca2aa402444b829d177859040ca028f33_cppui255,
+        /*table_ids: */
+        1,
+        /*lookup gate constraint lookup inputs: */
+        0x2342576902db29a6082f737d90dd8ceca2aa402444b829d177859040ca028f33_cppui255, 0x0_cppui255, 0x0_cppui255,
+        /*lookup tables selcetors: */
+        0x3aafabf9cb4dee6fcf3597fa74684696bc5c1e6e64ebc113875c558ab7822c55_cppui255,
+        /* lookup tables lookup option: */
+        0x334125c610355fc7c5f126ca247e9a5233590241e3050c6a97c4f3c942db3c7a_cppui255,
+        0x76e8633bb188ea8094471304fe9ac4489031c2c81e6b4a8ef9761c174a6efdb_cppui255,
+        0x844b6e352d0b85ae01b8495c8912db85614af6a1193e948b32d2d4e09d4940e_cppui255,
+        /*lookup tables shifted selcetors: */
+        0x32f5948010c470a8f18f6943a95866e981c20bbad832c7c31a4a1f50487e131c_cppui255,
+        /* lookup tables shifted lookup option: */
+        0x2ab0dd9cbdf3b84e1173e4ade0c739312bad5c50c69ede7a671cf2023ea97f0e_cppui255,
+        0x844b6e352d0b85ae01b8495c8912db85614af6a1193e948b32d2d4e09d4940e_cppui255,
+        0x2342576902db29a6082f737d90dd8ceca2aa402444b829d177859040ca028f33_cppui255,
+        /* sorted :*/
+        0x309c3f5b27a9decbc857a77c4de0dcf924ab52beef5f1fe1478b4d5f0cdea83d_cppui255,
+        0x2f84548fee17235fa8b337133a77b4325accc997229273a513d7eeb2c26d8c72_cppui255,
+        0x3c3a027f046e121eb28f3f3a8c595f722b5711aca301ac25563a0bc13f600a8c_cppui255,
+        0x3aa7d1881a22a4408949c2b9e4ad31bba1329e386882f6454c8070c3673f2783_cppui255,
+        0xf47f8092f969b60daabd4cb1ef68b595a76c42fdc9e217912e4ced2f7dcad3a_cppui255};
+
+    std::array<typename BlueprintFieldType::value_type, 4> expected_res = {
+        0xed0fd5a4c7353bbe05c6b605c83fbec891cdf62c9e137b630aea8fc23eba213_cppui255,
+        0x2730aed0d40e486fefa62d17dceffdd430ddd4e1129876f1be75b0440887f59a_cppui255,
+        0x509b68f48912d1abc42fead48c7aae0adc49dfc05aafcabbcd1b4a84a81822b_cppui255,
+        0x126cb3995ab0d911bb988e50df2ece7ba3d22d3fd272421c29579d7c091bbea4_cppui255};    // F
+
+    test<BlueprintFieldType, 4>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 7>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test4) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::size_t lookup_gates_size = 1;
+    std::size_t lookup_tables_size = 1;
+    std::vector<std::size_t> gate_constraints_sizes = {1};
+    std::vector<std::size_t> gate_constraint_lookup_input_sizes = {3};
+    std::vector<std::size_t> lookup_table_lookup_options_sizes = {1};
+    std::vector<std::size_t> lookup_table_columns_number = {3};
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*theta: */
+        0x3570e3894c1215e257f32b60a2506ab1bb838dd71e5bdd070aeea75eef5c04e1_cppui255,
+        /*beta: */
+        0x4110a75d7bb3b6119d90555bef2ef98a5cc6d02b863d166a8478e7db7d097b7_cppui255,
+        /*gamma: */
+        0xd8c6a785dd97b0298dec35c05b9a644434fb8ffb8fd571b0efa28269166320f_cppui255,
+        /*alpha: */
+        0x22c705f52e10b6f5c581348c05068b813972db6286d46fe377bc0e5cd43b6986_cppui255,
+        /*V_L: */
+        0xfed12cbd566c5b8f2643428652eb43c7bc927475b69c7a4e24deacb830e18b2_cppui255,
+        0x19e5f35744d2e897dc93a79eb0ad4840205abcb9f75a7bbc25c82c09d7d12b86_cppui255,
+        /*q_last_0: */
+        0x25f7509bea7b2d56c9ff4f491e4414772c978dca237a1fae98d9f51bf31ae22d_cppui255,
+        0x349f44e2ae4743a2763ccf01c567c9b869a176070df81d96a490c496cad8c2c4_cppui255,
+        /*q_blind_0: */
+        0x23b533ff1c373758f4acbd22122f1c0262a368e2b7fe16da8407f08650e476b3_cppui255,
+        0x36b42752f807b80ecc9b48c46f7af88581f8a1d01062d7b6599c88e22cfde5d1_cppui255,
+        /*L_0: */
+        0x3b34f6cecb7a7e839ae09301afc44b95407a20905b8a14be97abd9f4d8d9173e_cppui255,
+        /*gate selectors: */
+        0x2b041988e0bcf922cb877fb2c7b9c78f089b71c49697abfb91c120c7c2eba5a3_cppui255,
+        /*table_ids: */
+        1,
+        /*lookup gate constraint lookup inputs: */
+        0x216a008a9b4cb540a650f5b8ce4ffa32ed13b0b36d772aa4b44c34e7089b30ec_cppui255,
+        0xf34378a7a7d68ec55dc448195fe4d8230e3e586f8d33e253fa06b55c9bb2c81_cppui255,
+        0x3f89dc06cbc9ed36f7c9eb31a5ba50c08c81b20e3cc6df6392088d3e70560457_cppui255,
+        /*lookup tables selcetors: */
+        0x3b1e84962dd31ccca67360931fc883f1971eb3b6e4e4a00b16f9d32fe3278fe6_cppui255,
+        /* lookup tables lookup option: */
+        0x2270b42c8a18543699ab4604e78e1fa874b8bbd2921a33b51ec991ce9917dc3c_cppui255,
+        0x3feea6bec6d7e5cfec0942e3cd3ad1b016583f8dae822d4928482006c3edc444_cppui255,
+        0x349f44e2ae4743a2763ccf01c567c9b869a176070df81d96a490c496cad8c2c4_cppui255,
+        /*lookup tables shifted selcetors: */
+        0x1b436824b0657adcb1724930a2505ce4bb0c54429299e1770e7b7a0f127e45f_cppui255,
+        /* lookup tables shifted lookup option: */
+        0x3920d125f461b2c1993aeae529f95de7da14a84e2df91eec971d5994c7541af9_cppui255,
+        0x3b2fddd766fb36fcba6a1daf528db241a30d0d253faf6bdd87dee4161f39cba3_cppui255,
+        0x2dd16f49dbd11094236e7703222655f02d5ddec78d6f0f3a1365fe24ce3f1979_cppui255,
+        /* sorted :*/
+        0x29caaf2bb1ed8d76799585de1615640b5e860512b975eddc1ccc07f3c98b7020_cppui255,
+        0x3dec9024d47503f3c555ecc92ff68f5341be354cfb6f996d3891259b01f9b447_cppui255,
+        0x2f5a6a904d8e435c78790bc85d1451d353480bbca304a67878b4d130098d7faa_cppui255,
+        0x3a5fb8b401914e92a328bc1f72fb8671d39432059ed0b4b17e457899ae244e47_cppui255,
+        0x561e67687c658bf77f8a1bac00def678dcd280cd0e94cb52cb4870589541c9e_cppui255};
+
+    std::array<typename BlueprintFieldType::value_type, 4> expected_res = {
+        0x304cec1d36435a3e6b2b0d8a03d7ca470fe20f1e0664b0a87b330020abeb7790_cppui255,
+        0xc87379013fea37f144c3272f082dd7687a98f7531d6ecd8030e58ebe38bb21d_cppui255,
+        0x2db7784e371e44e5a2c8bd73f52edf1a0e24801444f312c67a41054f4367cfe4_cppui255,
+        0x1300ba94cabf85c2f178f39aa3322edf9db9fb27e284fd75f03fdc0f5ba3711a_cppui255};    // F
+
+    test<BlueprintFieldType, 4>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 7>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test5) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::size_t lookup_gates_size = 1;
+    std::size_t lookup_tables_size = 1;
+    std::vector<std::size_t> gate_constraints_sizes = {1};
+    std::vector<std::size_t> gate_constraint_lookup_input_sizes = {3};
+    std::vector<std::size_t> lookup_table_lookup_options_sizes = {1};
+    std::vector<std::size_t> lookup_table_columns_number = {3};
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*theta: */
+        0xc51d84f8427d67ce47566fb043b6415f91196129cb6fd0ea3362f213a0e8cc8_cppui255,
+        /*beta: */
+        0x3e13fbff8a3e86fd9f2008fad7038a4cd7f131714459e26db3dcd6d4ade21176_cppui255,
+        /*gamma: */
+        0x3812204b2d8a8231ea5b286ba560cb5f81d79413f41da18e1e46864c4b4f8d91_cppui255,
+        /*alpha: */
+        0x248372a47839f741d202d4c85de0073259242acc0d885a2d6bde0962fa8a6a10_cppui255,
+        /*V_L: */
+        0x4e37933c31782d66c0562d7d9cb454160e1978332bd5bd21e5ea353b5683e17_cppui255,
+        0xe6354934aa089780f37b58f2a1e06d3e86abe87b914e9fd570874bb50b7d824_cppui255,
+        /*q_last_0: */
+        0x27e2f5b264645452ea918502e707d6bfbd367964a9941a43c60b4c3a1cf07a6d_cppui255,
+        0x185ff7f1d1095cb5afd3453b60b94979e86bae25d109aebe649b37f686a5166e_cppui255,
+        /*q_blind_0: */
+        0x207dc1c6703c47f4d2677a9d22b5067a0286f863e7d111d36141ab7c2c47cf95_cppui255,
+        0x640e57a8467b4ac8c5f28df2de4c22e9bfe4ebe2a38d9463c88af718fe8eff9_cppui255,
+        /*L_0: */
+        0x216c498e3d3ac1475457bdf32d60392f8c5ba174e750103cdecad98748c8f76f_cppui255,
+        /*gate selectors: */
+        0x1be57e68b61a28070b21d2c655643b1ba0f3ac40f1b420dae429069f370284f4_cppui255,
+        /*table_ids: */
+        1,
+        /*lookup gate constraint lookup inputs: */
+        0x286d7641832338fb96156dc92b252e9373ebf6467885af29d34af6eeaa3f4d0f_cppui255,
+        0x172b41321a52e33fbc0dc04bafc25ddd93b28d1dafa4769e9a2c3e17bddbf593_cppui255,
+        0x66e1ce661dd815a11bad6d33497ff7c90a77ab56c90fc777203287884102451_cppui255,
+        /*lookup tables selcetors: */
+        0x1632fef8ee24a270eeaf426cc8e2e996f8741eba99e4b5e32c42909c6dfebe92_cppui255,
+        /* lookup tables lookup option: */
+        0x3827f3dafcadebcc13addd89f6e1fb57f23d5371cc843d18dfea03bde8f33af5_cppui255,
+        0x3419c210464e9866e7b872d501983124cc47c214608a54038b7f9b7b066a477b_cppui255,
+        0x185ff7f1d1095cb5afd3453b60b94979e86bae25d109aebe649b37f686a5166e_cppui255,
+        /*lookup tables shifted selcetors: */
+        0x1f3f50955a5607029333bb249589d94c9c641209b02b1761a672322d30229f93_cppui255,
+        /* lookup tables shifted lookup option: */
+        0x3b81c607a0e9cac79bbfc5e837079988edadb93a8afb339fa2332f4be2135594_cppui255,
+        0x22193ce8a7d60a0a06f6cf97c74ab8724e72f5a242a75afb39f0260e67947718_cppui255,
+        0x1fc7fbe92ba48f1663da984e9628b1de09d1a54bfb7a8e5a7b4ecbc7624e2487_cppui255,
+        /* sorted :*/
+        0x1ad4c042735d793d01537bad9f89a0f1dacacdc47495cd16a638e9ddf74b7f90_cppui255,
+        0xeef4260e7f2f40ebcf749089fb3bcc22a0d504a0c4b0b0bb581832fb8597e3d_cppui255,
+        0x263a119ae0c496c4a6a289302d2eb77f1acbb3cf11c71b7594b8102060192c5_cppui255,
+        0x3c6db664b0ff67f755a19001fdd120088a06e162e3ef0cb16dfe35095040147b_cppui255,
+        0x3d35e0079956b46536464e7edd6e72c1cfd8c58c07d9127ef7c79b03776e5ee3_cppui255};
+
+    std::array<typename BlueprintFieldType::value_type, 4> expected_res = {
+        0x2413f12ba244014bb6d17827fdf209681c9f3a27fbce3708282075180377399d_cppui255,
+        0x1b8893815550e740989d0307c537ee686917e97aeedc6373cf074bb385d4b1bc_cppui255,
+        0x3b6b19adb84d93d44f6d20a4d2e7318130609cf9d0dbcf032265e31b92dd20ec_cppui255,
+        0x39ee0a3ffd9389e182c7918896bc78ba74b7af4fc8e2ae5e585b4566b0ea183_cppui255};    // F
 
     test<BlueprintFieldType, 4>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
                                 gate_constraint_lookup_input_sizes, lookup_tables_size,
