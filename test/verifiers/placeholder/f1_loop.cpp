@@ -234,4 +234,62 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test4) {
     test<BlueprintFieldType, 8>(public_input, expected_res);
 }
 
+BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test5) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*beta: */
+        0x181227226c1423739b9ac923321ed2f09ed6b194314f01fa63cf06a993087d47_cppui255,
+        /*gamma: */
+        0x2e42a7ce383a60b4a57ead1d59609e3c77d54efdbc3fb3b78df45906b61fa26c_cppui255,
+        0x29566d61a92beabbe4124f3c1140e1621e6dbf40685efcdd3654ebb4a120936f_cppui255,
+        0x371ed596cbfbef3fb137c07f7387f0694fb9df229725ecbfa7275460091e5292_cppui255,
+        0x5b880339bcbe06aad36ac71638d5d3e831f1dec5ca6f97a456f9936b6690c4c_cppui255,
+        0x29566d61a92beabbe4124f3c1140e1621e6dbf40685efcdd3654ebb4a120936f_cppui255,
+        0x371ed596cbfbef3fb137c07f7387f0694fb9df229725ecbfa7275460091e5292_cppui255,
+        0x5b880339bcbe06aad36ac71638d5d3e831f1dec5ca6f97a456f9936b6690c4c_cppui255};
+
+    typename BlueprintFieldType::value_type expected_res =
+        0x37b68c62a05782ebfe610897109adc5e0c343a4468372c305e050b4a133860d5_cppui255;
+
+    test<BlueprintFieldType, 4>(public_input, expected_res);
+    test<BlueprintFieldType, 5>(public_input, expected_res);
+    test<BlueprintFieldType, 6>(public_input, expected_res);
+    test<BlueprintFieldType, 7>(public_input, expected_res);
+    test<BlueprintFieldType, 8>(public_input, expected_res);
+}
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_permutation_loop_test6) {
+
+    using BlueprintFieldType = typename crypto3::algebra::curves::pallas::base_field_type;
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {
+        /*beta: */
+        0x181227226c1423739b9ac923321ed2f09ed6b194314f01fa63cf06a993087d47_cppui255,
+        /*gamma: */
+        0x2e42a7ce383a60b4a57ead1d59609e3c77d54efdbc3fb3b78df45906b61fa26c_cppui255,
+        0x3a7580268e270952e70bf455392b34d33608d4291f37c778edf18a1df79b3d02_cppui255,
+        0x12cc7a905f5ba0f349772eccf0a4f893255895eab99b4654971beb32c3d18e4c_cppui255,
+        0x233de57bb49faf3747f8065836f6e150326ffbcec7f5ff84ab3ed517dff9f782_cppui255,
+        0x46ac9a0a0a61d85811114d1b5a59055a1476d224220100ea28aef3ff5057b36_cppui255,
+        0x19527a8b49c446bf75b243da6ac78d7c48e4b60c1071a4e5d369c3b46ab184d8_cppui255,
+        0xbfdd514782dd17a99538aab6f7c447bb39607098ff684d907d05c4ee6b47364_cppui255,
+        0x3cfd22f42d7f4bb00884f12035ac3b507bb19e482dd2e7787754e5cf67dd72a1_cppui255,
+        0x1e0fb613aca0c659711bd4c889a691aa78953f8738d6005673123c2667c3cd50_cppui255,
+        0x218014cf84950736b0d9c62ccb68ee90f755fc6dd0ed60a208d09da39e64bfd2_cppui255,
+        0x237428f92e0be38a22c6220ea2cf7b010a2eae8670f062647bebcab8506fdddc_cppui255,
+        0xc0af31fd4848be3dd24df1eb1681e13cb4de4395df9a3c1c8835270e4ae1699_cppui255,
+        0x2708b8c59416e906abec12349b0aa4bd8e4e22dfc216b1a78f82daf83aa219df_cppui255};
+
+    typename BlueprintFieldType::value_type expected_res =
+        0x3a204699d97747058b03b75350f8969b7022230a7b6a46bb764050759b6a7363_cppui255;
+
+    test<BlueprintFieldType, 4>(public_input, expected_res);
+    test<BlueprintFieldType, 5>(public_input, expected_res);
+    test<BlueprintFieldType, 6>(public_input, expected_res);
+    test<BlueprintFieldType, 7>(public_input, expected_res);
+    test<BlueprintFieldType, 8>(public_input, expected_res);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

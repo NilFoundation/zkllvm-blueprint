@@ -181,6 +181,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test4) {
     test<BlueprintFieldType, 6>(public_input, expected_res);
     test<BlueprintFieldType, 7>(public_input, expected_res);
     test<BlueprintFieldType, 8>(public_input, expected_res);
+    test<BlueprintFieldType, 3>(public_input, expected_res);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

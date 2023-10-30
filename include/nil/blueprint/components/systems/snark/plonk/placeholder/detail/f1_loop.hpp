@@ -244,6 +244,9 @@ namespace nil {
                 const typename plonk_f1_loop<BlueprintFieldType, ArithmetizationParams>::input_type instance_input) {
 
                 using var = typename plonk_f1_loop<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                std::vector<constraint_type> even_row_constraints;
+                std::vector<constraint_type> odd_row_constraints;
 
                 std::vector<std::size_t> selectors;
                 std::size_t witness_amount = component.witness_amount();
@@ -436,7 +439,7 @@ namespace nil {
 
                     auto constraint_5 =
                         var(component.W(3), +1) -
-                        var(component.W(witness_amount - 1), -1) *
+                        var(component.W(witness_amount - 1), 0) *
                             ((1 + var(component.W(0), 0)) * var(component.W(0), -1) + var(component.W(1), +1) +
                              var(component.W(0), 0) * var(component.W(2), +1));    // h = (1+beta)gamma + s_0 + beta t_0
                     selectors.push_back(bp.add_gate({constraint_5}));

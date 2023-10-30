@@ -312,9 +312,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_argument_verifier_test) {
     test<BlueprintFieldType, 5>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
                                 gate_constraint_lookup_input_sizes, lookup_tables_size,
                                 lookup_table_lookup_options_sizes, lookup_table_columns_number);
-    // test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
-    //                             gate_constraint_lookup_input_sizes, lookup_tables_size,
-    //                             lookup_table_lookup_options_sizes, lookup_table_columns_number);
+    test<BlueprintFieldType, 6>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
+                                gate_constraint_lookup_input_sizes, lookup_tables_size,
+                                lookup_table_lookup_options_sizes, lookup_table_columns_number);
     test<BlueprintFieldType, 7>(public_input, expected_res, lookup_gates_size, gate_constraints_sizes,
                                 gate_constraint_lookup_input_sizes, lookup_tables_size,
                                 lookup_table_lookup_options_sizes, lookup_table_columns_number);
