@@ -139,6 +139,7 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/gate_component"
     "verifiers/placeholder/f1_loop"
     "verifiers/placeholder/f3_loop"
+    "verifiers/placeholder/fri_cosets"
     )
 
 set(FIELDS_TESTS_FILES
