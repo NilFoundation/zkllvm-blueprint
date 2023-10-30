@@ -62,6 +62,7 @@ jobs:
             blueprint_private_input_test,
             blueprint_verifiers_placeholder_permutation_argument_verifier_test,
             blueprint_verifiers_placeholder_gate_argument_verifier_test,
+            blueprint_verifiers_placeholder_lookup_argument_verifier_test,
             blueprint_verifiers_placeholder_f1_loop_test,
             blueprint_verifiers_placeholder_f3_loop_test,
             blueprint_verifiers_placeholder_gate_component_test
