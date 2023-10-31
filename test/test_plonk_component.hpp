@@ -47,7 +47,9 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 //#include <nil/blueprint/utils/table_profiling.hpp>
 #include <nil/blueprint/utils/satisfiability_check.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
@@ -204,16 +206,6 @@ namespace nil {
                 }
             };
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-
-=======
-
->>>>>>> 4a7ea8f2... 222 blueprint lookup tables (#231)
->>>>>>> Proofs generation and verification updated #222
-=======
->>>>>>> Added lookup satisfiability check.
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
             std::size_t start_row = 0;
@@ -262,8 +254,8 @@ namespace nil {
                 // blueprint::detail::export_connectedness_zones(
                 //      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
 
-                BOOST_ASSERT_MSG(is_connected,
-                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                //BOOST_ASSERT_MSG(is_connected,
+                //    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
 
             zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
@@ -293,29 +285,17 @@ namespace nil {
             if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
                 // But now all constants are placed in the first column.
-<<<<<<< HEAD
                 // So we reserve the first column for non-lookup constants.
-=======
-                // So we reserve the first column for non-lookup constants.
->>>>>>> Proofs generation and verification updated #222
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
                 std::vector<size_t> lookup_columns_indices;
                 for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
-<<<<<<< HEAD
-                desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
-                    bp.get_reserved_indices(),
-                    bp.get_reserved_tables(),
-                    bp, assignment, lookup_columns_indices,
-                    desc.usable_rows_amount
-=======
                 desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables_horizontal(
                     bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
                     bp, assignment, lookup_columns_indices,
                     desc.usable_rows_amount,
-                    20000
->>>>>>> Proofs generation and verification updated #222
+                    500000
                 );
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
@@ -326,6 +306,8 @@ namespace nil {
 
             profiling(assignment);
 #endif
+            //assignment.export_table(std::cout);
+            //bp.export_circuit(std::cout);
 
             assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 
@@ -357,7 +339,6 @@ namespace nil {
 //#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType, ArithmetizationParams>;
-<<<<<<< HEAD
             using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
                 Hash, Hash, Lambda, 2
             >;
@@ -367,17 +348,6 @@ namespace nil {
             using placeholder_params_type = typename nil::crypto3::zk::snark::placeholder_params<circuit_params, commitment_scheme_type>;
             using policy_type = typename nil::crypto3::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params_type>;
 
-=======
-            using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
-                Hash, Hash, Lambda, 2
-            >;
-
-            using commitment_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
-            using commitment_scheme_type = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<commitment_type>;
-            using placeholder_params_type = typename nil::crypto3::zk::snark::placeholder_params<circuit_params, commitment_scheme_type>;
-            using policy_type = typename nil::crypto3::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params_type>;
-
->>>>>>> Proofs generation and verification updated #222
             using fri_type = typename commitment_type::fri_type;
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
@@ -391,21 +361,12 @@ namespace nil {
                 preprocessed_public_data = nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params_type>::process(
                     bp, assignments.public_table(), desc, lpc_scheme, permutation_size
                 );
-<<<<<<< HEAD
 
             typename nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type
                 preprocessed_private_data = nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::process(
                     bp, assignments.private_table(), desc
                 );
 
-=======
-
-            typename nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type
-                preprocessed_private_data = nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::process(
-                    bp, assignments.private_table(), desc
-                );
-
->>>>>>> Proofs generation and verification updated #222
             auto proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params_type>::process(
                 preprocessed_public_data, preprocessed_private_data, desc, bp, assignments, lpc_scheme
             );

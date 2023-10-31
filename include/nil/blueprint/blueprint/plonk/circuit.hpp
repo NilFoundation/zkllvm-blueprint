@@ -162,16 +162,18 @@ namespace nil {
                 _lookup_library.reserve_table(name);
             }
 
-            virtual const typename lookup_library<BlueprintFieldType>::left_reserved_type &get_reserved_indices() const {
+            virtual const typename lookup_library<BlueprintFieldType>::left_reserved_type
+                    &get_reserved_indices() const {
                 return _lookup_library.get_reserved_indices().left;
             }
 
             // used in satisfiability check
-            const typename lookup_library<BlueprintFieldType>::right_reserved_type &get_reserved_indices_right() const {
+            virtual const typename lookup_library<BlueprintFieldType>::right_reserved_type
+                    &get_reserved_indices_right() const {
                 return _lookup_library.get_reserved_indices().right;
             }
 
-            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() {
+            virtual const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() {
                 return _lookup_library.get_reserved_tables();
             }
 

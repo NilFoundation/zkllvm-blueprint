@@ -37,6 +37,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/detail/split_functions.hpp>
+#include <nil/blueprint/components/hashes/sha2/plonk/detail/sha_table_generators.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -82,7 +83,7 @@ namespace nil {
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    return 758;
+                    return 762;
                 }
 
                 constexpr static const std::size_t rounds_amount = 64;
@@ -103,7 +104,7 @@ namespace nil {
 
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
                 constexpr static const std::size_t gates_amount = 11;
-                constexpr static const std::size_t lookup_gates_amount = 7;
+                constexpr static const std::size_t lookup_gates_amount = 8;
                 struct input_type {
                     std::array<var, 8> input_state;
                     std::array<var, 16> input_words;
@@ -124,14 +125,14 @@ namespace nil {
                                                                                                 ArithmetizationParams>>
                                     &component,
                                 std::uint32_t start_row_index) {
-                        output_state = {var(component.W(0), start_row_index + component.rows_amount - 3, false),
-                                        var(component.W(1), start_row_index + component.rows_amount - 3, false),
-                                        var(component.W(2), start_row_index + component.rows_amount - 3, false),
-                                        var(component.W(3), start_row_index + component.rows_amount - 3, false),
-                                        var(component.W(0), start_row_index + component.rows_amount - 1, false),
-                                        var(component.W(1), start_row_index + component.rows_amount - 1, false),
-                                        var(component.W(2), start_row_index + component.rows_amount - 1, false),
-                                        var(component.W(3), start_row_index + component.rows_amount - 1, false)};
+                        output_state = {var(component.W(0), start_row_index + component.rows_amount - 7, false),
+                                        var(component.W(1), start_row_index + component.rows_amount - 7, false),
+                                        var(component.W(2), start_row_index + component.rows_amount - 7, false),
+                                        var(component.W(3), start_row_index + component.rows_amount - 7, false),
+                                        var(component.W(0), start_row_index + component.rows_amount - 5, false),
+                                        var(component.W(1), start_row_index + component.rows_amount - 5, false),
+                                        var(component.W(2), start_row_index + component.rows_amount - 5, false),
+                                        var(component.W(3), start_row_index + component.rows_amount - 5, false)};
                     }
 
                     std::vector<var> all_vars() const {
@@ -170,7 +171,6 @@ namespace nil {
                         std::vector<std::size_t> value_sizes = {14};
 
                         // lookup table for sparse values with base = 4
-                        std::cout << "sha256_sparse_base4" << std::endl;
                         for (typename BlueprintFieldType::integral_type i = 0;
                             i < typename BlueprintFieldType::integral_type(16384);
                             i++
@@ -181,15 +181,37 @@ namespace nil {
                             }
                             std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> value_chunks =
                                 detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,  base4 );
-                            std::cout << value_chunks[0][0] << " " << value_chunks[1][0] << std::endl;
                             this->_table[0].push_back(value_chunks[0][0]);
                             this->_table[1].push_back(value_chunks[1][0]);
                         }
-                        std::cout << "=============================" << std::endl;
                     }
 
                     virtual std::size_t get_columns_number(){return 2;}
                     virtual std::size_t get_rows_number(){return 16384;}
+                };
+
+                class reverse_sparse_values_base4_table : public lookup_table_definition {
+                public:
+                    reverse_sparse_values_base4_table(): lookup_table_definition("sha256_reverse_sparse_base4"){
+                        this->subtables["full"] = {{0,1}, 0, 65535};
+                    };
+
+                    virtual void generate() {
+                        this->_table = detail::load_sha_table<BlueprintFieldType>(
+                            {"8_split_4.txt",
+                            "./../libs/crypto3/libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
+                            "./../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
+                            "./../../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt"});
+                        if (this->_table.size() == 0 || this->_table[0].size() == 0) {
+                            std::cerr << "Failed to load table 8_split_4.txt!"
+                                         " Please check the paths and generate the table."
+                                      << std::endl;
+                            BLUEPRINT_RELEASE_ASSERT(0);
+                        }
+                    }
+
+                    virtual std::size_t get_columns_number(){return 2;}
+                    virtual std::size_t get_rows_number(){return 65536;}
                 };
 
                 class sparse_values_base7_table: public lookup_table_definition{
@@ -220,6 +242,29 @@ namespace nil {
                     virtual std::size_t get_rows_number(){return 16384;}
                 };
 
+                class reverse_sparse_values_base7_table: public lookup_table_definition{
+                public:
+                    reverse_sparse_values_base7_table(): lookup_table_definition("sha256_reverse_sparse_base7"){
+                        this->subtables["full"] = {{0,1}, 0, 43903};
+                    };
+                    virtual void generate() {
+                        this->_table = detail::load_sha_table<BlueprintFieldType>(
+                            {"8_split_7.txt",
+                            "./../libs/crypto3/libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
+                            "./../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
+                            "./../../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt"});
+                        if (this->_table.size() == 0 || this->_table[0].size() == 0) {
+                            std::cerr << "Failed to load table 8_split_7.txt!"
+                                         " Please check the paths and generate the table."
+                                      << std::endl;
+                            BLUEPRINT_RELEASE_ASSERT(0);
+                        }
+                    }
+
+                    virtual std::size_t get_columns_number(){return 2;}
+                    virtual std::size_t get_rows_number(){return 43904;}
+                };
+
                 class maj_function_table: public lookup_table_definition{
                 public:
                     maj_function_table(): lookup_table_definition("sha256_maj"){
@@ -236,7 +281,7 @@ namespace nil {
                             std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
                                 value = detail::reversed_sparse_and_split_maj<BlueprintFieldType>(i, value_sizes, base4);
                             this->_table[0].push_back(value[0][0]);
-                            this->_table[1].push_back(i);
+                            this->_table[1].push_back(value[1][0]);
                         }
                     }
 
@@ -253,7 +298,6 @@ namespace nil {
                     virtual void generate(){
                         this->_table.resize(2);
                         std::vector<std::size_t> value_sizes = {8};
-
                         for (typename BlueprintFieldType::integral_type i = 0;
                             i < typename BlueprintFieldType::integral_type(5765041);
                             i++
@@ -261,7 +305,7 @@ namespace nil {
                             std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
                                 value = detail::reversed_sparse_and_split_ch<BlueprintFieldType>(i, value_sizes, base7);
                             this->_table[0].push_back(value[0][0]);
-                            this->_table[1].push_back(i);
+                            this->_table[1].push_back(value[1][0]);
                         }
                     }
 
@@ -281,6 +325,12 @@ namespace nil {
                     auto maj = std::shared_ptr<lookup_table_definition>(new maj_function_table());
                     result.push_back(maj);
 
+                    auto reverse_sparse_values_base4 = std::shared_ptr<lookup_table_definition>(new reverse_sparse_values_base4_table());
+                    result.push_back(reverse_sparse_values_base4);
+
+                    auto reverse_sparse_values_base7 = std::shared_ptr<lookup_table_definition>(new reverse_sparse_values_base7_table());
+                    result.push_back(reverse_sparse_values_base7);
+
                     auto ch = std::shared_ptr<lookup_table_definition>(new ch_function_table());
                     result.push_back(ch);
 
@@ -291,8 +341,10 @@ namespace nil {
                     std::map<std::string, std::size_t> lookup_tables;
                     lookup_tables["sha256_sparse_base4/full"] = 0; // REQUIRED_TABLE
                     lookup_tables["sha256_sparse_base4/first_column"] = 0; // REQUIRED_TABLE
+                    lookup_tables["sha256_reverse_sparse_base4/full"] = 0; // REQUIRED_TABLE
                     lookup_tables["sha256_sparse_base7/full"] = 0; // REQUIRED_TABLE
                     lookup_tables["sha256_sparse_base7/first_column"] = 0; // REQUIRED_TABLE
+                    lookup_tables["sha256_reverse_sparse_base7/full"] = 0; // REQUIRED_TABLE
                     lookup_tables["sha256_maj/full"] = 0; // REQUIRED_TABLE
                     lookup_tables["sha256_ch/full"] = 0; // REQUIRED_TABLE
 
@@ -327,66 +379,81 @@ namespace nil {
                 std::array<std::size_t,2> generate_sigma0_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                        &assignment,
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
                     std::array<std::size_t, 2> selectors;
 
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                    const std::array<var, 4> a_chunks_0 = {
+                        var(component.W(1), -1), var(component.W(2), -1),
+                        var(component.W(3), -1), var(component.W(4), -1)};
+                    const std::array<var, 4> a_chunks_1 = {
+                        var(component.W(7), -1), var(component.W(2), 0),
+                        var(component.W(3), 0), var(component.W(4), 0)};
+                    const std::array<std::array<var, 4>, 2> a_chunks = {a_chunks_0, a_chunks_1};
+
+                    const std::array<var, 4> sigma0_chunks_0 = {
+                        var(component.W(1), +1), var(component.W(2), +1),
+                        var(component.W(3), +1), var(component.W(4), +1)};
+                    const std::array<var, 4> sigma0_chunks_1 = {
+                        var(component.W(5), 0), var(component.W(6), 0),
+                        var(component.W(7), 0), var(component.W(8), 0)};
+                    const std::array<std::array<var, 4>, 2> sigma0_chunks = {sigma0_chunks_0, sigma0_chunks_1};
 
                     typename BlueprintFieldType::integral_type one = 1;
                     auto constraint_1 =
                         var(component.W(0), -1) -
-                        (var(component.W(1), -1) + var(component.W(2), -1) * (one << 3) +
-                         var(component.W(3), -1) * (one << 7) + var(component.W(4), -1) * (one << 18));
+                        (a_chunks[0][0] + a_chunks[0][1] * (one << 3) +
+                         a_chunks[0][2] * (one << 7) + a_chunks[0][3] * (one << 18));
                     auto constraint_2 =
-                        (var(component.W(1), -1) - 7) * (var(component.W(1), -1) - 6) * (var(component.W(1), -1) - 5) *
-                        (var(component.W(1), -1) - 4) * (var(component.W(1), -1) - 3) * (var(component.W(1), -1) - 2) *
-                        (var(component.W(1), -1) - 1) * var(component.W(1), -1);
+                        (a_chunks[0][0] - 7) * (a_chunks[0][0] - 6) * (a_chunks[0][0] - 5) *
+                        (a_chunks[0][0] - 4) * (a_chunks[0][0] - 3) * (a_chunks[0][0] - 2) *
+                        (a_chunks[0][0] - 1) * a_chunks[0][0];
                     auto constraint_3 =
-                        var(component.W(5), 0) + var(component.W(6), 0) * (1 << 28) +
-                                          var(component.W(7), 0) * (one << 56) + var(component.W(8), 0) * (one << 60) -
-                                          (var(component.W(2), 0) * (1 + (one << 56) + (one << 34)) +
-                                           var(component.W(3), 0) * ((one << 8) + 1 + (one << 42)) +
-                                           var(component.W(4), 0) * ((1 << 30) + (1 << 22) + 1) +
-                                           var(component.W(7), -1) * ((one << 50) + (1 << 28)));
+                        sigma0_chunks[1][0] + sigma0_chunks[1][1] * (1 << 16) +
+                        sigma0_chunks[1][2] * (one << 32) + sigma0_chunks[1][3] * (one << 48) -
+                        (a_chunks[1][1] * (1 + (one << 56) + (one << 34)) +
+                        a_chunks[1][2] * ((one << 8) + 1 + (one << 42)) +
+                        a_chunks[1][3] * ((1 << 30) + (1 << 22) + 1) +
+                        a_chunks[1][0] * ((one << 50) + (1 << 28)));
 
-                    auto constraint_4 =
-                        (var(component.W(3), 1) - 3) * (var(component.W(3), 1) - 2) *
-                    (var(component.W(3), 1) - 1) * var(component.W(3), 1);
-                    auto constraint_5 =
-                        (var(component.W(4), 1) - 3) * (var(component.W(4), 1) - 2) *
-                    (var(component.W(4), 1) - 1) * var(component.W(4), 1);
+                    selectors[0] = bp.add_gate(
+                        {constraint_1, constraint_2, constraint_3});
 
-                    auto constraint_6 =
-                        (var(component.W(7), 1) - 3) * (var(component.W(7), 1) - 2) *
-                    (var(component.W(7), 1) - 1) * var(component.W(7), 1);
-                    auto constraint_7 =
-                        (var(component.W(8), 1) - 3) * (var(component.W(8), 1) - 2) *
-                    (var(component.W(8), 1) - 1) * var(component.W(8), 1);
+                    lookup_constraint lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][0], a_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a_chunks[0][1] * 1024}};
+                    lookup_constraint lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][1], a_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a_chunks[0][2] * 8}};
+                    lookup_constraint lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][2], a_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][3], a_chunks[1][3]}};
+                    lookup_constraint lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma0_chunks[0][0], sigma0_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma0_chunks[0][1], sigma0_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma0_chunks[0][2], sigma0_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_10 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma0_chunks[0][3], sigma0_chunks[1][3]}};
 
-                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6, constraint_7});
-
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), -1), var(component.W(7), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), -1) * 1024}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), -1), var(component.W(2), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(3), -1) * 8}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), -1), var(component.W(3), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), -1), var(component.W(4), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), +1), var(component.W(5), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), +1), var(component.W(6), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), +1), var(component.W(7), +1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), +1), var(component.W(8), +1)}};
                     selectors[1] = bp.add_lookup_gate({
                         lookup_constraint_1,
                         lookup_constraint_2,
@@ -407,71 +474,91 @@ namespace nil {
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
                     std::array<std::size_t, 2> selectors;
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+
+                    const std::array<var, 4> a_chunks_0_next = {
+                        var(component.W(1), +1), var(component.W(2), +1),
+                        var(component.W(3), +1), var(component.W(4), +1)};
+                    const std::array<var, 4> b_chunks_0 = {
+                        var(component.W(1), 0), var(component.W(2), 0),
+                        var(component.W(3), 0), var(component.W(4), 0)};
+                    const std::array<var, 4> b_chunks_1 = {
+                        var(component.W(1), -1), var(component.W(2), -1),
+                        var(component.W(3), -1), var(component.W(4), -1)};
+                    const std::array<std::array<var, 4>, 2> b_chunks = {b_chunks_0, b_chunks_1};
+
+                    const std::array<var, 4> sigma1_chunks_1 = {
+                        var(component.W(5), -1), var(component.W(6), -1),
+                        var(component.W(7), -1), var(component.W(8), -1)};
+                    const std::array<var, 4> a2_chunks = {
+                        var(component.W(5), 0), var(component.W(6), 0),
+                        var(component.W(7), 0), var(component.W(8), 0)};
 
                     typename BlueprintFieldType::integral_type one = 1;
                     auto constraint_1 =
                         var(component.W(0), 0) -
-                                          (var(component.W(1), 0) + var(component.W(2), 0) * (1 << 10) +
-                                           var(component.W(3), 0) * (1 << 17) + var(component.W(4), 0) * (1 << 19));
-                    auto constraint_2 = (var(component.W(3), 0) - 3) * (var(component.W(3), 0) - 2) *
-                                                          (var(component.W(3), 0) - 1) * var(component.W(3), 0);
+                            (b_chunks[0][0] + b_chunks[0][1] * (1 << 10) +
+                             b_chunks[0][2] * (1 << 17) + b_chunks[0][3] * (1 << 19));
+                    auto constraint_2 =
+                        (b_chunks[0][2] - 3) * (b_chunks[0][2] - 2) *
+                        (b_chunks[0][2] - 1) * b_chunks[0][2];
                     auto constraint_3 =
-                        var(component.W(5), -1) + var(component.W(6), -1) * (one << 28) +
-                        var(component.W(7), -1) * (one << 56) + var(component.W(8), -1) * (one << 60) -
-                        (var(component.W(2), -1) * (1 + (one << 50) + (one << 46)) +
-                         var(component.W(3), -1) * ((one << 14) + 1 + (one << 60)) +
-                         var(component.W(4), -1) * ((one << 18) + (one << 4) + 1) +
-                         var(component.W(1), -1) * ((one << 30) + (1 << 26)));
-                    /*auto constraint_4 =
-                        (var(component.W(7), 0) - 3) * (var(component.W(7), 0) - 2) *
-                    (var(component.W(7), 0) - 1) * var(component.W(7), 0)); auto constraint_5 =
-                        (var(component.W(8), 0) - 3) * (var(component.W(8), 0) - 2) *
-                    (var(component.W(8), 0) - 1) * var(component.W(8), 0));*/
+                        sigma1_chunks_1[0] + sigma1_chunks_1[1] * (one << 16) +
+                        sigma1_chunks_1[2] * (one << 32) + sigma1_chunks_1[3] * (one << 48) -
+                        (b_chunks[1][1] * (1 + (one << 50) + (one << 46)) +
+                         b_chunks[1][2] * ((one << 14) + 1 + (one << 60)) +
+                         b_chunks[1][3] * ((one << 18) + (one << 4) + 1) +
+                         b_chunks[1][0] * ((one << 30) + (1 << 26)));
 
-                    auto constraint_4 = -var(component.W(8), 0) +
-                        var(component.W(5), 0) + var(component.W(6), 0) * (1 << 14) + var(component.W(7), 0) * (1 << 28);
+                    auto constraint_4 = -a2_chunks[3] +
+                        a2_chunks[0] + a2_chunks[1] * (1 << 14) + a2_chunks[2] * (1 << 28);
 
                     selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
 
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(1), +1) * 16}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(1), +1), var(component.W(1), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), +1) * 128}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), +1), var(component.W(2), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(4), +1) * 2}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), +1), var(component.W(3), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), +1), var(component.W(4), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(5), -1), var(component.W(5), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(6), -1), var(component.W(6), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(7), -1), var(component.W(7), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(8), -1), var(component.W(8), 0)}};
+                    lookup_constraint lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {b_chunks[0][0] * 16}};
+                    lookup_constraint lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {b_chunks[0][0], b_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {b_chunks[0][1] * 128}};
+                    lookup_constraint lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {b_chunks[0][1], b_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {b_chunks[0][3] * 2}};
+                    lookup_constraint lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {b_chunks[0][2], b_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {b_chunks[0][3], b_chunks[1][3]}};
 
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_12 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(5), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_13 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(6), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_14 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(7), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_15 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(7), 0) * (2 << 10)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_16 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(0), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_17 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(0), -1) * (2 << 10)}};
+                    lookup_constraint lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[0]}};
+                    lookup_constraint lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[1]}};
+                    lookup_constraint lookup_constraint_10 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[2]}};
+                    lookup_constraint lookup_constraint_11 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[2] * (1 << 10)}};
+                    lookup_constraint lookup_constraint_12 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(0), -1)}};
+                    lookup_constraint lookup_constraint_13 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(0), -1) * (1 << 10)}};
 
                     selectors[1] =  bp.add_lookup_gate({
                         lookup_constraint_1,
@@ -486,41 +573,69 @@ namespace nil {
                         lookup_constraint_10,
                         lookup_constraint_11,
                         lookup_constraint_12,
-                        lookup_constraint_13,
-                        lookup_constraint_14,
-                        lookup_constraint_15,
-                        lookup_constraint_16,
-                        lookup_constraint_17
+                        lookup_constraint_13
                     });
                     return selectors;
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
-                std::array<std::size_t, 5> generate_message_scheduling_gates(
+                std::array<std::size_t, 6> generate_message_scheduling_gates(
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
 
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
 
-                    std::array<std::size_t,2> sigma0_selectors = generate_sigma0_gates(component, bp, assignment, lookup_tables_indices);
+                    std::array<std::size_t, 2> sigma0_selectors =
+                        generate_sigma0_gates(component, bp, assignment, lookup_tables_indices);
                     typename BlueprintFieldType::integral_type one = 1;
                     auto m = typename BlueprintFieldType::value_type(2).pow(32);
+                    std::array<var, 4> sigma0_chunks_0 = {
+                        var(component.W(1), 0), var(component.W(2), 0),
+                        var(component.W(3), 0), var(component.W(4), 0)};
+                    std::array<var, 4> sigma1_chunks_0 = {
+                        var(component.W(5), 0), var(component.W(6), 0),
+                        var(component.W(7), 0), var(component.W(8), 0)};
+                    std::array<var, 4> sigma1_chunks_1 = {
+                        var(component.W(5), +1), var(component.W(6), +1),
+                        var(component.W(7), +1), var(component.W(8), +1)};
+                    std::array<std::array<var, 4>, 2> sigma1_chunks = {sigma1_chunks_0, sigma1_chunks_1};
                     auto constraint_1 =
                         var(component.W(0), 0) + m * var(component.W(0), +1) -
-                                          (var(component.W(0), -1) + var(component.W(1), -1) + var(component.W(1), 0) +
-                                           var(component.W(2), 0) * (one << 14) + var(component.W(3), 0) * (one << 28) +
-                                           var(component.W(4), 0) * (one << 30) + var(component.W(5), 0) +
-                                           var(component.W(6), 0) * (one << 14) + var(component.W(7), 0) * (one << 28) +
-                                           var(component.W(8), 0) * (one << 30));
+                            (var(component.W(0), -1) + var(component.W(1), -1) + sigma0_chunks_0[0] +
+                            sigma0_chunks_0[1] * (one << 8) + sigma0_chunks_0[2] * (one << 16) +
+                            sigma0_chunks_0[3] * (one << 24) + sigma1_chunks[0][0] +
+                            sigma1_chunks[0][1] * (one << 8) + sigma1_chunks[0][2] * (one << 16) +
+                            sigma1_chunks[0][3] * (one << 24));
                     auto constraint_2 =
                         (var(component.W(0), +1) - 3) * (var(component.W(0), +1) - 2) *
-                                          (var(component.W(0), +1) - 1) * var(component.W(0), +1);
+                        (var(component.W(0), +1) - 1) * var(component.W(0), +1);
                     std::size_t selector_1 = bp.add_gate({constraint_1, constraint_2});
-                    std::array<std::size_t,2> sigma_1_selectors = generate_sigma1_gates(component, bp, assignment, lookup_tables_indices);
-                    return {sigma0_selectors[0], sigma0_selectors[1], selector_1, sigma_1_selectors[0], sigma_1_selectors[1]};
+                    lookup_constraint lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma1_chunks[0][0], sigma1_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma1_chunks[0][1], sigma1_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma1_chunks[0][2], sigma1_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {sigma1_chunks[0][3], sigma1_chunks[1][3]}};
+                    std::size_t sigma1_check = bp.add_lookup_gate({
+                        lookup_constraint_1,
+                        lookup_constraint_2,
+                        lookup_constraint_3,
+                        lookup_constraint_4
+                    });
+                    std::array<std::size_t, 2> sigma_1_selectors =
+                        generate_sigma1_gates(component, bp, assignment, lookup_tables_indices);
+                    return {sigma0_selectors[0], sigma0_selectors[1], selector_1,
+                            sigma1_check, sigma_1_selectors[0], sigma_1_selectors[1]};
                 }
 
                 template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -528,78 +643,111 @@ namespace nil {
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
-                    std::array<std::size_t, 2> selectors;
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint_type = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
 
+                    std::array<std::size_t, 2> selectors;
                     typename BlueprintFieldType::integral_type one = 1;
+
+                    var a2 = var(component.W(0), +1);
+                    var a_new = var(component.W(2), -1);
+
+                    std::array<var, 4> a_chunks_0 = {
+                        var(component.W(2), +1), var(component.W(3), +1),
+                        var(component.W(4), +1), var(component.W(5), +1)};
+                    std::array<var, 4> a_chunks_1 = {
+                        var(component.W(2), 0), var(component.W(3), 0),
+                        var(component.W(4), 0), var(component.W(5), 0)};
+                    std::array<std::array<var, 4>, 2> a_chunks = {a_chunks_0, a_chunks_1};
+
+                    std::array<var, 4> Sigma0_chunks_0 = {
+                        var(component.W(5), -1), var(component.W(6), -1),
+                        var(component.W(7), -1), var(component.W(8), -1)};
+                    std::array<var, 4> Sigma0_chunks_1 = {
+                        var(component.W(0), 0), var(component.W(1), 0),
+                        var(component.W(6), 0), var(component.W(7), 0)};
+                    std::array<std::array<var, 4>, 2> Sigma0_chunks = {Sigma0_chunks_0, Sigma0_chunks_1};
+
+                    std::array<var, 3> a_new_chunks = {
+                        var(component.W(6), +1), var(component.W(7), +1), var(component.W(8), +1)};
+
                     auto constraint_1 =
-                        var(component.W(0), +1) -
-                                          (var(component.W(2), +1) + var(component.W(3), +1) * (1 << 2) +
-                                           var(component.W(4), +1) * (1 << 13) + var(component.W(5), +1) * (1 << 22));
+                        a2 - (a_chunks[0][0] + a_chunks[0][1] * (1 << 2) +
+                              a_chunks[0][2] * (1 << 13) + a_chunks[0][3] * (1 << 22));
                     auto constraint_2 =
                         var(component.W(0), -1) -
-                                          (var(component.W(2), 0) + var(component.W(3), 0) * (1 << 4) +
-                                           var(component.W(4), 0) * (1 << 26) + var(component.W(5), 0) * (one << 44));
+                            (a_chunks[1][0] + a_chunks[1][1] * (1 << 4) +
+                             a_chunks[1][2] * (1 << 26) + a_chunks[1][3] * (one << 44));
                     auto constraint_3 =
-                        (var(component.W(2), +1) - 3) * (var(component.W(2), +1) - 2) *
-                                          (var(component.W(2), +1) - 1) * var(component.W(2), +1);
+                        (a_chunks[0][0] - 3) * (a_chunks[0][0] - 2) *
+                        (a_chunks[0][0] - 1) * a_chunks[0][0];
                     auto constraint_4 =
-                        var(component.W(0), 0) + var(component.W(1), 0) * (1 << 28) +
-                                          var(component.W(6), 0) * (one << 56) + var(component.W(7), 0) * (one << 60) -
-                                          (var(component.W(2), 0) * ((one << 38) + (1 << 20) + (one << 60)) +
-                                           var(component.W(3), 0) * ((one << 42) + 1 + (1 << 24)) +
-                                           var(component.W(4), 0) * ((1 << 22) + (one << 46) + 1) +
-                                           var(component.W(5), 0) * ((one << 40) + (1 << 18) + 1));
+                        Sigma0_chunks[1][0] + Sigma0_chunks[1][1] * (1 << 16) +
+                            Sigma0_chunks[1][2] * (one << 32) + Sigma0_chunks[1][3] * (one << 48) -
+                                (a_chunks[1][0] * ((one << 38) + (1 << 20) + (one << 60)) +
+                                 a_chunks[1][1] * ((one << 42) + 1 + (1 << 24)) +
+                                 a_chunks[1][2] * ((1 << 22) + (one << 46) + 1) +
+                                 a_chunks[1][3] * ((one << 40) + (1 << 18) + 1));
 
-                    auto constraint_5 =
-                        (var(component.W(7), -1) - 3) * (var(component.W(7), -1) - 2) *
-                    (var(component.W(7), -1) - 1) * var(component.W(7), -1);
-                    auto constraint_6 =
-                        (var(component.W(8), -1) - 3) * (var(component.W(8), -1) - 2) *
-                    (var(component.W(8), -1) - 1) * var(component.W(8), -1);
+                    auto constraint_7 = -a_new +
+                        a_new_chunks[0] + a_new_chunks[1] * (1 << 14) + a_new_chunks[2] * (1 << 28);
 
-                    auto constraint_7 = -var(component.W(2), -1) +
-                        var(component.W(6), 1) + var(component.W(7), 1) * (2 << 14) + var(component.W(8), 1) * (2 << 28);
+                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_7});
 
-                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6, constraint_7});
+                    lookup_constraint_type lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a_chunks[0][1] * 8}};
+                    lookup_constraint_type lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][0], a_chunks[1][0]}};
+                    lookup_constraint_type lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a_chunks[0][2] * 32}};
+                    lookup_constraint_type lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][1], a_chunks[1][1]}};
+                    lookup_constraint_type lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a_chunks[0][3] * 16}};
+                    lookup_constraint_type lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][2], a_chunks[1][2]}};
+                    lookup_constraint_type lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/full"),
+                         {a_chunks[0][3], a_chunks[1][3]}};
+                    lookup_constraint_type lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {Sigma0_chunks[0][0], Sigma0_chunks[1][0]}};
+                    lookup_constraint_type lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {Sigma0_chunks[0][1], Sigma0_chunks[1][1]}};
+                    lookup_constraint_type lookup_constraint_10 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {Sigma0_chunks[0][2], Sigma0_chunks[1][2]}};
+                    lookup_constraint_type lookup_constraint_11 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base4/full"),
+                         {Sigma0_chunks[0][3], Sigma0_chunks[1][3]}};
 
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(3), +1) * 8}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(2), +1), var(component.W(2), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(4), +1) * 32}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(3), +1), var(component.W(3), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(5), +1) * 16}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(4), +1), var(component.W(4), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(5), +1), var(component.W(5), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(5), -1), var(component.W(0), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(6), -1), var(component.W(1), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(7), -1), var(component.W(6), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/full"), {var(component.W(8), -1), var(component.W(7), 0)}};
-
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_12 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(6), 1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_13 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(7), 1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_14 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(8), 1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_15 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(8), 1) * (2 << 10)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_16 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(3), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_17 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(3), -1) * (2 << 8)}};
+                    lookup_constraint_type lookup_constraint_12 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(6), 1)}};
+                    lookup_constraint_type lookup_constraint_13 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(7), 1)}};
+                    lookup_constraint_type lookup_constraint_14 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(8), 1)}};
+                    lookup_constraint_type lookup_constraint_15 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(8), 1) * (1 << 10)}};
+                    lookup_constraint_type lookup_constraint_16 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(3), -1)}};
+                    lookup_constraint_type lookup_constraint_17 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(3), -1) * (1 << 8)}};
 
                     selectors[1] = bp.add_lookup_gate({
                         lookup_constraint_1,
@@ -628,77 +776,98 @@ namespace nil {
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
                     std::array<std::size_t, 2> selectors;
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
 
                     typename BlueprintFieldType::integral_type one = 1;
                     typename BlueprintFieldType::value_type base7_value =
                         plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base7;
+                    std::array<var, 4> e_chunks_0 = {
+                        var(component.W(2), -1), var(component.W(3), -1),
+                        var(component.W(4), -1), var(component.W(5), -1)};
+                    std::array<var, 4> e_chunks_1 = {
+                        var(component.W(1), -1), var(component.W(2), 0),
+                        var(component.W(3), 0), var(component.W(4), 0)};
+                    std::array<std::array<var, 4>, 4> e_chunks = {e_chunks_0, e_chunks_1};
+                    std::array<var, 4> Sigma1_chunks_0 = {
+                        var(component.W(5), +1), var(component.W(6), +1),
+                        var(component.W(7), +1), var(component.W(8), +1)
+                    };
+                    std::array<var, 4> Sigma1_chunks_1 = {
+                        var(component.W(5), 0), var(component.W(6), -1),
+                        var(component.W(7), -1), var(component.W(8), -1)
+                    };
+                    std::array<std::array<var, 4>, 2> Sigma1_chunks = {Sigma1_chunks_0, Sigma1_chunks_1};
                     auto constraint_1 =
                         var(component.W(0), -1) -
-                                          (var(component.W(2), -1) + var(component.W(3), -1) * (1 << 6) +
-                                           var(component.W(4), -1) * (1 << 11) + var(component.W(5), -1) * (1 << 25));
+                            (e_chunks[0][0] + e_chunks[0][1] * (1 << 6) +
+                             e_chunks[0][2] * (1 << 11) + e_chunks[0][3] * (1 << 25));
                     auto constraint_2 =
                         var(component.W(0), 0) -
-                        (var(component.W(1), -1) + var(component.W(2), 0) * base7_value.pow(6) +
-                         var(component.W(3), 0) * base7_value.pow(11) + var(component.W(4), 0) * base7_value.pow(25));
+                            (e_chunks[1][0] + e_chunks[1][1] * base7_value.pow(6) +
+                             e_chunks[1][2] * base7_value.pow(11) + e_chunks[1][3] * base7_value.pow(25));
                     // auto constraint_3 =
-                    //     var(component.W(5), 0) + var(component.W(6), 0) * base7_value.pow(14) +
+                    //     Sigma1_chunks[1][0] + var(component.W(6), 0) * base7_value.pow(14) +
                     //     var(component.W(7), 0) * base7_value.pow(28) + var(component.W(8), 0) * base7_value.pow(30) -
-                    //     (var(component.W(2), 0) * (base7_value.pow(27) + base7_value.pow(13) + 1) +
-                    //      var(component.W(3), 0) * (base7_value.pow(5) + 1 + base7_value.pow(18)) +
-                    //      var(component.W(4), 0) * (base7_value.pow(19) + base7_value.pow(14) + 1) +
-                    //      var(component.W(1), -1) * (base7_value.pow(26) + base7_value.pow(21) + base7_value.pow(7)));
+                    //     (e_chunks[1][1] * (base7_value.pow(27) + base7_value.pow(13) + 1) +
+                    //      e_chunks[1][2] * (base7_value.pow(5) + 1 + base7_value.pow(18)) +
+                    //      e_chunks[1][3] * (base7_value.pow(19) + base7_value.pow(14) + 1) +
+                    //      e_chunks[1][0] * (base7_value.pow(26) + base7_value.pow(21) + base7_value.pow(7)));
                     auto constraint_3 =
-                        var(component.W(5), 0) + var(component.W(6), -1) * base7_value.pow(14) +
-                        var(component.W(7), -1) * base7_value.pow(28) + var(component.W(8), -1) * base7_value.pow(30) -
-                        (var(component.W(2), 0) * (base7_value.pow(27) + base7_value.pow(13) + 1) +
-                         var(component.W(3), 0) * (base7_value.pow(5) + 1 + base7_value.pow(18)) +
-                         var(component.W(4), 0) * (base7_value.pow(19) + base7_value.pow(14) + 1) +
-                         var(component.W(1), -1) * (base7_value.pow(26) + base7_value.pow(21) + base7_value.pow(7)));
+                        Sigma1_chunks[1][0] + Sigma1_chunks[1][1] * base7_value.pow(8) +
+                        Sigma1_chunks[1][2] * base7_value.pow(16) + Sigma1_chunks[1][3] * base7_value.pow(24) -
+                        (e_chunks[1][1] * (base7_value.pow(27) + base7_value.pow(13) + 1) +
+                         e_chunks[1][2] * (base7_value.pow(5) + 1 + base7_value.pow(18)) +
+                         e_chunks[1][3] * (base7_value.pow(19) + base7_value.pow(14) + 1) +
+                         e_chunks[1][0] * (base7_value.pow(26) + base7_value.pow(21) + base7_value.pow(7)));
 
-                    auto constraint_4 =
-                        (var(component.W(7), 1) - 3) * (var(component.W(7), 1) - 2) *
-                    (var(component.W(7), 1) - 1) * var(component.W(7), 1);
-                    auto constraint_5 =
-                        (var(component.W(8), 1) - 3) * (var(component.W(8), 1) - 2) *
-                    (var(component.W(8), 1) - 1) * var(component.W(8), 1);
+                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3});
 
-                    selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
-
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/first_column"), {var(component.W(3), -1) * 256}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(2), -1), var(component.W(1), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/first_column"), {var(component.W(4), -1) * 512}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(3), -1), var(component.W(2), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/first_column"), {var(component.W(5), -1) * 128}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(4), -1), var(component.W(3), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(5), -1), var(component.W(4), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(5), +1), var(component.W(5), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(6), +1), var(component.W(6), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(7), +1), var(component.W(7), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_11 =
-                        {lookup_tables_indices.at("sha256_sparse_base7/full"), {var(component.W(8), +1), var(component.W(8), -1)}};
+                    lookup_constraint lookup_constraint_1 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/first_column"),
+                         {e_chunks[0][1] * 256}};
+                    lookup_constraint lookup_constraint_2 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/full"),
+                         {e_chunks[0][0], e_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_3 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/first_column"),
+                         {e_chunks[0][2] * 512}};
+                    lookup_constraint lookup_constraint_4 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/full"),
+                         {e_chunks[0][1], e_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/first_column"),
+                         {e_chunks[0][3] * 128}};
+                    lookup_constraint lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/full"),
+                         {e_chunks[0][2], e_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_sparse_base7/full"),
+                         {e_chunks[0][3], e_chunks[1][3]}};
+                    lookup_constraint lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base7/full"),
+                         {Sigma1_chunks[0][0], Sigma1_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base7/full"),
+                         {Sigma1_chunks[0][1], Sigma1_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_10 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base7/full"),
+                         {Sigma1_chunks[0][2], Sigma1_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_11 =
+                        {lookup_tables_indices.at("sha256_reverse_sparse_base7/full"),
+                         {Sigma1_chunks[0][3], Sigma1_chunks[1][3]}};
 
                     selectors[1] = bp.add_lookup_gate({
-//                        lookup_constraint_1,
+                        /*lookup_constraint_1,
                         lookup_constraint_2,
                         lookup_constraint_3,
                         lookup_constraint_4,
                         lookup_constraint_5,
                         lookup_constraint_6,
-                        lookup_constraint_7,
+                        lookup_constraint_7,*/
                         lookup_constraint_8,
                         lookup_constraint_9,
                         lookup_constraint_10,
@@ -712,9 +881,10 @@ namespace nil {
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices
                 ) {
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
                     std::array<std::size_t, 2> selectors;
 
                     typename BlueprintFieldType::integral_type one = 1;
@@ -724,13 +894,13 @@ namespace nil {
                         (var(component.W(0), +1) + var(component.W(1), +1) + var(component.W(4), +1));
                     selectors[0] = bp.add_gate({constraint_1});
 
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
+                    lookup_constraint lookup_constraint_1 =
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(5), 0), var(component.W(0), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
+                    lookup_constraint lookup_constraint_2 =
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(6), 0), var(component.W(1), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3=
+                    lookup_constraint lookup_constraint_3=
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(7), 0), var(component.W(2), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4=
+                    lookup_constraint lookup_constraint_4=
                         {lookup_tables_indices.at("sha256_maj/full"), {var(component.W(8), 0), var(component.W(3), 0)}};
                     selectors[1] = bp.add_lookup_gate({
                         lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4
@@ -743,50 +913,69 @@ namespace nil {
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
-                    std::array<std::size_t, 2> selectors;
-
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
+                    using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+
+                    std::array<std::size_t, 2> selectors;
 
                     typename BlueprintFieldType::value_type base7_value =
                         plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base7;
+                    var e_new = var(component.W(4), +1);
+                    std::array<var, 3> a2_chunks = {
+                        var(component.W(6), -1), var(component.W(7), -1), var(component.W(8), -1)};
+                    std::array<var, 4> ch_chunks_0 = {
+                        var(component.W(5), +1), var(component.W(6), +1),
+                        var(component.W(7), +1), var(component.W(8), +1)};
+                    std::array<var, 4> ch_chunks_1 = {
+                        var(component.W(0), 0), var(component.W(1), 0),
+                        var(component.W(2), 0), var(component.W(3), 0)};
+                    std::array<std::array<var, 4>, 2> ch_chunks = {ch_chunks_0, ch_chunks_1};
+
                     auto constraint_1 =
-                        var(component.W(0), 0) + var(component.W(1), 0) * base7_value.pow(8) +
-                        var(component.W(2), 0) * base7_value.pow(16) + var(component.W(3), 0) * base7_value.pow(24) -
+                        ch_chunks[1][0] + ch_chunks[1][1] * base7_value.pow(8) +
+                        ch_chunks[1][2] * base7_value.pow(16) + ch_chunks[1][3] * base7_value.pow(24) -
                         (var(component.W(0), -1) + 2 * var(component.W(1), -1) + 3 * var(component.W(0), +1));
 
 
-                    auto constraint_2 = -1 * var(component.W(4), +1) +
-                        var(component.W(6), -1) + var(component.W(7), -1) * (1 << 14) + var(component.W(8), -1) * (1 << 28);
+                    auto constraint_2 = -1 * e_new +
+                        a2_chunks[0] + a2_chunks[1] * (1 << 14) + a2_chunks[2] * (1 << 28);
 
                     selectors[0] =  bp.add_gate({constraint_1, constraint_2});
 
-                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_1 =
-                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(5), +1), var(component.W(0), 0)}};
-                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_2 =
-                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(6), +1), var(component.W(1), 0)}};
-                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
-                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(7), +1), var(component.W(2), 0)}};
-                    //crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                    //    {lookup_tables_indices.at("sha256_ch/full"), {var(component.W(8), +1), var(component.W(3), 0)}};
+                    lookup_constraint lookup_constraint_1 =
+                       {lookup_tables_indices.at("sha256_ch/full"),
+                        {ch_chunks[0][0], ch_chunks[1][0]}};
+                    lookup_constraint lookup_constraint_2 =
+                       {lookup_tables_indices.at("sha256_ch/full"),
+                        {ch_chunks[0][1], ch_chunks[1][1]}};
+                    lookup_constraint lookup_constraint_3 =
+                       {lookup_tables_indices.at("sha256_ch/full"),
+                        {ch_chunks[0][2], ch_chunks[1][2]}};
+                    lookup_constraint lookup_constraint_4 =
+                       {lookup_tables_indices.at("sha256_ch/full"),
+                        {ch_chunks[0][3], ch_chunks[1][3]}};
 
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(6), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_6 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(7), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(8), -1)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(8), 0) * (2 << 10)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_9 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(4), 0)}};
-                    crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_10 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(4), 0) * (2 << 9)}};
+                    lookup_constraint lookup_constraint_5 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[0]}};
+                    lookup_constraint lookup_constraint_6 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[1]}};
+                    lookup_constraint lookup_constraint_7 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {a2_chunks[2]}};
+                    lookup_constraint lookup_constraint_8 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(4), 0)}};
+                    lookup_constraint lookup_constraint_9 =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(4), 0) * (1 << 9)}};
 
                     selectors[1] = bp.add_lookup_gate({
-                    //    lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4
-                        lookup_constraint_5, lookup_constraint_6, lookup_constraint_7, lookup_constraint_8, lookup_constraint_9, lookup_constraint_10
+                        lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4,
+                        lookup_constraint_5, lookup_constraint_6, lookup_constraint_7, lookup_constraint_8, lookup_constraint_9
                     });
                     return selectors;
                 }
@@ -796,7 +985,7 @@ namespace nil {
                     const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const std::map<std::string, std::size_t> &lookup_tables_indices
+                    const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices
                 ) {
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
 
@@ -805,8 +994,8 @@ namespace nil {
                     auto m = typename BlueprintFieldType::value_type(2).pow(32);
                     auto constraint_1 =
                         var(component.W(4), +1) -
-                        (var(component.W(2), 0) + var(component.W(5), -1) + var(component.W(6), -1) * (1 << 14) +
-                         var(component.W(7), -1) * (1 << 28) + var(component.W(8), -1) * (1 << 30) +
+                        (var(component.W(2), 0) + var(component.W(5), -1) + var(component.W(6), -1) * (1 << 8) +
+                         var(component.W(7), -1) * (1 << 16) + var(component.W(8), -1) * (1 << 24) +
                          var(component.W(5), 0) + var(component.W(6), 0) * (1 << 8) +
                          var(component.W(7), 0) * (1 << 16) + var(component.W(8), 0) * (1 << 24) +
                          var(component.C(0), 0, true, var::column_type::constant) + var(component.W(3), 0));
@@ -818,8 +1007,8 @@ namespace nil {
                     std::size_t selector_2 = bp.add_gate({constraint_1, constraint_2, constraint_3});
                     auto constraint_4 =
                         var(component.W(2), +1) + m * var(component.W(3), +1) -
-                        (var(component.W(4), 0) + var(component.W(5), +1) + var(component.W(6), +1) * (1 << 14) +
-                         var(component.W(7), +1) * (1 << 28) + var(component.W(8), +1) * (1 << 30) +
+                        (var(component.W(4), 0) + var(component.W(5), +1) + var(component.W(6), +1) * (1 << 8) +
+                         var(component.W(7), +1) * (1 << 16) + var(component.W(8), +1) * (1 << 24) +
                          var(component.W(5), 0) + var(component.W(6), 0) * (1 << 8) +
                          var(component.W(7), 0) * (1 << 16) + var(component.W(8), 0) * (1 << 24));
                     auto constraint_5 =
@@ -882,7 +1071,7 @@ namespace nil {
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_3 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), 0)}};
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_4 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), 0) * (2 << 10)}};
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(2), 0) * (1 << 10)}};
 
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_5 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(4), 0)}};
@@ -891,7 +1080,7 @@ namespace nil {
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_7 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(6), 0)}};
                     crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType> lookup_constraint_8 =
-                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(6), 0) * (2 << 10)}};
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"), {var(component.W(6), 0) * (1 << 10)}};
 
                     selectors[1] = bp.add_lookup_gate({
                         lookup_constraint_1, lookup_constraint_2, lookup_constraint_3, lookup_constraint_4,
@@ -904,12 +1093,12 @@ namespace nil {
             }    // namespace detail
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            std::array<std::size_t, 18> generate_gates(
+            std::array<std::size_t, 19> generate_gates(
                 const plonk_sha256_process<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
                 const typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
-                const std::map<std::string, std::size_t> lookup_tables_indices
+                const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices
             ) {
                 auto message_scheduling_selectors =
                     detail::generate_message_scheduling_gates(component, bp, assignment, lookup_tables_indices);
@@ -919,7 +1108,7 @@ namespace nil {
                 return {
                     message_scheduling_selectors[0], message_scheduling_selectors[1],
                     message_scheduling_selectors[2], message_scheduling_selectors[3],
-                    message_scheduling_selectors[4],
+                    message_scheduling_selectors[4], message_scheduling_selectors[5],
                     compression_selectors[0], compression_selectors[1], compression_selectors[2],
                     compression_selectors[3], compression_selectors[4], compression_selectors[5],
                     compression_selectors[6], compression_selectors[7], compression_selectors[8],
@@ -1041,7 +1230,6 @@ namespace nil {
 
                 detail::generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
                 std::size_t j = start_row_index;
-                std::cout << "Start_row_index = " << start_row_index << std::endl;
                 j = j + 2;
                 auto selector_indices = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
 
@@ -1049,28 +1237,29 @@ namespace nil {
                 assignment.enable_selector(selector_indices[0], j + 1, j + 239, 5);//sigma0
                 assignment.enable_selector(selector_indices[1], j + 1, j + 239, 5);//sigma0
                 assignment.enable_selector(selector_indices[2], j + 2, j + 239, 5);//selector1
-                assignment.enable_selector(selector_indices[3], j + 4, j + 239, 5);//sigma1
+                assignment.enable_selector(selector_indices[3], j + 2, j + 239, 5);//sigma1 chunk check
                 assignment.enable_selector(selector_indices[4], j + 4, j + 239, 5);//sigma1
+                assignment.enable_selector(selector_indices[5], j + 4, j + 239, 5);//sigma1
 
                 // Compression selectors
                 j = j + 240;
-                assignment.enable_selector(selector_indices[5], j + 1, j + 511, 8); // Sigma1
                 assignment.enable_selector(selector_indices[6], j + 1, j + 511, 8); // Sigma1
-                assignment.enable_selector(selector_indices[7], j + 6, j + 511, 8); // Sigma0
+                assignment.enable_selector(selector_indices[7], j + 1, j + 511, 8); // Sigma1
                 assignment.enable_selector(selector_indices[8], j + 6, j + 511, 8); // Sigma0
-                assignment.enable_selector(selector_indices[9], j + 3, j + 511, 8); // selector2
-                assignment.enable_selector(selector_indices[10], j + 4, j + 511, 8); // selector3
-                assignment.enable_selector(selector_indices[11], j + 4, j + 511, 8); // Maj_selector
+                assignment.enable_selector(selector_indices[9], j + 6, j + 511, 8); // Sigma0
+                assignment.enable_selector(selector_indices[10], j + 3, j + 511, 8); // selector2
+                assignment.enable_selector(selector_indices[11], j + 4, j + 511, 8); // selector3
                 assignment.enable_selector(selector_indices[12], j + 4, j + 511, 8); // Maj_selector
-                assignment.enable_selector(selector_indices[13], j + 2, j + 511, 8); // Ch_selector
+                assignment.enable_selector(selector_indices[13], j + 4, j + 511, 8); // Maj_selector
                 assignment.enable_selector(selector_indices[14], j + 2, j + 511, 8); // Ch_selector
+                assignment.enable_selector(selector_indices[15], j + 2, j + 511, 8); // Ch_selector
 
                 j = j + 512;
-                assignment.enable_selector(selector_indices[15], j, j + 2, 2); // selector6
+                assignment.enable_selector(selector_indices[16], j, j + 2, 2); // selector6
 
                 j = j + 4;
-                assignment.enable_selector(selector_indices[16], j, j + 3, 1);
                 assignment.enable_selector(selector_indices[17], j, j + 3, 1);
+                assignment.enable_selector(selector_indices[18], j, j + 3, 1);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 return typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -1159,7 +1348,7 @@ namespace nil {
                     sparse_values[i] = input_state_sparse_chunks[1][0];
                 }
                 row = row + 2;
-                std::vector<std::size_t> sigma_sizes = {14, 14, 2, 2};
+                std::vector<std::size_t> sigma_sizes = {8, 8, 8, 8};
                 std::vector<std::size_t> ch_and_maj_sizes = {8, 8, 8, 8};
                 typename BlueprintFieldType::value_type base4_value =
                     plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base4;
@@ -1255,9 +1444,9 @@ namespace nil {
                     typename BlueprintFieldType::value_type sum =
                         message_scheduling_words[(i - row) / 5 + 9] + message_scheduling_words[(i - row) / 5] +
                         sigma1_chunks[0][0] + sigma0_chunks[0][0] +
-                        (one << 14) * (sigma1_chunks[0][1] + sigma0_chunks[0][1]) +
-                        (one << 28) * (sigma1_chunks[0][2] + sigma0_chunks[0][2]) +
-                        (one << 30) * (sigma1_chunks[0][3] + sigma0_chunks[0][3]);
+                        (one << 8) * (sigma1_chunks[0][1] + sigma0_chunks[0][1]) +
+                        (one << 16) * (sigma1_chunks[0][2] + sigma0_chunks[0][2]) +
+                        (one << 24) * (sigma1_chunks[0][3] + sigma0_chunks[0][3]);
                     message_scheduling_words[(i - row) / 5 + 16] =
                         typename BlueprintFieldType::integral_type(sum.data) %
                         typename BlueprintFieldType::integral_type(
