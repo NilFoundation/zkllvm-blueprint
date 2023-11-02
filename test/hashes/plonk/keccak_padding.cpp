@@ -147,7 +147,7 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
     }
     component_type component_instance =
         component_type(witnesses, std::array<std::uint32_t, 1>{0}, std::array<std::uint32_t, 1>{0}, 
-                        LookupRows, LookupColumns, num_blocks, num_bits, 7);
+                        num_blocks, num_bits, 7);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
             component_instance, public_input, result_check, instance_input,
@@ -184,7 +184,8 @@ void test_keccak_padding_random() {
     integral_type mask = (integral_type(1) << 64) - 1;
     integral_type mask_zero = (integral_type(1) << 60) - 1;
     std::vector<value_type> message = {value_type(integral_type(dis(gen)) & mask_zero),
-                                        value_type(integral_type(dis(gen)) & mask_zero)};
+                                        value_type(integral_type(dis(gen)) & mask),
+                                        value_type(integral_type(dis(gen)) & mask)};
     std::size_t num_bits = 64 * (message.size() - 1) + number_bits<BlueprintFieldType>(message[0]);
     std::size_t num_blocks = message.size();
 
@@ -203,8 +204,8 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     // test_keccak_round_random<field_type, 9, 65536, 10>();
-    // test_keccak_padding_random<field_type, 9, 65536, 10>();
-    test_keccak_padding_random<field_type, 15, 65536, 10>();
+    test_keccak_padding_random<field_type, 9, 65536, 10>();
+    // test_keccak_padding_random<field_type, 15, 65536, 10>();
 }
 
 // BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
