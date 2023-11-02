@@ -181,8 +181,8 @@ namespace nil {
                     return manifest;
                 }
                 
-                const std::size_t lookup_rows;
-                const std::size_t lookup_columns;
+                static const std::size_t lookup_rows = 65536;
+                // const std::size_t lookup_columns;
 
                 const std::size_t limit_permutation_column = 7;
 
@@ -198,7 +198,7 @@ namespace nil {
                 std::vector<std::size_t> gates_rows = calculate_gates_rows(this->witness_amount());
                 // const std::vector<std::size_t> lookup_gates_configuration = configure_lookup_gates(this->witness_amount());
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), lookup_columns, num_blocks, num_bits, limit_permutation_column);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, num_blocks, num_bits, limit_permutation_column);
                 const std::size_t gates_amount = get_gates_amount(this->witness_amount(), num_blocks, shift, last_gate);
                 const std::size_t lookup_gates_amount = num_blocks;
 
@@ -238,7 +238,6 @@ namespace nil {
                 static padding_gate padding(std::size_t witness_amount, std::size_t row = 0) {
                     if (witness_amount == 9) return padding_9(row);
                     if (witness_amount == 15) return padding_15(row);
-                    throw std::runtime_error("Unsupported number of witnesses");
                     return padding_gate();
                 }
                 static padding_gate padding_9(std::size_t row = 0) {
@@ -284,7 +283,7 @@ namespace nil {
                         }
                         return (num_blocks - 2) % 6;
                     }
-                    throw std::runtime_error("Unsupported number of witnesses");
+                    return 0;
                 }
                 static std::size_t calculate_confs_per_gate(std::size_t witness_amount) {
                     if (witness_amount == 9) {
@@ -292,19 +291,19 @@ namespace nil {
                     } else if (witness_amount == 15) {
                         return 6;
                     }
-                    throw std::runtime_error("Unsupported number of witnesses");
+                    return 0;
                 }
 
                 static std::vector<configuration> configure_batching(std::size_t witness_amount,
                                                                     std::size_t num_blocks) {
                     std::vector<configuration> result;
-
+                    std::cout << witness_amount << std::endl;
                     std::size_t conf_ind = 0;
                     std::size_t row = 1;
                     std::size_t confs_per_gate = calculate_confs_per_gate(witness_amount);
 
                     while (conf_ind < num_blocks - 2 * (witness_amount == 15)) {
-                        auto pg = padding(row);
+                        auto pg = padding(witness_amount, row);
                         std::size_t j = 0;
                         {
                             configuration conf;
@@ -416,17 +415,16 @@ namespace nil {
                             return 1;
                         }
                         return 2;
-                    }
-                    if (witness_amount == 15) {
+                    } else if (witness_amount == 15) {
                         if (last_gate == 7) {
                             return 1;
                         }
-                        if (last_gate == 0 || last_gate == num_blocks - 3) {
+                        if (last_gate == 0 || last_gate == num_blocks - 2) {
                             return 2;
                         }
                         return 3;
                     }
-                    throw std::runtime_error("Unsupported number of witnesses");
+                    return 0;
                 }
                 static std::size_t get_rows_amount(std::size_t witness_amount,
                                                     std::size_t lookup_column_amount,
@@ -442,11 +440,8 @@ namespace nil {
                          typename PublicInputContainerType>
                 keccak_padding(WitnessContainerType witness, ConstantContainerType constant,
                                    PublicInputContainerType public_input,
-                                   std::size_t lookup_rows_, std::size_t lookup_columns_,
                                    std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_ = 7):
                         component_type(witness, constant, public_input, get_manifest()),
-                        lookup_rows(lookup_rows_),
-                        lookup_columns(lookup_columns_),
                         num_blocks(num_blocks_),
                         num_bits(num_bits_),
                         limit_permutation_column(lpc_) {};
@@ -456,11 +451,8 @@ namespace nil {
                     std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
-                    std::size_t lookup_rows_, std::size_t lookup_columns_,
                     std::size_t num_blocks_, std::size_t num_bits_, std::size_t lpc_ = 7) :
                         component_type(witnesses, constants, public_inputs, get_manifest()),
-                        lookup_rows(lookup_rows_),
-                        lookup_columns(lookup_columns_),
                         num_blocks(num_blocks_),
                         num_bits(num_bits_),
                         limit_permutation_column(lpc_) {};
@@ -589,9 +581,9 @@ namespace nil {
                 using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
 
+                std::size_t strow = start_row_index;
                 std::size_t config_index = 0;
                 std::size_t input_index = 0;
-                std::size_t strow = start_row_index;
 
                 while (config_index < component.full_configuration.size() - (component.shift != 0)) {
                     auto config = component.full_configuration[config_index];
@@ -606,8 +598,33 @@ namespace nil {
                 if (component.shift != 0) {
                     auto config = component.full_configuration[config_index];
                     bp.add_copy_constraint({var(component.C(0), start_row_index, false, var::column_type::constant),
-                                            var(component.W(config.copy_to[1].column), config.copy_to[1].row + strow, false)});
+                                            var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
                 }
+                
+                // if (component.shift != 0) {
+                //     std::size_t config_index = 0;
+                //     std::size_t input_index = 0;
+                //     auto config = component.full_configuration[config_index++];
+                //     bp.add_copy_constraint({instance_input.message[input_index++],
+                //                             var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
+                //     bp.add_copy_constraint({instance_input.message[input_index++],
+                //                             var(component.W(config.copy_to[1].column), config.copy_to[1].row + strow, false)});
+                //     while (input_index < instance_input.message.size()) {
+                //         std::cout << input_index << ' ' << config_index << ' ' << component.full_configuration.size() << std::endl;
+                //         config = component.full_configuration[config_index++];
+                //         bp.add_copy_constraint({instance_input.message[input_index++],
+                //                                 var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
+                //     }
+                //     // config = component.full_configuration[config_index];
+                //     // bp.add_copy_constraint({var(component.C(0), start_row_index, false, var::column_type::constant),
+                //     //                         var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
+                // } else {
+                //     for (std::size_t i = 0; i < component.full_configuration.size(); ++i) {
+                //         auto config = component.full_configuration[i];
+                //         bp.add_copy_constraint({instance_input.message[i],
+                //                                 var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow, false)});
+                //     }
+                // }
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -635,11 +652,14 @@ namespace nil {
                 if (component.witness_amount() == 15) {
                     assignment.enable_selector(selector_indexes[ind++], component.gates_rows[gate_row_ind++] + start_row_index);
                 }
-                for (std::size_t i = gate_row_ind; i < component.gates_rows.size() - (bool)(component.last_gate % 7); ++i) {
-                    assignment.enable_selector(selector_indexes[ind], component.gates_rows[gate_row_ind++] + start_row_index);
+                if (gate_row_ind < component.gates_rows.size() - (bool)(component.last_gate % 7)) {
+                    for (std::size_t i = gate_row_ind; i < component.gates_rows.size() - (bool)(component.last_gate % 7); ++i) {
+                        assignment.enable_selector(selector_indexes[ind], component.gates_rows[gate_row_ind++] + start_row_index);
+                    }
+                    ind++;
                 }
                 if (component.last_gate % 7) {
-                    assignment.enable_selector(selector_indexes[ind] + 1, component.gates_rows[gate_row_ind] + start_row_index);
+                    assignment.enable_selector(selector_indexes[ind], component.gates_rows[gate_row_ind] + start_row_index);
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);

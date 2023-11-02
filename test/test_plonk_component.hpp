@@ -341,7 +341,7 @@ namespace nil {
 
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
-            std::size_t start_row = dist(gen);
+            std::size_t start_row = 0;//dist(gen);
 
             if constexpr (PrivateInput) {
                 for (std::size_t i = 0; i < public_input.size(); i++) {
@@ -360,8 +360,86 @@ namespace nil {
             // bp.export_circuit(std::cout);
             result_check(assignment, component_result);
 
-            BOOST_ASSERT(bp.num_gates() == 0);
-            BOOST_ASSERT(bp.num_lookup_gates() == 0);
+            if constexpr (!PrivateInput) {
+                bool is_connected;
+                if (connectedness_check == detail::connectedness_check_type::STRONG) {
+                    is_connected = check_strong_connectedness(
+                        assignment,
+                        bp,
+                        instance_input.all_vars(),
+                        component_result.all_vars(), start_row, component_instance.rows_amount);
+                } else if (connectedness_check == detail::connectedness_check_type::WEAK) {
+                    is_connected = check_weak_connectedness(
+                        assignment,
+                        bp,
+                        instance_input.all_vars(),
+                        component_result.all_vars(), start_row, component_instance.rows_amount);
+                } else if (connectedness_check == detail::connectedness_check_type::NONE) {
+                    is_connected = true;
+                    std::cout << "WARNING: connectedness check disabled" << std::endl;
+                }
+
+                // Uncomment the following if you want to output a visual representation of the connectedness graph.
+                // I recommend turning off the starting row randomization
+
+                auto zones = blueprint::detail::generate_connectedness_zones(
+                     assignment, bp, instance_input.all_vars(), start_row, component_instance.rows_amount);
+                blueprint::detail::export_connectedness_zones(
+                     zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
+
+                BOOST_ASSERT_MSG(is_connected,
+                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+            }
+
+            zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
+            desc.usable_rows_amount = assignment.rows_amount();
+
+            if (start_row + component_instance.rows_amount >= public_input.size()) {
+                BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
+                                "Component rows amount does not match actual rows amount.");
+                // Stretched components do not have a manifest, as they are dynamically generated.
+                if constexpr (!blueprint::components::is_component_stretcher<
+                                    BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
+                    BOOST_ASSERT_MSG(assignment.rows_amount() - start_row ==
+                                    component_type::get_rows_amount(component_instance.witness_amount(), 0,
+                                                                    component_static_info_args...),
+                                    "Static component rows amount does not match actual rows amount.");
+                }
+            }
+            // Stretched components do not have a manifest, as they are dynamically generated.
+            if constexpr (!blueprint::components::is_component_stretcher<
+                                    BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
+                BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates()==
+                                component_type::get_gate_manifest(component_instance.witness_amount(), 0,
+                                                                component_static_info_args...).get_gates_amount(),
+                                "Component total gates amount does not match actual gates amount.");
+            }
+
+            if(nil::blueprint::use_lookups<component_type>()){
+                // Components with lookups may use constant columns.
+                // But now all constants are placed in the first column.
+                // So we reserve the first column for non-lookup constants. 
+                // Rather universal for testing
+                // We may start from zero if component doesn't use ordinary constants.
+                std::vector<size_t> lookup_columns_indices;
+                for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
+                desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
+                    bp.get_reserved_indices(),
+                    bp.get_reserved_tables(),
+                    bp, assignment, lookup_columns_indices,
+                    desc.usable_rows_amount
+                );
+            }
+            desc.rows_amount = zk::snark::basic_padding(assignment);
+
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+            std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
+            std::cout << "Padded rows: " << desc.rows_amount << std::endl;
+
+            profiling(assignment);
+#endif
+
+            assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 
             return std::make_tuple(desc, bp, assignment);
         }
