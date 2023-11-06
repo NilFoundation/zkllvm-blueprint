@@ -190,9 +190,9 @@ namespace nil {
                     virtual std::size_t get_rows_number(){return 16384;}
                 };
 
-                class reverse_sparse_values_base4_table : public lookup_table_definition {
+                class reverse_sparse_sigmas_base4_table : public lookup_table_definition {
                 public:
-                    reverse_sparse_values_base4_table(): lookup_table_definition("sha256_reverse_sparse_base4"){
+                    reverse_sparse_sigmas_base4_table(): lookup_table_definition("sha256_reverse_sparse_base4"){
                         this->subtables["full"] = {{0,1}, 0, 65535};
                     };
 
@@ -242,9 +242,9 @@ namespace nil {
                     virtual std::size_t get_rows_number(){return 16384;}
                 };
 
-                class reverse_sparse_values_base7_table: public lookup_table_definition{
+                class reverse_sparse_sigmas_base7_table: public lookup_table_definition{
                 public:
-                    reverse_sparse_values_base7_table(): lookup_table_definition("sha256_reverse_sparse_base7"){
+                    reverse_sparse_sigmas_base7_table(): lookup_table_definition("sha256_reverse_sparse_base7"){
                         this->subtables["full"] = {{0,1}, 0, 43903};
                     };
                     virtual void generate() {
@@ -325,10 +325,10 @@ namespace nil {
                     auto maj = std::shared_ptr<lookup_table_definition>(new maj_function_table());
                     result.push_back(maj);
 
-                    auto reverse_sparse_values_base4 = std::shared_ptr<lookup_table_definition>(new reverse_sparse_values_base4_table());
+                    auto reverse_sparse_values_base4 = std::shared_ptr<lookup_table_definition>(new reverse_sparse_sigmas_base4_table());
                     result.push_back(reverse_sparse_values_base4);
 
-                    auto reverse_sparse_values_base7 = std::shared_ptr<lookup_table_definition>(new reverse_sparse_values_base7_table());
+                    auto reverse_sparse_values_base7 = std::shared_ptr<lookup_table_definition>(new reverse_sparse_sigmas_base7_table());
                     result.push_back(reverse_sparse_values_base7);
 
                     auto ch = std::shared_ptr<lookup_table_definition>(new ch_function_table());
@@ -480,9 +480,6 @@ namespace nil {
                     using var = typename plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::var;
                     using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
 
-                    const std::array<var, 4> a_chunks_0_next = {
-                        var(component.W(1), +1), var(component.W(2), +1),
-                        var(component.W(3), +1), var(component.W(4), +1)};
                     const std::array<var, 4> b_chunks_0 = {
                         var(component.W(1), 0), var(component.W(2), 0),
                         var(component.W(3), 0), var(component.W(4), 0)};
@@ -494,9 +491,10 @@ namespace nil {
                     const std::array<var, 4> sigma1_chunks_1 = {
                         var(component.W(5), -1), var(component.W(6), -1),
                         var(component.W(7), -1), var(component.W(8), -1)};
-                    const std::array<var, 4> a2_chunks = {
+                    const var integral_a2 = var(component.W(8), 0);
+                    const std::array<var, 3> integral_a2_chunks = {
                         var(component.W(5), 0), var(component.W(6), 0),
-                        var(component.W(7), 0), var(component.W(8), 0)};
+                        var(component.W(7), 0)};
 
                     typename BlueprintFieldType::integral_type one = 1;
                     auto constraint_1 =
@@ -514,8 +512,8 @@ namespace nil {
                          b_chunks[1][3] * ((one << 18) + (one << 4) + 1) +
                          b_chunks[1][0] * ((one << 30) + (1 << 26)));
 
-                    auto constraint_4 = -a2_chunks[3] +
-                        a2_chunks[0] + a2_chunks[1] * (1 << 14) + a2_chunks[2] * (1 << 28);
+                    auto constraint_4 = -integral_a2 +
+                        integral_a2_chunks[0] + integral_a2_chunks[1] * (1 << 14) + integral_a2_chunks[2] * (1 << 28);
 
                     selectors[0] = bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
 
@@ -543,16 +541,16 @@ namespace nil {
 
                     lookup_constraint lookup_constraint_8 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[0]}};
+                         {integral_a2_chunks[0]}};
                     lookup_constraint lookup_constraint_9 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[1]}};
+                         {integral_a2_chunks[1]}};
                     lookup_constraint lookup_constraint_10 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[2]}};
+                         {integral_a2_chunks[2]}};
                     lookup_constraint lookup_constraint_11 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[2] * (1 << 10)}};
+                         {integral_a2_chunks[2] * (1 << 10)}};
                     lookup_constraint lookup_constraint_12 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
                          {var(component.W(0), -1)}};
@@ -732,16 +730,16 @@ namespace nil {
 
                     lookup_constraint_type lookup_constraint_12 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {var(component.W(6), 1)}};
+                         {a_new_chunks[0]}};
                     lookup_constraint_type lookup_constraint_13 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {var(component.W(7), 1)}};
+                         {a_new_chunks[1]}};
                     lookup_constraint_type lookup_constraint_14 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {var(component.W(8), 1)}};
+                         {a_new_chunks[2]}};
                     lookup_constraint_type lookup_constraint_15 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {var(component.W(8), 1) * (1 << 10)}};
+                         {a_new_chunks[2] * (1 << 10)}};
                     lookup_constraint_type lookup_constraint_16 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
                          {var(component.W(3), -1)}};
@@ -809,13 +807,6 @@ namespace nil {
                         var(component.W(0), 0) -
                             (e_chunks[1][0] + e_chunks[1][1] * base7_value.pow(6) +
                              e_chunks[1][2] * base7_value.pow(11) + e_chunks[1][3] * base7_value.pow(25));
-                    // auto constraint_3 =
-                    //     Sigma1_chunks[1][0] + var(component.W(6), 0) * base7_value.pow(14) +
-                    //     var(component.W(7), 0) * base7_value.pow(28) + var(component.W(8), 0) * base7_value.pow(30) -
-                    //     (e_chunks[1][1] * (base7_value.pow(27) + base7_value.pow(13) + 1) +
-                    //      e_chunks[1][2] * (base7_value.pow(5) + 1 + base7_value.pow(18)) +
-                    //      e_chunks[1][3] * (base7_value.pow(19) + base7_value.pow(14) + 1) +
-                    //      e_chunks[1][0] * (base7_value.pow(26) + base7_value.pow(21) + base7_value.pow(7)));
                     auto constraint_3 =
                         Sigma1_chunks[1][0] + Sigma1_chunks[1][1] * base7_value.pow(8) +
                         Sigma1_chunks[1][2] * base7_value.pow(16) + Sigma1_chunks[1][3] * base7_value.pow(24) -
@@ -834,7 +825,7 @@ namespace nil {
                          {e_chunks[0][0], e_chunks[1][0]}};
                     lookup_constraint lookup_constraint_3 =
                         {lookup_tables_indices.at("sha256_sparse_base7/first_column"),
-                         {e_chunks[0][2] * 512}};
+                         {e_chunks[0][1] * 512}};
                     lookup_constraint lookup_constraint_4 =
                         {lookup_tables_indices.at("sha256_sparse_base7/full"),
                          {e_chunks[0][1], e_chunks[1][1]}};
@@ -861,13 +852,13 @@ namespace nil {
                          {Sigma1_chunks[0][3], Sigma1_chunks[1][3]}};
 
                     selectors[1] = bp.add_lookup_gate({
-                        /*lookup_constraint_1,
+                        lookup_constraint_1,
                         lookup_constraint_2,
                         lookup_constraint_3,
                         lookup_constraint_4,
                         lookup_constraint_5,
                         lookup_constraint_6,
-                        lookup_constraint_7,*/
+                        lookup_constraint_7,
                         lookup_constraint_8,
                         lookup_constraint_9,
                         lookup_constraint_10,
@@ -923,7 +914,7 @@ namespace nil {
                     typename BlueprintFieldType::value_type base7_value =
                         plonk_sha256_process<BlueprintFieldType, ArithmetizationParams>::base7;
                     var e_new = var(component.W(4), +1);
-                    std::array<var, 3> a2_chunks = {
+                    std::array<var, 3> integral_a2_chunks = {
                         var(component.W(6), -1), var(component.W(7), -1), var(component.W(8), -1)};
                     std::array<var, 4> ch_chunks_0 = {
                         var(component.W(5), +1), var(component.W(6), +1),
@@ -940,7 +931,7 @@ namespace nil {
 
 
                     auto constraint_2 = -1 * e_new +
-                        a2_chunks[0] + a2_chunks[1] * (1 << 14) + a2_chunks[2] * (1 << 28);
+                        integral_a2_chunks[0] + integral_a2_chunks[1] * (1 << 14) + integral_a2_chunks[2] * (1 << 28);
 
                     selectors[0] =  bp.add_gate({constraint_1, constraint_2});
 
@@ -959,13 +950,13 @@ namespace nil {
 
                     lookup_constraint lookup_constraint_5 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[0]}};
+                         {integral_a2_chunks[0]}};
                     lookup_constraint lookup_constraint_6 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[1]}};
+                         {integral_a2_chunks[1]}};
                     lookup_constraint lookup_constraint_7 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
-                         {a2_chunks[2]}};
+                         {integral_a2_chunks[2]}};
                     lookup_constraint lookup_constraint_8 =
                         {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
                          {var(component.W(4), 0)}};
