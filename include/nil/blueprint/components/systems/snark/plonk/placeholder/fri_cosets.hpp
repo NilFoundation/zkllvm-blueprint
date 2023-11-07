@@ -383,15 +383,15 @@ namespace nil {
                 // Store typical constraints for every column
                 nine_block.resize(WA);
                 for(std::size_t j = 0; j < l; j++) {
-                    var W0 = var(component.W(9*j),0),
-                        W1 = var(component.W(9*j + 1),0),
-                        W2 = var(component.W(9*j + 2),0),
-                        W3 = var(component.W(9*j + 3),0),
-                        W4 = var(component.W(9*j + 4),0),
-                        W5 = var(component.W(9*j + 5),0),
-                        W6 = var(component.W(9*j + 6),0),
-                        W7 = var(component.W(9*j + 7),0),
-                        W8 = var(component.W(9*j + 8),0),
+                    var W0 = var(component.W(9*j),0),     // x/2^j
+                        W1 = var(component.W(9*j + 1),0), // (p-1)/2^j
+                        W2 = var(component.W(9*j + 2),0), // sgn( (p-1-x)/2^j )
+                        W3 = var(component.W(9*j + 3),0), // omega^{2^j}
+                        W4 = var(component.W(9*j + 4),0), // omega^{b_j...b_0}
+                        W5 = var(component.W(9*j + 5),0), // (omega^{2^{n-1-j}})^x
+                        W6 = var(component.W(9*j + 6),0), // -(omega^{2^{n-1-j}})^x
+                        W7 = var(component.W(9*j + 7),0), // b_j = the j-th bit of x binary decomposition
+                        W8 = var(component.W(9*j + 8),0), // c_j = the j-th bit of (p-1) binary decomposition
                         W0next = var(component.W(9*((j+1) % l)),(j+1)/l),
                         W1next = var(component.W(9*((j+1) % l) + 1),(j+1)/l),
                         W2next = var(component.W(9*((j+1) % l) + 2),(j+1)/l),
@@ -425,7 +425,7 @@ namespace nil {
                     bit_line[1] += Wj1;
                     bit_line[j] = Wj * (Wj - 1);
                     bit_line[j+1] = Wj1 * (Wj1 - 1);
-                    bit_line[j+2] = (Wj1 - Wj)*(1 - Wj2next)*(1 + Wj2next) + (Wj2next * Wj2next * Wj2next) - Wj2;
+                    bit_line[j+2] = (Wj1 - Wj)*(1 - Wj2next)*(1 + Wj2next) + Wj2next - Wj2;
                 }
                 bit_line[0] -= var(component.W(0),0);
                 bit_line[1] -= var(component.W(1),0);
@@ -483,7 +483,7 @@ namespace nil {
                     cs3.push_back(mid);
                     cs3.push_back(mid1);
 
-                    // the sign bit shoudl be just a copy from the next block
+                    // the sign bit should be just a copy from the next block
                     var Wl2     = var(component.W(9*last_l + 2),0),
                         Wl2next = var(component.W(9*last_l + 5),0);
                     cs3.push_back( Wl2 - Wl2next );
