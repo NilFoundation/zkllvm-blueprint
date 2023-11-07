@@ -280,8 +280,8 @@ namespace nil {
                 BOOST_ASSERT(tables.find(table_name) != tables.end());
                 std::string subtable_name = name.substr(name.find("/")+1, name.size());
                 BOOST_ASSERT(tables[table_name]->subtables.find(subtable_name) != tables[table_name]->subtables.end());
-                reserved_tables.insert(name);
                 reserved_tables_indices.left.insert(std::make_pair(name, reserved_tables.size()));
+                reserved_tables.insert(name);
             }
 
             void reservation_done(){
