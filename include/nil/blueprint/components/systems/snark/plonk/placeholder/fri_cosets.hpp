@@ -401,7 +401,7 @@ namespace nil {
 
                     nine_block[9*j]   = W0 - 2*W0next - W7;
                     nine_block[9*j+1] = W1 - 2*W1next - W8;
-                    nine_block[9*j+2] = (W8 - W7)*(1 - W2next)*(1 + W2next) + (W2next * W2next * W2next) - W2;
+                    nine_block[9*j+2] = (W8 - W7)*(1 - W2next)*(1 + W2next) + W2next - W2;
                     nine_block[9*j+3] = W3 - W3prev * W3prev;
                     nine_block[9*j+4] = W4 - W4prev * (W3*W7 + 1-W7);
                     nine_block[9*j+5] = W5 - W5next * W5next;
