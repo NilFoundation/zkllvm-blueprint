@@ -1,8 +1,6 @@
 #ifndef CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_EXP_RANGED_HPP
 #define CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_EXP_RANGED_HPP
 
-#include "nil/blueprint/components/algebra/fixedpoint/tables.hpp"
-
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/exp.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/range.hpp"
 
@@ -10,12 +8,19 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Input: x as fixedpoint numbers with \Delta_x
-            // Output: y as fixedpoint number with huge scale!
-            // Additionally clips output to  a predefined min/max range if the values are to small/large
-
             // Uses the range gadget for clipping, and modifies the constraints of the exp gadget accordingly
 
+            /**
+             * Component representing an exp operation with clipping.
+             *
+             * Clipping means that the output is set to the highest/lowest allowed value in case of being too
+             * large/small.
+             *
+             * The delta of y is the same as the delta of x.
+             *
+             * Input:  x ... field element
+             * Output: y ... e^x (field element)
+             */
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class fix_exp_ranged;
 
@@ -96,6 +101,58 @@ namespace nil {
                 }
 
             public:
+                uint8_t get_m() const {
+                    return range.get_m();
+                }
+
+                uint8_t get_m1() const {
+                    return range.get_m1();
+                }
+
+                uint8_t get_m2() const {
+                    return range.get_m2();
+                }
+
+                uint64_t get_delta() const {
+                    return range.get_delta();
+                }
+
+                static std::size_t get_witness_columns(std::size_t witness_amount, uint8_t m1, uint8_t m2) {
+                    return std::max(exp_component::get_witness_columns(m2),
+                                    range_component::get_witness_columns(witness_amount, m1, m2));
+                }
+
+                struct var_positions {
+                    CellPosition exp_min, exp_max;
+                    typename range_component::var_positions range_pos;
+                    typename exp_component::var_positions exp_pos;
+                    int64_t start_row, range_row, exp_row;
+                };
+
+                var_positions get_var_pos(const int64_t start_row_index) const {
+
+                    // trace layout witness (a col(s)), constant (2 col(s))
+                    // where a = max(range_cols, exp_cols)
+                    // number of rows: range_row(s) + exp_row
+                    //
+                    //                |      witness     |     constant      |
+                    //       r\c      | 0 |  ..  | a - 1 |    0    |    1    |
+                    // +--------------+---+------+-------+---------+---------+
+                    // | range_row(s) | <range_witness>  | <range_const>     |
+                    // | exp_row      | <exp_witness>    | exp_min | exp_max |
+
+                    var_positions pos;
+                    pos.start_row = start_row_index;
+                    pos.range_row = start_row_index;
+                    pos.exp_row = start_row_index + this->range.rows_amount;
+
+                    pos.range_pos = this->range.get_var_pos(pos.range_row);
+                    pos.exp_pos = this->exp.get_var_pos(pos.exp_row);
+                    pos.exp_min = CellPosition(this->C(0), pos.exp_row);
+                    pos.exp_max = CellPosition(this->C(1), pos.exp_row);
+                    return pos;
+                }
+
                 const exp_component &get_exp_component() const {
                     return exp;
                 }
@@ -149,6 +206,16 @@ namespace nil {
                 using input_type = typename exp_component::input_type;
                 using result_type = typename exp_component::result_type;
 
+                result_type get_result(std::uint32_t start_row_index) const {
+                    const auto var_pos = get_var_pos(static_cast<int64_t>(start_row_index));
+                    return result_type(exp, static_cast<size_t>(var_pos.exp_row));
+                }
+
+                result_type get_result(std::size_t start_row_index) const {
+                    const auto var_pos = get_var_pos(static_cast<int64_t>(start_row_index));
+                    return result_type(exp, static_cast<size_t>(var_pos.exp_row));
+                }
+
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 fix_exp_ranged(WitnessContainerType witness, ConstantContainerType constant,
@@ -169,8 +236,7 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest(m1, m2)),
                     lo(FixedPointTables<BlueprintFieldType>::get_lowest_exp_input(m2)),
                     hi(FixedPointTables<BlueprintFieldType>::get_highest_valid_exp_input(m1, m2)), exp_min(0),
-                    exp_max(calc_max(m1, m2)), exp(instantiate_exp(m2)),
-                    range(instantiate_range(m1, m2, lo, hi)) {};
+                    exp_max(calc_max(m1, m2)), exp(instantiate_exp(m2)), range(instantiate_range(m1, m2, lo, hi)) {};
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -188,6 +254,9 @@ namespace nil {
                         instance_input,
                     const std::uint32_t start_row_index) {
 
+                const auto one = BlueprintFieldType::value_type::one();
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+
                 // First, we put the range gadget into the trace
                 // Then, we add the exp gadget into new rows
 
@@ -196,19 +265,16 @@ namespace nil {
                 range_input.x = instance_input.x;
 
                 auto range_comp = component.get_range_component();
-                auto range_result = generate_assignments(range_comp, assignment, range_input, start_row_index);
-
-                auto range_rows = range_comp.rows_amount;
-                auto exp_row = start_row_index + range_rows;
+                auto range_result = generate_assignments(range_comp, assignment, range_input, var_pos.range_row);
 
                 auto exp_comp = component.get_exp_component();
-                auto exp_result = generate_assignments(exp_comp, assignment, instance_input, exp_row, false);
+                auto exp_result = generate_assignments(exp_comp, assignment, instance_input, var_pos.exp_row, false);
 
                 // update output if out of range!
-                if (var_value(assignment, range_result.lt) == BlueprintFieldType::value_type::one()) {
-                    assignment.witness(exp_result.output.index, exp_row) = component.get_exp_min();
-                } else if (var_value(assignment, range_result.gt) == BlueprintFieldType::value_type::one()) {
-                    assignment.witness(exp_result.output.index, exp_row) = component.get_exp_max();
+                if (var_value(assignment, range_result.lt) == one) {
+                    assignment.witness(magic(var_pos.exp_pos.y)) = component.get_exp_min();
+                } else if (var_value(assignment, range_result.gt) == one) {
+                    assignment.witness(magic(var_pos.exp_pos.y)) = component.get_exp_max();
                 }
 
                 return exp_result;
@@ -223,29 +289,25 @@ namespace nil {
                 const typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
+                int64_t start_row_index = 1 - component.rows_amount;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+
                 using var = typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::var;
 
                 auto exp_comp = component.get_exp_component();
-                auto range_comp = component.get_range_component();
-
-                typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::result_type range_output(
-                    range_comp, (std::uint32_t)0);
-
-                typename plonk_fixedpoint_exp<BlueprintFieldType, ArithmetizationParams>::result_type exp_output(
-                    exp_comp, (std::uint32_t)0);
 
                 auto constraints = get_constraints(exp_comp, bp, assignment, instance_input);
 
-                auto in = var(range_output.in.index, -1);
-                auto lt = var(range_output.lt.index, -1);
-                auto gt = var(range_output.gt.index, -1);
-                auto y = var(exp_output.output.index, 0);
-                auto min = var(component.C(0), 0, true, var::column_type::constant);
-                auto max = var(component.C(1), 0, true, var::column_type::constant);
+                auto in = var(magic(var_pos.range_pos.in));
+                auto lt = var(magic(var_pos.range_pos.lt));
+                auto gt = var(magic(var_pos.range_pos.gt));
+                auto y = var(magic(var_pos.exp_pos.y));
+                auto exp_min = var(magic(var_pos.exp_min), true, var::column_type::constant);
+                auto exp_max = var(magic(var_pos.exp_max), true, var::column_type::constant);
 
                 constraints[0] *= in;
                 constraints[2] *= in;
-                constraints[2] += (1 - in) * (lt * min + gt * max - y);
+                constraints[2] += (1 - in) * (lt * exp_min + gt * exp_max - y);
 
                 return bp.add_gate(constraints);
             }
@@ -260,6 +322,7 @@ namespace nil {
                     const typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::input_type
                         &instance_input,
                     const std::size_t start_row_index) {
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 typename plonk_fixedpoint_exp_ranged<BlueprintFieldType,
                                                      ArithmetizationParams>::range_component::input_type range_input;
@@ -267,26 +330,20 @@ namespace nil {
 
                 // Enable the range component
                 auto range_comp = component.get_range_component();
-                std::size_t range_selector = generate_gates(range_comp, bp, assignment, range_input);
-                assignment.enable_selector(range_selector, start_row_index + range_comp.rows_amount - 1);
-                generate_copy_constraints(range_comp, bp, assignment, range_input, start_row_index);
-                generate_assignments_constant(range_comp, assignment, range_input, start_row_index);
-
-                auto exp_row = start_row_index + range_comp.rows_amount;
+                generate_circuit(range_comp, bp, assignment, range_input, var_pos.range_row);
 
                 // We slightly modify the exp component
                 std::size_t exp_selector = generate_exp_gates(component, bp, assignment, instance_input);
-                assignment.enable_selector(exp_selector, exp_row);
+                assignment.enable_selector(exp_selector, var_pos.exp_row);
 
                 // Enable the copy constraints of exp
                 auto exp_comp = component.get_exp_component();
-                generate_copy_constraints(exp_comp, bp, assignment, instance_input, exp_row);
+                generate_copy_constraints(exp_comp, bp, assignment, instance_input, var_pos.exp_row);
 
                 // Finally, we have to put the min/max values into the constant columns
-                generate_assignments_constant(component, assignment, instance_input, exp_row);
+                generate_assignments_constant(component, assignment, instance_input, var_pos.start_row);
 
-                return typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::result_type(
-                    exp_comp, exp_row);
+                return component.get_result(start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -296,10 +353,11 @@ namespace nil {
                     &assignment,
                 const typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
-                const std::size_t row_index) {
+                const std::size_t start_row_index) {
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                assignment.constant(component.C(0), row_index) = component.get_exp_min();
-                assignment.constant(component.C(1), row_index) = component.get_exp_max();
+                assignment.constant(magic(var_pos.exp_min)) = component.get_exp_min();
+                assignment.constant(magic(var_pos.exp_max)) = component.get_exp_max();
             }
 
         }    // namespace components

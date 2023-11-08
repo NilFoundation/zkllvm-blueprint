@@ -16,8 +16,7 @@ namespace nil {
                 using big_float = nil::crypto3::multiprecision::cpp_bin_float_double;
 
                 static std::vector<value_type> fill_exp_a_table(uint8_t m2);
-                static std::vector<value_type> fill_exp_b_table();
-                static std::vector<value_type> fill_exp_c_table();
+                static std::vector<value_type> fill_exp_b_table(uint8_t m2);
 
             public:
                 FixedPointTables() = delete;
@@ -25,16 +24,13 @@ namespace nil {
                 FixedPointTables &operator=(const FixedPointTables &) = delete;
 
                 static constexpr uint16_t ExpBScale = 16;
-                static constexpr uint16_t ExpCScale = 16;
-
                 static constexpr uint32_t ExpALen = 201;
-                static constexpr uint32_t ExpBLen = (1 << ExpBScale);
-                static constexpr uint32_t ExpCLen = (1 << ExpCScale);
+                static constexpr uint32_t ExpBLen = (1ULL << ExpBScale);
 
                 static const std::vector<value_type> &get_exp_a_16();
                 static const std::vector<value_type> &get_exp_a_32();
-                static const std::vector<value_type> &get_exp_b();
-                static const std::vector<value_type> &get_exp_c();
+                static const std::vector<value_type> &get_exp_b_16();
+                static const std::vector<value_type> &get_exp_b_32();
 
                 template<uint8_t M2>
                 static constexpr uint16_t get_exp_scale();
@@ -60,16 +56,16 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             const std::vector<typename FixedPointTables<BlueprintFieldType>::value_type> &
-                FixedPointTables<BlueprintFieldType>::get_exp_b() {
-                static std::vector<value_type> exp_b = fill_exp_b_table();
+                FixedPointTables<BlueprintFieldType>::get_exp_b_16() {
+                static std::vector<value_type> exp_b = fill_exp_b_table(1);
                 return exp_b;
             }
 
             template<typename BlueprintFieldType>
             const std::vector<typename FixedPointTables<BlueprintFieldType>::value_type> &
-                FixedPointTables<BlueprintFieldType>::get_exp_c() {
-                static std::vector<value_type> exp_c = fill_exp_c_table();
-                return exp_c;
+                FixedPointTables<BlueprintFieldType>::get_exp_b_32() {
+                static std::vector<value_type> exp_b = fill_exp_b_table(2);
+                return exp_b;
             }
 
             template<typename BlueprintFieldType>
@@ -79,8 +75,10 @@ namespace nil {
                 std::vector<value_type> exp_a;
                 exp_a.reserve(ExpALen);
                 for (auto i = 0; i < ExpALen; ++i) {
-                    big_float val = std::exp(i - (int32_t)ExpALen / 2);
-                    val *= (double)(1ULL << (16 * m2));
+                    big_float val_in = i - (int32_t)ExpALen / 2;
+                    big_float val;
+                    nil::crypto3::multiprecision::default_ops::eval_exp(val.backend(), val_in.backend());
+                    val *= (1ULL << (16 * m2));
                     auto int_val = val.convert_to<nil::crypto3::multiprecision::cpp_int>();
                     auto field_val = value_type(int_val);
                     exp_a.push_back(field_val);
@@ -90,12 +88,13 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             std::vector<typename FixedPointTables<BlueprintFieldType>::value_type>
-                FixedPointTables<BlueprintFieldType>::fill_exp_b_table() {
+                FixedPointTables<BlueprintFieldType>::fill_exp_b_table(uint8_t m2) {
+                BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> exp_b;
                 exp_b.reserve(ExpBLen);
                 for (auto i = 0; i < ExpBLen; ++i) {
                     double val = std::exp((double)i / ExpBLen);
-                    val *= ExpBLen;
+                    val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
                     auto field_val = value_type(int_val);
                     exp_b.push_back(field_val);
@@ -104,29 +103,10 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            std::vector<typename FixedPointTables<BlueprintFieldType>::value_type>
-                FixedPointTables<BlueprintFieldType>::fill_exp_c_table() {
-                std::vector<value_type> exp_c;
-                exp_c.reserve(ExpCLen);
-                for (auto i = 0; i < ExpCLen; ++i) {
-                    double val = std::exp((double)i / ((uint64_t)ExpBLen * ExpCLen));
-                    val *= ExpCLen;
-                    auto int_val = uint64_t(val);
-                    auto field_val = value_type(int_val);
-                    exp_c.push_back(field_val);
-                }
-                return exp_c;
-            }
-
-            template<typename BlueprintFieldType>
             template<uint8_t M2>
             constexpr uint16_t FixedPointTables<BlueprintFieldType>::get_exp_scale() {
-                static_assert(M2 > 0 && M2 < 3, "Only allow one or two post-comma linbs");
-                if (M2 == 1) {
-                    return 16 + ExpBScale;
-                } else {
-                    return 32 + ExpBScale + ExpCScale;
-                }
+                static_assert(M2 > 0 && M2 < 3, "Only allow one or two post-comma limbs");
+                return M2 * (16 + ExpBScale);
             }
 
             template<typename BlueprintFieldType>
@@ -136,7 +116,7 @@ namespace nil {
                 value_type res = ExpALen / 2;
                 res = res * delta + ExpBLen - 1;
                 if (m2 == 2) {
-                    res = res * delta + ExpCLen - 1;
+                    res = res * delta + ExpBLen - 1;
                 }
                 return res;
             }

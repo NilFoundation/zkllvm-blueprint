@@ -17,10 +17,7 @@ namespace nil {
              * selector c must be either 0 or 1, values x and y are field elements. z = x if c == 1 and z
              * = y if c == 0.
              *
-             * TACEO_TODO: this is not really bound to fixedpoint representation, is it?
-             *
-             * If x and y are fixed point values the user needs to ensure that the deltas of x and y match (the scale
-             * must be the same).
+             * The user needs to ensure that the deltas of x and y match (the scale must be the same).
              *
              * Input:    x, y ... field elements
              *           c    ... boolean selector (field element): 0 or 1.
@@ -69,9 +66,6 @@ namespace nil {
                 constexpr static const std::size_t gates_amount = 1;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
-                /**
-                 * Describes the inputs x, y, and c of the fix_select component.
-                 */
                 struct input_type {
                     var c = var(0, 0, false);
                     var x = var(0, 0, false);
@@ -82,17 +76,36 @@ namespace nil {
                     }
                 };
 
-                /**
-                 * Describes the output z of the fix_select component.
-                 */
+                struct var_positions {
+                    CellPosition c, x, y, z;
+                };
+
+                var_positions get_var_pos(const int64_t start_row_index) const {
+
+                    // trace layout (4 col(s), 1 row(s))
+                    //
+                    //  r\c| 0 | 1 | 2 | 3 |
+                    // +---+---+---+---+---+
+                    // | 0 | c | x | y | z |
+
+                    var_positions pos;
+                    pos.c = CellPosition(this->W(0), start_row_index);
+                    pos.x = CellPosition(this->W(1), start_row_index);
+                    pos.y = CellPosition(this->W(2), start_row_index);
+                    pos.z = CellPosition(this->W(3), start_row_index);
+                    return pos;
+                }
+
                 struct result_type {
                     var output = var(0, 0, false);
                     result_type(const fix_select &component, std::uint32_t start_row_index) {
-                        output = var(component.W(3), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(start_row_index);
+                        output = var(magic(var_pos.z), false);
                     }
 
                     result_type(const fix_select &component, std::size_t start_row_index) {
-                        output = var(component.W(3), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(start_row_index);
+                        output = var(magic(var_pos.z), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -140,20 +153,13 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(c_val == 0 || c_val == 1);
                 auto z_val = c_val == 1 ? x_val : y_val;
 
-                // trace layout (4 col(s), 1 row(s))
-                // | c | x | y | z |
-                // ! CODE DUPLICATION !
-                // If you modify this block incl. comments, change it for all blocks defining CellPositions in this file
-                auto c_pos = CellPosition {component.W(0), start_row_index};
-                auto x_pos = CellPosition {component.W(1), start_row_index};
-                auto y_pos = CellPosition {component.W(2), start_row_index};
-                auto z_pos = CellPosition {component.W(3), start_row_index};
+                const auto var_pos = component.get_var_pos(start_row_index);
 
                 // writing the values of the inputs/output to this gate's internal state variables
-                assignment.witness(c_pos.column, c_pos.row) = c_val;
-                assignment.witness(x_pos.column, x_pos.row) = x_val;
-                assignment.witness(y_pos.column, y_pos.row) = y_val;
-                assignment.witness(z_pos.column, z_pos.row) = z_val;
+                assignment.witness(magic(var_pos.c)) = c_val;
+                assignment.witness(magic(var_pos.x)) = x_val;
+                assignment.witness(magic(var_pos.y)) = y_val;
+                assignment.witness(magic(var_pos.z)) = z_val;
 
                 return typename plonk_fixedpoint_select<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -169,25 +175,18 @@ namespace nil {
                     &instance_input) {
 
                 using var = typename plonk_fixedpoint_select<BlueprintFieldType, ArithmetizationParams>::var;
-                // Output: z = c == true ? x : y
-                // is equivalent to: z = c * (x - y) + y
 
                 const std::size_t start_row_index = 0;
 
-                // trace layout (4 col(s), 1 row(s))
-                // | c | x | y | z |
-                // ! CODE DUPLICATION !
-                // If you modify this block incl. comments, change it for all blocks defining CellPositions in this file
-                auto c_pos = CellPosition {component.W(0), start_row_index};
-                auto x_pos = CellPosition {component.W(1), start_row_index};
-                auto y_pos = CellPosition {component.W(2), start_row_index};
-                auto z_pos = CellPosition {component.W(3), start_row_index};
+                const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto c = var(c_pos.column, c_pos.row);
-                auto x = var(x_pos.column, x_pos.row);
-                auto y = var(y_pos.column, y_pos.row);
-                auto z = var(z_pos.column, z_pos.row);
+                auto c = var(magic(var_pos.c));
+                auto x = var(magic(var_pos.x));
+                auto y = var(magic(var_pos.y));
+                auto z = var(magic(var_pos.z));
 
+                // Output: z = c == true ? x : y
+                // is equivalent to: z = c * (x - y) + y
                 auto constraint_1 = c * (x - y) + y - z;
                 auto constraint_2 = c * (c - 1);
 
@@ -206,17 +205,11 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_select<BlueprintFieldType, ArithmetizationParams>::var;
 
-                // trace layout (4 col(s), 1 row(s))
-                // | c | x | y | z |
-                // ! CODE DUPLICATION !
-                // If you modify this block incl. comments, change it for all blocks defining CellPositions in this file
-                auto c_pos = CellPosition {component.W(0), start_row_index};
-                auto x_pos = CellPosition {component.W(1), start_row_index};
-                auto y_pos = CellPosition {component.W(2), start_row_index};
+                const auto var_pos = component.get_var_pos(start_row_index);
 
-                var c = var(c_pos.column, c_pos.row, false);
-                var x = var(x_pos.column, x_pos.row, false);
-                var y = var(y_pos.column, y_pos.row, false);
+                auto c = var(magic(var_pos.c), false);
+                auto x = var(magic(var_pos.x), false);
+                auto y = var(magic(var_pos.y), false);
 
                 bp.add_copy_constraint({instance_input.c, c});
                 bp.add_copy_constraint({instance_input.x, x});
