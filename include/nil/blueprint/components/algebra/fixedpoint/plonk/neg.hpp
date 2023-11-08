@@ -13,9 +13,12 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Input: x as fixedpoint number
-            // Output: z = -x
-
+            /**
+             * Component representing a unary negation operation with y = -x.
+             *
+             * Input:  x ... field element
+             * Output: y ... -x (field element)
+             */
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class fix_neg;
 
@@ -65,14 +68,34 @@ namespace nil {
                     }
                 };
 
+                struct var_positions {
+                    CellPosition x, y;
+                };
+
+                var_positions get_var_pos(const int64_t start_row_index) const {
+
+                    // trace layout (2 col(s), 1 row(s))
+                    //
+                    //  r\c| 0 | 1 |
+                    // +---+---+---+
+                    // | 0 | x | y |
+
+                    var_positions pos;
+                    pos.x = CellPosition(this->W(0), start_row_index);
+                    pos.y = CellPosition(this->W(1), start_row_index);
+                    return pos;
+                }
+
                 struct result_type {
                     var output = var(0, 0, false);
                     result_type(const fix_neg &component, std::uint32_t start_row_index) {
-                        output = var(component.W(1), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(start_row_index);
+                        output = var(magic(var_pos.y), false);
                     }
 
                     result_type(const fix_neg &component, std::size_t start_row_index) {
-                        output = var(component.W(1), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(start_row_index);
+                        output = var(magic(var_pos.y), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -111,11 +134,10 @@ namespace nil {
                     instance_input,
                 const std::uint32_t start_row_index) {
 
-                const std::size_t j = start_row_index;
+                const auto var_pos = component.get_var_pos(start_row_index);
 
-                // | x | y |
-                assignment.witness(component.W(0), j) = var_value(assignment, instance_input.x);
-                assignment.witness(component.W(1), j) = -var_value(assignment, instance_input.x);
+                assignment.witness(magic(var_pos.x)) = var_value(assignment, instance_input.x);
+                assignment.witness(magic(var_pos.y)) = -var_value(assignment, instance_input.x);
 
                 return typename plonk_fixedpoint_neg<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -132,7 +154,13 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_neg<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto constraint_1 = var(component.W(0), 0) + var(component.W(1), 0);
+                uint64_t start_row_index = 0;
+
+                const auto var_pos = component.get_var_pos(start_row_index);
+                auto x = var(magic(var_pos.x));
+                auto y = var(magic(var_pos.y));
+
+                auto constraint_1 = x + y;
 
                 return bp.add_gate(constraint_1);
             }
@@ -149,9 +177,10 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_neg<BlueprintFieldType, ArithmetizationParams>::var;
 
-                const std::size_t j = start_row_index;
-                var component_x = var(component.W(0), static_cast<int>(j), false);
-                bp.add_copy_constraint({instance_input.x, component_x});
+                const auto var_pos = component.get_var_pos(start_row_index);
+                
+                var x = var(magic(var_pos.x), false);
+                bp.add_copy_constraint({instance_input.x, x});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -176,7 +205,7 @@ namespace nil {
             }
 
         }    // namespace components
-    }    // namespace blueprint
+    }        // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_NEG_HPP

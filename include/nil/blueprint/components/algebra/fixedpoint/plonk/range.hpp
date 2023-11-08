@@ -15,13 +15,21 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Input: x as fixedpoint numbers with \Delta_x
-            // Constant inputs: Two fixedpoint ranges(x_lo, x_hi) with \Delta_x
-            // Output: three flags with values \in {0,1} indicating whether x is in range. Concretely lt = x < x_lo, gt
-            // = x > x_hi, in = x_lo <= x <= x_hi
+            // Works by decomposing the difference of the input and the ranges.
 
-            // // Works by decomposing the difference of the input and the ranges.
-
+            /**
+             * Component representing a range check for the input x and the constants x_lo and x_hi. The outputs are
+             * flags that are 1 if their condition is true and 0 otherwise.
+             *
+             * The user needs to ensure that the deltas of x, x_lo, and x_hi match (the scale must be the same).
+             *
+             * Input:    x    ... field element
+             * Output:   lt   ... x < x_lo ? 1 : 0 (field element)
+             *           in   ... x_lo <= x <= x_hi ? 1 : 0 (field element)
+             *           gt   ... x_hi < x ? 1 : 0 (field element)
+             * Constant: x_lo ... field element
+             *           x_hi ... field element
+             */
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class fix_range;
 
@@ -70,6 +78,10 @@ namespace nil {
                     return m2;
                 }
 
+                uint64_t get_delta() const {
+                    return 1ULL << (16 * m2);
+                }
+
                 value_type get_x_lo() const {
                     return x_lo;
                 }
@@ -79,7 +91,7 @@ namespace nil {
                 }
 
                 static std::size_t get_witness_columns(std::size_t witness_amount, uint8_t m1, uint8_t m2) {
-                    return get_rows_amount(witness_amount, 0, M(m1), M(m2)) == 1 ? 12 + 2 * (m1 + m2) : 10;
+                    return get_rows_amount(witness_amount, 0, M(m1), M(m2)) == 1 ? 10 + 2 * (m1 + m2 + 1) : 10;
                 }
 
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 2, 0>;
@@ -101,16 +113,14 @@ namespace nil {
 
                 // TACEO_TODO Update to lookup tables
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest =
-                        manifest_type(std::shared_ptr<manifest_param>(
-                                          new manifest_range_param(10, 12 + 2 * (m2 + m1), 2 + 2 * (m2 + m1))),
-                                      false);
+                    static manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(new manifest_range_param(10, 10 + 2 * (m2 + m1 + 1))), false);
                     return manifest;
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount, uint8_t m1, uint8_t m2) {
-                    if (12 + 2 * (M(m2) + M(m1)) <= witness_amount) {
+                    if (10 + 2 * (M(m2) + M(m1) + 1) <= witness_amount) {
                         return 1;
                     } else {
                         return 2;
@@ -128,23 +138,104 @@ namespace nil {
                     }
                 };
 
+                struct var_positions {
+                    CellPosition x, in, lt, gt, z_a, z_b, inv_a, inv_b, s_a, s_b, a0, b0, x_l, x_h;
+                };
+
+                var_positions get_var_pos(const int64_t start_row_index) const {
+
+                    auto m = this->get_m();
+                    var_positions pos;
+                    switch (this->rows_amount) {
+                        case 1:
+
+                            // trace layout witness (10 + 2*(m+1) col(s), 1 row(s))
+                            // requiring an extra limb because of potential overflows during decomposition of
+                            // differences
+                            //
+                            //     |                                    witness                     10+     10+     |
+                            //  r\c| 0 | 1 | 2 | 3 | 4  | 5  | 6    | 7    | 8  | 9  | 10 |..|10+m| m+1|..| 2(m+1)-1|
+                            // +---+---+---+---+---+----+----+------+------+----+----+----+--+----+----+--+---------+
+                            // | 0 | x | in| lt| gt| z_a| z_b| inv_a| inv_b| s_a| s_b| a0 |..| am | b0 |..| bm      |
+
+                            pos.x = CellPosition(this->W(0), start_row_index);
+                            pos.in = CellPosition(this->W(1), start_row_index);
+                            pos.lt = CellPosition(this->W(2), start_row_index);
+                            pos.gt = CellPosition(this->W(3), start_row_index);
+                            pos.z_a = CellPosition(this->W(4), start_row_index);
+                            pos.z_b = CellPosition(this->W(5), start_row_index);
+                            pos.inv_a = CellPosition(this->W(6), start_row_index);
+                            pos.inv_b = CellPosition(this->W(7), start_row_index);
+                            pos.s_a = CellPosition(this->W(8), start_row_index);
+                            pos.s_b = CellPosition(this->W(9), start_row_index);
+                            pos.a0 = CellPosition(this->W(10 + 0 * (m + 1)), start_row_index);
+                            pos.b0 = CellPosition(this->W(10 + 1 * (m + 1)), start_row_index);
+
+                            // trace layout constant (2 col(s), 1 row(s))
+                            //
+                            //     | constant  |
+                            //  r\c|  0  |  1  |
+                            // +---+-----+-----+
+                            // | 0 | x_l | x_h |
+
+                            pos.x_l = CellPosition(this->C(0), start_row_index);
+                            pos.x_h = CellPosition(this->C(1), start_row_index);
+                            break;
+                        case 2:
+
+                            // trace layout witness (10 col(s), 2 row(s)), constant (2 col(s), 1 row(s))
+                            // (recall that 2 <= m <= 4)
+                            // requiring an extra limb because of potential overflows during decomposition of
+                            // differences
+                            //
+                            //     |              witness               |
+                            //  r\c| 0  | .. | m  | m+1 | .. | 2(m+1)-1 |
+                            // +---+----+----+----+-----+----+----------+
+                            // | 0 | a0 | .. | am | b0  | .. | bm       |
+
+                            pos.a0 = CellPosition(this->W(0 + 0 * (m + 1)), start_row_index);
+                            pos.b0 = CellPosition(this->W(0 + 1 * (m + 1)), start_row_index);
+
+                            //     |                         witness                          | constant  |
+                            //  r\c| 0 | 1  | 2  | 3  | 4   | 5   | 6     | 7     | 8   | 9   |  0  |  1  |
+                            // +---+---+----+----+----+-----+-----+-------+-------+-----+-----+-----+-----+
+                            // | 1 | x | in | lt | gt | z_a | z_b | inv_a | inv_b | s_a | s_b | x_l | x_h |
+
+                            pos.x = CellPosition(this->W(0), start_row_index + 1);
+                            pos.in = CellPosition(this->W(1), start_row_index + 1);
+                            pos.lt = CellPosition(this->W(2), start_row_index + 1);
+                            pos.gt = CellPosition(this->W(3), start_row_index + 1);
+                            pos.z_a = CellPosition(this->W(4), start_row_index + 1);
+                            pos.z_b = CellPosition(this->W(5), start_row_index + 1);
+                            pos.inv_a = CellPosition(this->W(6), start_row_index + 1);
+                            pos.inv_b = CellPosition(this->W(7), start_row_index + 1);
+                            pos.s_a = CellPosition(this->W(8), start_row_index + 1);
+                            pos.s_b = CellPosition(this->W(9), start_row_index + 1);
+                            pos.x_l = CellPosition(this->C(0), start_row_index + 1);
+                            pos.x_h = CellPosition(this->C(1), start_row_index + 1);
+                            break;
+                        default:
+                            BLUEPRINT_RELEASE_ASSERT(false && "rows_amount must be 1 or 2");
+                    }
+                    return pos;
+                }
                 struct result_type {
                     var in = var(0, 0, false);
                     var lt = var(0, 0, false);
                     var gt = var(0, 0, false);
 
                     result_type(const fix_range &component, std::uint32_t start_row_index) {
-                        auto row = start_row_index + component.rows_amount - 1;
-                        in = var(component.W(1), row, false, var::column_type::witness);
-                        lt = var(component.W(2), row, false, var::column_type::witness);
-                        gt = var(component.W(3), row, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                        in = var(magic(var_pos.in), false);
+                        lt = var(magic(var_pos.lt), false);
+                        gt = var(magic(var_pos.gt), false);
                     }
 
                     result_type(const fix_range &component, std::size_t start_row_index) {
-                        auto row = start_row_index + component.rows_amount - 1;
-                        in = var(component.W(1), row, false, var::column_type::witness);
-                        lt = var(component.W(2), row, false, var::column_type::witness);
-                        gt = var(component.W(3), row, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                        in = var(magic(var_pos.in), false);
+                        lt = var(magic(var_pos.lt), false);
+                        gt = var(magic(var_pos.gt), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -188,82 +279,68 @@ namespace nil {
                         instance_input,
                     const std::uint32_t start_row_index) {
 
-                const std::size_t j = start_row_index;
-                auto second_row = j + component.rows_amount - 1;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                const auto one = BlueprintFieldType::value_type::one();
+                const auto zero = BlueprintFieldType::value_type::zero();
                 auto m = component.get_m();
 
-                auto x = var_value(assignment, instance_input.x);
+                auto x_val = var_value(assignment, instance_input.x);
 
-                // if one row:
-                // | x | in | lt | gt | z_a | z_b | inv_a | inv_b | s_a | s_b | a_0 | ... | b_0 | ...
-                // else;
-                // first row: | a_0 | ... | b_0 | ...
-                // second row: | x | in | lt | gt | z_a | z_b | inv_a | inv_b | s_a | s_b |
+                assignment.witness(magic(var_pos.x)) = x_val;
 
-                assignment.witness(component.W(0), second_row) = x;
+                auto a_val = x_val - component.get_x_lo();
+                auto b_val = component.get_x_hi() - x_val;
 
-                auto diff_a = x - component.get_x_lo();
-                auto diff_b = component.get_x_hi() - x;
+                std::vector<uint16_t> a0_val;
+                std::vector<uint16_t> b0_val;
 
-                std::vector<uint16_t> decomp_a;
-                std::vector<uint16_t> decomp_b;
-
-                bool sign_a = FixedPointHelper<BlueprintFieldType>::abs(diff_a);
-                bool sign_b = FixedPointHelper<BlueprintFieldType>::abs(diff_b);
-                bool sign_a_ = FixedPointHelper<BlueprintFieldType>::decompose(diff_a, decomp_a);
-                bool sign_b_ = FixedPointHelper<BlueprintFieldType>::decompose(diff_b, decomp_b);
+                bool sign_a = FixedPointHelper<BlueprintFieldType>::abs(a_val);
+                bool sign_b = FixedPointHelper<BlueprintFieldType>::abs(b_val);
+                bool sign_a_ = FixedPointHelper<BlueprintFieldType>::decompose(a_val, a0_val);
+                bool sign_b_ = FixedPointHelper<BlueprintFieldType>::decompose(b_val, b0_val);
                 BLUEPRINT_RELEASE_ASSERT(!sign_a_);
                 BLUEPRINT_RELEASE_ASSERT(!sign_b_);
                 // is ok because decomp is at least of size 4 and the biggest we have is 32.32
-                BLUEPRINT_RELEASE_ASSERT(decomp_a.size() >= m);
-                BLUEPRINT_RELEASE_ASSERT(decomp_b.size() >= m);
+                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
+                BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= m);
 
-                assignment.witness(component.W(1), second_row) =
-                    typename BlueprintFieldType::value_type((uint64_t)(!sign_a && !sign_b));
-                assignment.witness(component.W(2), second_row) =
-                    typename BlueprintFieldType::value_type((uint64_t)sign_a);
-                assignment.witness(component.W(3), second_row) =
-                    typename BlueprintFieldType::value_type((uint64_t)sign_b);
+                assignment.witness(magic(var_pos.in)) = (!sign_a && !sign_b) ? one : zero;
+                assignment.witness(magic(var_pos.lt)) = sign_a ? one : zero;
+                assignment.witness(magic(var_pos.gt)) = sign_b ? one : zero;
+                BLUEPRINT_RELEASE_ASSERT(!sign_a || !sign_b);
 
-                bool eq_a = diff_a == 0;
-                bool eq_b = diff_b == 0;
-                assignment.witness(component.W(4), second_row) =
-                    typename BlueprintFieldType::value_type((uint64_t)eq_a);
-                assignment.witness(component.W(5), second_row) =
-                    typename BlueprintFieldType::value_type((uint64_t)eq_b);
+                bool eq_a = a_val == 0;
+                bool eq_b = b_val == 0;
+                assignment.witness(magic(var_pos.z_a)) = eq_a ? one : zero;
+                assignment.witness(magic(var_pos.z_b)) = eq_b ? one : zero;
 
                 // if eq: Does not matter what to put here
-                assignment.witness(component.W(6), second_row) =
-                    eq_a ? BlueprintFieldType::value_type::zero() : diff_a.inversed();
-                assignment.witness(component.W(7), second_row) =
-                    eq_b ? BlueprintFieldType::value_type::zero() : diff_b.inversed();
+                assignment.witness(magic(var_pos.inv_a)) = eq_a ? zero : a_val.inversed();
+                assignment.witness(magic(var_pos.inv_b)) = eq_b ? zero : b_val.inversed();
 
-                assignment.witness(component.W(8), second_row) =
-                    sign_a ? -BlueprintFieldType::value_type::one() : BlueprintFieldType::value_type::one();
-
-                assignment.witness(component.W(9), second_row) =
-                    sign_b ? -BlueprintFieldType::value_type::one() : BlueprintFieldType::value_type::one();
-
-                auto decomp_a_start = component.rows_amount == 1 ? 10 : 0;
-                auto decomp_b_start = decomp_a_start + m + 1;
+                assignment.witness(magic(var_pos.s_a)) = sign_a ? -one : one;
+                assignment.witness(magic(var_pos.s_b)) = sign_b ? -one : one;
 
                 // Additional limb due to potential overflow of diff
-                if (decomp_a.size() > m) {
-                    BLUEPRINT_RELEASE_ASSERT(decomp_a[m] == 0 || decomp_a[m] == 1);
-                    assignment.witness(component.W(decomp_a_start + m), j) = decomp_a[m];
+                // FixedPointHelper::decompose creates a vector whose size is a multiple of 4.
+                // Furthermore, the size of the vector might be larger than required (e.g. if 4 limbs would suffice the
+                // vectour could be of size 8)
+                if (a0_val.size() > m) {
+                    BLUEPRINT_RELEASE_ASSERT(a0_val[m] == 0 || a0_val[m] == 1);
+                    assignment.witness(var_pos.a0.column() + m, var_pos.a0.row()) = a0_val[m];
                 } else {
-                    assignment.witness(component.W(decomp_a_start + m), j) = 0;
+                    assignment.witness(var_pos.a0.column() + m, var_pos.a0.row()) = 0;
                 }
-                if (decomp_b.size() > m) {
-                    BLUEPRINT_RELEASE_ASSERT(decomp_b[m] == 0 || decomp_b[m] == 1);
-                    assignment.witness(component.W(decomp_b_start + m), j) = decomp_b[m];
+                if (b0_val.size() > m) {
+                    BLUEPRINT_RELEASE_ASSERT(b0_val[m] == 0 || b0_val[m] == 1);
+                    assignment.witness(var_pos.b0.column() + m, var_pos.b0.row()) = b0_val[m];
                 } else {
-                    assignment.witness(component.W(decomp_b_start + m), j) = 0;
+                    assignment.witness(var_pos.b0.column() + m, var_pos.b0.row()) = 0;
                 }
 
                 for (auto i = 0; i < m; i++) {
-                    assignment.witness(component.W(decomp_a_start + i), j) = decomp_a[i];
-                    assignment.witness(component.W(decomp_b_start + i), j) = decomp_b[i];
+                    assignment.witness(var_pos.a0.column() + i, var_pos.a0.row()) = a0_val[i];
+                    assignment.witness(var_pos.b0.column() + i, var_pos.b0.row()) = b0_val[i];
                 }
 
                 return typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -279,53 +356,51 @@ namespace nil {
                 const typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
+                int first_row = 1 - static_cast<int>(component.rows_amount);
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(first_row));
+
                 using var = typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::var;
 
                 auto m = component.get_m();
-                int first_row = 1 - (int)component.rows_amount;
-                auto decomp_a_start = component.rows_amount == 1 ? 10 : 0;
-                auto decomp_b_start = decomp_a_start + m + 1;
 
-                auto diff_a = nil::crypto3::math::expression(var(component.W(decomp_a_start), first_row));
-                auto diff_b = nil::crypto3::math::expression(var(component.W(decomp_b_start), first_row));
+                auto a0 = nil::crypto3::math::expression(var(magic(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression(var(magic(var_pos.b0)));
                 for (auto i = 1; i < m; i++) {
-                    diff_a += var(component.W(decomp_a_start + i), first_row) * (1ULL << (16 * i));
-                    diff_b += var(component.W(decomp_b_start + i), first_row) * (1ULL << (16 * i));
+                    a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
+                    b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));
                 }
                 typename BlueprintFieldType::value_type tmp =
                     1ULL << (16 * (m - 1));    // 1ULL << 16m could overflow 64-bit int
                 tmp *= 1ULL << 16;
-                diff_a += var(component.W(decomp_a_start + m), first_row) * tmp;
-                diff_b += var(component.W(decomp_b_start + m), first_row) * tmp;
+                a0 += var(var_pos.a0.column() + m, var_pos.a0.row()) * tmp;
+                b0 += var(var_pos.b0.column() + m, var_pos.b0.row()) * tmp;
 
-                auto constraint_1 = var(component.W(0), 0) - var(component.C(0), 0, true, var::column_type::constant) -
-                                    diff_a * var(component.W(8), 0);
-
-                auto constraint_2 = var(component.C(1), 0, true, var::column_type::constant) - var(component.W(0), 0) -
-                                    diff_b * var(component.W(9), 0);
-
-                auto constraint_3 = (var(component.W(8), 0) - 1) * (var(component.W(8), 0) + 1);
-
-                auto constraint_4 = (var(component.W(9), 0) - 1) * (var(component.W(9), 0) + 1);
-
-                auto constraint_5 = var(component.W(4), 0) * diff_a;
-
-                auto constraint_6 = var(component.W(5), 0) * diff_b;
-
-                auto constraint_7 = 1 - var(component.W(4), 0) - var(component.W(6), 0) * diff_a;
-
-                auto constraint_8 = 1 - var(component.W(5), 0) - var(component.W(7), 0) * diff_b;
+                auto x = var(magic(var_pos.x));
+                auto in = var(magic(var_pos.in));
+                auto lt = var(magic(var_pos.lt));
+                auto gt = var(magic(var_pos.gt));
+                auto z_a = var(magic(var_pos.z_a));
+                auto z_b = var(magic(var_pos.z_b));
+                auto inv_a = var(magic(var_pos.inv_a));
+                auto inv_b = var(magic(var_pos.inv_b));
+                auto s_a = var(magic(var_pos.s_a));
+                auto s_b = var(magic(var_pos.s_b));
+                auto x_l = var(magic(var_pos.x_l), true, var::column_type::constant);
+                auto x_h = var(magic(var_pos.x_h), true, var::column_type::constant);
 
                 auto inv2 = typename BlueprintFieldType::value_type(2).inversed();
 
-                auto constraint_9 =
-                    var(component.W(2), 0) - inv2 * (1 - var(component.W(8), 0)) * (1 - var(component.W(4), 0));
-
-                auto constraint_10 =
-                    var(component.W(3), 0) - inv2 * (1 - var(component.W(9), 0)) * (1 - var(component.W(5), 0));
-
-                auto constraint_11 =
-                    var(component.W(1), 0) - (1 - var(component.W(2), 0)) * (1 - var(component.W(3), 0));
+                auto constraint_1 = x - x_l - s_a * a0;
+                auto constraint_2 = x_h - x - s_b * b0;
+                auto constraint_3 = (s_a - 1) * (s_a + 1);
+                auto constraint_4 = (s_b - 1) * (s_b + 1);
+                auto constraint_5 = z_a * a0;
+                auto constraint_6 = z_b * b0;
+                auto constraint_7 = 1 - z_a - inv_a * a0;
+                auto constraint_8 = 1 - z_b - inv_b * b0;
+                auto constraint_9 = lt - inv2 * (1 - s_a) * (1 - z_a);
+                auto constraint_10 = gt - inv2 * (1 - s_b) * (1 - z_b);
+                auto constraint_11 = in - (1 - lt) * (1 - gt);
 
                 // TACEO_TODO extend for lookup constraint
                 return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
@@ -342,11 +417,11 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::var;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                const std::size_t j = start_row_index + component.rows_amount - 1;
-                var component_x = var(component.W(0), static_cast<int>(j), false);
-                bp.add_copy_constraint({instance_input.x, component_x});
+                using var = typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::var;
+                var x = var(magic(var_pos.x), false);
+                bp.add_copy_constraint({instance_input.x, x});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -380,10 +455,9 @@ namespace nil {
                 const typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
-
-                auto row = start_row_index + component.rows_amount - 1;
-                assignment.constant(component.C(0), row) = component.get_x_lo();
-                assignment.constant(component.C(1), row) = component.get_x_hi();
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                assignment.constant(magic(var_pos.x_l)) = component.get_x_lo();
+                assignment.constant(magic(var_pos.x_h)) = component.get_x_hi();
             }
 
         }    // namespace components

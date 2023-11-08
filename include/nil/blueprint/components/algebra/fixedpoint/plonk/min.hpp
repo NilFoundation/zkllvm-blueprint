@@ -1,5 +1,5 @@
-#ifndef CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_MAX_HPP
-#define CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_MAX_HPP
+#ifndef CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_MIN_HPP
+#define CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_MIN_HPP
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
@@ -16,7 +16,7 @@ namespace nil {
             // Works by decomposing the difference of the inputs.
 
             /**
-             * Component representing a max operation.
+             * Component representing a min operation.
              *
              * The user needs to ensure that the deltas of x and y match (the scale must be the same).
              *
@@ -24,13 +24,13 @@ namespace nil {
              *
              * Input:  x ... field element
              *         y ... field element
-             * Output: z ... max(x, y) (field element)
+             * Output: z ... min(x, y) (field element)
              */
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
-            class fix_max;
+            class fix_min;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename NonNativePolicyType>
-            class fix_max<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+            class fix_min<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                           BlueprintFieldType, NonNativePolicyType>
                 : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
@@ -67,7 +67,7 @@ namespace nil {
                 class gate_manifest_type : public component_gate_manifest {
                 public:
                     std::uint32_t gates_amount() const override {
-                        return fix_max::gates_amount;
+                        return fix_min::gates_amount;
                     }
                 };
 
@@ -127,12 +127,12 @@ namespace nil {
 
                 struct result_type {
                     var output = var(0, 0, false);
-                    result_type(const fix_max &component, std::uint32_t start_row_index) {
+                    result_type(const fix_min &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
                         output = var(magic(var_pos.z), false);
                     }
 
-                    result_type(const fix_max &component, std::size_t start_row_index) {
+                    result_type(const fix_min &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
                         output = var(magic(var_pos.z), false);
                     }
@@ -143,17 +143,17 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit fix_max(ContainerType witness, uint8_t m1, uint8_t m2) :
+                explicit fix_min(ContainerType witness, uint8_t m1, uint8_t m2) :
                     component_type(witness, {}, {}, get_manifest(m1, m2)), m1(M(m1)), m2(M(m2)) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
-                fix_max(WitnessContainerType witness, ConstantContainerType constant,
+                fix_min(WitnessContainerType witness, ConstantContainerType constant,
                         PublicInputContainerType public_input, uint8_t m1, uint8_t m2) :
                     component_type(witness, constant, public_input, get_manifest(m1, m2)),
                     m1(M(m1)), m2(M(m2)) {};
 
-                fix_max(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
+                fix_min(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                         std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                         std::initializer_list<typename component_type::public_input_container_type::value_type>
                             public_inputs,
@@ -163,16 +163,16 @@ namespace nil {
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            using plonk_fixedpoint_max =
-                fix_max<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+            using plonk_fixedpoint_min =
+                fix_min<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                         BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams> &component,
+            typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
+                const plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::input_type
                     instance_input,
                 const std::uint32_t start_row_index) {
 
@@ -199,7 +199,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(!sign_);
                 // is ok because d0_val is at least of size 4 and the biggest we have is 32.32
                 BLUEPRINT_RELEASE_ASSERT(d0_val.size() >= m);
-                tmp += d_val;
+                tmp -= d_val;
                 tmp *= inv2;
                 auto z_val = tmp;
                 assignment.witness(magic(var_pos.z)) = z_val;
@@ -217,26 +217,26 @@ namespace nil {
                     assignment.witness(var_pos.d0.column() + i, var_pos.d0.row()) = d0_val[i];
                 }
 
-                return typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             std::size_t generate_gates(
-                const plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams> &component,
+                const plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
                 uint64_t start_row_index = 0;
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                using var = typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::var;
                 auto m = component.get_m();
-                // Output: z = max(x, y)
-                // is equivalent to: z = 2^-1 * (s * (x - y) + x + y)
+                // Output: z = min(x, y)
+                // is equivalent to: z = 2^-1 * (s * (y - x) + x + y)
 
                 auto d = nil::crypto3::math::expression(var(magic(var_pos.d0)));
                 for (auto i = 1; i < m; i++) {
@@ -256,7 +256,7 @@ namespace nil {
 
                 auto constraint_1 = x - y - s * d;
                 auto constraint_2 = (s - 1) * (s + 1);
-                auto constraint_3 = z - inv2 * (s * (x - y) + x + y);
+                auto constraint_3 = z - inv2 * (s * (y - x) + x + y);
 
                 // TACEO_TODO extend for lookup constraint
                 return bp.add_gate({constraint_1, constraint_2, constraint_3});
@@ -264,17 +264,17 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
-                const plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams> &component,
+                const plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                using var = typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::var;
 
                 var x = var(magic(var_pos.x), false);
                 var y = var(magic(var_pos.y), false);
@@ -283,12 +283,12 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams> &component,
+            typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
+                const plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
 
@@ -299,7 +299,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_fixedpoint_max<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_fixedpoint_min<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
             }
 
@@ -307,4 +307,4 @@ namespace nil {
     }        // namespace blueprint
 }    // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_MAX_HPP
+#endif    // CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_MIN_HPP

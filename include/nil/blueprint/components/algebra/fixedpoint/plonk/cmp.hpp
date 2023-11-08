@@ -15,11 +15,21 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Input: x, y as fixedpoint numbers with \Delta_x = \Delta_y
-            // Output: three flags with values \in {0,1} indicating equality, less than, or greater than
-
             // Works by decomposing the difference of the inputs.
 
+            /**
+             * Component representing a compare operation.
+             *
+             * The user needs to ensure that the deltas of x and y match (the scale must be the same).
+             * 
+             * The outputs are flags with values in {0, 1} that describe the relation between x and y. 
+             *
+             * Input:  x ... field element
+             *         y ... field element
+             * Output: eq ... 1 if x = y, 0 otherwise (field element)
+             *         lt ... 1 if x < y, 0 otherwise (field element)
+             *         gt ... 1 if x > y, 0 otherwise (field element)
+             */
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class fix_cmp;
 
@@ -76,7 +86,8 @@ namespace nil {
                 // TACEO_TODO Update to lookup tables
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(get_witness_columns(m1, m2))), false);
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(get_witness_columns(m1, m2))),
+                        false);
                     return manifest;
                 }
 
@@ -97,21 +108,51 @@ namespace nil {
                     }
                 };
 
+                struct var_positions {
+                    CellPosition x, y, eq, lt, gt, s, inv, d0;
+                };
+
+                var_positions get_var_pos(const int64_t start_row_index) const {
+
+                    // trace layout (7 + m+1 col(s), 1 row(s))
+                    // requiring an extra limb because of potential overflows during decomposition of
+                    // differences
+                    //
+                    //     |                     witness                      |
+                    //  r\c| 0 | 1 | 2  | 3  | 4  | 5 |  6  | 7  | .. | 7 + m |
+                    // +---+---+---+----+----+----+---+-----+----+----+-------+
+                    // | 0 | x | y | eq | lt | gt | s | inv | d0 | .. | dm    |
+
+                    auto m = this->get_m();
+                    var_positions pos;
+                    pos.x = CellPosition(this->W(0), start_row_index);
+                    pos.y = CellPosition(this->W(1), start_row_index);
+                    pos.eq = CellPosition(this->W(2), start_row_index);
+                    pos.lt = CellPosition(this->W(3), start_row_index);
+                    pos.gt = CellPosition(this->W(4), start_row_index);
+                    pos.s = CellPosition(this->W(5), start_row_index);
+                    pos.inv = CellPosition(this->W(6), start_row_index);
+                    pos.d0 = CellPosition(this->W(7 + 0 * (m + 1)), start_row_index);    // occupies m + 1 cells
+                    return pos;
+                }
+
                 struct result_type {
                     var eq = var(0, 0, false);
                     var lt = var(0, 0, false);
                     var gt = var(0, 0, false);
 
                     result_type(const fix_cmp &component, std::uint32_t start_row_index) {
-                        eq = var(component.W(2), start_row_index, false, var::column_type::witness);
-                        lt = var(component.W(3), start_row_index, false, var::column_type::witness);
-                        gt = var(component.W(4), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                        eq = var(magic(var_pos.eq), false);
+                        lt = var(magic(var_pos.lt), false);
+                        gt = var(magic(var_pos.gt), false);
                     }
 
                     result_type(const fix_cmp &component, std::size_t start_row_index) {
-                        eq = var(component.W(2), start_row_index, false, var::column_type::witness);
-                        lt = var(component.W(3), start_row_index, false, var::column_type::witness);
-                        gt = var(component.W(4), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                        eq = var(magic(var_pos.eq), false);
+                        lt = var(magic(var_pos.lt), false);
+                        gt = var(magic(var_pos.gt), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -153,48 +194,51 @@ namespace nil {
                     instance_input,
                 const std::uint32_t start_row_index) {
 
-                const std::size_t j = start_row_index;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
                 auto m = component.get_m();
+                auto one = BlueprintFieldType::value_type::one();
+                auto zero = BlueprintFieldType::value_type::zero();
 
-                auto x = var_value(assignment, instance_input.x);
-                auto y = var_value(assignment, instance_input.y);
+                auto x_val = var_value(assignment, instance_input.x);
+                auto y_val = var_value(assignment, instance_input.y);
+                auto d_val = x_val - y_val;
 
-                auto diff = x - y;
+                assignment.witness(magic(var_pos.x)) = x_val;
+                assignment.witness(magic(var_pos.y)) = y_val;
 
-                // Take m+1 limbs due to potential overflow
-                // | x | y | eq | lt | gt | s | inv | y0 | ...
-                assignment.witness(component.W(0), j) = x;
-                assignment.witness(component.W(1), j) = y;
+                std::vector<uint16_t> d0_val;
 
-                std::vector<uint16_t> decomp;
-
-                bool sign = FixedPointHelper<BlueprintFieldType>::abs(diff);
-                bool sign_ = FixedPointHelper<BlueprintFieldType>::decompose(diff, decomp);
+                bool sign = FixedPointHelper<BlueprintFieldType>::abs(d_val);
+                bool sign_ = FixedPointHelper<BlueprintFieldType>::decompose(d_val, d0_val);
                 BLUEPRINT_RELEASE_ASSERT(!sign_);
-                // is ok because decomp is at least of size 4 and the biggest we have is 32.32
-                BLUEPRINT_RELEASE_ASSERT(decomp.size() >= m);
-                bool eq = diff == 0;
-                assignment.witness(component.W(2), j) = typename BlueprintFieldType::value_type((uint64_t)eq);
-                assignment.witness(component.W(3), j) = typename BlueprintFieldType::value_type((uint64_t)sign);
-                assignment.witness(component.W(4), j) =
-                    typename BlueprintFieldType::value_type((uint64_t)(!eq && !sign));
-
-                assignment.witness(component.W(5), j) =
-                    sign ? -BlueprintFieldType::value_type::one() : BlueprintFieldType::value_type::one();
+                // is ok because d0_val is at least of size 4 and the biggest we have is 32.32
+                BLUEPRINT_RELEASE_ASSERT(d0_val.size() >= m);
+                bool eq = d_val == 0;
+                BLUEPRINT_RELEASE_ASSERT(eq && !sign || !eq);    // sign must be false if equal is true
+                auto eq_val = typename BlueprintFieldType::value_type(static_cast<uint64_t>(eq));
+                auto lt_val = typename BlueprintFieldType::value_type(static_cast<uint64_t>(sign));
+                auto gt_val = typename BlueprintFieldType::value_type((uint64_t)(!eq && !sign));
+                assignment.witness(magic(var_pos.eq)) = eq_val;
+                assignment.witness(magic(var_pos.lt)) = lt_val;
+                assignment.witness(magic(var_pos.gt)) = gt_val;
+                assignment.witness(magic(var_pos.s)) = sign ? -one : one;
 
                 // if eq:  Does not matter what to put here
-                assignment.witness(component.W(6), j) = eq ? BlueprintFieldType::value_type::zero() : diff.inversed();
+                assignment.witness(magic(var_pos.inv)) = eq ? zero : d_val.inversed();
 
                 // Additional limb due to potential overflow of diff
-                if (decomp.size() > m) {
-                    BLUEPRINT_RELEASE_ASSERT(decomp[m] == 0 || decomp[m] == 1);
-                    assignment.witness(component.W(7 + m), j) = decomp[m];
+                // FixedPointHelper::decompose creates a vector whose size is a multiple of 4.
+                // Furthermore, the size of the vector might be larger than required (e.g. if 4 limbs would suffice the
+                // vectour could be of size 8)
+                if (d0_val.size() > m) {
+                    BLUEPRINT_RELEASE_ASSERT(d0_val[m] == 0 || d0_val[m] == 1);
+                    assignment.witness(var_pos.d0.column() + m, var_pos.d0.row()) = d0_val[m];
                 } else {
-                    assignment.witness(component.W(7 + m), j) = 0;
+                    assignment.witness(var_pos.d0.column() + m, var_pos.d0.row()) = zero;
                 }
 
                 for (auto i = 0; i < m; i++) {
-                    assignment.witness(component.W(7 + i), j) = decomp[i];
+                    assignment.witness(var_pos.d0.column() + i, var_pos.d0.row()) = d0_val[i];
                 }
 
                 return typename plonk_fixedpoint_cmp<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -210,33 +254,36 @@ namespace nil {
                 const typename plonk_fixedpoint_cmp<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
+                int64_t start_row_index = 1 - component.rows_amount;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+
                 using var = typename plonk_fixedpoint_cmp<BlueprintFieldType, ArithmetizationParams>::var;
                 auto m = component.get_m();
 
-                auto diff = nil::crypto3::math::expression(var(component.W(7), 0));
+                auto d = nil::crypto3::math::expression(var(magic(var_pos.d0)));
                 for (auto i = 1; i < m; i++) {
-                    diff += var(component.W(7 + i), 0) * (1ULL << (16 * i));
+                    d += var(var_pos.d0.column() + i, var_pos.d0.row()) * (1ULL << (16 * i));
                 }
                 typename BlueprintFieldType::value_type tmp =
                     1ULL << (16 * (m - 1));    // 1ULL << 16m could overflow 64-bit int
                 tmp *= 1ULL << 16;
-                diff += var(component.W(7 + m), 0) * tmp;
+                d += var(var_pos.d0.column() + m, var_pos.d0.row()) * tmp;
 
-                auto constraint_1 = var(component.W(0), 0) - var(component.W(1), 0) - var(component.W(5), 0) * diff;
-
-                auto constraint_2 = (var(component.W(5), 0) - 1) * (var(component.W(5), 0) + 1);
-
-                auto constraint_3 = var(component.W(2), 0) * diff;
-
-                auto constraint_4 = 1 - var(component.W(2), 0) - var(component.W(6), 0) * diff;
-
+                auto x = var(magic(var_pos.x));
+                auto y = var(magic(var_pos.y));
+                auto eq = var(magic(var_pos.eq));
+                auto lt = var(magic(var_pos.lt));
+                auto gt = var(magic(var_pos.gt));
+                auto s = var(magic(var_pos.s));
+                auto inv = var(magic(var_pos.inv));
                 auto inv2 = typename BlueprintFieldType::value_type(2).inversed();
 
-                auto constraint_5 =
-                    var(component.W(3), 0) - inv2 * (1 - var(component.W(5), 0)) * (1 - var(component.W(2), 0));
-
-                auto constraint_6 =
-                    var(component.W(4), 0) - inv2 * (1 + var(component.W(5), 0)) * (1 - var(component.W(2), 0));
+                auto constraint_1 = x - y - s * d;
+                auto constraint_2 = (s - 1) * (s + 1);
+                auto constraint_3 = eq * d;
+                auto constraint_4 = 1 - eq - inv * d;
+                auto constraint_5 = lt - inv2 * (1 - s) * (1 - eq);
+                auto constraint_6 = gt - inv2 * (1 + s) * (1 - eq);
 
                 // TACEO_TODO extend for lookup constraint
                 return {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6};
@@ -264,14 +311,13 @@ namespace nil {
                 const typename plonk_fixedpoint_cmp<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 using var = typename plonk_fixedpoint_cmp<BlueprintFieldType, ArithmetizationParams>::var;
-
-                const std::size_t j = start_row_index;
-                var component_x = var(component.W(0), static_cast<int>(j), false);
-                var component_y = var(component.W(1), static_cast<int>(j), false);
-                bp.add_copy_constraint({instance_input.x, component_x});
-                bp.add_copy_constraint({component_y, instance_input.y});
+                var x = var(magic(var_pos.x), false);
+                var y = var(magic(var_pos.y), false);
+                bp.add_copy_constraint({instance_input.x, x});
+                bp.add_copy_constraint({instance_input.y, y});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>

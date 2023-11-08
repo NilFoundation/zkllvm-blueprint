@@ -15,12 +15,20 @@ namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Input: x, y as fixedpoint numbers with \Delta_x = \Delta_y, y is public
-            // Output: z = Rescale(x * y) with \Delta_z = \Delta_x = \Delta_y
-
             // Works by proving z = round(x*y/\Delta) via 2xy + \Delta = 2z\Delta + 2q and proving 0 <= q < \Delta via a
             // lookup table
 
+            /**
+             * Component representing a multiplication operation with a constant.
+             *
+             * The user needs to ensure that the deltas of x and y match (the scale must be the same).
+             *
+             * The delta of z is the same as the delta of x and y.
+             *
+             * Input:    x ... field element
+             * Output:   z ... x * y (field element)
+             * Constant: y ... field element
+             */
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class fix_mul_rescale_const;
 
@@ -92,14 +100,38 @@ namespace nil {
                     }
                 };
 
+                struct var_positions {
+                    CellPosition x, y, z, q0;
+                };
+
+                var_positions get_var_pos(const int64_t start_row_index) const {
+
+                    // trace layout witness (2 + m2 col(s), 1 row(s)), constant (1 col(s), 1 row(s))
+                    //
+                    //     |          witness           | constant |
+                    //  r\c| 0 | 1 | 2  | .. | 2 + m2-1 | 0        |
+                    // +---+---+---+----+----+----------+----------+
+                    // | 0 | x | z | q0 | .. | qm2-1    | y        |
+
+                    auto m2 = this->get_m2();
+                    var_positions pos;
+                    pos.x = CellPosition(this->W(0), start_row_index);
+                    pos.y = CellPosition(this->C(0), start_row_index);
+                    pos.z = CellPosition(this->W(1), start_row_index);
+                    pos.q0 = CellPosition(this->W(2 + 0 * m2), start_row_index);    // occupies m2 cells
+                    return pos;
+                }
+
                 struct result_type {
                     var output = var(0, 0, false);
                     result_type(const fix_mul_rescale_const &component, std::uint32_t start_row_index) {
-                        output = var(component.W(1), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                        output = var(magic(var_pos.z), false);
                     }
 
                     result_type(const fix_mul_rescale_const &component, std::size_t start_row_index) {
-                        output = var(component.W(1), start_row_index, false, var::column_type::witness);
+                        const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                        output = var(magic(var_pos.z), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -139,34 +171,36 @@ namespace nil {
                                                                       ArithmetizationParams>::input_type instance_input,
                     const std::uint32_t start_row_index) {
 
-                const std::size_t j = start_row_index;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                typename BlueprintFieldType::value_type tmp =
-                    var_value(assignment, instance_input.x) * component.constant;
+                auto x_val = var_value(assignment, instance_input.x);
+                auto y_val = component.constant;
 
+                typename BlueprintFieldType::value_type tmp = x_val * y_val;
                 DivMod<BlueprintFieldType> res =
                     FixedPointHelper<BlueprintFieldType>::round_div_mod(tmp, component.get_delta());
 
-                // | x | z | q0 | ... |
-                assignment.witness(component.W(0), j) = var_value(assignment, instance_input.x);
-                assignment.witness(component.W(1), j) = res.quotient;
+                auto z_val = res.quotient;
+                auto q_val = res.remainder;
+
+                assignment.witness(magic(var_pos.x)) = x_val;
+                assignment.witness(magic(var_pos.z)) = z_val;
 
                 if (component.get_m2() == 1) {
-                    assignment.witness(component.W(2), j) = res.remainder;
+                    assignment.witness(magic(var_pos.q0)) = q_val;
                 } else {
-                    std::vector<uint16_t> decomp;
-                    bool sign = FixedPointHelper<BlueprintFieldType>::decompose(res.remainder, decomp);
+                    std::vector<uint16_t> q0_val;
+                    bool sign = FixedPointHelper<BlueprintFieldType>::decompose(q_val, q0_val);
                     BLUEPRINT_RELEASE_ASSERT(!sign);
-                    // is ok because decomp is at least of size 4 and the biggest we have is 32.32
-                    BLUEPRINT_RELEASE_ASSERT(decomp.size() >= component.get_m2());
+                    // is ok because q0_val is at least of size 4 and the biggest we have is 32.32
+                    BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= component.get_m2());
                     for (auto i = 0; i < component.get_m2(); i++) {
-                        assignment.witness(component.W(2 + i), j) = decomp[i];
+                        assignment.witness(var_pos.q0.column() + i, var_pos.q0.row()) = q0_val[i];
                     }
                 }
 
-                return
-                    typename plonk_fixedpoint_mul_rescale_const<BlueprintFieldType, ArithmetizationParams>::result_type(
-                        component, start_row_index);
+                return typename plonk_fixedpoint_mul_rescale_const<BlueprintFieldType, ArithmetizationParams>::result_type(
+                    component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -178,20 +212,24 @@ namespace nil {
                 const typename plonk_fixedpoint_mul_rescale_const<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
+                uint64_t start_row_index = 0;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+
                 using var = typename plonk_fixedpoint_mul_rescale_const<BlueprintFieldType, ArithmetizationParams>::var;
-                // 2xy + \Delta = 2z\Delta + 2q and proving 0 <= q < \Delta via a lookup table. Delta is a multiple of
+                // 2xy + delta = 2z delta + 2q and proving 0 <= q < delta via a lookup table. delta is a multiple of
                 // 2^16, hence q could be decomposed into 16-bit limbs
                 auto delta = component.get_delta();
 
-                auto q = nil::crypto3::math::expression(var(component.W(2), 0));
+                auto q = nil::crypto3::math::expression(var(magic(var_pos.q0)));
                 for (auto i = 1; i < component.get_m2(); i++) {
-                    q += var(component.W(2 + i), 0) * (1ULL << (16 * i));
+                    q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                 }
 
-                auto constraint_1 =
-                    2 * (var(component.W(0), 0) * var(component.C(0), 0, true, var::column_type::constant) -
-                         var(component.W(1), 0) * delta - q) +
-                    delta;
+                auto x = var(magic(var_pos.x));
+                auto y = var(magic(var_pos.y), true, var::column_type::constant);
+                auto z = var(magic(var_pos.z));
+
+                auto constraint_1 = 2 * (x * y - z * delta - q) + delta;  // see the definition of rescale
 
                 // TACEO_TODO extend for lookup constraint
                 return bp.add_gate(constraint_1);
@@ -207,11 +245,12 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_fixedpoint_mul_rescale_const<BlueprintFieldType, ArithmetizationParams>::var;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                const std::size_t j = start_row_index;
-                var component_x = var(component.W(0), static_cast<int>(j), false);
-                bp.add_copy_constraint({instance_input.x, component_x});
+                using var = typename plonk_fixedpoint_mul_rescale_const<BlueprintFieldType, ArithmetizationParams>::var;
+                
+                var x = var(magic(var_pos.x), false);
+                bp.add_copy_constraint({instance_input.x, x});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -247,7 +286,9 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                assignment.constant(component.C(0), start_row_index) = component.constant;
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+
+                assignment.constant(magic(var_pos.y)) = component.constant;
             }
 
         }    // namespace components
