@@ -157,6 +157,9 @@ cm_deploy(TARGETS ${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME}
           NAMESPACE ${CMAKE_WORKSPACE_NAME}::)
 
 
+set(BLUEPRINT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+add_definitions(-DBLUEPRINT_PATH="${BLUEPRINT_PATH}")
+
 if(BUILD_TESTS)
     add_subdirectory(test)
 endif()
