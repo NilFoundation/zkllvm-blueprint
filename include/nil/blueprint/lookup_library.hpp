@@ -140,7 +140,10 @@ namespace nil {
                     this->_table = components::detail::load_sha_table<BlueprintFieldType>(
                         {"8_split_4.txt",
                         "./../libs/crypto3/libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
+                        "./libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
                         "./../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
+                        "./../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
+                        "./../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt",
                         "./../../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt"});
                     if (this->_table.size() == 0 || this->_table[0].size() == 0) {
                         std::cerr << "Failed to load table 8_split_4.txt!"
@@ -192,6 +195,9 @@ namespace nil {
                         {"8_split_7.txt",
                         "./../libs/crypto3/libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
                         "./../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
+                        "./../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
+                        "./../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
+                        "./../../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt",
                         "./../../../../libs/blueprint/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt"});
                     if (this->_table.size() == 0 || this->_table[0].size() == 0) {
                         std::cerr << "Failed to load table 8_split_7.txt!"
