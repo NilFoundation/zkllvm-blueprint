@@ -130,12 +130,12 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
 
     auto result_check = [expected_result](AssignmentType &assignment, typename component_type::result_type &real_res) {
         // std::cout << "sizes: " << expected_result.size() << " " << real_res.padded_message.size() << std::endl;
-        assert(expected_result.size() == real_res.padded_message.size());
         // for (int i = 0; i < real_res.padded_message.size(); ++i) {
         //     std::cout << "res " << i << ":\n 0x"
         //               << std::hex << expected_result[i].data << "\n 0x"
         //               << var_value(assignment, real_res.padded_message[i]).data << std::endl;
         // }
+        assert(expected_result.size() == real_res.padded_message.size());
         for (int i = 0; i < real_res.padded_message.size(); ++i) {
             assert(expected_result[i] == var_value(assignment, real_res.padded_message[i]));
         }
@@ -193,9 +193,9 @@ void test_keccak_padding_random(std::size_t message_size) {
     std::size_t num_bits = 64 * (message_size - 1) + number_bits<BlueprintFieldType>(message[0]);
     std::size_t num_blocks = message_size;
     std::cout << "message size: " << message_size << " blocks\n";
-    for (int i = 0; i < message_size; ++i) {
-        std::cout << "message:" << message[i].data << std::endl;
-    }
+    // for (int i = 0; i < message_size; ++i) {
+    //     std::cout << "message:" << message[i].data << std::endl;
+    // }
 
     auto expected_result = padding_function<BlueprintFieldType>(message, num_bits);
 
@@ -207,19 +207,22 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_random<field_type, 9, 65536, 10>();
+
     test_keccak_padding_0<field_type, 9, 65536, 10>();
-    // test_keccak_padding_random<field_type, 9, 65536, 10>(1);
-    for (std::size_t i = 1; i < 17; i++) {
+    // test_keccak_padding_random<field_type, 9, 65536, 10>(17);
+    for (std::size_t i = 1; i < 35; i++) {
         test_keccak_padding_random<field_type, 9, 65536, 10>(i);
     }
 }
 
-// BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
-//     using field_type = nil::crypto3::algebra::curves::vesta::scalar_field_type;
+BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
+    using field_type = nil::crypto3::algebra::curves::vesta::scalar_field_type;
 
-//     test_keccak_padding_0<field_type, 15, 65536, 10>();
-//     test_keccak_padding_random<field_type, 15, 65536, 10>();
-// }
+    test_keccak_padding_0<field_type, 15, 65536, 10>();
+    // test_keccak_padding_random<field_type, 15, 65536, 10>(17);
+    for (std::size_t i = 1; i < 35; i++) {
+        test_keccak_padding_random<field_type, 15, 65536, 10>(i);
+    }
+}
 
 BOOST_AUTO_TEST_SUITE_END()
