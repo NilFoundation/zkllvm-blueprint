@@ -78,16 +78,11 @@ namespace nil {
 
                     configuration() = default;
                     configuration(std::pair<std::size_t, std::size_t> first_coordinate_,
-                                  std::pair<std::size_t, std::size_t>
-                                      last_coordinate_,
-                                  std::vector<std::pair<std::size_t, std::size_t>>
-                                      copy_to_,
-                                  std::vector<std::vector<std::pair<std::size_t, std::size_t>>>
-                                      constraints_,
-                                  std::vector<std::vector<std::pair<std::size_t, std::size_t>>>
-                                      lookups_,
-                                  std::pair<std::size_t, std::size_t>
-                                      copy_from_, std::size_t row_) {
+                                  std::pair<std::size_t, std::size_t> last_coordinate_,
+                                  std::vector<std::pair<std::size_t, std::size_t>> copy_to_,
+                                  std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints_,
+                                  std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups_,
+                                  std::pair<std::size_t, std::size_t> copy_from_, std::size_t row_) {
                         first_coordinate = coordinates(first_coordinate_);
                         last_coordinate = coordinates(last_coordinate_);
                         for (std::size_t i = 0; i < copy_to_.size(); ++i) {
@@ -219,13 +214,17 @@ namespace nil {
                     std::vector<var> padded_message;
 
                     result_type(const keccak_padding &component, std::size_t start_row_index) {
-                        for (std::size_t i = 0; i < component.full_configuration.size(); ++i) {
+                        for (std::size_t i = 0;
+                             i < component.full_configuration.size() -
+                                     1 * (component.witness_amount() == 15 && component.num_blocks == 1);
+                             ++i) {
                             auto config = component.full_configuration[i];
                             padded_message.push_back(var(component.W(config.copy_from.column),
                                                          config.copy_from.row + config.row + start_row_index, false));
                         }
                         for (std::size_t i = 0; i < component.num_padding_zeros; ++i) {
-                            padded_message.push_back(var(component.C(0), start_row_index, false, var::column_type::constant));
+                            padded_message.push_back(
+                                var(component.C(0), start_row_index, false, var::column_type::constant));
                         }
                     }
 
@@ -259,16 +258,17 @@ namespace nil {
                     padding_gate res;
                     res.relay = {-1, 11};
                     res.value = {{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 1}, {1, 2}};
-                    res.sum = {{0, 3}, {0, 4}, {0, 5}, {1, 3}, {1, 4}, {1, 5}};
+                    res.sum = {{1, 3}, {1, 4}, {1, 5}, {0, 3}, {0, 4}, {0, 5}};
                     res.first = {{0, 6}, {0, 7}, {0, 8}, {1, 6}, {1, 7}, {1, 8}};
-                    res.second = {{0, 9}, {0, 10}, {0, 11},
-                                  {1, 9}, {1, 10}, {1, 11}};
-                    res.range_check = {{0, 12}, {0, 13}, {0, 14},
-                                       {1, 12}, {1, 13}, {1, 14}};
+                    res.second = {{0, 9}, {0, 10}, {0, 11}, {1, 9}, {1, 10}, {1, 11}};
+                    res.range_check = {{0, 12}, {0, 13}, {0, 14}, {1, 12}, {1, 13}, {1, 14}};
                     return res;
                 }
 
                 std::size_t calculate_num_padding_zeros() {
+                    if(num_blocks % 17 == 0){
+                        return 0;
+                    }
                     return 17 - num_blocks % 17;
                 }
                 padding_gate calculate_first_gate_15(std::size_t row = 0) {
@@ -307,8 +307,16 @@ namespace nil {
                     std::size_t conf_ind = 0;
                     std::size_t row = 1;
                     std::size_t confs_per_gate = calculate_confs_per_gate(witness_amount);
+                    std::size_t loop_end = num_blocks;
+                    if (witness_amount == 15) {
+                        if (num_blocks <= 2) {
+                            loop_end = 0;
+                        } else {
+                            loop_end -= 2;
+                        }
+                    }
 
-                    while (conf_ind < num_blocks - 2 * (witness_amount == 15)) {
+                    while (conf_ind < loop_end) {
                         auto pg = padding(witness_amount, row);
                         std::size_t j = 0;
                         {
@@ -325,7 +333,7 @@ namespace nil {
                             j++;
                             conf_ind++;
                         }
-                        while ((j < confs_per_gate) && (conf_ind < num_blocks - 2 * (witness_amount == 15))) {
+                        while ((j < confs_per_gate) && (conf_ind < loop_end)) {
                             configuration conf;
                             conf.row = row;
                             conf.last_coordinate = pg.second[j];
@@ -368,13 +376,17 @@ namespace nil {
                     } else {
                         if (witness_amount % 15 == 0) {
                             configuration conf0;
-                            conf0.copy_to = {{0, 0}, {0, 1}};
+                            conf0.row = 0;
+                            conf0.last_coordinate = {0, 7};
+                            conf0.copy_to = {{0, 1}, {0, 0}};
                             conf0.constraints = {{{0, 1}, {0, 5}, {0, 7}}, {{0, 3}, {0, 0}, {0, 5}}, {{0, 8}, {0, 0}}};
                             conf0.lookups = {{{0, 8}}};
                             conf0.copy_from = {0, 3};
                             result.push_back(conf0);
                             configuration conf1;
+                            conf1.row = 0;
                             conf1.copy_to = {{0, 2}};
+                            conf0.last_coordinate = {0, 11};
                             conf1.constraints = {{{0, 2}, {0, 6}, {0, 11}}, {{0, 4}, {0, 7}, {0, 6}}, {{0, 9}, {0, 7}}};
                             conf1.lookups = {{{0, 9}}};
                             conf1.copy_from = {0, 4};
@@ -435,13 +447,15 @@ namespace nil {
                                                    std::size_t num_blocks,
                                                    std::size_t num_bits,
                                                    std::size_t limit_permutation_column) {
-                    auto conf = configure_all(witness_amount, num_blocks, num_bits, limit_permutation_column);
-
-                    if(witness_amount == 9) {
-                        return std::ceil(conf.size() / 5.0) * 3;
+                    
+                    if (witness_amount == 9) {
+                        return std::ceil(num_blocks/ 5.0) * 3;
                     }
-                    if(witness_amount == 15) {
-                        return std::ceil(conf.size() / 6.0) * 2;
+                    if (witness_amount == 15) {
+                        if (num_blocks <= 2) {
+                            return 1;
+                        }
+                        return 1 + std::ceil((num_blocks - 2) / 6.0) * 2;
                     }
                 }
 
@@ -495,16 +509,16 @@ namespace nil {
 
                 std::vector<constraint_type> constraints;
                 // std::vector<lookup_constraint_type> lookup_constraints;
-
+                const std::size_t two = 2;
                 if (component.shift > 0) {
                     std::vector<constraint_type> cur_constraints;
                     if (component.witness_amount() == 15) {
-                        for (std::size_t i = 0; i < 2; ++i) {
+                        for (std::size_t i = 0; i < std::min(two, component.num_blocks); ++i) {
                             auto cur_config = config[config_index];
                             cur_constraints.push_back(
                                 var(cur_config.constraints[0][0].column, cur_config.constraints[0][0].row) -
                                 var(cur_config.constraints[0][1].column, cur_config.constraints[0][1].row) *
-                                    (integral_type(1) << component.shift) -
+                                    (integral_type(1) << (64 - component.shift)) -
                                 var(cur_config.constraints[0][2].column, cur_config.constraints[0][2].row));
                             cur_constraints.push_back(
                                 var(cur_config.constraints[1][0].column, cur_config.constraints[1][0].row) -
@@ -542,7 +556,7 @@ namespace nil {
                                 (integral_type(1) << (64 - component.shift)) + (integral_type(1) << 64) -
                                 var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
                             config_index++;
-                            if(config_index >= config.size()){
+                            if (config_index >= config.size()) {
                                 break;
                             }
                         }
@@ -568,7 +582,7 @@ namespace nil {
                                 (integral_type(1) << (64 - component.shift)) + (integral_type(1) << 64) -
                                 var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
                             config_index++;
-                            if(config_index >= config.size()){
+                            if (config_index >= config.size()) {
                                 break;
                             }
                         }
@@ -596,33 +610,38 @@ namespace nil {
                 std::size_t strow = start_row_index;
                 std::size_t config_index = 0;
                 std::size_t input_index = 0;
+                std::size_t witness_amount = component.witness_amount();
 
                 if (component.shift != 0) {
                     bp.add_copy_constraint({instance_input.message[input_index++], var(component.W(0), strow, false)});
                 }
 
-                while (config_index < component.full_configuration.size() - (component.shift != 0)) {
+                while (config_index < component.full_configuration.size() - (component.shift != 0) -
+                                          (witness_amount == 15 && component.num_blocks == 1)) {
                     auto config = component.full_configuration[config_index];
-                    bp.add_copy_constraint(
-                        {instance_input.message[input_index++],
-                         var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow + config.row, false)});
+                    bp.add_copy_constraint({instance_input.message[input_index++],
+                                            var(component.W(config.copy_to[0].column),
+                                                config.copy_to[0].row + strow + config.row, false)});
                     config_index++;
                 }
 
                 if (component.shift != 0) {
                     auto config = component.full_configuration[config_index];
-                    bp.add_copy_constraint(
-                        {var(component.C(0), start_row_index, false, var::column_type::constant),
-                         var(component.W(config.copy_to[0].column), config.copy_to[0].row + strow + config.row, false)});
+                    bp.add_copy_constraint({var(component.C(0), start_row_index, false, var::column_type::constant),
+                                            var(component.W(config.copy_to[0].column),
+                                                config.copy_to[0].row + strow + config.row, false)});
 
-                    config_index = component.confs_per_gate;
-                    while( config_index < component.full_configuration.size()){
-                        auto config1 = component.full_configuration[config_index];
-                        auto config2 = component.full_configuration[config_index-1];
-                        bp.add_copy_constraint(
-                            {var(component.W(config1.copy_to[1].column), config1.copy_to[1].row + strow + config1.row, false),
-                             var(component.W(config2.last_coordinate.column), config2.last_coordinate.row + strow + config2.row, false)});
-                        config_index += component.confs_per_gate;
+                    if (witness_amount == 9) {
+                        config_index = component.confs_per_gate;
+                        while (config_index < component.full_configuration.size()) {
+                            auto config1 = component.full_configuration[config_index];
+                            auto config2 = component.full_configuration[config_index - 1];
+                            bp.add_copy_constraint({var(component.W(config1.copy_to[1].column),
+                                                        config1.copy_to[1].row + strow + config1.row, false),
+                                                    var(component.W(config2.last_coordinate.column),
+                                                        config2.last_coordinate.row + strow + config2.row, false)});
+                            config_index += component.confs_per_gate;
+                        }
                     }
                 }
 
@@ -680,7 +699,8 @@ namespace nil {
                 }
                 if (gate_row_ind < component.gates_rows.size() - (bool)(component.last_gate % 7)) {
                     for (std::size_t i = gate_row_ind;
-                         i < component.gates_rows.size() - (bool)(component.last_gate % 7); ++i) {
+                         i < component.gates_rows.size() - (bool)(component.last_gate % 7);
+                         ++i) {
                         assignment.enable_selector(selector_indexes[ind],
                                                    component.gates_rows[gate_row_ind++] + start_row_index);
                     }
@@ -712,6 +732,7 @@ namespace nil {
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::size_t config_index = 0;
+                std::size_t witness_amount = component.witness_amount();
 
                 // batching
                 if (component.shift != 0) {
@@ -732,9 +753,19 @@ namespace nil {
                         auto cur_config = component.full_configuration[config_index];
                         assignment.witness(component.W(cur_config.constraints[0][0].column),
                                            cur_config.constraints[0][0].row + strow + cur_config.row) = chunk;
-                        if(config_index % component.confs_per_gate == 0){
-                            assignment.witness(component.W(cur_config.constraints[1][1].column),
-                                           cur_config.constraints[1][1].row + strow + cur_config.row) = value_type(relay_chunk);
+                        if (witness_amount == 9) {
+                            if (config_index % component.confs_per_gate == 0) {
+                                assignment.witness(component.W(cur_config.constraints[1][1].column),
+                                                   cur_config.constraints[1][1].row + strow + cur_config.row) =
+                                    value_type(relay_chunk);
+                            }
+                        }
+                        if (witness_amount == 15) {
+                            if (config_index == 0) {
+                                assignment.witness(component.W(cur_config.constraints[1][1].column),
+                                                   cur_config.constraints[1][1].row + strow + cur_config.row) =
+                                    value_type(relay_chunk);
+                            }
                         }
                         for (int j = 1; j < 3; ++j) {
                             assignment.witness(component.W(cur_config.constraints[0][j].column),
@@ -742,9 +773,11 @@ namespace nil {
                                 value_type(chunk_parts[j - 1]);
                         }
                         assignment.witness(component.W(cur_config.constraints[1][0].column),
-                                           cur_config.constraints[1][0].row + strow + cur_config.row) = value_type(first_chunk);
+                                           cur_config.constraints[1][0].row + strow + cur_config.row) =
+                            value_type(first_chunk);
                         assignment.witness(component.W(cur_config.constraints[2][0].column),
-                                           cur_config.constraints[2][0].row + strow + cur_config.row) = value_type(relay_range_check);
+                                           cur_config.constraints[2][0].row + strow + cur_config.row) =
+                            value_type(relay_range_check);
 
                         relay_chunk = chunk_parts[1];
                         config_index++;
@@ -752,10 +785,12 @@ namespace nil {
                 } else {
                     for (std::size_t index = 0; index < component.full_configuration.size(); ++index) {
                         auto cur_config = component.full_configuration[index];
-                        assignment.witness(component.W(cur_config.copy_from.column), cur_config.copy_from.row + strow + cur_config.row) =
+                        assignment.witness(component.W(cur_config.copy_from.column),
+                                           cur_config.copy_from.row + strow + cur_config.row) =
                             var_value(assignment, instance_input.message[index]);
                     }
                 }
+
                 return typename component_type::result_type(component, start_row_index);
             }
 
