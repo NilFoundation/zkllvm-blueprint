@@ -84,6 +84,46 @@ namespace nil {
                 virtual std::size_t get_rows_number(){ return 4; }
             };
 
+            class keccak_pack_table_type : public lookup_table_definition{
+                typename BlueprintFieldType::value_type to_sparse(typename BlueprintFieldType::value_type value) {
+                    using value_type = typename BlueprintFieldType::value_type;
+                    using integral_type = typename BlueprintFieldType::integral_type;
+                    integral_type value_integral = integral_type(value.data);
+                    integral_type result_integral = 0;
+                    integral_type power = 1;
+                    for (int i = 0; i < 64; ++i) {
+                        integral_type bit = value_integral & 1;
+                        result_integral = result_integral + bit * power;
+                        value_integral = value_integral >> 1;
+                        power = power << 3;
+                    }
+                    return value_type(result_integral);
+                }
+            public:
+                keccak_pack_table_type(): lookup_table_definition("keccak_pack_table"){
+                    this->subtables["full"] = {{0,1}, 0, 255};
+                    this->subtables["range_check"] = {{0}, 0, 255};
+                    this->subtables["range_check_sparse"] = {{1}, 0, 255};
+                }
+                virtual void generate(){
+                    this->_table.resize(2);
+
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(256);
+                        i++
+                    ) {
+                        this->_table[0].push_back(i);
+                        this->_table[1].push_back(to_sparse(i));
+                    }
+                }
+                virtual std::size_t get_columns_number(){ return 2; }
+                virtual std::size_t get_rows_number(){ return 256; }
+            };
+        protected:
+            std::shared_ptr<lookup_table_definition> binary_xor_table;
+            std::shared_ptr<lookup_table_definition> keccak_pack_table;
+            bool reserved_all;
+
             class binary_and_table_type : public lookup_table_definition{
             public:
                 binary_and_table_type(): lookup_table_definition("binary_and_table"){
@@ -252,14 +292,10 @@ namespace nil {
             lookup_library(){
                 tables = {};
                 reserved_all = false;
-                tables["binary_xor_table"] = std::shared_ptr<lookup_table_definition>(new binary_xor_table_type());
-                tables["binary_and_table"] = std::shared_ptr<lookup_table_definition>(new binary_and_table_type());
-                tables["sha256_sparse_base4"] = std::shared_ptr<lookup_table_definition>(new sparse_values_base4_table());
-                tables["sha256_reverse_sparse_base4"] = std::shared_ptr<lookup_table_definition>(new reverse_sparse_sigmas_base4_table());
-                tables["sha256_sparse_base7"] = std::shared_ptr<lookup_table_definition>(new sparse_values_base7_table());
-                tables["sha256_reverse_sparse_base7"] = std::shared_ptr<lookup_table_definition>(new reverse_sparse_sigmas_base7_table());
-                tables["sha256_maj"] = std::shared_ptr<lookup_table_definition>(new maj_function_table());
-                tables["sha256_ch"] = std::shared_ptr<lookup_table_definition>(new ch_function_table());
+                binary_xor_table = std::shared_ptr<lookup_table_definition>(new binary_xor_table_type());
+                tables["binary_xor_table"] = binary_xor_table;
+                keccak_pack_table = std::shared_ptr<lookup_table_definition>(new keccak_pack_table_type());
+                tables["keccak_pack_table"] = keccak_pack_table;
             }
 
             void register_lookup_table(std::shared_ptr<lookup_table_definition> table){
