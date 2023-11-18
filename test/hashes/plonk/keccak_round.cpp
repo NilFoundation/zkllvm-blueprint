@@ -161,7 +161,7 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
                              std::array<typename BlueprintFieldType::value_type, 25> expected_result) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 15;
+    constexpr std::size_t SelectorColumns = 25;
     using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
         WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
