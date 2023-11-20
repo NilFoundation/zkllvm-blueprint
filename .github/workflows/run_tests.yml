@@ -57,9 +57,18 @@ jobs:
             blueprint_hashes_plonk_sha256_test,
             blueprint_hashes_plonk_sha512_test,
             blueprint_algebra_fields_plonk_sqrt_test,
+            blueprint_verifiers_placeholder_fri_lin_inter_test,
+            blueprint_verifiers_placeholder_fri_array_swap_test,
             blueprint_manifest_test,
             blueprint_detail_huang_lu_test,
             blueprint_private_input_test,
+            blueprint_verifiers_placeholder_permutation_argument_verifier_test,
+            blueprint_verifiers_placeholder_gate_argument_verifier_test,
+            blueprint_verifiers_placeholder_lookup_argument_verifier_test,
+            blueprint_verifiers_placeholder_f1_loop_test,
+            blueprint_verifiers_placeholder_f3_loop_test,
+            blueprint_verifiers_placeholder_gate_component_test,
+            blueprint_proxy_test
           ]  # Tests to execute
     steps:
       - uses: cachix/install-nix-action@v23

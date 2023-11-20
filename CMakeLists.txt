@@ -19,7 +19,7 @@ if(NOT CMAKE_WORKSPACE_NAME OR NOT ("${CMAKE_WORKSPACE_NAME}" STREQUAL "crypto3"
 endif()
 
 option(ZK_PLACEHOLDER_PROFILING "Build with placeholder profiling" FALSE)
-option(ZK_PLACEHOLDER_DEBUG "Build with placeholder debug ouput" FALSE)
+option(ZK_PLACEHOLDER_DEBUG "Build with placeholder debug output" FALSE)
 
 if(ZK_PLACEHOLDER_PROFILING)
     add_definitions(-DZK_PLACEHOLDER_PROFILING_ENABLED)
@@ -156,6 +156,9 @@ cm_deploy(TARGETS ${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME}
           INCLUDE include
           NAMESPACE ${CMAKE_WORKSPACE_NAME}::)
 
+
+set(BLUEPRINT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME} INTERFACE BLUEPRINT_PATH="${BLUEPRINT_PATH}")
 
 if(BUILD_TESTS)
     add_subdirectory(test)

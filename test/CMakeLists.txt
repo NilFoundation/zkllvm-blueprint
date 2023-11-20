@@ -56,6 +56,7 @@ set(COMMON_TEST_FILES
     "gate_id"
     "utils/connectedness_check"
     "private_input"
+    "proxy"
     )
 
 set(NON_NATIVE_TESTS_FILES
@@ -93,6 +94,8 @@ set(PLONK_TESTS_FILES
     "hashes/plonk/keccak_padding"
     "hashes/plonk/keccak"
     "hashes/plonk/decomposition"
+    "hashes/plonk/detail/sha_table_generators_base4"
+    "hashes/plonk/detail/sha_table_generators_base7"
     "verifiers/kimchi/base_field"
     "verifiers/kimchi/prepare_batch_scalar"
     "verifiers/kimchi/verify_scalar"
@@ -136,7 +139,15 @@ set(PLONK_TESTS_FILES
     "verifiers/pickles/verify_heterogenous_scalar"
     "verifiers/pickles/verify_heterogenous_base"
     "verifiers/pickles/scalar_details/evals_of_split_evals"
+    "verifiers/placeholder/permutation_argument_verifier"
+    "verifiers/placeholder/gate_argument_verifier"
+    "verifiers/placeholder/lookup_argument_verifier"
+    "verifiers/placeholder/gate_component"
+    "verifiers/placeholder/f1_loop"
+    "verifiers/placeholder/f3_loop"
     "verifiers/placeholder/fri_cosets"
+    "verifiers/placeholder/fri_lin_inter"
+    "verifiers/placeholder/fri_array_swap"
     )
 
 set(FIELDS_TESTS_FILES

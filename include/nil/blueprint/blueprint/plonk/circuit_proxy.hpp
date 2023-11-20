@@ -49,7 +49,7 @@ namespace nil {
         private:
             using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
             using lookup_constraint_type = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-            using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+            using lookup_table_definition = typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
 
             std::uint32_t id;
             std::shared_ptr<circuit<ArithmetizationType>> circuit_ptr;
@@ -150,6 +150,15 @@ namespace nil {
                 return selector_index;
             }
 
+            const typename ArithmetizationType::lookup_table_type &lookup_table(std::size_t table_id) const override {
+                return circuit_ptr->lookup_table(table_id);
+            }
+
+            void add_lookup_table(const typename ArithmetizationType::lookup_table_type &table) override {
+                used_lookup_tables.insert(circuit_ptr->lookup_tables().size());
+                circuit_ptr->add_lookup_table(table);
+            }
+
             void register_lookup_table(std::shared_ptr<lookup_table_definition> table) override {
                 circuit_ptr->register_lookup_table(table);
             }
@@ -158,11 +167,17 @@ namespace nil {
                 circuit_ptr->reserve_table(name);
             }
 
-            const std::map<std::string, std::size_t> &get_reserved_indices() override {
+            const typename lookup_library<BlueprintFieldType>::left_reserved_type
+                    &get_reserved_indices() const override {
                 return circuit_ptr->get_reserved_indices();
             }
 
-            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() override {
+            const typename lookup_library<BlueprintFieldType>::right_reserved_type &
+                    get_reserved_indices_right() const override {
+                return circuit_ptr->get_reserved_indices_right();
+            }
+
+            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() const override {
                 return circuit_ptr->get_reserved_tables();
             }
 

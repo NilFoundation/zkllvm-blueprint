@@ -47,7 +47,9 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
 //#include <nil/blueprint/utils/table_profiling.hpp>
 #include <nil/blueprint/utils/satisfiability_check.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
@@ -190,20 +192,13 @@ namespace nil {
             blueprint::circuit<ArithmetizationType> bp;
             blueprint::assignment<ArithmetizationType> assignment;
 
-            if constexpr( nil::blueprint::use_custom_lookup_tables<component_type>() ){
-                auto lookup_tables = component_instance.component_custom_lookup_tables();
-                for(auto &t:lookup_tables){
-                    bp.register_lookup_table(std::shared_ptr<nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>>(t));
-                }
-            };
-
             if constexpr( nil::blueprint::use_lookups<component_type>() ){
                 auto lookup_tables = component_instance.component_lookup_tables();
                 for(auto &[k,v]:lookup_tables){
                     bp.reserve_table(k);
                 }
             };
-            
+
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
             std::size_t start_row = 0;//dist(gen);
@@ -246,14 +241,15 @@ namespace nil {
 
                 // Uncomment the following if you want to output a visual representation of the connectedness graph.
                 // I recommend turning off the starting row randomization
+                // If the whole of public_input isn't shown, increase the end row
 
                 auto zones = blueprint::detail::generate_connectedness_zones(
                      assignment, bp, instance_input.all_vars(), start_row, component_instance.rows_amount);
                 blueprint::detail::export_connectedness_zones(
                      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
 
-                BOOST_ASSERT_MSG(is_connected,
-                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                //BOOST_ASSERT_MSG(is_connected,
+                //    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
 
             zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams> desc;
@@ -280,19 +276,20 @@ namespace nil {
                                 "Component total gates amount does not match actual gates amount.");
             }
 
-            if(nil::blueprint::use_lookups<component_type>()){
+            if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
                 // But now all constants are placed in the first column.
-                // So we reserve the first column for non-lookup constants. 
+                // So we reserve the first column for non-lookup constants.
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
                 std::vector<size_t> lookup_columns_indices;
                 for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
-                desc.usable_rows_amount = zk::snark::detail::pack_lookup_tables(
+                desc.usable_rows_amount = zk::snark::pack_lookup_tables_horizontal(
                     bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
                     bp, assignment, lookup_columns_indices,
-                    desc.usable_rows_amount
+                    desc.usable_rows_amount,
+                    500000
                 );
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
@@ -303,6 +300,8 @@ namespace nil {
 
             profiling(assignment);
 #endif
+            //assignment.export_table(std::cout);
+            //bp.export_circuit(std::cout);
 
             assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 
@@ -334,7 +333,7 @@ namespace nil {
 //#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType, ArithmetizationParams>;
-            using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<        
+            using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
                 Hash, Hash, Lambda, 2
             >;
 

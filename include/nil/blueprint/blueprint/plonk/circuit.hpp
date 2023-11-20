@@ -70,7 +70,7 @@ namespace nil {
             using lookup_gate_id_type = lookup_gate_id<BlueprintFieldType, ArithmetizationParams>;
             using lookup_gate_selector_map = std::map<lookup_gate_id_type, std::size_t>;
 
-            using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+            using lookup_table_definition = typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
 
             gate_selector_map selector_map = {};
             lookup_gate_selector_map lookup_selector_map = {};
@@ -154,6 +154,14 @@ namespace nil {
                 LOOKUP_GATE_ADDER_MACRO(lookup_selector_map, _lookup_gates);
             }
 
+            virtual const typename ArithmetizationType::lookup_table_type &lookup_table(std::size_t table_id) const {
+                return ArithmetizationType::lookup_table(table_id);
+            }
+
+            virtual void add_lookup_table(const typename ArithmetizationType::lookup_table_type &table) {
+                ArithmetizationType::add_lookup_table(table);
+            }
+
             virtual void register_lookup_table(std::shared_ptr<lookup_table_definition> table) {
                 _lookup_library.register_lookup_table(table);
             }
@@ -162,11 +170,18 @@ namespace nil {
                 _lookup_library.reserve_table(name);
             }
 
-            virtual const std::map<std::string, std::size_t> &get_reserved_indices(){
-                return _lookup_library.get_reserved_indices();
+            virtual const typename lookup_library<BlueprintFieldType>::left_reserved_type
+                    &get_reserved_indices() const {
+                return _lookup_library.get_reserved_indices().left;
             }
 
-            virtual const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables(){
+            // used in satisfiability check
+            virtual const typename lookup_library<BlueprintFieldType>::right_reserved_type
+                    &get_reserved_indices_right() const {
+                return _lookup_library.get_reserved_indices().right;
+            }
+
+            virtual const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() const {
                 return _lookup_library.get_reserved_tables();
             }
 
