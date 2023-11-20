@@ -33,6 +33,7 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
+#include <nil/blueprint/lookup_library.hpp>
 
 #include <iostream>
 
@@ -52,11 +53,11 @@ namespace nil {
             public:
                 struct coordinates {
                     std::int32_t row;
-                    std::int32_t column;
+                    std::size_t column;
 
                     coordinates() = default;
-                    coordinates(std::int32_t row_, std::int32_t column_) : row(row_), column(column_) {};
-                    coordinates(std::pair<std::int32_t, std::int32_t> pair) : row(pair.first), column(pair.second) {};
+                    coordinates(std::int32_t row_, std::size_t column_) : row(row_), column(column_) {};
+                    coordinates(std::pair<std::int32_t, std::size_t> pair) : row(pair.first), column(pair.second) {};
                     coordinates(std::vector<std::int32_t> vec) : row(vec[0]), column(vec[1]) {};
                     bool operator==(const coordinates &other) const {
                         return row == other.row && column == other.column;
@@ -177,7 +178,6 @@ namespace nil {
                 }
 
                 static const std::size_t lookup_rows = 65536;
-                // const std::size_t lookup_columns;
 
                 const std::size_t limit_permutation_column = 7;
 
@@ -198,7 +198,6 @@ namespace nil {
                 const std::size_t rows_amount =
                     get_rows_amount(this->witness_amount(), 0, num_blocks, num_bits, limit_permutation_column);
                 const std::size_t gates_amount = get_gates_amount(this->witness_amount(), num_blocks, shift, last_gate);
-                const std::size_t lookup_gates_amount = num_blocks;
 
                 struct input_type {
                     // initial message = message[0] * 2^(64 * (num_blocks - 1)) + ... + message[num_blocks - 2] * 2^64 +
@@ -362,7 +361,8 @@ namespace nil {
                     std::size_t shift = num_blocks * 64 - num_bits;
                     std::vector<configuration> result;
                     if (shift == 0) {
-                        std::size_t row = 0, column = 0;
+                        std::int32_t row = 0;
+                        std::size_t column = 0;
                         for (std::size_t i = 0; i < num_blocks; ++i) {
                             configuration conf;
                             conf.copy_from = {row, column};
@@ -386,7 +386,7 @@ namespace nil {
                             configuration conf1;
                             conf1.row = 0;
                             conf1.copy_to = {{0, 2}};
-                            conf0.last_coordinate = {0, 11};
+                            conf1.last_coordinate = {0, 11};
                             conf1.constraints = {{{0, 2}, {0, 6}, {0, 11}}, {{0, 4}, {0, 7}, {0, 6}}, {{0, 9}, {0, 7}}};
                             conf1.lookups = {{{0, 9}}};
                             conf1.copy_from = {0, 4};
@@ -428,17 +428,17 @@ namespace nil {
                     }
                     if (witness_amount == 9) {
                         if (last_gate == 0 || last_gate == num_blocks) {
-                            return 1;
+                            return 1 * 2;
                         }
-                        return 2;
+                        return 2 * 2;
                     } else if (witness_amount == 15) {
                         if (last_gate == 7) {
-                            return 1;
+                            return 1 * 2;
                         }
                         if (last_gate == 0 || last_gate == num_blocks - 2) {
-                            return 2;
+                            return 2 * 2;
                         }
-                        return 3;
+                        return 3 * 2;
                     }
                     return 0;
                 }
@@ -457,6 +457,12 @@ namespace nil {
                         }
                         return 1 + std::ceil((num_blocks - 2) / 6.0) * 2;
                     }
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables(){
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables["keccak_pack_table/range_check"] = 0; // REQUIRED_TABLE
+                    return lookup_tables;
                 }
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
@@ -491,27 +497,28 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
-                    &instance_input) {
+                    &instance_input,
+                const std::map<std::string, std::size_t> lookup_tables_indices) {
 
                 using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
+                using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using lookup_gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::vector<std::size_t> selector_indexes;
                 auto config = component.full_configuration;
-                // auto lookup_gate_config = component.lookup_gates_configuration;
                 std::size_t config_index = 0;
                 std::size_t gate_index = 0;
-                // std::size_t lookup_gate_index = 0;
+                std::size_t lookup_gate_index = 0;
 
-                std::vector<constraint_type> constraints;
-                // std::vector<lookup_constraint_type> lookup_constraints;
                 const std::size_t two = 2;
                 if (component.shift > 0) {
                     std::vector<constraint_type> cur_constraints;
+                    std::vector<lookup_constraint_type> cur_lookup_constraints;
                     if (component.witness_amount() == 15) {
                         for (std::size_t i = 0; i < std::min(two, component.num_blocks); ++i) {
                             auto cur_config = config[config_index];
@@ -529,11 +536,16 @@ namespace nil {
                                 var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row) -
                                 (integral_type(1) << (64 - component.shift)) + (integral_type(1) << 64) -
                                 var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
+                            cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
+                                                            {var(component.W(cur_config.lookups[0][0].column), cur_config.lookups[0][0].row)}});
                             config_index++;
                         }
                         selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
                         cur_constraints.clear();
+                        selector_indexes.push_back(bp.add_lookup_gate(cur_lookup_constraints));
+                        lookup_gate_index++;
+                        cur_lookup_constraints.clear();
                     }
                     std::cout << "gate_index: " << gate_index << std::endl;
                     std::cout << "component.gates_amount: " << component.gates_amount << std::endl;
@@ -555,6 +567,8 @@ namespace nil {
                                 var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row) -
                                 (integral_type(1) << (64 - component.shift)) + (integral_type(1) << 64) -
                                 var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
+                            cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
+                                                            {var(component.W(cur_config.lookups[0][0].column), cur_config.lookups[0][0].row)}});
                             config_index++;
                             if (config_index >= config.size()) {
                                 break;
@@ -563,6 +577,9 @@ namespace nil {
                         selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
                         cur_constraints.clear();
+                        selector_indexes.push_back(bp.add_lookup_gate(cur_lookup_constraints));
+                        lookup_gate_index++;
+                        cur_lookup_constraints.clear();
                     }
                     if (component.last_gate % 7 && config_index < config.size()) {
                         for (int i = 0; i < component.last_gate; ++i) {
@@ -581,6 +598,8 @@ namespace nil {
                                 var(cur_config.constraints[2][1].column, cur_config.constraints[2][1].row) -
                                 (integral_type(1) << (64 - component.shift)) + (integral_type(1) << 64) -
                                 var(cur_config.constraints[2][0].column, cur_config.constraints[2][0].row));
+                            cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
+                                                            {var(component.W(cur_config.lookups[0][0].column), cur_config.lookups[0][0].row)}});
                             config_index++;
                             if (config_index >= config.size()) {
                                 break;
@@ -588,9 +607,11 @@ namespace nil {
                         }
                         selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
+                        selector_indexes.push_back(bp.add_lookup_gate(cur_lookup_constraints));
+                        lookup_gate_index++;
                     }
                 }
-                BOOST_ASSERT(gate_index == component.gates_amount);
+                BOOST_ASSERT(gate_index + lookup_gate_index == component.gates_amount);
 
                 return selector_indexes;
             }
@@ -689,11 +710,13 @@ namespace nil {
                 using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
 
-                auto selector_indexes = generate_gates(component, bp, assignment, instance_input);
+                auto selector_indexes = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
                 std::size_t ind = 0;
 
                 std::size_t gate_row_ind = 0;
                 if (component.witness_amount() == 15) {
+                    assignment.enable_selector(selector_indexes[ind++],
+                                               component.gates_rows[gate_row_ind] + start_row_index);
                     assignment.enable_selector(selector_indexes[ind++],
                                                component.gates_rows[gate_row_ind++] + start_row_index);
                 }
@@ -702,11 +725,15 @@ namespace nil {
                          i < component.gates_rows.size() - (bool)(component.last_gate % 7);
                          ++i) {
                         assignment.enable_selector(selector_indexes[ind],
+                                                   component.gates_rows[gate_row_ind] + start_row_index);
+                        assignment.enable_selector(selector_indexes[ind],
                                                    component.gates_rows[gate_row_ind++] + start_row_index);
                     }
                     ind++;
                 }
                 if (component.last_gate % 7) {
+                    assignment.enable_selector(selector_indexes[ind++],
+                                               component.gates_rows[gate_row_ind] + start_row_index);
                     assignment.enable_selector(selector_indexes[ind],
                                                component.gates_rows[gate_row_ind] + start_row_index);
                 }
