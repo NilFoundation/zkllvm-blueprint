@@ -612,7 +612,7 @@ namespace nil {
                     }
                 }
                 BOOST_ASSERT(gate_index + lookup_gate_index == component.gates_amount);
-
+                std::cout << "SELS: " << selector_indexes.size() << std::endl;
                 return selector_indexes;
             }
 
@@ -726,10 +726,10 @@ namespace nil {
                          ++i) {
                         assignment.enable_selector(selector_indexes[ind],
                                                    component.gates_rows[gate_row_ind] + start_row_index);
-                        assignment.enable_selector(selector_indexes[ind],
+                        assignment.enable_selector(selector_indexes[ind + 1],
                                                    component.gates_rows[gate_row_ind++] + start_row_index);
                     }
-                    ind++;
+                    ind += 2;
                 }
                 if (component.last_gate % 7) {
                     assignment.enable_selector(selector_indexes[ind++],
