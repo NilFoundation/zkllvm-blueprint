@@ -56,6 +56,7 @@ set(COMMON_TEST_FILES
     "gate_id"
     "utils/connectedness_check"
     "private_input"
+    "private_input_extractor"
     "proxy"
     "mock/mocked_components"
     )
