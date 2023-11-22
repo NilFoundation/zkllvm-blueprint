@@ -53,6 +53,8 @@
 //#include <nil/blueprint/utils/table_profiling.hpp>
 #include <nil/blueprint/utils/satisfiability_check.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
+#include <nil/blueprint/components/algebra/fixedpoint/lookup_tables/tester.hpp>
+#include <nil/blueprint/components/algebra/fixedpoint/plonk/tester.hpp>
 #include <nil/blueprint/utils/connectedness_check.hpp>
 
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
@@ -268,10 +270,12 @@ namespace nil {
             desc.usable_rows_amount = assignment.rows_amount();
 
             if (start_row + component_instance.rows_amount >= public_input.size()) {
-                BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
+                BLUEPRINT_RELEASE_ASSERT((assignment.rows_amount() - start_row == component_instance.rows_amount) &&
                                 "Component rows amount does not match actual rows amount.");
                 // Stretched components do not have a manifest, as they are dynamically generated.
                 if constexpr (!blueprint::components::is_component_stretcher<
+                                    BlueprintFieldType, ArithmetizationParams, ComponentType>::value
+                           && !blueprint::components::is_component_tester<
                                     BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
                     BOOST_ASSERT_MSG(assignment.rows_amount() - start_row ==
                                     component_type::get_rows_amount(component_instance.witness_amount(), 0,
@@ -281,6 +285,8 @@ namespace nil {
             }
             // Stretched components do not have a manifest, as they are dynamically generated.
             if constexpr (!blueprint::components::is_component_stretcher<
+                                    BlueprintFieldType, ArithmetizationParams, ComponentType>::value
+                       && !blueprint::components::is_component_tester<
                                     BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
                 BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates()==
                                 component_type::get_gate_manifest(component_instance.witness_amount(), 0,
@@ -288,12 +294,18 @@ namespace nil {
                                 "Component total gates amount does not match actual gates amount.");
             }
 
-            if constexpr (nil::blueprint::use_lookups<component_type>()) {
+            if constexpr (nil::blueprint::use_lookups<component_type>()){
+                BLUEPRINT_RELEASE_ASSERT(nil::blueprint::check_lookup_tables(bp, assignment));
                 // Components with lookups may use constant columns.
                 // But now all constants are placed in the first column.
                 // So we reserve the first column for non-lookup constants.
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
+                auto start_index = 1;
+                if constexpr (!blueprint::components::is_component_stretcher<
+                              BlueprintFieldType, ArithmetizationParams, ComponentType>::value) {
+                    start_index = component_type::constants_amount;
+                }
                 std::vector<size_t> lookup_columns_indices;
                 for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
 
@@ -324,7 +336,7 @@ namespace nil {
             //assignment.export_table(std::cout);
             //bp.export_circuit(std::cout);
 
-            assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
+            BLUEPRINT_RELEASE_ASSERT(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 
             return std::make_tuple(desc, bp, assignment);
         }

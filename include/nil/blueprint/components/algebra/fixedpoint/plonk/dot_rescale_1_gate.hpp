@@ -18,8 +18,8 @@ namespace nil {
              * Uses one gate (and one selector column) for the constraints and two columns for the (intermediate) sums
              * of the dot product.
              *
-             * Input:    x    ... field element
-             *           y    ... field element
+             * Input:    x    ... vector of field elements
+             *           y    ... vector of field elements
              *
              * Output:   z    ... x dot y (field element)
              *
@@ -92,6 +92,8 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 private:
@@ -103,7 +105,7 @@ namespace nil {
                     }
 
                     std::uint32_t gates_amount() const override {
-                        return rescale_component::gates_amount + 1;
+                        return fix_dot_rescale_1_gate::gates_amount + 1;
                     }
                 };
 
@@ -135,6 +137,7 @@ namespace nil {
                     return rows;
                 }
 
+                constexpr static const std::size_t gates_amount = rescale_component::gates_amount + 1;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, dots, rescale.get_m2());
 
                 struct input_type {
@@ -198,6 +201,17 @@ namespace nil {
                 }
 
                 using result_type = typename rescale_component::result_type;
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    return rescale.component_custom_lookup_tables();
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    return rescale.component_lookup_tables();
+                }
+#endif
 
                 template<typename ContainerType>
                 explicit fix_dot_rescale_1_gate(ContainerType witness, uint32_t dots, uint8_t m2) :
@@ -285,7 +299,7 @@ namespace nil {
                     typename plonk_fixedpoint_dot_rescale_1_gate<BlueprintFieldType, ArithmetizationParams>::var;
                 typename plonk_fixedpoint_dot_rescale_1_gate<
                     BlueprintFieldType, ArithmetizationParams>::rescale_component::input_type rescale_input;
-                rescale_input.x = var(magic(var_pos.dot_result), false);
+                rescale_input.x = var(splat(var_pos.dot_result), false);
 
                 auto rescale_comp = component.get_rescale_component();
                 return generate_assignments(rescale_comp, assignment, rescale_input, var_pos.rescale_row);
@@ -314,8 +328,8 @@ namespace nil {
                     dot += var(component.W(x_pos.second), x_pos.first) * var(component.W(y_pos.second), y_pos.first);
                 }
 
-                auto dot_p = var(magic(var_pos.dot_p_0));
-                auto dot_c = var(magic(var_pos.dot_c_0));
+                auto dot_p = var(splat(var_pos.dot_p_0));
+                auto dot_c = var(splat(var_pos.dot_c_0));
                 auto constraint_1 = dot + dot_p - dot_c;
 
                 return bp.add_gate(constraint_1);
@@ -341,7 +355,7 @@ namespace nil {
                 auto dots_per_row = component.get_dots_per_row();
 
                 // constraint first previous dot to zero
-                bp.add_copy_constraint({instance_input.zero, var(magic(var_pos.dot_p_0), false)});
+                bp.add_copy_constraint({instance_input.zero, var(splat(var_pos.dot_p_0), false)});
 
                 for (auto i = 0; i < dots; i++) {
                     var x_i = get_copy_var(component, start_row_index, i, true);
@@ -393,7 +407,7 @@ namespace nil {
                     typename plonk_fixedpoint_dot_rescale_1_gate<BlueprintFieldType, ArithmetizationParams>::var;
                 typename plonk_fixedpoint_dot_rescale_1_gate<
                     BlueprintFieldType, ArithmetizationParams>::rescale_component::input_type rescale_input;
-                rescale_input.x = var(magic(var_pos.dot_result), false);
+                rescale_input.x = var(splat(var_pos.dot_result), false);
 
                 auto rescale_comp = component.get_rescale_component();
                 return generate_circuit(rescale_comp, bp, assignment, rescale_input, var_pos.rescale_row);

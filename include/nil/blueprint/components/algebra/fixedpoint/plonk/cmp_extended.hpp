@@ -74,6 +74,8 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -103,7 +105,8 @@ namespace nil {
                     return 1;
                 }
 
-                constexpr static const std::size_t gates_amount = 1;
+                // Includes the constraints + lookup_gates
+                constexpr static const std::size_t gates_amount = 2;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 using input_type = typename cmp_component::input_type;
@@ -150,28 +153,39 @@ namespace nil {
                     var geq = var(0, 0, false);
                     result_type(const fix_cmp_extended &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        eq = var(magic(var_pos.eq), false);
-                        lt = var(magic(var_pos.lt), false);
-                        gt = var(magic(var_pos.gt), false);
-                        neq = var(magic(var_pos.neq), false);
-                        leq = var(magic(var_pos.leq), false);
-                        geq = var(magic(var_pos.geq), false);
+                        eq = var(splat(var_pos.eq), false);
+                        lt = var(splat(var_pos.lt), false);
+                        gt = var(splat(var_pos.gt), false);
+                        neq = var(splat(var_pos.neq), false);
+                        leq = var(splat(var_pos.leq), false);
+                        geq = var(splat(var_pos.geq), false);
                     }
 
                     result_type(const fix_cmp_extended &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        eq = var(magic(var_pos.eq), false);
-                        lt = var(magic(var_pos.lt), false);
-                        gt = var(magic(var_pos.gt), false);
-                        neq = var(magic(var_pos.neq), false);
-                        leq = var(magic(var_pos.leq), false);
-                        geq = var(magic(var_pos.geq), false);
+                        eq = var(splat(var_pos.eq), false);
+                        lt = var(splat(var_pos.lt), false);
+                        gt = var(splat(var_pos.gt), false);
+                        neq = var(splat(var_pos.neq), false);
+                        leq = var(splat(var_pos.leq), false);
+                        geq = var(splat(var_pos.geq), false);
                     }
 
                     std::vector<var> all_vars() const {
                         return {eq, lt, gt, neq, leq, geq};
                     }
                 };
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    return cmp.component_custom_lookup_tables();
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    return cmp.component_lookup_tables();
+                }
+#endif
 
                 template<typename ContainerType>
                 explicit fix_cmp_extended(ContainerType witness, uint8_t m1, uint8_t m2) :
@@ -214,9 +228,9 @@ namespace nil {
                 auto result = generate_assignments(cmp_comp, assignment, instance_input, start_row_index);
 
                 auto one = BlueprintFieldType::value_type::one();
-                assignment.witness(magic(var_pos.neq)) = one - var_value(assignment, result.eq);
-                assignment.witness(magic(var_pos.leq)) = one - var_value(assignment, result.gt);
-                assignment.witness(magic(var_pos.geq)) = one - var_value(assignment, result.lt);
+                assignment.witness(splat(var_pos.neq)) = one - var_value(assignment, result.eq);
+                assignment.witness(splat(var_pos.leq)) = one - var_value(assignment, result.gt);
+                assignment.witness(splat(var_pos.geq)) = one - var_value(assignment, result.lt);
 
                 return typename plonk_fixedpoint_cmp_extended<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -231,7 +245,7 @@ namespace nil {
                 const typename plonk_fixedpoint_cmp_extended<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
-                int64_t start_row_index = 1 - component.rows_amount;
+                int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 using var = typename plonk_fixedpoint_cmp_extended<BlueprintFieldType, ArithmetizationParams>::var;
@@ -239,12 +253,12 @@ namespace nil {
                 auto cmp_comp = component.get_cmp_component();
                 auto constraints = get_constraints(cmp_comp, bp, assignment, instance_input);
 
-                auto eq = var(magic(var_pos.eq));
-                auto lt = var(magic(var_pos.lt));
-                auto gt = var(magic(var_pos.gt));
-                auto neq = var(magic(var_pos.neq));
-                auto leq = var(magic(var_pos.leq));
-                auto geq = var(magic(var_pos.geq));
+                auto eq = var(splat(var_pos.eq));
+                auto lt = var(splat(var_pos.lt));
+                auto gt = var(splat(var_pos.gt));
+                auto neq = var(splat(var_pos.neq));
+                auto leq = var(splat(var_pos.leq));
+                auto geq = var(splat(var_pos.geq));
 
                 auto one = BlueprintFieldType::value_type::one();
                 auto constraint_1 = eq + neq - one;
@@ -287,6 +301,13 @@ namespace nil {
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 assignment.enable_selector(selector_index, start_row_index);
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                auto cmp_comp = component.get_cmp_component();
+                std::size_t lookup_selector_index = generate_lookup_gates(cmp_comp, bp, assignment, instance_input);
+                assignment.enable_selector(lookup_selector_index, start_row_index);
+#endif
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 

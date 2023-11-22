@@ -126,12 +126,12 @@ namespace nil {
                     var output = var(0, 0, false);
                     result_type(const int_to_fix &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.y), false);
+                        output = var(splat(var_pos.y), false);
                     }
 
                     result_type(const int_to_fix &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.y), false);
+                        output = var(splat(var_pos.y), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -181,8 +181,8 @@ namespace nil {
                 auto x_val = var_value(assignment, instance_input.x);
                 auto y_val = delta * x_val;
 
-                assignment.witness(magic(var_pos.x)) = x_val;
-                assignment.witness(magic(var_pos.y)) = y_val;
+                assignment.witness(splat(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.y)) = y_val;
 
                 return typename plonk_to_fixedpoint<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -203,8 +203,8 @@ namespace nil {
                 using var = typename plonk_to_fixedpoint<BlueprintFieldType, ArithmetizationParams>::var;
                 auto delta = component.get_delta();
 
-                auto x = var(magic(var_pos.x));
-                auto y = var(magic(var_pos.y));
+                auto x = var(splat(var_pos.x));
+                auto y = var(splat(var_pos.y));
 
                 auto constraint = y - x * delta;
 
@@ -238,7 +238,7 @@ namespace nil {
 
                 using var = typename plonk_to_fixedpoint<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto x = var(magic(var_pos.x), false);
+                auto x = var(splat(var_pos.x), false);
                 bp.add_copy_constraint({instance_input.x, x});
             }
 

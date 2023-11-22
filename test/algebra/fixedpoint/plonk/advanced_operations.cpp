@@ -1,5 +1,8 @@
 #define BOOST_TEST_MODULE blueprint_plonk_fixedpoint_advanced_operations_test
 
+// Enable for faster tests
+// #define TEST_WITHOUT_LOOKUP_TABLES
+
 #include <boost/test/unit_test.hpp>
 
 #include <nil/crypto3/algebra/fields/bls12/scalar_field.hpp>
@@ -39,8 +42,8 @@ void test_fixedpoint_sqrt(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -97,8 +100,8 @@ void test_fixedpoint_sqrt_floor(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 10;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -157,8 +160,8 @@ void test_fixedpoint_log(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 10;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 2;
-    constexpr std::size_t SelectorColumns = 3;
+    constexpr std::size_t ConstantColumns = 10;
+    constexpr std::size_t SelectorColumns = 10;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;

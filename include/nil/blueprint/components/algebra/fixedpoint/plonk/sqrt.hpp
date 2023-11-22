@@ -10,6 +10,7 @@
 #include <nil/blueprint/basic_non_native_policy.hpp>
 
 #include "nil/blueprint/components/algebra/fixedpoint/type.hpp"
+#include "nil/blueprint/components/algebra/fixedpoint/lookup_tables/range.hpp"
 
 namespace nil {
     namespace blueprint {
@@ -66,6 +67,9 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                using range_table = fixedpoint_range_table<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -79,11 +83,10 @@ namespace nil {
                     return manifest;
                 }
 
-                // TACEO_TODO Update to lookup tables
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     static manifest_type manifest =
-                        manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(
-                                          2 + 2 * (M(m2) + M(m1)), 4 + 4 * (m2 + m1))),
+                        manifest_type(std::shared_ptr<manifest_param>(
+                                          new manifest_range_param(2 + 2 * (M(m2) + M(m1)), 4 + 4 * (m2 + m1))),
                                       false);
                     return manifest;
                 }
@@ -97,7 +100,8 @@ namespace nil {
                     }
                 }
 
-                constexpr static const std::size_t gates_amount = 1;
+                // Includes the constraints + lookup_gates
+                constexpr static const std::size_t gates_amount = 2;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, m1, m2);
 
                 struct input_type {
@@ -162,18 +166,34 @@ namespace nil {
                     var output = var(0, 0, false);
                     result_type(const fix_sqrt &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.y), false);
+                        output = var(splat(var_pos.y), false);
                     }
 
                     result_type(const fix_sqrt &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.y), false);
+                        output = var(splat(var_pos.y), false);
                     }
 
                     std::vector<var> all_vars() const {
                         return {output};
                     }
                 };
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                    auto table = std::shared_ptr<lookup_table_definition>(new range_table());
+                    result.push_back(table);
+                    return result;
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables[range_table::FULL_TABLE_NAME] = 0;    // REQUIRED_TABLE
+                    return lookup_tables;
+                }
+#endif
 
                 template<typename ContainerType>
                 explicit fix_sqrt(ContainerType witness, uint8_t m1, uint8_t m2) :
@@ -220,10 +240,10 @@ namespace nil {
 
                 auto y_sq_val = y_val * y_val;
 
-                assignment.witness(magic(var_pos.x)) = x_val;
-                assignment.witness(magic(var_pos.y)) = y_val;
-                assignment.witness(magic(var_pos.y_sq)) = y_sq_val;
-                assignment.witness(magic(var_pos.r)) = r_val;
+                assignment.witness(splat(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.y)) = y_val;
+                assignment.witness(splat(var_pos.y_sq)) = y_sq_val;
+                assignment.witness(splat(var_pos.r)) = r_val;
 
                 // Decompositions
                 auto a_val = (x_val_delta - y_sq_val) + r_val * (2 * y_val - 1);
@@ -276,10 +296,10 @@ namespace nil {
                 const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto y0 = nil::crypto3::math::expression(var(magic(var_pos.y0)));
-                auto a0 = nil::crypto3::math::expression(var(magic(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(magic(var_pos.b0)));
-                auto c0 = nil::crypto3::math::expression(var(magic(var_pos.c0)));
+                auto y0 = nil::crypto3::math::expression(var(splat(var_pos.y0)));
+                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
+                auto c0 = nil::crypto3::math::expression(var(splat(var_pos.c0)));
                 for (auto i = 1; i < m; i++) {
                     y0 += var(var_pos.y0.column() + i, var_pos.y0.row()) * (1ULL << (16 * i));
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
@@ -287,12 +307,11 @@ namespace nil {
                     c0 += var(var_pos.c0.column() + i, var_pos.c0.row()) * (1ULL << (16 * i));
                 }
 
-                auto x = var(magic(var_pos.x)) * component.get_delta();
-                auto y = var(magic(var_pos.y));
-                auto y_sq = var(magic(var_pos.y_sq));
-                auto r = var(magic(var_pos.r));
+                auto x = var(splat(var_pos.x)) * component.get_delta();
+                auto y = var(splat(var_pos.y));
+                auto y_sq = var(splat(var_pos.y_sq));
+                auto r = var(splat(var_pos.r));
 
-                // TACEO_TODO extend for lookup constraint
                 auto constraint_1 = r * (r - 1);
                 auto constraint_2 = y - y0;
                 auto constraint_3 = (x - y_sq) + 2 * r * y - r - a0;
@@ -300,6 +319,71 @@ namespace nil {
                 auto constraint_5 = 2 * r * (x - y_sq) + y_sq + y - x - r - c0;
 
                 return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gates(
+                const plonk_fixedpoint_sqrt<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_sqrt<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
+                const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
+                const auto var_pos = component.get_var_pos(start_row_index);
+                auto m = component.get_m();
+
+                const std::map<std::string, std::size_t> &lookup_tables_indices = bp.get_reserved_indices();
+
+                using var = typename plonk_fixedpoint_sqrt<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using range_table =
+                    typename plonk_fixedpoint_sqrt<BlueprintFieldType, ArithmetizationParams>::range_table;
+
+                std::vector<constraint_type> constraints;
+
+                auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
+                if (component.rows_amount == 2) {
+                    constraints.reserve(2 * m);
+                    // We put just two decompositions into the constraint and activate it twice
+                    BLUEPRINT_RELEASE_ASSERT(var_pos.y0.row() == var_pos.a0.row());
+                    BLUEPRINT_RELEASE_ASSERT(var_pos.b0.row() == var_pos.c0.row());
+                    BLUEPRINT_RELEASE_ASSERT(var_pos.a0.column() == var_pos.c0.column());
+                    BLUEPRINT_RELEASE_ASSERT(var_pos.b0.column() == var_pos.y0.column());
+                } else {
+                    constraints.reserve(4 * m);
+                }
+
+                for (auto i = 0; i < m; i++) {
+                    constraint_type constraint_y, constraint_a;
+                    constraint_y.table_id = table_id;
+                    constraint_a.table_id = table_id;
+
+                    // We put row=0 here and enable the selector in the correct one
+                    auto yi = var(var_pos.y0.column() + i, 0);
+                    auto ai = var(var_pos.a0.column() + i, 0);
+                    constraint_y.lookup_input = {yi};
+                    constraint_a.lookup_input = {ai};
+
+                    constraints.push_back(constraint_y);
+                    constraints.push_back(constraint_a);
+
+                    if (component.rows_amount == 1) {
+                        constraint_type constraint_b, constraint_c;
+                        constraint_b.table_id = table_id;
+                        constraint_c.table_id = table_id;
+
+                        auto bi = var(var_pos.b0.column() + i, 0);
+                        auto ci = var(var_pos.c0.column() + i, 0);
+                        constraint_b.lookup_input = {bi};
+                        constraint_c.lookup_input = {ci};
+
+                        constraints.push_back(constraint_b);
+                        constraints.push_back(constraint_c);
+                    }
+                }
+
+                return bp.add_lookup_gate(constraints);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -316,7 +400,7 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                auto x = var(magic(var_pos.x));
+                auto x = var(splat(var_pos.x));
                 bp.add_copy_constraint({instance_input.x, x});
             }
 
@@ -330,11 +414,20 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                // TACEO_TODO extend for lookup?
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 // selector goes onto last row and gate uses all rows
                 assignment.enable_selector(selector_index, start_row_index + component.rows_amount - 1);
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment, instance_input);
+                assignment.enable_selector(lookup_selector_index, start_row_index);
+                if (component.rows_amount == 2) {
+                    // We put just two decompositions into the constraint and activate it twice
+                    assignment.enable_selector(lookup_selector_index, start_row_index + 1);
+                }
+#endif
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 

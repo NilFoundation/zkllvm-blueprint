@@ -1,5 +1,8 @@
 #define BOOST_TEST_MODULE blueprint_plonk_fixedpoint_basic_test
 
+// Enable for faster tests
+// #define TEST_WITHOUT_LOOKUP_TABLES
+
 #include <boost/test/unit_test.hpp>
 
 #include <nil/crypto3/algebra/fields/bls12/scalar_field.hpp>
@@ -154,8 +157,8 @@ void test_fixedpoint_rescale(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 2 + FixedType::M_2;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -180,7 +183,7 @@ void test_fixedpoint_rescale(FixedType input) {
         auto real_res_ = FixedType(var_value(assignment, real_res.output), FixedType::SCALE);
         double real_res_f = real_res_.to_double();
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-        std::cout << "fixed_point mul test: "
+        std::cout << "fixed_point rescale test: "
                   << "\n";
         std::cout << "input_f : " << input.to_double() << "\n";
         std::cout << "input   : " << input.get_value().data << "\n";
@@ -275,8 +278,8 @@ void test_fixedpoint_mul_rescale(FixedType input1, FixedType input2) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 3 + FixedType::M_2;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -337,8 +340,8 @@ void test_fixedpoint_div(FixedType input1, FixedType input2) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -397,8 +400,8 @@ void test_fixedpoint_div_by_pos(FixedType input1, FixedType input2) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 10;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -459,8 +462,8 @@ void test_fixedpoint_mod(FixedType input1, FixedType input2) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 3;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -504,16 +507,19 @@ void test_fixedpoint_mod(FixedType input1, FixedType input2) {
             abort();
         }
     };
-
+ 
     std::vector<std::uint32_t> witness_list;
     witness_list.reserve(WitnessColumns);
     for (auto i = 0; i < WitnessColumns; i++) {
         witness_list.push_back(i);
     }
     // Is done by the manifest in a real circuit
-    component_type component_instance(
-        witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(), FixedType::M_1, FixedType::M_2);
-
+    component_type component_instance(witness_list,
+                                      std::array<std::uint32_t, 1>({0}),
+                                      std::array<std::uint32_t, 0>(),
+                                      FixedType::M_1,
+                                      FixedType::M_2);
+ 
     std::vector<typename BlueprintFieldType::value_type> public_input = {input1.get_value(), input2.get_value()};
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
@@ -576,8 +582,8 @@ void test_fixedpoint_mul_rescale_const(FixedType priv_input, FixedType const_inp
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 2 + FixedType::M_2;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 3;
+    constexpr std::size_t SelectorColumns = 3;
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
