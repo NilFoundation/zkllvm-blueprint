@@ -169,7 +169,6 @@ namespace nil {
                 const std::size_t WA = component.witness_amount();
 
                 std::array<value_type,12> x;
-                std::array<value_type,12> y;
 
                 for(std::size_t i = 0; i < 12; i++) {
                     x[i] = var_value(assignment, instance_input.x[i]);

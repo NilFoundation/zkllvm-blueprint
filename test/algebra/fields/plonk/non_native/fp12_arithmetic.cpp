@@ -42,6 +42,7 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_multiplication.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_inversion.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_small_power.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_frobenius_map.hpp>
 
 #include "../../../../test_plonk_component.hpp"
 
@@ -240,7 +241,81 @@ void test_fp12_small_power(std::vector<typename FieldType::value_type> public_in
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
             typename component_type::result_type &real_res) {
             #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-            std::cout << "Fp12 inversion res vs output\n";
+            std::cout << "Fp12 small power res vs output\n";
+            for(std::size_t i = 0; i < 12; i++) {
+                std::cout << std::dec << expected_res[i].data << " =? " << var_value(assignment, real_res.output[i]).data << "\n";
+            }
+            #endif
+            for(std::size_t i = 0; i < 12; i++) {
+                assert(expected_res[i] == var_value(assignment, real_res.output[i]));
+            }
+    };
+
+    std::array<std::uint32_t, WitnessColumns> witnesses;
+    for (std::uint32_t i = 0; i < WitnessColumns; i++) {
+        witnesses[i] = i;
+    }
+
+    component_type component_instance(witnesses, // witnesses
+                                      std::array<std::uint32_t, 0>{},  // constants
+                                      std::array<std::uint32_t, 0>{} // public inputs
+                                     );
+
+    nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
+           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+}
+
+template <typename FieldType, std::size_t WitnessColumns, small_p_power Power>
+void test_fp12_frobenius_map(std::vector<typename FieldType::value_type> public_input) {
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 0;
+    constexpr std::size_t SelectorColumns = 1;
+
+    using ArithmetizationParams =
+        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
+
+    using value_type = typename FieldType::value_type;
+    using var = crypto3::zk::snark::plonk_variable<value_type>;
+
+    using component_type = blueprint::components::fp12_frobenius_map<ArithmetizationType, FieldType, Power>;
+
+    typename component_type::input_type instance_input;
+    typename std::array<value_type,12> X;
+    typename std::array<value_type,12> expected_res;
+
+    for(std::size_t i = 0; i < 12; i++) {
+        instance_input.x[i] = var(0,i, false, var::column_type::public_input);
+        X[i] = public_input[i];
+    }
+
+    typename FieldType::integral_type field_p = FieldType::modulus;
+    using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<FieldType>;
+    using fp12_element = typename policy_type_fp12::value_type;
+
+    fp12_element e1 = fp12_element({ {X[0],X[1]}, {X[2],X[3]}, {X[4],X[5]} }, { {X[6],X[7]}, {X[8],X[9]}, {X[10],X[11]} }),
+                 e = e1;
+
+    for(std::size_t i = 0; i < int(Power); i++) {
+        e = e.pow(field_p); // fp12 power raising
+    }
+
+    expected_res = {
+       e.data[0].data[0].data[0], e.data[0].data[0].data[1],
+       e.data[0].data[1].data[0], e.data[0].data[1].data[1],
+       e.data[0].data[2].data[0], e.data[0].data[2].data[1],
+       e.data[1].data[0].data[0], e.data[1].data[0].data[1],
+       e.data[1].data[1].data[0], e.data[1].data[1].data[1],
+       e.data[1].data[2].data[0], e.data[1].data[2].data[1] };
+
+
+    auto result_check = [&expected_res, public_input](AssignmentType &assignment,
+            typename component_type::result_type &real_res) {
+            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+            std::cout << "Fp12 Frobenius map res vs output\n";
             for(std::size_t i = 0; i < 12; i++) {
                 std::cout << std::dec << expected_res[i].data << " =? " << var_value(assignment, real_res.output[i]).data << "\n";
             }
@@ -299,6 +374,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
         test_fp12_small_power<field_type,12,square>(x);
         test_fp12_small_power<field_type,18,cube>(x);
         test_fp12_small_power<field_type,24,power4>(x);
+
+        test_fp12_frobenius_map<field_type,12,p_three>(x);
+        test_fp12_frobenius_map<field_type,18,p_two>(x);
+        test_fp12_frobenius_map<field_type,24,p_one>(x);
     }
 
 
@@ -306,7 +385,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
     x.resize(12,field_type::value_type::zero());
     // test to fail
     test_fp12_inversion<field_type,12>(x);
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
