@@ -10,6 +10,7 @@
 #include <nil/blueprint/basic_non_native_policy.hpp>
 
 #include "nil/blueprint/components/algebra/fixedpoint/type.hpp"
+#include "nil/blueprint/components/algebra/fixedpoint/lookup_tables/range.hpp"
 
 namespace nil {
     namespace blueprint {
@@ -98,6 +99,9 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                using range_table = fixedpoint_range_table<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -111,7 +115,6 @@ namespace nil {
                     return manifest;
                 }
 
-                // TACEO_TODO Update to lookup tables
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     static manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(new manifest_range_param(10, 10 + 2 * (m2 + m1 + 1))), false);
@@ -127,7 +130,8 @@ namespace nil {
                     }
                 }
 
-                constexpr static const std::size_t gates_amount = 1;
+                // Includes the constraints + lookup_gates
+                constexpr static const std::size_t gates_amount = 2;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, m1, m2);
 
                 struct input_type {
@@ -226,22 +230,38 @@ namespace nil {
 
                     result_type(const fix_range &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        in = var(magic(var_pos.in), false);
-                        lt = var(magic(var_pos.lt), false);
-                        gt = var(magic(var_pos.gt), false);
+                        in = var(splat(var_pos.in), false);
+                        lt = var(splat(var_pos.lt), false);
+                        gt = var(splat(var_pos.gt), false);
                     }
 
                     result_type(const fix_range &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        in = var(magic(var_pos.in), false);
-                        lt = var(magic(var_pos.lt), false);
-                        gt = var(magic(var_pos.gt), false);
+                        in = var(splat(var_pos.in), false);
+                        lt = var(splat(var_pos.lt), false);
+                        gt = var(splat(var_pos.gt), false);
                     }
 
                     std::vector<var> all_vars() const {
                         return {in, lt, gt};
                     }
                 };
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                    auto table = std::shared_ptr<lookup_table_definition>(new range_table());
+                    result.push_back(table);
+                    return result;
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables[range_table::FULL_TABLE_NAME] = 0;    // REQUIRED_TABLE
+                    return lookup_tables;
+                }
+#endif
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -286,7 +306,7 @@ namespace nil {
 
                 auto x_val = var_value(assignment, instance_input.x);
 
-                assignment.witness(magic(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.x)) = x_val;
 
                 auto a_val = x_val - component.get_x_lo();
                 auto b_val = component.get_x_hi() - x_val;
@@ -304,22 +324,22 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
                 BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= m);
 
-                assignment.witness(magic(var_pos.in)) = (!sign_a && !sign_b) ? one : zero;
-                assignment.witness(magic(var_pos.lt)) = sign_a ? one : zero;
-                assignment.witness(magic(var_pos.gt)) = sign_b ? one : zero;
+                assignment.witness(splat(var_pos.in)) = (!sign_a && !sign_b) ? one : zero;
+                assignment.witness(splat(var_pos.lt)) = sign_a ? one : zero;
+                assignment.witness(splat(var_pos.gt)) = sign_b ? one : zero;
                 BLUEPRINT_RELEASE_ASSERT(!sign_a || !sign_b);
 
                 bool eq_a = a_val == 0;
                 bool eq_b = b_val == 0;
-                assignment.witness(magic(var_pos.z_a)) = eq_a ? one : zero;
-                assignment.witness(magic(var_pos.z_b)) = eq_b ? one : zero;
+                assignment.witness(splat(var_pos.z_a)) = eq_a ? one : zero;
+                assignment.witness(splat(var_pos.z_b)) = eq_b ? one : zero;
 
                 // if eq: Does not matter what to put here
-                assignment.witness(magic(var_pos.inv_a)) = eq_a ? zero : a_val.inversed();
-                assignment.witness(magic(var_pos.inv_b)) = eq_b ? zero : b_val.inversed();
+                assignment.witness(splat(var_pos.inv_a)) = eq_a ? zero : a_val.inversed();
+                assignment.witness(splat(var_pos.inv_b)) = eq_b ? zero : b_val.inversed();
 
-                assignment.witness(magic(var_pos.s_a)) = sign_a ? -one : one;
-                assignment.witness(magic(var_pos.s_b)) = sign_b ? -one : one;
+                assignment.witness(splat(var_pos.s_a)) = sign_a ? -one : one;
+                assignment.witness(splat(var_pos.s_b)) = sign_b ? -one : one;
 
                 // Additional limb due to potential overflow of diff
                 // FixedPointHelper::decompose creates a vector whose size is a multiple of 4.
@@ -363,8 +383,8 @@ namespace nil {
 
                 auto m = component.get_m();
 
-                auto a0 = nil::crypto3::math::expression(var(magic(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(magic(var_pos.b0)));
+                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
                 for (auto i = 1; i < m; i++) {
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
                     b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));
@@ -375,18 +395,18 @@ namespace nil {
                 a0 += var(var_pos.a0.column() + m, var_pos.a0.row()) * tmp;
                 b0 += var(var_pos.b0.column() + m, var_pos.b0.row()) * tmp;
 
-                auto x = var(magic(var_pos.x));
-                auto in = var(magic(var_pos.in));
-                auto lt = var(magic(var_pos.lt));
-                auto gt = var(magic(var_pos.gt));
-                auto z_a = var(magic(var_pos.z_a));
-                auto z_b = var(magic(var_pos.z_b));
-                auto inv_a = var(magic(var_pos.inv_a));
-                auto inv_b = var(magic(var_pos.inv_b));
-                auto s_a = var(magic(var_pos.s_a));
-                auto s_b = var(magic(var_pos.s_b));
-                auto x_l = var(magic(var_pos.x_l), true, var::column_type::constant);
-                auto x_h = var(magic(var_pos.x_h), true, var::column_type::constant);
+                auto x = var(splat(var_pos.x));
+                auto in = var(splat(var_pos.in));
+                auto lt = var(splat(var_pos.lt));
+                auto gt = var(splat(var_pos.gt));
+                auto z_a = var(splat(var_pos.z_a));
+                auto z_b = var(splat(var_pos.z_b));
+                auto inv_a = var(splat(var_pos.inv_a));
+                auto inv_b = var(splat(var_pos.inv_b));
+                auto s_a = var(splat(var_pos.s_a));
+                auto s_b = var(splat(var_pos.s_b));
+                auto x_l = var(splat(var_pos.x_l), true, var::column_type::constant);
+                auto x_h = var(splat(var_pos.x_h), true, var::column_type::constant);
 
                 auto inv2 = typename BlueprintFieldType::value_type(2).inversed();
 
@@ -402,9 +422,50 @@ namespace nil {
                 auto constraint_10 = gt - inv2 * (1 - s_b) * (1 - z_b);
                 auto constraint_11 = in - (1 - lt) * (1 - gt);
 
-                // TACEO_TODO extend for lookup constraint
                 return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
                                     constraint_7, constraint_8, constraint_9, constraint_10, constraint_11});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gates(
+                const plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
+                const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
+                const auto var_pos = component.get_var_pos(start_row_index);
+                auto m_ = component.get_m() + 1;
+
+                const std::map<std::string, std::size_t> &lookup_tables_indices = bp.get_reserved_indices();
+
+                using var = typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using range_table =
+                    typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::range_table;
+
+                std::vector<constraint_type> constraints;
+                constraints.reserve(2 * m_);
+
+                auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
+                BLUEPRINT_RELEASE_ASSERT(var_pos.a0.row() == var_pos.b0.row());
+
+                for (auto i = 0; i < m_; i++) {
+                    constraint_type constraint_a, constraint_b;
+                    constraint_a.table_id = table_id;
+                    constraint_b.table_id = table_id;
+
+                    // We put row=0 here and enable the selector in the correct one
+                    auto ai = var(var_pos.a0.column() + i, 0);
+                    auto bi = var(var_pos.b0.column() + i, 0);
+                    constraint_a.lookup_input = {ai};
+                    constraint_b.lookup_input = {bi};
+                    constraints.push_back(constraint_a);
+                    constraints.push_back(constraint_b);
+                }
+
+                return bp.add_lookup_gate(constraints);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -420,7 +481,7 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 using var = typename plonk_fixedpoint_range<BlueprintFieldType, ArithmetizationParams>::var;
-                var x = var(magic(var_pos.x), false);
+                var x = var(splat(var_pos.x), false);
                 bp.add_copy_constraint({instance_input.x, x});
             }
 
@@ -434,11 +495,17 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                // TACEO_TODO extend for lookup?
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 // selector goes onto last row and gate uses all rows
                 assignment.enable_selector(selector_index, start_row_index + component.rows_amount - 1);
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment, instance_input);
+                assignment.enable_selector(lookup_selector_index, var_pos.a0.row());    // same as b0.row()
+#endif
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 generate_assignments_constant(component, assignment, instance_input, start_row_index);
@@ -456,8 +523,8 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                assignment.constant(magic(var_pos.x_l)) = component.get_x_lo();
-                assignment.constant(magic(var_pos.x_h)) = component.get_x_hi();
+                assignment.constant(splat(var_pos.x_l)) = component.get_x_lo();
+                assignment.constant(splat(var_pos.x_h)) = component.get_x_hi();
             }
 
         }    // namespace components

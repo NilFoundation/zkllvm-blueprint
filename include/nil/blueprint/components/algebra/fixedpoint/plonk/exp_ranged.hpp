@@ -173,11 +173,13 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
                     std::uint32_t gates_amount() const override {
-                        return 2;
+                        return fix_exp_ranged::gates_amount;
                     }
                 };
 
@@ -200,6 +202,9 @@ namespace nil {
                            exp_component::get_rows_amount(witness_amount, lookup_column_amount);
                 }
 
+                // Includes the constraints + lookup_gates
+                constexpr static const std::size_t gates_amount =
+                    exp_component::gates_amount + range_component::gates_amount;
                 const std::size_t rows_amount =
                     get_rows_amount(this->witness_amount(), 0, range.get_m1(), range.get_m2());
 
@@ -215,6 +220,19 @@ namespace nil {
                     const auto var_pos = get_var_pos(static_cast<int64_t>(start_row_index));
                     return result_type(exp, static_cast<size_t>(var_pos.exp_row));
                 }
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    // includes the ones for the range component
+                    return exp.component_custom_lookup_tables();
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    // includes the ones for the range component
+                    return exp.component_lookup_tables();
+                }
+#endif
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -272,9 +290,9 @@ namespace nil {
 
                 // update output if out of range!
                 if (var_value(assignment, range_result.lt) == one) {
-                    assignment.witness(magic(var_pos.exp_pos.y)) = component.get_exp_min();
+                    assignment.witness(splat(var_pos.exp_pos.y)) = component.get_exp_min();
                 } else if (var_value(assignment, range_result.gt) == one) {
-                    assignment.witness(magic(var_pos.exp_pos.y)) = component.get_exp_max();
+                    assignment.witness(splat(var_pos.exp_pos.y)) = component.get_exp_max();
                 }
 
                 return exp_result;
@@ -289,7 +307,7 @@ namespace nil {
                 const typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input) {
 
-                int64_t start_row_index = 1 - component.rows_amount;
+                int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 using var = typename plonk_fixedpoint_exp_ranged<BlueprintFieldType, ArithmetizationParams>::var;
@@ -298,12 +316,12 @@ namespace nil {
 
                 auto constraints = get_constraints(exp_comp, bp, assignment, instance_input);
 
-                auto in = var(magic(var_pos.range_pos.in));
-                auto lt = var(magic(var_pos.range_pos.lt));
-                auto gt = var(magic(var_pos.range_pos.gt));
-                auto y = var(magic(var_pos.exp_pos.y));
-                auto exp_min = var(magic(var_pos.exp_min), true, var::column_type::constant);
-                auto exp_max = var(magic(var_pos.exp_max), true, var::column_type::constant);
+                auto in = var(splat(var_pos.range_pos.in));
+                auto lt = var(splat(var_pos.range_pos.lt));
+                auto gt = var(splat(var_pos.range_pos.gt));
+                auto y = var(splat(var_pos.exp_pos.y));
+                auto exp_min = var(splat(var_pos.exp_min), true, var::column_type::constant);
+                auto exp_max = var(splat(var_pos.exp_max), true, var::column_type::constant);
 
                 constraints[0] *= in;
                 constraints[2] *= in;
@@ -336,8 +354,15 @@ namespace nil {
                 std::size_t exp_selector = generate_exp_gates(component, bp, assignment, instance_input);
                 assignment.enable_selector(exp_selector, var_pos.exp_row);
 
-                // Enable the copy constraints of exp
                 auto exp_comp = component.get_exp_component();
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                // Enable the lookup gates for exp
+                std::size_t lookup_selector_index = generate_lookup_gates(exp_comp, bp, assignment, instance_input);
+                assignment.enable_selector(lookup_selector_index, var_pos.exp_row);
+#endif
+
+                // Enable the copy constraints of exp
                 generate_copy_constraints(exp_comp, bp, assignment, instance_input, var_pos.exp_row);
 
                 // Finally, we have to put the min/max values into the constant columns
@@ -356,8 +381,8 @@ namespace nil {
                 const std::size_t start_row_index) {
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                assignment.constant(magic(var_pos.exp_min)) = component.get_exp_min();
-                assignment.constant(magic(var_pos.exp_max)) = component.get_exp_max();
+                assignment.constant(splat(var_pos.exp_min)) = component.get_exp_min();
+                assignment.constant(splat(var_pos.exp_max)) = component.get_exp_max();
             }
 
         }    // namespace components

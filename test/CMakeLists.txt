@@ -203,6 +203,9 @@ SET(FIXEDPOINT_TESTS_FILES
     "algebra/fixedpoint/plonk/cmp"
     "algebra/fixedpoint/plonk/ml"
     "algebra/fixedpoint/plonk/advanced_operations"
+    "algebra/fixedpoint/plonk/tester"
+    "algebra/fixedpoint/plonk/trigonometric"
+    "algebra/fixedpoint/plonk/boolean"
 )
 
 SET(ALGEBRA_TESTS_FILES

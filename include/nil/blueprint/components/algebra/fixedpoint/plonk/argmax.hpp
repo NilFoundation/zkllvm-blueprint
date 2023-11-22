@@ -10,6 +10,7 @@
 #include <nil/blueprint/basic_non_native_policy.hpp>
 
 #include "nil/blueprint/components/algebra/fixedpoint/type.hpp"
+#include "nil/blueprint/components/algebra/fixedpoint/lookup_tables/range.hpp"
 
 namespace nil {
     namespace blueprint {
@@ -19,7 +20,7 @@ namespace nil {
             // (https://github.com/onnx/onnx/blob/main/docs/Operators.md#ArgMax), the select_last_index attribute
             // decides what should happen during a tie. We set this attribute during initialization of the gadget, and
             // do *not* prove it.
-            // This gadget also assumes, that index_x < index_y!
+            // This gadget also assumes that index_x < index_y!
             // Index_y is a constant, while index_x is a witness.
 
             /**
@@ -80,6 +81,9 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                using range_table = fixedpoint_range_table<BlueprintFieldType>;
 
                 value_type index_y;
                 bool select_last_index;
@@ -96,7 +100,6 @@ namespace nil {
                     return manifest;
                 }
 
-                // TACEO_TODO Update to lookup tables
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     static manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(new manifest_range_param(4 + (m1 + m2), 10 + (m2 + m1))),
@@ -113,7 +116,8 @@ namespace nil {
                     }
                 }
 
-                constexpr static const std::size_t gates_amount = 1;
+                // Includes the constraints + lookup_gates
+                constexpr static const std::size_t gates_amount = 2;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, m1, m2);
 
                 struct input_type {
@@ -202,20 +206,36 @@ namespace nil {
 
                     result_type(const fix_argmax &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        max = var(magic(var_pos.max), false);
-                        index = var(magic(var_pos.index), false);
+                        max = var(splat(var_pos.max), false);
+                        index = var(splat(var_pos.index), false);
                     }
 
                     result_type(const fix_argmax &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        max = var(magic(var_pos.max), false);
-                        index = var(magic(var_pos.index), false);
+                        max = var(splat(var_pos.max), false);
+                        index = var(splat(var_pos.index), false);
                     }
 
                     std::vector<var> all_vars() const {
                         return {max, index};
                     }
                 };
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                    auto table = std::shared_ptr<lookup_table_definition>(new range_table());
+                    result.push_back(table);
+                    return result;
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables[range_table::FULL_TABLE_NAME] = 0;    // REQUIRED_TABLE
+                    return lookup_tables;
+                }
+#endif
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -261,9 +281,9 @@ namespace nil {
 
                 BLUEPRINT_RELEASE_ASSERT(index_x_val < index_y_val);
 
-                assignment.witness(magic(var_pos.x)) = x_val;
-                assignment.witness(magic(var_pos.y)) = y_val;
-                assignment.witness(magic(var_pos.index_x)) = index_x_val;
+                assignment.witness(splat(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.y)) = y_val;
+                assignment.witness(splat(var_pos.index_x)) = index_x_val;
 
                 // decomposition of difference
                 auto d_val = x_val - y_val;
@@ -274,7 +294,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(!sign_);
                 // is ok because d0_val is at least of size 4 and the biggest we have is 32.32
                 BLUEPRINT_RELEASE_ASSERT(d0_val.size() >= m);
-                assignment.witness(magic(var_pos.s)) = sign ? -one : one;
+                assignment.witness(splat(var_pos.s)) = sign ? -one : one;
 
                 // Additional limb due to potential overflow of d_val
                 if (d0_val.size() > m) {
@@ -291,25 +311,25 @@ namespace nil {
                 // equal, flag and max
                 bool eq = d_val == 0;
 
-                assignment.witness(magic(var_pos.eq)) = typename BlueprintFieldType::value_type((uint64_t)eq);
+                assignment.witness(splat(var_pos.eq)) = typename BlueprintFieldType::value_type((uint64_t)eq);
 
                 // if eq:  Does not matter what to put here
-                assignment.witness(magic(var_pos.inv)) = eq ? BlueprintFieldType::value_type::zero() : d_val.inversed();
+                assignment.witness(splat(var_pos.inv)) = eq ? BlueprintFieldType::value_type::zero() : d_val.inversed();
 
                 // Which component to we have
                 if (component.select_last_index) {
                     // We have to evaluate x > y
                     bool gt = !eq && !sign;
-                    assignment.witness(magic(var_pos.flag)) = typename BlueprintFieldType::value_type((uint64_t)gt);
-                    assignment.witness(magic(var_pos.max)) = gt ? x_val : y_val;
-                    assignment.witness(magic(var_pos.index)) = gt ? index_x_val : index_y_val;
+                    assignment.witness(splat(var_pos.flag)) = typename BlueprintFieldType::value_type((uint64_t)gt);
+                    assignment.witness(splat(var_pos.max)) = gt ? x_val : y_val;
+                    assignment.witness(splat(var_pos.index)) = gt ? index_x_val : index_y_val;
 
                 } else {
                     // We have to evaluate x >= y
                     bool geq = !sign || eq;
-                    assignment.witness(magic(var_pos.flag)) = typename BlueprintFieldType::value_type((uint64_t)geq);
-                    assignment.witness(magic(var_pos.max)) = geq ? x_val : y_val;
-                    assignment.witness(magic(var_pos.index)) = geq ? index_x_val : index_y_val;
+                    assignment.witness(splat(var_pos.flag)) = typename BlueprintFieldType::value_type((uint64_t)geq);
+                    assignment.witness(splat(var_pos.max)) = geq ? x_val : y_val;
+                    assignment.witness(splat(var_pos.index)) = geq ? index_x_val : index_y_val;
                 }
 
                 return typename plonk_fixedpoint_argmax<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -332,7 +352,7 @@ namespace nil {
 
                 auto m = component.get_m();
 
-                auto d0 = nil::crypto3::math::expression(var(magic(var_pos.d0)));
+                auto d0 = nil::crypto3::math::expression(var(splat(var_pos.d0)));
                 for (auto i = 1; i < m; i++) {
                     d0 += var(var_pos.d0.column() + i, var_pos.d0.row()) * (1ULL << (16 * i));
                 }
@@ -341,16 +361,16 @@ namespace nil {
                 tmp *= 1ULL << 16;
                 d0 += var(var_pos.d0.column() + m, var_pos.d0.row()) * tmp;
 
-                auto x = var(magic(var_pos.x));
-                auto y = var(magic(var_pos.y));
-                auto index_x = var(magic(var_pos.index_x));
-                auto index_y = var(magic(var_pos.index_y), true, var::column_type::constant);
-                auto max = var(magic(var_pos.max));
-                auto index = var(magic(var_pos.index));
-                auto flag = var(magic(var_pos.flag));
-                auto eq = var(magic(var_pos.eq));
-                auto inv = var(magic(var_pos.inv));
-                auto s = var(magic(var_pos.s));
+                auto x = var(splat(var_pos.x));
+                auto y = var(splat(var_pos.y));
+                auto index_x = var(splat(var_pos.index_x));
+                auto index_y = var(splat(var_pos.index_y), true, var::column_type::constant);
+                auto max = var(splat(var_pos.max));
+                auto index = var(splat(var_pos.index));
+                auto flag = var(splat(var_pos.flag));
+                auto eq = var(splat(var_pos.eq));
+                auto inv = var(splat(var_pos.inv));
+                auto s = var(splat(var_pos.s));
 
                 auto constraint_1 = x - y - s * d0;
                 auto constraint_2 = (s - 1) * (s + 1);
@@ -372,9 +392,45 @@ namespace nil {
                 auto constraint_6 = flag * (x - y) + y - max;
                 auto constraint_7 = flag * (index_x - index_y) + index_y - index;
 
-                // TACEO_TODO extend for lookup constraint
                 return bp.add_gate(
                     {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6, constraint_7});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gates(
+                const plonk_fixedpoint_argmax<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_argmax<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
+                const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
+                const auto var_pos = component.get_var_pos(start_row_index);
+                auto m_ = component.get_m() + 1;
+
+                const std::map<std::string, std::size_t> &lookup_tables_indices = bp.get_reserved_indices();
+
+                using var = typename plonk_fixedpoint_argmax<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using range_table =
+                    typename plonk_fixedpoint_argmax<BlueprintFieldType, ArithmetizationParams>::range_table;
+
+                std::vector<constraint_type> constraints;
+                constraints.reserve(m_);
+
+                auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
+
+                for (auto i = 0; i < m_; i++) {
+                    constraint_type constraint;
+                    constraint.table_id = table_id;
+
+                    // We put row=0 here and enable the selector in the correct one
+                    auto di = var(var_pos.d0.column() + i, 0);
+                    constraint.lookup_input = {di};
+                    constraints.push_back(constraint);
+                }
+
+                return bp.add_lookup_gate(constraints);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -391,9 +447,9 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_argmax<BlueprintFieldType, ArithmetizationParams>::var;
 
-                var x = var(magic(var_pos.x), false);
-                var y = var(magic(var_pos.y), false);
-                var index_x = var(magic(var_pos.index_x), false);
+                var x = var(splat(var_pos.x), false);
+                var y = var(splat(var_pos.y), false);
+                var index_x = var(splat(var_pos.index_x), false);
                 bp.add_copy_constraint({instance_input.x, x});
                 bp.add_copy_constraint({instance_input.y, y});
                 bp.add_copy_constraint({instance_input.index_x, index_x});
@@ -409,11 +465,17 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                // TACEO_TODO extend for lookup?
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 // selector goes onto last row and gate uses all rows
                 assignment.enable_selector(selector_index, start_row_index + component.rows_amount - 1);
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment, instance_input);
+                assignment.enable_selector(lookup_selector_index, var_pos.d0.row());
+#endif
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 generate_assignments_constant(component, assignment, instance_input, start_row_index);
@@ -433,7 +495,7 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                assignment.constant(magic(var_pos.index_y)) = component.index_y;
+                assignment.constant(splat(var_pos.index_y)) = component.index_y;
             }
 
         }    // namespace components

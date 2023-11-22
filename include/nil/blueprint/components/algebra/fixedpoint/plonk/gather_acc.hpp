@@ -115,12 +115,12 @@ namespace nil {
                     var output = var(0, 0, false);
                     result_type(const fix_gather_acc &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.acc), false);
+                        output = var(splat(var_pos.acc), false);
                     }
 
                     result_type(const fix_gather_acc &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.acc), false);
+                        output = var(splat(var_pos.acc), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -168,24 +168,24 @@ namespace nil {
                 auto index_a_val = var_value(assignment, instance_input.index_a);
                 auto index_b_val = component.index_b;
 
-                assignment.witness(magic(var_pos.prev_acc)) = prev_acc_val;
-                assignment.witness(magic(var_pos.data)) = data_val;
-                assignment.witness(magic(var_pos.index_a)) = index_a_val;
+                assignment.witness(splat(var_pos.prev_acc)) = prev_acc_val;
+                assignment.witness(splat(var_pos.data)) = data_val;
+                assignment.witness(splat(var_pos.index_a)) = index_a_val;
 
                 auto diff = index_a_val - index_b_val;
 
                 if (diff == 0) {
                     // Does not matter what to put into inv
-                    assignment.witness(magic(var_pos.inv)) = BlueprintFieldType::value_type::zero();
-                    assignment.witness(magic(var_pos.eq)) = BlueprintFieldType::value_type::one();
+                    assignment.witness(splat(var_pos.inv)) = BlueprintFieldType::value_type::zero();
+                    assignment.witness(splat(var_pos.eq)) = BlueprintFieldType::value_type::one();
 
                     auto new_acc_val = prev_acc_val + data_val;
-                    assignment.witness(magic(var_pos.acc)) = new_acc_val;
+                    assignment.witness(splat(var_pos.acc)) = new_acc_val;
                 } else {
                     auto inv_val = diff.inversed();
-                    assignment.witness(magic(var_pos.eq)) = BlueprintFieldType::value_type::zero();
-                    assignment.witness(magic(var_pos.inv)) = inv_val;
-                    assignment.witness(magic(var_pos.acc)) = prev_acc_val;
+                    assignment.witness(splat(var_pos.eq)) = BlueprintFieldType::value_type::zero();
+                    assignment.witness(splat(var_pos.inv)) = inv_val;
+                    assignment.witness(splat(var_pos.acc)) = prev_acc_val;
                 }
 
                 return typename plonk_fixedpoint_gather_acc<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -206,13 +206,13 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_gather_acc<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto acc = var(magic(var_pos.acc));
-                auto prev_acc = var(magic(var_pos.prev_acc));
-                auto data = var(magic(var_pos.data));
-                auto eq = var(magic(var_pos.eq));
-                auto inv = var(magic(var_pos.inv));
-                auto index_a = var(magic(var_pos.index_a));
-                auto index_b = var(magic(var_pos.index_b), true, var::column_type::constant);
+                auto acc = var(splat(var_pos.acc));
+                auto prev_acc = var(splat(var_pos.prev_acc));
+                auto data = var(splat(var_pos.data));
+                auto eq = var(splat(var_pos.eq));
+                auto inv = var(splat(var_pos.inv));
+                auto index_a = var(splat(var_pos.index_a));
+                auto index_b = var(splat(var_pos.index_b), true, var::column_type::constant);
 
                 auto diff = index_a - index_b;
                 auto constraint_1 = diff * eq;
@@ -249,9 +249,9 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_gather_acc<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto prev_acc = var(magic(var_pos.prev_acc), false);
-                auto data = var(magic(var_pos.data), false);
-                auto index_a = var(magic(var_pos.index_a), false);
+                auto prev_acc = var(splat(var_pos.prev_acc), false);
+                auto data = var(splat(var_pos.data), false);
+                auto index_a = var(splat(var_pos.index_a), false);
 
                 bp.add_copy_constraint({instance_input.prev_acc, prev_acc});
                 bp.add_copy_constraint({instance_input.data, data});
@@ -291,7 +291,7 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                assignment.constant(magic(var_pos.index_b)) = component.index_b;
+                assignment.constant(splat(var_pos.index_b)) = component.index_b;
             }
 
         }    // namespace components

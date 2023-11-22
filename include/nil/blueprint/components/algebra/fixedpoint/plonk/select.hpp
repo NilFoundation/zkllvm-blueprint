@@ -100,12 +100,12 @@ namespace nil {
                     var output = var(0, 0, false);
                     result_type(const fix_select &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(start_row_index);
-                        output = var(magic(var_pos.z), false);
+                        output = var(splat(var_pos.z), false);
                     }
 
                     result_type(const fix_select &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(start_row_index);
-                        output = var(magic(var_pos.z), false);
+                        output = var(splat(var_pos.z), false);
                     }
 
                     std::vector<var> all_vars() const {
@@ -156,10 +156,10 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(start_row_index);
 
                 // writing the values of the inputs/output to this gate's internal state variables
-                assignment.witness(magic(var_pos.c)) = c_val;
-                assignment.witness(magic(var_pos.x)) = x_val;
-                assignment.witness(magic(var_pos.y)) = y_val;
-                assignment.witness(magic(var_pos.z)) = z_val;
+                assignment.witness(splat(var_pos.c)) = c_val;
+                assignment.witness(splat(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.y)) = y_val;
+                assignment.witness(splat(var_pos.z)) = z_val;
 
                 return typename plonk_fixedpoint_select<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -180,10 +180,10 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto c = var(magic(var_pos.c));
-                auto x = var(magic(var_pos.x));
-                auto y = var(magic(var_pos.y));
-                auto z = var(magic(var_pos.z));
+                auto c = var(splat(var_pos.c));
+                auto x = var(splat(var_pos.x));
+                auto y = var(splat(var_pos.y));
+                auto z = var(splat(var_pos.z));
 
                 // Output: z = c == true ? x : y
                 // is equivalent to: z = c * (x - y) + y
@@ -207,9 +207,9 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto c = var(magic(var_pos.c), false);
-                auto x = var(magic(var_pos.x), false);
-                auto y = var(magic(var_pos.y), false);
+                auto c = var(splat(var_pos.c), false);
+                auto x = var(splat(var_pos.x), false);
+                auto y = var(splat(var_pos.y), false);
 
                 bp.add_copy_constraint({instance_input.c, c});
                 bp.add_copy_constraint({instance_input.x, x});

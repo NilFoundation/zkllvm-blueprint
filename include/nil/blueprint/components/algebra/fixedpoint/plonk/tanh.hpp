@@ -138,11 +138,13 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
+                using lookup_table_definition =
+                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
                     std::uint32_t gates_amount() const override {
-                        return 4;
+                        return fix_tanh::gates_amount;
                     }
                 };
 
@@ -171,6 +173,8 @@ namespace nil {
                            div_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2) + 1;
                 }
 
+                constexpr static const std::size_t gates_amount =
+                    exp_component::gates_amount + div_component::gates_amount + range_component::gates_amount + 1;
                 const std::size_t rows_amount =
                     get_rows_amount(this->witness_amount(), 0, range.get_m1(), range.get_m2());
 
@@ -235,18 +239,31 @@ namespace nil {
                     var output = var(0, 0, false);
                     result_type(const fix_tanh &component, std::uint32_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.y), false);
+                        output = var(splat(var_pos.y), false);
                     }
 
                     result_type(const fix_tanh &component, std::size_t start_row_index) {
                         const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                        output = var(magic(var_pos.y), false);
+                        output = var(splat(var_pos.y), false);
                     }
 
                     std::vector<var> all_vars() const {
                         return {output};
                     }
                 };
+
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
+                    // includes all required ones
+                    return exp.component_custom_lookup_tables();
+                }
+
+                std::map<std::string, std::size_t> component_lookup_tables() {
+                    // includes all required ones
+                    return exp.component_lookup_tables();
+                }
+#endif
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -291,13 +308,13 @@ namespace nil {
                 // Exp input
                 typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::exp_component::input_type
                     exp_input;
-                exp_input.x = var(magic(var_pos.exp_x), false);
+                exp_input.x = var(splat(var_pos.exp_x), false);
 
                 // Div input
                 typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::div_component::input_type
                     div_input;
-                div_input.x = var(magic(var_pos.div_x), false);
-                div_input.y = var(magic(var_pos.div_y), false);
+                div_input.x = var(splat(var_pos.div_x), false);
+                div_input.y = var(splat(var_pos.div_y), false);
 
                 // Range input
                 typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::range_component::input_type
@@ -310,7 +327,7 @@ namespace nil {
                 auto x_val = var_value(assignment, instance_input.x);
 
                 // Assign range gadget
-                assignment.witness(magic(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.x)) = x_val;
 
                 auto range_out = generate_assignments(range_comp, assignment, range_input, var_pos.range_row);
 
@@ -320,28 +337,28 @@ namespace nil {
 
                 // Assign exp gadget
                 auto exp_x_val = x_val * 2 * in_val;
-                assignment.witness(magic(var_pos.exp_x)) = exp_x_val;
+                assignment.witness(splat(var_pos.exp_x)) = exp_x_val;
 
                 auto exp_out = generate_assignments(exp_comp, assignment, exp_input, var_pos.exp_row);
 
                 auto exp_y_val = var_value(assignment, exp_out.output);
-                assignment.witness(magic(var_pos.exp_y)) = exp_y_val;
+                assignment.witness(splat(var_pos.exp_y)) = exp_y_val;
 
                 // Assign div gadget
                 auto one = typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::value_type(
                     div_comp.get_delta());
                 auto div_x_val = exp_y_val - one;
                 auto div_y_val = exp_y_val + one;
-                assignment.witness(magic(var_pos.div_x)) = div_x_val;
-                assignment.witness(magic(var_pos.div_y)) = div_y_val;
+                assignment.witness(splat(var_pos.div_x)) = div_x_val;
+                assignment.witness(splat(var_pos.div_y)) = div_y_val;
 
                 auto div_out = generate_assignments(div_comp, assignment, div_input, var_pos.div_row);
 
                 auto div_z_val = var_value(assignment, div_out.output);
-                assignment.witness(magic(var_pos.div_z)) = div_z_val;
+                assignment.witness(splat(var_pos.div_z)) = div_z_val;
 
                 auto y_val = div_z_val * in_val + component.get_tanh_min() * lt_val + component.get_tanh_max() * gt_val;
-                assignment.witness(magic(var_pos.y)) = y_val;
+                assignment.witness(splat(var_pos.y)) = y_val;
 
                 return typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -367,16 +384,16 @@ namespace nil {
                                                                                              static_cast<std::size_t>(
                                                                                                  var_pos.range_row));
 
-                auto x = var(magic(var_pos.x));
-                auto y = var(magic(var_pos.y));
-                auto exp_x = var(magic(var_pos.exp_x));
-                auto exp_y = var(magic(var_pos.exp_y));
-                auto div_x = var(magic(var_pos.div_x));
-                auto div_y = var(magic(var_pos.div_y));
-                auto div_z = var(magic(var_pos.div_z));
+                auto x = var(splat(var_pos.x));
+                auto y = var(splat(var_pos.y));
+                auto exp_x = var(splat(var_pos.exp_x));
+                auto exp_y = var(splat(var_pos.exp_y));
+                auto div_x = var(splat(var_pos.div_x));
+                auto div_y = var(splat(var_pos.div_y));
+                auto div_z = var(splat(var_pos.div_z));
 
-                auto const_min = var(magic(var_pos.const_min), true, var::column_type::constant);
-                auto const_max = var(magic(var_pos.const_max), true, var::column_type::constant);
+                auto const_min = var(splat(var_pos.const_min), true, var::column_type::constant);
+                auto const_max = var(splat(var_pos.const_max), true, var::column_type::constant);
 
                 auto in = range_res.in;
                 auto lt = range_res.lt;
@@ -424,9 +441,9 @@ namespace nil {
                                                    ArithmetizationParams>::div_component::result_type(div_comp,
                                                                                                       div_row);
 
-                auto x = var(magic(var_pos.x));
-                auto exp_y = var(magic(var_pos.exp_y));
-                auto div_z = var(magic(var_pos.div_z));
+                auto x = var(splat(var_pos.x));
+                auto exp_y = var(splat(var_pos.exp_y));
+                auto div_z = var(splat(var_pos.div_z));
 
                 bp.add_copy_constraint({instance_input.x, x});
                 bp.add_copy_constraint({exp_res.output, exp_y});
@@ -454,13 +471,13 @@ namespace nil {
                 // Exp input
                 typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::exp_component::input_type
                     exp_input;
-                exp_input.x = var(magic(var_pos.exp_x), false);
+                exp_input.x = var(splat(var_pos.exp_x), false);
 
                 // Div input
                 typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::div_component::input_type
                     div_input;
-                div_input.x = var(magic(var_pos.div_x), false);
-                div_input.y = var(magic(var_pos.div_y), false);
+                div_input.x = var(splat(var_pos.div_x), false);
+                div_input.y = var(splat(var_pos.div_y), false);
 
                 // Range input
                 typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::range_component::input_type
@@ -497,8 +514,8 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                assignment.constant(magic(var_pos.const_min)) = component.get_tanh_min();
-                assignment.constant(magic(var_pos.const_max)) = component.get_tanh_max();
+                assignment.constant(splat(var_pos.const_min)) = component.get_tanh_min();
+                assignment.constant(splat(var_pos.const_max)) = component.get_tanh_max();
             }
 
         }    // namespace components
