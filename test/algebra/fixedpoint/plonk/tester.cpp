@@ -710,6 +710,39 @@ void add_cos(ComponentType &component, FixedType input) {
                            FixedType::M_2);
 }
 
+template<typename FixedType, typename ComponentType>
+void add_sign_abs(ComponentType &component, FixedType input) {
+
+    double input_f = input.to_double();
+    double expected_res_abs_f = fabs(input_f);
+    int sign_f = input_f < 0 ? -1 : 1;
+    bool eq_f = expected_res_abs_f < pow(2., -FixedType::SCALE);
+    int expected_res_sign_f = eq_f ? 0 : sign_f;
+
+    auto zero = FixedType(0, FixedType::SCALE);
+    auto expected_res_abs = input.abs();
+    int sign = input < zero ? -1 : 1;
+    bool eq = input == zero;
+    int expected_res_sign = eq ? 0 : sign;
+
+    BLUEPRINT_RELEASE_ASSERT(doubleEquals(expected_res_abs_f, expected_res_abs.to_double(), EPSILON));
+    BLUEPRINT_RELEASE_ASSERT(expected_res_sign_f == expected_res_sign);
+
+    typename FixedType::value_type expected_res_sign_field = 0;
+    if (expected_res_sign < 0) {
+        expected_res_sign_field = -typename FixedType::value_type(-expected_res_sign);
+    } else {
+        expected_res_sign_field = expected_res_sign;
+    }
+
+    std::vector<typename FixedType::value_type> inputs = {input.get_value()};
+    std::vector<typename FixedType::value_type> outputs = {expected_res_abs.get_value(), expected_res_sign_field};
+    std::vector<typename FixedType::value_type> constants = {};
+
+    component.add_testcase(blueprint::components::FixedPointComponents::SIGN_ABS, inputs, outputs, constants,
+                           FixedType::M_1, FixedType::M_2);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -823,6 +856,7 @@ void test_components_unary_basic(ComponentType &component, int i) {
     // BASIC
     add_rescale<FixedType, ComponentType>(component, FixedType(x.get_value() * FixedType::DELTA, FixedType::SCALE * 2));
     add_neg<FixedType, ComponentType>(component, x);
+    add_sign_abs<FixedType, ComponentType>(component, x);
     add_int_to_fixedpoint<FixedType, ComponentType>(component, (int64_t)i);
 
     // EXP
@@ -937,6 +971,7 @@ void test_components_on_random_data(ComponentType &component, RngType &rng) {
     add_mul_rescale<FixedType, ComponentType>(component, x, y);
     add_mul_rescale_const<FixedType, ComponentType>(component, x, y);
     add_neg<FixedType, ComponentType>(component, x);
+    add_sign_abs<FixedType, ComponentType>(component, x);
     add_int_to_fixedpoint<FixedType, ComponentType>(component, integer);
     if (y.get_value() != 0) {
         add_div<FixedType, ComponentType>(component, x, y);
@@ -1131,7 +1166,7 @@ void field_operations_test_inner(ComponentType &component) {
 #define macro_component_setup()                                                                                        \
     constexpr std::size_t WitnessColumns = 15;                                                                         \
     constexpr std::size_t PublicInputColumns = 1;                                                                      \
-    constexpr std::size_t ConstantColumns = 30;                                                                        \
+    constexpr std::size_t ConstantColumns = 50;                                                                        \
     constexpr std::size_t SelectorColumns = 70;                                                                        \
     using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, \
                                                                                    ConstantColumns, SelectorColumns>;  \

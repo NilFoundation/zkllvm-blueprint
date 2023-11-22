@@ -139,6 +139,7 @@ namespace nil {
                 FixedPoint operator%(const FixedPoint &other) const;
                 FixedPoint operator-() const;
 
+                FixedPoint abs() const;
                 FixedPoint exp(bool ranged = false) const;
                 FixedPoint sqrt(bool floor = false) const;    // rounds per default
                 FixedPoint log() const;
@@ -569,10 +570,17 @@ namespace nil {
                 if (M1 == 2 && M2 == 2) {
                     return (FixedPoint((uint64_t)(-1), SCALE));
                 } else if (M1 + M2 < 4) {
-                    return (FixedPoint((uint64_t)(1ULL << (16 * (M1 + M2)) - 1), SCALE));
+                    return (FixedPoint((uint64_t)((1ULL << (16 * (M1 + M2))) - 1), SCALE));
                 }
                 BLUEPRINT_RELEASE_ASSERT(false);
                 return FixedPoint(0, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::abs() const {
+                auto a_abs = value;
+                bool sign_a = helper::abs(a_abs);
+                return FixedPoint(a_abs, scale);
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
