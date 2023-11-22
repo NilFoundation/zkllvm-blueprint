@@ -31,6 +31,7 @@
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/tanh.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/sin.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/cos.hpp"
+#include <nil/blueprint/components/algebra/fixedpoint/plonk/sign_abs.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -61,6 +62,7 @@ namespace nil {
                 REM,
                 RESCALE,
                 SELECT,
+                SIGN_ABS,
                 SIN,
                 SQRT,
                 SQRT_FLOOR,
@@ -204,6 +206,9 @@ namespace nil {
                         case FixedPointComponents::SELECT:
                             component_rows = macro_rows_amount(fix_select);
                             break;
+                        case FixedPointComponents::SIGN_ABS:
+                            component_rows = macro_rows_amount(fix_sign_abs);
+                            break;
                         case FixedPointComponents::SIN:
                             component_rows = macro_rows_amount(fix_sin, m1, m2);
                             break;
@@ -331,6 +336,7 @@ namespace nil {
                         case FixedPointComponents::RANGE:
                         case FixedPointComponents::REM:
                         case FixedPointComponents::RESCALE:
+                        case FixedPointComponents::SIGN_ABS:
                         case FixedPointComponents::SIN:
                         case FixedPointComponents::SQRT:
                         case FixedPointComponents::SQRT_FLOOR:
@@ -726,6 +732,10 @@ namespace nil {
                             macro_assigner_3_inputs(fix_select, 0);
                             break;
                         }
+                        case FixedPointComponents::SIGN_ABS: {
+                            macro_assigner_1_input(fix_sign_abs, 0, m1, m2);
+                            break;
+                        }
                         case FixedPointComponents::SIN: {
                             macro_assigner_1_input(fix_sin, 0, m1, m2);
                             break;
@@ -760,7 +770,8 @@ namespace nil {
                         BLUEPRINT_RELEASE_ASSERT(var_value(assignment, vars[i]) == outputs[i]);
                     }
 
-                    // std::cout << "Component " << component_name << " (" << (int)m1 << ", " << (int)m2 << ") at row " << current_row_index << " with " << component_rows + input_output_rows << " rows"   << std::endl;
+                    // std::cout << "Component " << component_name << " (" << (int)m1 << ", " << (int)m2 << ") at row "
+                    // << current_row_index << " with " << component_rows + input_output_rows << " rows"   << std::endl;
 
                     current_row_index += component_rows + input_output_rows;
                 }
@@ -907,6 +918,10 @@ namespace nil {
                         }
                         case FixedPointComponents::SELECT: {
                             macro_circuit_3_inputs(fix_select, 0);
+                            break;
+                        }
+                        case FixedPointComponents::SIGN_ABS: {
+                            macro_circuit_1_input(fix_sign_abs, 0, m1, m2);
                             break;
                         }
                         case FixedPointComponents::SIN: {
