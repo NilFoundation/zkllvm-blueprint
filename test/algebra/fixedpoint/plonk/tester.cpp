@@ -743,6 +743,38 @@ void add_sign_abs(ComponentType &component, FixedType input) {
                            FixedType::M_1, FixedType::M_2);
 }
 
+template<typename FixedType, typename ComponentType>
+void add_ceil(ComponentType &component, FixedType input) {
+
+    double expected_res_f = ceil(input.to_double());
+    auto expected_res = input.ceil();
+
+    BLUEPRINT_RELEASE_ASSERT(doubleEquals(expected_res_f, expected_res.to_double(), EPSILON));
+
+    std::vector<typename FixedType::value_type> inputs = {input.get_value()};
+    std::vector<typename FixedType::value_type> outputs = {expected_res.get_value()};
+    std::vector<typename FixedType::value_type> constants = {};
+
+    component.add_testcase(blueprint::components::FixedPointComponents::CEIL, inputs, outputs, constants,
+                           FixedType::M_1, FixedType::M_2);
+}
+
+template<typename FixedType, typename ComponentType>
+void add_floor(ComponentType &component, FixedType input) {
+
+    double expected_res_f = floor(input.to_double());
+    auto expected_res = input.floor();
+
+    BLUEPRINT_RELEASE_ASSERT(doubleEquals(expected_res_f, expected_res.to_double(), EPSILON));
+
+    std::vector<typename FixedType::value_type> inputs = {input.get_value()};
+    std::vector<typename FixedType::value_type> outputs = {expected_res.get_value()};
+    std::vector<typename FixedType::value_type> constants = {};
+
+    component.add_testcase(blueprint::components::FixedPointComponents::FLOOR, inputs, outputs, constants,
+                           FixedType::M_1, FixedType::M_2);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -857,6 +889,8 @@ void test_components_unary_basic(ComponentType &component, int i) {
     add_rescale<FixedType, ComponentType>(component, FixedType(x.get_value() * FixedType::DELTA, FixedType::SCALE * 2));
     add_neg<FixedType, ComponentType>(component, x);
     add_sign_abs<FixedType, ComponentType>(component, x);
+    add_ceil<FixedType, ComponentType>(component, x);
+    add_floor<FixedType, ComponentType>(component, x);
     add_int_to_fixedpoint<FixedType, ComponentType>(component, (int64_t)i);
 
     // EXP
@@ -972,6 +1006,8 @@ void test_components_on_random_data(ComponentType &component, RngType &rng) {
     add_mul_rescale_const<FixedType, ComponentType>(component, x, y);
     add_neg<FixedType, ComponentType>(component, x);
     add_sign_abs<FixedType, ComponentType>(component, x);
+    add_ceil<FixedType, ComponentType>(component, x);
+    add_floor<FixedType, ComponentType>(component, x);
     add_int_to_fixedpoint<FixedType, ComponentType>(component, integer);
     if (y.get_value() != 0) {
         add_div<FixedType, ComponentType>(component, x, y);
@@ -1043,6 +1079,9 @@ void test_components_on_post_comma_random_data(ComponentType &component, RngType
     add_mul_rescale<FixedType, ComponentType>(component, x, y);
     add_mul_rescale_const<FixedType, ComponentType>(component, x, y);
     add_neg<FixedType, ComponentType>(component, x);
+    add_sign_abs<FixedType, ComponentType>(component, x);
+    add_ceil<FixedType, ComponentType>(component, x);
+    add_floor<FixedType, ComponentType>(component, x);
     if (y.get_value() != 0) {
         add_div<FixedType, ComponentType>(component, x, y);
         add_mod<FixedType, ComponentType>(component, x, y);
@@ -1086,6 +1125,10 @@ void test_components_on_post_comma_random_data(ComponentType &component, RngType
     add_gather_acc<FixedType, ComponentType>(component, x, y, index_a, index_b);
     add_argmax<FixedType, ComponentType>(component, x, y, index_a, index_b);
     add_argmin<FixedType, ComponentType>(component, x, y, index_a, index_b);
+
+    // TRIGON
+    add_sin<FixedType, ComponentType>(component, x);
+    add_cos<FixedType, ComponentType>(component, x);
 }
 
 template<typename FixedType, typename ComponentType>
