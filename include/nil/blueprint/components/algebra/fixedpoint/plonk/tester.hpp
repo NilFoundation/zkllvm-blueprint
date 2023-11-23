@@ -32,6 +32,8 @@
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/sin.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/cos.hpp"
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/sign_abs.hpp>
+#include <nil/blueprint/components/algebra/fixedpoint/plonk/ceil.hpp>
+#include <nil/blueprint/components/algebra/fixedpoint/plonk/floor.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -41,6 +43,7 @@ namespace nil {
                 ADD,
                 ARGMAX,
                 ARGMIN,
+                CEIL,
                 CMP,
                 CMP_EXTENDED,
                 CMP_MIN_MAX,
@@ -51,6 +54,7 @@ namespace nil {
                 DOT_RESCALE2,
                 EXP,
                 EXP_RANGED,
+                FLOOR,
                 GATHER_ACC,
                 LOG,
                 MAX,
@@ -141,6 +145,9 @@ namespace nil {
                         case FixedPointComponents::ARGMIN:
                             component_rows = macro_rows_amount(fix_argmin, m1, m2);
                             break;
+                        case FixedPointComponents::CEIL:
+                            component_rows = macro_rows_amount(fix_ceil);
+                            break;
                         case FixedPointComponents::CMP:
                             component_rows = macro_rows_amount(fix_cmp);
                             break;
@@ -172,6 +179,9 @@ namespace nil {
                             break;
                         case FixedPointComponents::EXP_RANGED:
                             component_rows = macro_rows_amount(fix_exp_ranged, m1, m2);
+                            break;
+                        case FixedPointComponents::FLOOR:
+                            component_rows = macro_rows_amount(fix_floor);
                             break;
                         case FixedPointComponents::GATHER_ACC:
                             component_rows = macro_rows_amount(fix_gather_acc);
@@ -318,6 +328,7 @@ namespace nil {
                     switch (component) {
                         case FixedPointComponents::ARGMAX:
                         case FixedPointComponents::ARGMIN:
+                        case FixedPointComponents::CEIL:
                         case FixedPointComponents::CMP:
                         case FixedPointComponents::CMP_EXTENDED:
                         case FixedPointComponents::CMP_MIN_MAX:
@@ -328,6 +339,7 @@ namespace nil {
                         case FixedPointComponents::DOT_RESCALE2:
                         case FixedPointComponents::EXP:
                         case FixedPointComponents::EXP_RANGED:
+                        case FixedPointComponents::FLOOR:
                         case FixedPointComponents::LOG:
                         case FixedPointComponents::MAX:
                         case FixedPointComponents::MIN:
@@ -642,6 +654,10 @@ namespace nil {
                             macro_assigner_3_inputs(fix_argmin, 2, m1, m2, constants[0], select_last_index);
                             break;
                         }
+                        case FixedPointComponents::CEIL: {
+                            macro_assigner_1_input(fix_ceil, 0, m1, m2);
+                            break;
+                        }
                         case FixedPointComponents::CMP: {
                             macro_assigner_2_inputs(fix_cmp, 0, m1, m2);
                             break;
@@ -686,6 +702,10 @@ namespace nil {
                         }
                         case FixedPointComponents::EXP_RANGED: {
                             macro_assigner_1_input(fix_exp_ranged, 0, m1, m2);
+                            break;
+                        }
+                        case FixedPointComponents::FLOOR: {
+                            macro_assigner_1_input(fix_floor, 0, m1, m2);
                             break;
                         }
                         case FixedPointComponents::GATHER_ACC: {
@@ -830,6 +850,10 @@ namespace nil {
                             macro_circuit_3_inputs(fix_argmin, 2, m1, m2, constants[0], select_last_index);
                             break;
                         }
+                        case FixedPointComponents::CEIL: {
+                            macro_circuit_1_input(fix_ceil, 0, m1, m2);
+                            break;
+                        }
                         case FixedPointComponents::CMP: {
                             macro_circuit_2_inputs(fix_cmp, 0, m1, m2);
                             break;
@@ -874,6 +898,10 @@ namespace nil {
                         }
                         case FixedPointComponents::EXP_RANGED: {
                             macro_circuit_1_input(fix_exp_ranged, 0, m1, m2);
+                            break;
+                        }
+                        case FixedPointComponents::FLOOR: {
+                            macro_circuit_1_input(fix_floor, 0, m1, m2);
                             break;
                         }
                         case FixedPointComponents::GATHER_ACC: {

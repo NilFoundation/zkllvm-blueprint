@@ -140,6 +140,8 @@ namespace nil {
                 FixedPoint operator-() const;
 
                 FixedPoint abs() const;
+                FixedPoint ceil() const;
+                FixedPoint floor() const;
                 FixedPoint exp(bool ranged = false) const;
                 FixedPoint sqrt(bool floor = false) const;    // rounds per default
                 FixedPoint log() const;
@@ -581,6 +583,32 @@ namespace nil {
                 auto a_abs = value;
                 bool sign_a = helper::abs(a_abs);
                 return FixedPoint(a_abs, scale);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::ceil() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+                uint64_t pre, post;
+                bool sign = helper::split_exp(value + (DELTA - 1), scale, pre, post);
+                auto value = FixedPoint::value_type(pre * DELTA);
+                if (sign) {
+                    return FixedPoint(-value, SCALE);
+                } else {
+                    return FixedPoint(value, SCALE);
+                }
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::floor() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+                uint64_t pre, post;
+                bool sign = helper::split_exp(value, scale, pre, post);
+                auto value = FixedPoint::value_type(pre * DELTA);
+                if (sign) {
+                    return FixedPoint(-value, SCALE);
+                } else {
+                    return FixedPoint(value, SCALE);
+                }
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
