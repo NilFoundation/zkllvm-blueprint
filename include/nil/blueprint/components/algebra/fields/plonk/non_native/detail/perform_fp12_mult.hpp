@@ -31,15 +31,6 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERFORM_FP12_MULT_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERFORM_FP12_MULT_HPP
 
-/*
-#include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
-
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/component.hpp>
-#include <nil/blueprint/manifest.hpp>
-*/
-
 namespace nil {
     namespace blueprint {
         namespace components {
