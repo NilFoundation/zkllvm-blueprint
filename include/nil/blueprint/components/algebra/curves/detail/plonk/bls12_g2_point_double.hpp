@@ -172,7 +172,7 @@ namespace nil {
                             nu = yP - lambda*xP,
                             xR = lambda.pow(2) - 2*xP,
                             yR = -(lambda*xR + nu),
-                            zero_check = (xP * yP).inversed();
+                            zero_check = yP.inversed();
 
                 for(std::size_t i = 0; i < 2; i++) {
                     assignment.witness(component.W(i),start_row_index) = xP.data[i];
@@ -214,9 +214,9 @@ namespace nil {
                 // (2yP)^2 (xR + 2xP) - (3xP^2)^2 = 0
                 // (2yP) (yR + yP) + (3xP^2)(xR - xP) = 0
                 // Additional constraint to assure that the double of (0,0) is (0,0):
-                // ZC * xP^2 * yP^2 - xP * yP = 0
-                // ZC * xP * yP * xR - ZC * xP * yP = 0
-                // ZC * xP * yP * yR - ZC * xP * yP = 0
+                // ZC * yP^2 -  yP = 0
+                // ZC * yP * xR - ZC * yP = 0
+                // ZC * yP * yR - ZC * yP = 0
 
                 C1 = perform_fp2_sub(
                    perform_fp2_mult(
@@ -239,13 +239,10 @@ namespace nil {
                        )
                      );
 
-                C3 = perform_fp2_sub(
-                       perform_fp2_mult(ZC,perform_fp2_mult(perform_fp2_mult(xP,yP),perform_fp2_mult(xP,yP))),
-                       perform_fp2_mult(xP,yP)
-                     );
+                C3 = perform_fp2_sub( perform_fp2_mult(ZC,perform_fp2_mult(yP,yP)), yP);
 
-                C4 = perform_fp2_sub( xR, perform_fp2_mult(perform_fp2_mult(ZC,xR),perform_fp2_mult(xP,yP)));
-                C5 = perform_fp2_sub( yR, perform_fp2_mult(perform_fp2_mult(ZC,yR),perform_fp2_mult(xP,yP)));
+                C4 = perform_fp2_sub( xR, perform_fp2_mult(perform_fp2_mult(ZC,xR),yP));
+                C5 = perform_fp2_sub( yR, perform_fp2_mult(perform_fp2_mult(ZC,yR),yP));
 
                 std::vector<constraint_type> Cs = {};
                 for(std::size_t i = 0; i < 2; i++) {
