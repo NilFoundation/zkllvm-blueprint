@@ -39,36 +39,13 @@
 #include <nil/crypto3/algebra/fields/detail/element/fp2.hpp>
 #include <nil/crypto3/algebra/fields/fp2.hpp>
 
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp2.hpp>
+
 namespace nil {
     namespace blueprint {
         namespace components {
-            namespace detail {
-                // actually compute bilinear forms that represent multiplication in F_p^2
-                template<typename T>
-                std::array<T,2> perform_fp2_mult(std::array<T,2> a, std::array<T,2> b) {
-                    std::array<T,2> c = {a[0]*b[0] - a[1]*b[1], a[0]*b[1] + a[1]*b[0]};
-                    return c;
-                }
-
-                template<typename T>
-                std::array<T,2> perform_fp2_add(std::array<T,2> a, std::array<T,2> b) {
-                    std::array<T,2> c = {a[0] + b[0], a[1] + b[1]};
-                    return c;
-                }
-
-                template<typename T>
-                std::array<T,2> perform_fp2_sub(std::array<T,2> a, std::array<T,2> b) {
-                    std::array<T,2> c = {a[0] - b[0], a[1] - b[1]};
-                    return c;
-                }
-
-                template<typename T>
-                std::array<T,2> perform_fp2_scale(std::array<T,2> a, int x) {
-                    std::array<T,2> c = {a[0]*x, a[1]*x};
-                    return c;
-                }
-            } // namespace detail
-            // E'(F_p^2) : y^2 = x^3 + 4(1+u) point doubling gate
+            // E'(F_p^2) : y^2 = x^3 + 4(1+u) point doubling gate.
+            // Expects point at infinity encoded by (0,0) in input and outputs (0,0) for its double
             // Input: (xP, yP) = P[4]
             // Output: (xR, yR) = R[4], R = [2]P as element of E'(F_p^2)
 
@@ -107,7 +84,7 @@ namespace nil {
 
                 static manifest_type get_manifest() {
                     static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(8)),
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(10)),
                         false
                     );
                     return manifest;
@@ -136,7 +113,7 @@ namespace nil {
 
                     result_type(const bls12_g2_point_double &component, std::uint32_t start_row_index) {
                         for(std::size_t i = 0; i < 4; i++) {
-                            R[i] = var(component.W(i+4), start_row_index, false, var::column_type::witness);
+                            R[i] = var(component.W(i+6), start_row_index, false, var::column_type::witness);
                         }
                     }
 
@@ -190,21 +167,19 @@ namespace nil {
                 fp2_element xP = fp2_element(var_value(assignment, instance_input.P[0]),
                                              var_value(assignment, instance_input.P[1])),
                             yP = fp2_element(var_value(assignment, instance_input.P[2]),
-                                             var_value(assignment, instance_input.P[3]));
-                fp2_element xR, yR, lambda, nu;
-
-                for(std::size_t i = 0; i < 4; i++) {
-                    assignment.witness(component.W(i),start_row_index) = var_value(assignment, instance_input.P[i]);
-                }
-
-                lambda = 3*xP.pow(2) / (2*yP);
-                nu = yP - lambda*xP;
-                xR = lambda.pow(2) - 2*xP;
-                yR = -(lambda*xR + nu);
+                                             var_value(assignment, instance_input.P[3])),
+                            lambda = 3*xP.pow(2) / (2*yP), // apparently division by 0 is defined as 0 to avoid exceptions
+                            nu = yP - lambda*xP,
+                            xR = lambda.pow(2) - 2*xP,
+                            yR = -(lambda*xR + nu),
+                            zero_check = (xP * yP).inversed();
 
                 for(std::size_t i = 0; i < 2; i++) {
-                    assignment.witness(component.W(4 + i),start_row_index) = xR.data[i];
-                    assignment.witness(component.W(6 + i),start_row_index) = yR.data[i];
+                    assignment.witness(component.W(i),start_row_index) = xP.data[i];
+                    assignment.witness(component.W(2 + i),start_row_index) = yP.data[i];
+                    assignment.witness(component.W(4 + i),start_row_index) = zero_check.data[i];
+                    assignment.witness(component.W(6 + i),start_row_index) = xR.data[i];
+                    assignment.witness(component.W(8 + i),start_row_index) = yR.data[i];
                 }
 
                 return typename plonk_bls12_g2_point_double<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -223,13 +198,14 @@ namespace nil {
                 using var = typename plonk_bls12_g2_point_double<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
-                std::array<constraint_type,2> xP, yP, xR, yR, C1, C2;
+                std::array<constraint_type,2> xP, yP, ZC, xR, yR, C1, C2, C3, C4, C5;
 
                 for(std::size_t i = 0; i < 2; i++) {
                     xP[i] = var(component.W(i), 0, true);
                     yP[i] = var(component.W(i+2), 0, true);
-                    xR[i] = var(component.W(i+4), 0, true);
-                    yR[i] = var(component.W(i+6), 0, true);
+                    ZC[i] = var(component.W(i+4), 0, true);
+                    xR[i] = var(component.W(i+6), 0, true);
+                    yR[i] = var(component.W(i+8), 0, true);
                 }
                 // the defining equations are
                 // xR = (3xP^2 / 2yP)^2 - 2xP
@@ -237,6 +213,10 @@ namespace nil {
                 // We transform them into constraints:
                 // (2yP)^2 (xR + 2xP) - (3xP^2)^2 = 0
                 // (2yP) (yR + yP) + (3xP^2)(xR - xP) = 0
+                // Additional constraint to assure that the double of (0,0) is (0,0):
+                // ZC * xP^2 * yP^2 - xP * yP = 0
+                // ZC * xP * yP * xR - ZC * xP * yP = 0
+                // ZC * xP * yP * yR - ZC * xP * yP = 0
 
                 C1 = perform_fp2_sub(
                    perform_fp2_mult(
@@ -259,10 +239,21 @@ namespace nil {
                        )
                      );
 
+                C3 = perform_fp2_sub(
+                       perform_fp2_mult(ZC,perform_fp2_mult(perform_fp2_mult(xP,yP),perform_fp2_mult(xP,yP))),
+                       perform_fp2_mult(xP,yP)
+                     );
+
+                C4 = perform_fp2_sub( xR, perform_fp2_mult(perform_fp2_mult(ZC,xR),perform_fp2_mult(xP,yP)));
+                C5 = perform_fp2_sub( yR, perform_fp2_mult(perform_fp2_mult(ZC,yR),perform_fp2_mult(xP,yP)));
+
                 std::vector<constraint_type> Cs = {};
                 for(std::size_t i = 0; i < 2; i++) {
                     Cs.push_back(C1[i]);
                     Cs.push_back(C2[i]);
+                    Cs.push_back(C3[i]);
+                    Cs.push_back(C4[i]);
+                    Cs.push_back(C5[i]);
                 }
                 return bp.add_gate(Cs);
             }

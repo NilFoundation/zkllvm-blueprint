@@ -51,7 +51,7 @@ void test_bls12_g2_doubling(std::vector<typename CurveType::base_field_type::val
     using curve_type = CurveType;
     using BlueprintFieldType = typename curve_type::g2_type<>::field_type::base_field_type;
 
-    constexpr std::size_t WitnessColumns = 8;
+    constexpr std::size_t WitnessColumns = 10;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
@@ -89,7 +89,7 @@ void test_bls12_g2_doubling(std::vector<typename CurveType::base_field_type::val
         assert(expected_y.data[1] == var_value(assignment, real_res.R[3]));
     };
 
-    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7},{},{});
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9},{},{});
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
@@ -108,23 +108,76 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_bls12_g2_test_381) {
     typedef typename group_type::field_type::value_type field_value_type;
     typedef typename group_type::field_type::integral_type integral_type;
 
-    group_value_type g2elem = group_value_type(field_value_type(integral_type("19354805336845174941142151562851080662656573665208680741935"
-                                                           "4395577367693778571452628423727082668900187036482254730"),
-                                               integral_type("89193000964309942330810277795125089969455920364772498836102"
-                                                           "2851024990473423938537113948850338098230396747396259901")),
-                              field_value_type(integral_type("77171727205583415237828170597267125700535714547880090837365"
-                                                           "9404991537354153455452961747174765859335819766715637138"),
-                                               integral_type("28103101185821266340411334541807053043930791391032529565024"
-                                                           "04531123692847658283858246402311867775854528543237781718")),
-                              field_value_type::one()),
-                      expected_res = g2elem * 2;
+    std::vector<group_value_type> test_g2elems = {  group_value_type(
+                                field_value_type(integral_type("19354805336845174941142151562851080662656573665208680741935"
+                                                             "4395577367693778571452628423727082668900187036482254730"),
+                                                 integral_type("89193000964309942330810277795125089969455920364772498836102"
+                                                             "2851024990473423938537113948850338098230396747396259901")),
+                                field_value_type(integral_type("77171727205583415237828170597267125700535714547880090837365"
+                                                             "9404991537354153455452961747174765859335819766715637138"),
+                                                 integral_type("28103101185821266340411334541807053043930791391032529565024"
+                                                             "04531123692847658283858246402311867775854528543237781718")),
+                                field_value_type::one()),
+                              group_value_type(
+                                field_value_type(integral_type("424958340463073975547762735517193206833255107941790909009827635"
+                                                             "556634414746056077714431786321247871628515967727334"),
+                                                 integral_type("301867980397012787726282639381447252855741350432919474049536385"
+                                                             "2840690589001358162447917674089074634504498585239512")),
+                                field_value_type(integral_type("362130818512839545988899552652712755661476860447213217606042330"
+                                                             "2734876099689739385100475320409412954617897892887112"),
+                                                 integral_type("102447784096837908713257069727879782642075240724579670654226801"
+                                                       "345708452018676587771714457671432122751958633012502")),
+                                field_value_type::one()),
+                              group_value_type(
+                                field_value_type(integral_type("278579072823914661770244330824853538101603574852069839969013232"
+                                                             "5213972292102741627498014391457605127656937478044880"),
+                                                 integral_type("385570939363183188091016781827643518714796337112619879965480309"
+                                                             "9743427431977934703201153169947378798970358200024876")),
+                                field_value_type(integral_type("821938378705205565995357931232097952117504537366318395539093959"
+                                                             "918654729488074273868834599496909844419980823111624"),
+                                                 integral_type("180242033557577995098293558042145430208756792638522270794752735"
+                                                             "3462942499437987207287862072369052390195154530059198")),
+                                field_value_type::one()),
+                              group_value_type(
+                                field_value_type(integral_type("394904109851368845549123118074972479469719294319673003085328501"
+                                                             "1755806989731870696216017360514887069032515603535834"),
+                                                 integral_type("141689369450613197680900293521221631713294194257076384932306538"
+                                                             "1335907430566747765697423320407614734575486820936593")),
+                                field_value_type(integral_type("322745371086383503299296260585144940139139935513544272889379018"
+                                                             "6263669279022343042444878900124369614767241382891922"),
+                                                 integral_type("149873883407375987188646612293399676447188951453282792720277792"
+                                                             "2460876335493588931070034160657995151627624577390178")),
+                                field_value_type::one()),
+                              group_value_type(
+                                field_value_type(integral_type("254155017921606149907129844368549510385368618440139550318910532"
+                                                             "874259603395336903946742408725761795820224536519988"),
+                                                 integral_type("276843145929673042677916621854414979160158598623313058301150172"
+                                                             "7704972362141149700714785450629498506208393873593705")),
+                                field_value_type(integral_type("175533934474433745731856511606202566998475061793772124522071142"
+                                                             "5551575490663761638802010265668157125441634554205566"),
+                                                 integral_type("560643043433789571968941329642646582974304556331567393300563909"
+                                                             "451776257854214387388500126524984624222885267024722")),
+                                field_value_type::one()),
+                              group_value_type(field_value_type::zero(), field_value_type::zero(),field_value_type::zero()) };
 
-    field_value_type g2x = g2elem.X / g2elem.Z.pow(2),
-                     g2y = g2elem.Y / g2elem.Z.pow(3);
+    std::size_t i = 1;
+    for( group_value_type & g2elem : test_g2elems ) {
 
-    std::vector<base_field_value> input = {g2x.data[0], g2x.data[1], g2y.data[0], g2y.data[1]};
+        std::cout << "Test instance # " << i << "\n";
+        i++;
 
-    test_bls12_g2_doubling<curve_type>(input, expected_res);
+        group_value_type expected_res = g2elem * 2;
+        field_value_type g2x = field_value_type::zero(),
+                         g2y = field_value_type::zero(); // default is point at infinity, encoded as (0,0)
+
+        if (g2elem.Z != field_value_type::zero()) {
+            g2x = g2elem.X / g2elem.Z.pow(2);
+            g2y = g2elem.Y / g2elem.Z.pow(3);
+        }
+        std::vector<base_field_value> input = {g2x.data[0], g2x.data[1], g2y.data[0], g2y.data[1]};
+
+        test_bls12_g2_doubling<curve_type>(input, expected_res);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
