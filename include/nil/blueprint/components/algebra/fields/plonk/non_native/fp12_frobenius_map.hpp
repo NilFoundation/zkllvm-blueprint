@@ -47,8 +47,6 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-// #include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp12_mult.hpp>
-
 namespace nil {
     namespace blueprint {
         namespace components {

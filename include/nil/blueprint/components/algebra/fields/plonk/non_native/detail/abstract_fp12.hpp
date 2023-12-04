@@ -21,15 +21,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
-// @file Declaration of template function for F_p^{12} field multiplication.
+// @file Declaration of F_p^{12} elements over ab abstract entity (to be used with constraints).
 // We use towered field extension
 // F_p^12 = F_p^6[w]/(w^2 - v),
 // F_p^6 = F_p^2[v]/(v^3-(u+1)),
 // F_p^2 = F_p[u]/(u^2 - (-1)).
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERFORM_FP12_MULT_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERFORM_FP12_MULT_HPP
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ABSTRACT_FP12_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ABSTRACT_FP12_HPP
 
 namespace nil {
     namespace blueprint {
@@ -42,7 +42,7 @@ namespace nil {
                     std::array<T,12> c;
 
                     for(std::size_t i = 0; i < 12; i++) {
-                        c[i] = a[0] - a[0]; // hack because we can't actually write c[i] = 0: type T might have casting problems
+                        c[i] = T(); // assume default constructor creates a "zero" object which is true for constraints and numbers
                     }
 
                     for(std::size_t i = 0; i < 12; i++) {
@@ -79,9 +79,54 @@ namespace nil {
                     }
                     return c;
                 }
+                template<typename T>
+                class abstract_fp12_element {
+                public:
+                    std::array<T,12> data;
+
+                    T& operator[](std::size_t idx) {
+                        return data[idx];
+                    }
+                    const T& operator[](std::size_t idx) const {
+                        return data[idx];
+                    }
+
+                    constexpr abstract_fp12_element operator*(const abstract_fp12_element& other) {
+                        std::array<T,12> res = perform_fp12_mult(data,other.data);
+                        return { res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9], res[10], res[11] };
+                    }
+                    constexpr abstract_fp12_element operator*(const int x) {
+                        std::array<T,12> res;
+                        for(std::size_t i = 0; i < 12; i++) {
+                            res[i] = data[i] * x;
+                        }
+                        return { res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9], res[10], res[11] };
+                    }
+                    friend abstract_fp12_element operator*(const int x, const abstract_fp12_element& e) {
+                        std::array<T,12> res;
+                        for(std::size_t i = 0; i < 12; i++) {
+                            res[i] = e[i] * x;
+                        }
+                        return { res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9], res[10], res[11] };
+                    }
+                    constexpr abstract_fp12_element operator+(const abstract_fp12_element& other) {
+                        std::array<T,12> res;
+                        for(std::size_t i = 0; i < 12; i++) {
+                            res[i] = data[i] + other.data[i];
+                        }
+                        return { res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9], res[10], res[11] };
+                    }
+                    constexpr abstract_fp12_element operator-(const abstract_fp12_element& other) {
+                        std::array<T,12> res;
+                        for(std::size_t i = 0; i < 12; i++) {
+                            res[i] = data[i] - other.data[i];
+                        }
+                        return { res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9], res[10], res[11] };
+                    }
+                };
             } // namespace detail
         }    // namespace components
     }       // namespace blueprint
 }    // namespace nil
 
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_PERFORM_FP12_MULT_HPP
+#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ABSTRACT_FP12_HPP

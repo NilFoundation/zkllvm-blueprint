@@ -42,7 +42,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp12_mult.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp12.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -201,26 +201,28 @@ namespace nil {
                 using var = typename plonk_fp12_small_power<BlueprintFieldType, ArithmetizationParams, Power>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+
                 const std::size_t WA = component.witness_amount();
 
-                std::array<constraint_type,12> X, Y, C;
+                fp12_constraint X, Y, C;
 
                 for(std::size_t i = 0; i < 12; i++) {
                     X[i] = var(component.W(i), 0, true);
                     Y[i] = var(component.W((i+12) % WA), (i+12)/WA, true);
                 }
 
-                C = perform_fp12_mult(X,X); // 2
+                C = X * X;
                 switch(Power) {
                     case square: {
                         break;
                     }
                     case cube: {
-                        C = perform_fp12_mult(C,X); // 3
+                        C = C * X; // 3
                         break;
                     }
                     case power4: {
-                        C = perform_fp12_mult(C,C); // 4
+                        C = C * C; // 4
                         break;
                     }
                 }

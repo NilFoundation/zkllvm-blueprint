@@ -41,7 +41,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp12_mult.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp12.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -60,7 +60,6 @@ namespace nil {
             // In the 24-column version we compute two exponents per row,
             // writing the value 53760 twice for better alignment of gates.
             //
-            using detail::perform_fp12_mult;
 
             template<typename ArithmetizationType, typename BlueprintFieldType>
             class fp12_power_t;
@@ -250,17 +249,19 @@ namespace nil {
                 using var = typename plonk_fp12_power_t<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+
                 const std::size_t WA = component.witness_amount();
                 std::vector<std::size_t> gate_list = {}; // 5 gate ids (if WA==12, the last two are the same)
 
-                std::array<constraint_type,12> X, Y, Z, C;
+                fp12_constraint X, Y, Z, C;
 
                 // squaring gate
                 for(std::size_t i = 0; i < 12; i++) {
                     X[i] = var(component.W(i), -(WA == 12), true);
                     Y[i] = var(component.W((i+12) % WA), 0, true);
                 }
-                C = perform_fp12_mult(X,X);
+                C = X * X;
 
                 std::vector<constraint_type> square_constrs = {};
                 for(std::size_t i = 0; i < 12; i++) {
@@ -273,8 +274,7 @@ namespace nil {
                     X[i] = var(component.W(i), -(WA == 12), true);
                     Y[i] = var(component.W((i+12) % WA), 0, true);
                 }
-                C = perform_fp12_mult(X,X);
-                C = perform_fp12_mult(C,X);
+                C = X * X * X;
 
                 std::vector<constraint_type> cube_constrs = {};
                 for(std::size_t i = 0; i < 12; i++) {
@@ -288,7 +288,7 @@ namespace nil {
                     Y[i] = var(component.W((i+12) % WA), 0, true);
                     Z[i] = var(component.W(i), 1, true);
                 }
-                C = perform_fp12_mult(X,Y);
+                C = X * Y;
 
                 std::vector<constraint_type> mult_constrs = {};
                 for(std::size_t i = 0; i < 12; i++) {
@@ -301,8 +301,7 @@ namespace nil {
                     X[i] = var(component.W(i), -(WA == 12), true);
                     Y[i] = var(component.W((i+12) % WA), 0, true);
                 }
-                C = perform_fp12_mult(X,X);
-                C = perform_fp12_mult(C,C);
+                C = (X * X) * (X * X);
 
                 std::vector<constraint_type> pow4_1_constrs = {};
                 for(std::size_t i = 0; i < 12; i++) {
@@ -315,8 +314,7 @@ namespace nil {
                     X[i] = var(component.W((i+12) % WA), -1, true);
                     Y[i] = var(component.W(i), 0, true);
                 }
-                C = perform_fp12_mult(X,X);
-                C = perform_fp12_mult(C,C);
+                C = (X * X) * (X * X);
 
                 std::vector<constraint_type> pow4_2_constrs = {};
                 for(std::size_t i = 0; i < 12; i++) {

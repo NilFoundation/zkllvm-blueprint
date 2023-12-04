@@ -43,7 +43,7 @@
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_inversion.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_small_power.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_frobenius_map.hpp>
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/fp12_power_t.hpp>
+#include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/detail/fp12_power_t.hpp>
 
 #include "../../../../test_plonk_component.hpp"
 

@@ -38,7 +38,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp12_mult.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp12.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -46,8 +46,6 @@ namespace nil {
             // F_p^12 multiplication gate
             // Input: a[12], b[12]
             // Output: c[12] = a*b as elements of F_p^12
-
-            using detail::perform_fp12_mult;
 
             template<typename ArithmetizationType, typename BlueprintFieldType>
             class fp12_multiplication;
@@ -163,8 +161,6 @@ namespace nil {
 
                 std::array<value_type,12> a;
                 std::array<value_type,12> b;
-                std::array<value_type,12> c;
-
 
                 for(std::size_t i = 0; i < 12; i++) {
                     a[i] = var_value(assignment, instance_input.a[i]);
@@ -173,10 +169,15 @@ namespace nil {
                     assignment.witness(component.W((12 + i) % WA),start_row_index + (12 + i)/WA) = b[i];
                 }
 
-                c = perform_fp12_mult(a,b);
+                using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
+                using fp12_element = typename policy_type_fp12::value_type;
+
+                fp12_element A = fp12_element({ {a[0],a[1]}, {a[2],a[3]}, {a[4],a[5]} }, { {a[6],a[7]}, {a[8],a[9]}, {a[10],a[11]} }),
+                             B = fp12_element({ {b[0],b[1]}, {b[2],b[3]}, {b[4],b[5]} }, { {b[6],b[7]}, {b[8],b[9]}, {b[10],b[11]} }),
+                             C = A*B;
 
                 for(std::size_t i = 0; i < 12; i++) {
-                    assignment.witness(component.W((24 + i) % WA),start_row_index + (24 + i)/WA) = c[i];
+                    assignment.witness(component.W((24 + i) % WA),start_row_index + (24 + i)/WA) = C.data[i/6].data[(i % 6)/2].data[i % 2];
                 }
 
                 return typename plonk_fp12_multiplication<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -195,17 +196,19 @@ namespace nil {
                 using var = typename plonk_fp12_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+
                 const std::size_t WA = component.witness_amount();
                 const int shift = -(WA < 24); // if WA is small we use 3 rows, and need to shift everything
 
-                std::array<constraint_type,12> A, B, C;
+                fp12_constraint A, B, C;
 
                 for(std::size_t i = 0; i < 12; i++) {
                     A[i] = var(component.W(i), 0 + shift, true);
                     B[i] = var(component.W((i+12) % WA), (i+12)/WA + shift, true);
                 }
+                C = A * B;
 
-                C = perform_fp12_mult(A,B);
                 std::vector<constraint_type> Cs = {};
                 for(std::size_t i = 0; i < 12; i++) {
                     Cs.push_back(C[i] - var(component.W((i+24) % WA), (i+24)/WA + shift, true));

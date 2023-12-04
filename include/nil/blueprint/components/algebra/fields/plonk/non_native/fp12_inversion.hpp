@@ -41,7 +41,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp12_mult.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp12.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -49,8 +49,6 @@ namespace nil {
             // F_p^12 inversion gate
             // Input: x[12], x != 0
             // Output: y[12]: x*y = 1 as elements of F_p^12
-
-            using detail::perform_fp12_mult;
 
             template<typename ArithmetizationType, typename BlueprintFieldType>
             class fp12_inversion;
@@ -195,16 +193,18 @@ namespace nil {
                 using var = typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+
                 const std::size_t WA = component.witness_amount();
 
-                std::array<constraint_type,12> X, Y, C;
+                fp12_constraint X, Y, C;
 
                 for(std::size_t i = 0; i < 12; i++) {
                     X[i] = var(component.W(i), 0, true);
                     Y[i] = var(component.W((i+12) % WA), (i+12)/WA, true);
                 }
+                C = X * Y;
 
-                C = perform_fp12_mult(X,Y);
                 std::vector<constraint_type> Cs = { C[0] - 1 };
                 for(std::size_t i = 1; i < 12; i++) {
                     Cs.push_back(C[i]);
