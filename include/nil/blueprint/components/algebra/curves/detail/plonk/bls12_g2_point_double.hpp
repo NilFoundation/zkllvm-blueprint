@@ -39,21 +39,15 @@
 #include <nil/crypto3/algebra/fields/detail/element/fp2.hpp>
 #include <nil/crypto3/algebra/fields/fp2.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/perform_fp2.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp2.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
             // E'(F_p^2) : y^2 = x^3 + 4(1+u) point doubling gate.
-            // Expects point at infinity encoded by (0,0) in input and outputs (0,0) for its double
+            // Expects point at infinity encoded by (0,0) in input, outputs (0,0) for its double
             // Input: (xP, yP) = P[4]
             // Output: (xR, yR) = R[4], R = [2]P as element of E'(F_p^2)
-
-            // constraint-generating functions
-            using detail::perform_fp2_mult;
-            using detail::perform_fp2_add;
-            using detail::perform_fp2_sub;
-            using detail::perform_fp2_scale;
 
             template<typename ArithmetizationType, typename BlueprintFieldType>
             class bls12_g2_point_double;
@@ -168,7 +162,7 @@ namespace nil {
                                              var_value(assignment, instance_input.P[1])),
                             yP = fp2_element(var_value(assignment, instance_input.P[2]),
                                              var_value(assignment, instance_input.P[3])),
-                            lambda = 3*xP.pow(2) / (2*yP), // apparently division by 0 is defined as 0 to avoid exceptions
+                            lambda = 3*xP.pow(2) / (2*yP), // division by 0 is defined as 0
                             nu = yP - lambda*xP,
                             xR = lambda.pow(2) - 2*xP,
                             yR = -(lambda*xR + nu),
@@ -198,15 +192,19 @@ namespace nil {
                 using var = typename plonk_bls12_g2_point_double<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
-                std::array<constraint_type,2> xP, yP, ZC, xR, yR, C1, C2, C3, C4, C5;
+                using fp2_constraint = detail::abstract_fp2_element<constraint_type>;
 
-                for(std::size_t i = 0; i < 2; i++) {
-                    xP[i] = var(component.W(i), 0, true);
-                    yP[i] = var(component.W(i+2), 0, true);
-                    ZC[i] = var(component.W(i+4), 0, true);
-                    xR[i] = var(component.W(i+6), 0, true);
-                    yR[i] = var(component.W(i+8), 0, true);
-                }
+                constraint_type cnstr_zero = constraint_type(),
+                                cnstr_one = cnstr_zero + 1;
+
+                fp2_constraint one = {cnstr_one,cnstr_zero},
+                               xP = {var(component.W(0), 0, true),var(component.W(1), 0, true)},
+                               yP = {var(component.W(2), 0, true),var(component.W(3), 0, true)},
+                               ZC = {var(component.W(4), 0, true),var(component.W(5), 0, true)},
+                               xR = {var(component.W(6), 0, true),var(component.W(7), 0, true)},
+                               yR = {var(component.W(8), 0, true),var(component.W(9), 0, true)};
+                fp2_constraint C1, C2, C3, C4, C5;
+
                 // the defining equations are
                 // xR = (3xP^2 / 2yP)^2 - 2xP
                 // yR = - (3xP^2 / 2yP) xR - yP + (3xP^2 / 2yP)xP
@@ -214,35 +212,15 @@ namespace nil {
                 // (2yP)^2 (xR + 2xP) - (3xP^2)^2 = 0
                 // (2yP) (yR + yP) + (3xP^2)(xR - xP) = 0
                 // Additional constraint to assure that the double of (0,0) is (0,0):
-                // ZC * yP^2 -  yP = 0
-                // ZC * yP * xR - ZC * yP = 0
-                // ZC * yP * yR - ZC * yP = 0
+                // (ZC * yP - 1) * yP = 0
+                // (ZC * yP - 1) * xR = 0
+                // (ZC * yP - 1) * yR = 0
 
-                C1 = perform_fp2_sub(
-                   perform_fp2_mult(
-                    perform_fp2_mult(perform_fp2_scale(yP,2),perform_fp2_scale(yP,2)),
-                    perform_fp2_add(xR, perform_fp2_scale(xP,2))
-                   ),
-                   perform_fp2_mult(
-                    perform_fp2_scale(perform_fp2_mult(xP,xP),3),
-                    perform_fp2_scale(perform_fp2_mult(xP,xP),3)
-                   )
-                  );
-                C2 = perform_fp2_add(
-                       perform_fp2_mult(
-                         perform_fp2_scale(yP,2),
-                         perform_fp2_add(yR,yP)
-                       ),
-                       perform_fp2_mult(
-                         perform_fp2_scale(perform_fp2_mult(xP,xP),3),
-                         perform_fp2_sub(xR,xP)
-                       )
-                     );
-
-                C3 = perform_fp2_sub( perform_fp2_mult(ZC,perform_fp2_mult(yP,yP)), yP);
-
-                C4 = perform_fp2_sub( xR, perform_fp2_mult(perform_fp2_mult(ZC,xR),yP));
-                C5 = perform_fp2_sub( yR, perform_fp2_mult(perform_fp2_mult(ZC,yR),yP));
+                C1 = (2*yP) * (2*yP) * (xR + 2*xP) - (3*xP*xP)*(3*xP*xP);
+                C2 = (2*yP) * (yR + yP) + (3*xP*xP)*(xR - xP);
+                C3 = (ZC*yP - one)*yP;
+                C4 = (ZC*yP - one)*xR;
+                C5 = (ZC*yP - one)*yR;
 
                 std::vector<constraint_type> Cs = {};
                 for(std::size_t i = 0; i < 2; i++) {

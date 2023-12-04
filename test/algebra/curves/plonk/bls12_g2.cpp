@@ -39,6 +39,7 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 #include <nil/blueprint/components/algebra/curves/detail/plonk/bls12_g2_point_double.hpp>
+#include <nil/blueprint/components/algebra/curves/detail/plonk/bls12_g2_point_addition.hpp>
 
 #include "../../../test_plonk_component.hpp"
 
@@ -75,7 +76,7 @@ void test_bls12_g2_doubling(std::vector<typename CurveType::base_field_type::val
         typename curve_type::g2_type<>::field_type::value_type expected_x = expected_res.X / expected_res.Z.pow(2),
                                                                expected_y = expected_res.Y / expected_res.Z.pow(3);
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-        std::cout << "unified_addition test: " << "\n";
+        std::cout << "G2 doubling test: " << "\n";
         std::cout << "input   : " << public_input[0].data << "," << public_input[1].data << "\n";
         std::cout << "input   : " << public_input[2].data << "," << public_input[3].data << "\n";
         std::cout << "expected: " << expected_x.data[0] << "," << expected_x.data[1] << ",\n";
@@ -90,6 +91,61 @@ void test_bls12_g2_doubling(std::vector<typename CurveType::base_field_type::val
     };
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9},{},{});
+
+    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        component_instance, public_input, result_check, instance_input);
+}
+
+template <typename CurveType>
+void test_bls12_g2_adding(std::vector<typename CurveType::base_field_type::value_type> public_input,
+    typename CurveType::template g2_type<>::value_type expected_res){
+
+    using curve_type = CurveType;
+    using BlueprintFieldType = typename curve_type::g2_type<>::field_type::base_field_type;
+
+    constexpr std::size_t WitnessColumns = 12;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 0;
+    constexpr std::size_t SelectorColumns = 1;
+    using ArithmetizationParams =
+        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using AssignmentType = blueprint::assignment<ArithmetizationType>;
+    using hash_type = crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
+    using component_type = blueprint::components::bls12_g2_point_addition<ArithmetizationType,BlueprintFieldType>;
+
+    typename component_type::input_type instance_input = {
+        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
+        var(0, 2, false, var::column_type::public_input), var(0, 3, false, var::column_type::public_input),
+        var(0, 4, false, var::column_type::public_input), var(0, 5, false, var::column_type::public_input),
+        var(0, 6, false, var::column_type::public_input), var(0, 7, false, var::column_type::public_input)};
+
+    auto result_check = [&expected_res, public_input](AssignmentType &assignment,
+        typename component_type::result_type &real_res) {
+        typename curve_type::g2_type<>::field_type::value_type expected_x = expected_res.X / expected_res.Z.pow(2),
+                                                               expected_y = expected_res.Y / expected_res.Z.pow(3);
+        #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "G2 addition test: " << "\n";
+        std::cout << "input   : " << public_input[0].data << "," << public_input[1].data << "\n";
+        std::cout << "input   : " << public_input[2].data << "," << public_input[3].data << "\n";
+        std::cout << "input   : " << public_input[4].data << "," << public_input[5].data << "\n";
+        std::cout << "input   : " << public_input[6].data << "," << public_input[7].data << "\n";
+        std::cout << "expected: " << expected_x.data[0] << "," << expected_x.data[1] << ",\n";
+        std::cout << "        : " << expected_y.data[0] << "," << expected_y.data[1] << ",\n";
+        std::cout << "real    : " << var_value(assignment, real_res.R[0]).data << "," << var_value(assignment, real_res.R[1]).data << ",\n";
+        std::cout << "          " << var_value(assignment, real_res.R[2]).data << "," << var_value(assignment, real_res.R[3]).data << "\n\n";
+        #endif
+        assert(expected_x.data[0] == var_value(assignment, real_res.R[0]));
+        assert(expected_x.data[1] == var_value(assignment, real_res.R[1]));
+        assert(expected_y.data[0] == var_value(assignment, real_res.R[2]));
+        assert(expected_y.data[1] == var_value(assignment, real_res.R[3]));
+    };
+
+    component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},{},{});
 
     crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
@@ -157,26 +213,82 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_bls12_g2_test_381) {
                                                              "5551575490663761638802010265668157125441634554205566"),
                                                  integral_type("560643043433789571968941329642646582974304556331567393300563909"
                                                              "451776257854214387388500126524984624222885267024722")),
-                                field_value_type::one()),
-                              group_value_type(field_value_type::zero(), field_value_type::zero(),field_value_type::zero()) };
+                                field_value_type::one())};
 
-    std::size_t i = 1;
-    for( group_value_type & g2elem : test_g2elems ) {
-
-        std::cout << "Test instance # " << i << "\n";
-        i++;
-
-        group_value_type expected_res = g2elem * 2;
-        field_value_type g2x = field_value_type::zero(),
-                         g2y = field_value_type::zero(); // default is point at infinity, encoded as (0,0)
-
-        if (g2elem.Z != field_value_type::zero()) {
-            g2x = g2elem.X / g2elem.Z.pow(2);
-            g2y = g2elem.Y / g2elem.Z.pow(3);
+    for(std::size_t i = 0; i < test_g2elems.size(); i++) {
+        std::cout << "Test instance # " << (i+1) << "\n";
+        group_value_type P = test_g2elems[i];
+        field_value_type px = field_value_type::zero(),
+                         py = field_value_type::zero();
+        if (P.Z != field_value_type::zero()) {
+            px = P.X / P.Z.pow(2);
+            py = P.Y / P.Z.pow(3);
         }
-        std::vector<base_field_value> input = {g2x.data[0], g2x.data[1], g2y.data[0], g2y.data[1]};
+        // doubling test
+        std::cout << "Doubling\n";
+        test_bls12_g2_doubling<curve_type>(
+            std::vector<base_field_value>{px.data[0],px.data[1],py.data[0],py.data[1]},
+            P*2);
 
-        test_bls12_g2_doubling<curve_type>(input, expected_res);
+        // test doubling within addition
+        std::cout << "Doubling by addition\n";
+        test_bls12_g2_adding<curve_type>(
+            std::vector<base_field_value>{
+                  px.data[0],px.data[1],
+                  py.data[0],py.data[1],
+                  px.data[0],px.data[1],
+                  py.data[0],py.data[1]},
+            P*2);
+
+        field_value_type qx = field_value_type::zero(),
+                         qy = field_value_type::zero();
+
+        // test zero addition
+        std::cout << "Addition P + 0\n";
+        test_bls12_g2_adding<curve_type>(
+            std::vector<base_field_value>{
+                  px.data[0],px.data[1],
+                  py.data[0],py.data[1],
+                  qx.data[0],qx.data[1],
+                  qy.data[0],qy.data[1]},
+            P);
+        std::cout << "Addition 0 + P\n";
+        test_bls12_g2_adding<curve_type>(
+            std::vector<base_field_value>{
+                  qx.data[0],qx.data[1],
+                  qy.data[0],qy.data[1],
+                  px.data[0],px.data[1],
+                  py.data[0],py.data[1]},
+            P);
+
+        // test opposite addition
+        std::cout << "Addition of opposites\n";
+        group_value_type g2zero = group_value_type(field_value_type::zero(), field_value_type::zero(),field_value_type::zero());
+
+        test_bls12_g2_adding<curve_type>(
+            std::vector<base_field_value>{
+                  px.data[0],px.data[1],
+                  py.data[0],py.data[1],
+                  px.data[0],px.data[1],
+                  -py.data[0],-py.data[1]},
+            g2zero);
+
+        // non-trivial addition tests
+        std::cout << "Non-trivial additions\n";
+        for(std::size_t j = i + 1; j < test_g2elems.size(); j++) {
+            group_value_type Q = test_g2elems[j];
+            if (Q.Z != field_value_type::zero()) {
+                qx = Q.X / Q.Z.pow(2);
+                qy = Q.Y / Q.Z.pow(3);
+            }
+            test_bls12_g2_adding<curve_type>(
+                std::vector<base_field_value>{
+                    px.data[0],px.data[1],
+                    py.data[0],py.data[1],
+                    qx.data[0],qx.data[1],
+                    qy.data[0],qy.data[1]},
+                P + Q);
+        }
     }
 }
 
