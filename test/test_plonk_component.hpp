@@ -206,6 +206,14 @@ namespace nil {
             blueprint::circuit<ArithmetizationType> bp;
             blueprint::assignment<ArithmetizationType> assignment;
 
+            if constexpr( nil::blueprint::use_custom_lookup_tables<component_type>() ){
+                auto lookup_tables = component_instance.component_custom_lookup_tables();
+                for(auto &t:lookup_tables){
+                    bp.register_lookup_table(std::shared_ptr<nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>>(t));
+                }
+            };
+
+
             if constexpr( nil::blueprint::use_lookups<component_type>() ){
                 auto lookup_tables = component_instance.component_lookup_tables();
                 for(auto &[k,v]:lookup_tables){
