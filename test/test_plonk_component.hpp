@@ -299,7 +299,7 @@ namespace nil {
                     start_index = component_type::constants_amount;
                 }
                 std::vector<size_t> lookup_columns_indices;
-                for( std::size_t i = 1; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
+                for( std::size_t i = start_index; i < ArithmetizationParams::constant_columns; i++ )  lookup_columns_indices.push_back(i);
 
                 std::size_t cur_selector_id = 0;
                 for(const auto &gate: bp.gates()){
