@@ -7,6 +7,14 @@
 namespace nil {
     namespace blueprint {
 
+        template<typename Type>
+        constexpr bool use_custom_lookup_tables() {
+            if (component_use_custom_lookup_tables<Type>::value) {
+                return true;
+            }
+            return false;
+        }
+
         template<typename BlueprintFieldType, typename ArithmetizationParams>
         bool check_lookup_tables(
             circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,

@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 
-#include <nil/crypto3/zk/snark/arithmetization/plonk/detail/lookup_table_definition.hpp>
+#include <nil/crypto3/zk/snark/arithmetization/plonk/lookup_table_definition.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/tables.hpp>
 
 namespace nil {
@@ -12,11 +12,10 @@ namespace nil {
         namespace components {
 
             template<typename BlueprintFieldType>
-            class fixedpoint_range_table
-                : public nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType> {
+            class fixedpoint_range_table : public nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType> {
 
                 using lookup_table_definition =
-                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                    typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
                 using fixedpoint_tables = FixedPointTables<BlueprintFieldType>;
 
             public:

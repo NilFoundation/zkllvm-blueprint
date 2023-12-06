@@ -83,7 +83,7 @@ namespace nil {
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
                 using lookup_table_definition =
-                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                    typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
                 using range_table = fixedpoint_range_table<BlueprintFieldType>;
 
                 class gate_manifest_type : public component_gate_manifest {

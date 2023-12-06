@@ -569,9 +569,9 @@ namespace nil {
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
             FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::max() {
-                if (M1 == 2 && M2 == 2) {
+                if constexpr (M1 == 2 && M2 == 2) {
                     return (FixedPoint((uint64_t)(-1), SCALE));
-                } else if (M1 + M2 < 4) {
+                } else if constexpr (M1 + M2 < 4) {
                     return (FixedPoint((uint64_t)((1ULL << (16 * (M1 + M2))) - 1), SCALE));
                 }
                 BLUEPRINT_RELEASE_ASSERT(false);
@@ -648,7 +648,7 @@ namespace nil {
 
                 value_type res;
 
-                if (M2 == 2) {
+                if constexpr (M2 == 2) {
                     uint32_t input_b = post >> 16;
                     uint32_t input_c = post & ((1ULL << 16) - 1);
 
@@ -687,8 +687,8 @@ namespace nil {
 
                 std::vector<uint16_t> x0_val;
                 auto reduced_val = value;    // x_reduced guarantees the use of only one pre-comma limb
-                if (M1 == 2) {               // if two pre-comma limbs are used, x is reduced mod 2*pi
-                    if (M2 == 2) {
+                if constexpr (M1 == 2) {               // if two pre-comma limbs are used, x is reduced mod 2*pi
+                    if constexpr (M2 == 2) {
                         reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value, two_pi).remainder;
                     } else {    // case fixedpoint 32.16: use 32 post comma bits (2 limbs) for better precision
                         reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value * delta, two_pi).remainder;
@@ -741,19 +741,19 @@ namespace nil {
 
                 std::vector<uint16_t> x0_val;
                 auto reduced_val = value;    // x_reduced guarantees the use of only one pre-comma limb
-                if (M1 == 2) {               // if two pre-comma limbs are used, x is reduced mod 2*pi
-                    if (M2 == 2) {
+                if constexpr (M1 == 2) {               // if two pre-comma limbs are used, x is reduced mod 2*pi
+                    if constexpr (M2 == 2) {
                         reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value, two_pi).remainder;
                     } else {    // case fixedpoint 32.16: use 32 post comma bits (2 limbs) for better precision
                         reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value * delta, two_pi).remainder;
                     }
                 }
                 bool sign = FixedPointHelper<BlueprintFieldType>::decompose(reduced_val, x0_val);
-                if (M1 == 2) {
+                if constexpr (M1 == 2) {
                     BLUEPRINT_RELEASE_ASSERT(!sign);
                 }
                 // case fixedpoint 32.16: trash the smallest limb, as the result has one post comma limb only
-                if (M1 == 2 && M2 == 1) {
+                if constexpr (M1 == 2 && M2 == 1) {
                     x0_val.erase(x0_val.begin());
                 }
                 BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= M2 + 1);

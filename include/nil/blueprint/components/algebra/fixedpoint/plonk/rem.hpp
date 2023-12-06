@@ -72,7 +72,7 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 using manifest_type = plonk_component_manifest;
                 using lookup_table_definition =
-                    typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                    typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
                 using range_table = fixedpoint_range_table<BlueprintFieldType>;
 
                 value_type x_scaler;
@@ -357,7 +357,7 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(start_row_index);
                 auto m = component.get_m();
 
-                const std::map<std::string, std::size_t> &lookup_tables_indices = bp.get_reserved_indices();
+                const auto &lookup_tables_indices = bp.get_reserved_indices();
 
                 using var = typename plonk_fixedpoint_rem<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
