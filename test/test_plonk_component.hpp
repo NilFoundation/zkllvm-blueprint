@@ -192,6 +192,13 @@ namespace nil {
             blueprint::circuit<ArithmetizationType> bp;
             blueprint::assignment<ArithmetizationType> assignment;
 
+            if constexpr( nil::blueprint::component_use_custom_lookup_tables<component_type>() ){
+                auto lookup_tables = component_instance.component_custom_lookup_tables();
+                for(std::size_t i=0; i< lookup_tables.size(); i++){
+                    bp.register_lookup_table(lookup_tables[i]);
+                }
+            };
+            
             if constexpr( nil::blueprint::use_lookups<component_type>() ){
                 auto lookup_tables = component_instance.component_lookup_tables();
                 for(auto &[k,v]:lookup_tables){
@@ -201,7 +208,7 @@ namespace nil {
 
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
-            std::size_t start_row = 0;//dist(gen);
+            std::size_t start_row = dist(gen);
 
             if constexpr (PrivateInput) {
                 for (std::size_t i = 0; i < public_input.size(); i++) {
@@ -298,7 +305,7 @@ namespace nil {
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
 
-            profiling(assignment);
+            // profiling(assignment);
 #endif
             //assignment.export_table(std::cout);
             //bp.export_circuit(std::cout);
