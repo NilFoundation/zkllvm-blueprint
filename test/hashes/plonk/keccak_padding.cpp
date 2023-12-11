@@ -100,7 +100,7 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
                                const std::size_t limit_permutation_column = 7) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
-    constexpr std::size_t SelectorColumns = 10;
+    constexpr std::size_t SelectorColumns = 12;
     using ArithmetizationParams =
         nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessesAmount, PublicInputColumns, ConstantColumns,
                                                               SelectorColumns>;
