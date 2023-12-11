@@ -84,7 +84,8 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                       uint8_t m1 = 0, uint8_t m2 = 0) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -245,7 +246,8 @@ namespace nil {
                 auto x_val = var_value(assignment, instance_input.x);
                 auto y_val = var_value(assignment, instance_input.y);
 
-                DivMod<BlueprintFieldType> tmp = FixedPointHelper<BlueprintFieldType>::div_mod(x_val * component.x_scaler, y_val);
+                DivMod<BlueprintFieldType> tmp =
+                    FixedPointHelper<BlueprintFieldType>::div_mod(x_val * component.x_scaler, y_val);
                 if (y_val > FixedPointHelper<BlueprintFieldType>::P_HALF && tmp.remainder != 0) {
                     // sign(other.value) == sign(divmod_remainder)
                     tmp.remainder += y_val;
