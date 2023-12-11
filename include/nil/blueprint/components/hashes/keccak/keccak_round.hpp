@@ -57,7 +57,7 @@ namespace nil {
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                using lookup_table_definition = typename nil::crypto3::zk::snark::detail::lookup_table_definition<BlueprintFieldType>;
+                using lookup_table_definition = typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
 
                 // xor2 - base=3, xor3 - base=4, xor5 - base=6, chi - base=2, rotate - base=0
                 int bases[5] = {3, 4, 6, 2, 0};
@@ -131,10 +131,12 @@ namespace nil {
                     virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base(std::size_t base, typename BlueprintFieldType::integral_type num) {
                         typename BlueprintFieldType::integral_type result = 0;
                         typename BlueprintFieldType::integral_type normalized_result = 0;
+                        typename BlueprintFieldType::integral_type power = 1;
                         while (num > 0) {
-                            result = result * 8 + (num % base);
-                            normalized_result = normalized_result * 8 + (num % base) & 1;
+                            result = result + (num % base)*power;
+                            normalized_result = normalized_result  + ((num % base) & 1)*power;
                             num /= base;
+                            power <<= 3;
                         }
                         return {result, normalized_result};
                     }  
@@ -161,13 +163,16 @@ namespace nil {
                 class chi_table_type : public lookup_table_definition{
                     virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base_chi(typename BlueprintFieldType::integral_type num) {
                         std::size_t base = 5;
-                        int table[5] = {0, 1, 1, 0, 0};
+                        typename BlueprintFieldType::integral_type table[5] = {0, 1, 1, 0, 0};
                         typename BlueprintFieldType::integral_type result = 0;
                         typename BlueprintFieldType::integral_type chi_result = 0;
+                        typename BlueprintFieldType::integral_type power = 1;
+                        typename BlueprintFieldType::integral_type mask = 7;
                         while (num > 0) {
-                            result = result * 8 + (num % base);
-                            chi_result = chi_result * 8 + table[int((num % base))];
+                            result = result + (num % base) * power;
+                            chi_result = chi_result + table[int(num % base)] * power;
                             num /= base;
+                            power <<= 3;
                         }
                         return {result, chi_result};
                     }
@@ -267,6 +272,7 @@ namespace nil {
                     std::vector<std::vector<coordinates>> constraints;
                     std::vector<std::vector<coordinates>> lookups;
                     coordinates copy_from;
+                    std::string name;
 
                     configuration() = default;
                     configuration(std::pair<std::size_t, std::size_t> first_coordinate_,
@@ -274,7 +280,7 @@ namespace nil {
                                   std::vector<std::pair<std::size_t, std::size_t>> copy_to_,
                                   std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints_,
                                   std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups_,
-                                  std::pair<std::size_t, std::size_t> copy_from_) {
+                                  std::pair<std::size_t, std::size_t> copy_from_){
                             first_coordinate = coordinates(first_coordinate_);
                             last_coordinate = coordinates(last_coordinate_);
                             for (std::size_t i = 0; i < copy_to_.size(); ++i) {
@@ -325,25 +331,25 @@ namespace nil {
                 const std::size_t normalize3_chunk_size = calculate_chunk_size(lookup_rows, 3);
                 const std::size_t normalize4_chunk_size = calculate_chunk_size(lookup_rows, 4);
                 const std::size_t normalize6_chunk_size = calculate_chunk_size(lookup_rows, 6);
-                const std::size_t chi_chunk_size = calculate_chunk_size(lookup_rows, 2);
+                const std::size_t chi_chunk_size = calculate_chunk_size(lookup_rows, 5);
                 const std::size_t rotate_chunk_size = 24;
 
                 const std::size_t normalize3_num_chunks = calculate_num_chunks(lookup_rows, 3);
                 const std::size_t normalize4_num_chunks = calculate_num_chunks(lookup_rows, 4);
                 const std::size_t normalize6_num_chunks = calculate_num_chunks(lookup_rows, 6);
-                const std::size_t chi_num_chunks = calculate_num_chunks(lookup_rows, 2);
+                const std::size_t chi_num_chunks = calculate_num_chunks(lookup_rows, 5);
                 const std::size_t rotate_num_chunks = 8;
 
                 const std::size_t xor2_cells = calculate_num_cells(lookup_rows, 3);
                 const std::size_t xor3_cells = calculate_num_cells(lookup_rows, 4);
                 const std::size_t xor5_cells = calculate_num_cells(lookup_rows, 6);
-                const std::size_t chi_cells = calculate_num_cells(lookup_rows, 2);
+                const std::size_t chi_cells = calculate_num_cells(lookup_rows, 5);
                 const std::size_t rotate_cells = 24;
 
                 const std::size_t xor2_buff = calculate_buff(this->witness_amount(), lookup_rows, 3);
                 const std::size_t xor3_buff = calculate_buff(this->witness_amount(), lookup_rows, 4);
                 const std::size_t xor5_buff = calculate_buff(this->witness_amount(), lookup_rows, 6);
-                const std::size_t chi_buff = calculate_buff(this->witness_amount(), lookup_rows, 2);
+                const std::size_t chi_buff = calculate_buff(this->witness_amount(), lookup_rows, 5);
                 const std::size_t rotate_buff = calculate_buff(this->witness_amount(), lookup_rows);
 
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, xor_with_mes, last_round_call, limit_permutation_column);
@@ -533,9 +539,9 @@ namespace nil {
                     // chi_sum = chi_sum_chunk0 + chi_sum_chunk1 * 2^chunk_size + ... + chi_sum_chunkk * 2^(k*chunk_size)
 
                     std::size_t num_args = 3;
-                    std::size_t num_chunks = calculate_num_chunks(lookup_rows, 2);
-                    std::size_t num_cells = calculate_num_cells(lookup_rows, 2);
-                    std::size_t buff = calculate_buff(witness_amount, lookup_rows, 2);
+                    std::size_t num_chunks = calculate_num_chunks(lookup_rows, 5);
+                    std::size_t num_cells = calculate_num_cells(lookup_rows, 5);
+                    std::size_t buff = calculate_buff(witness_amount, lookup_rows, 5);
 
                     return configure_inner(witness_amount, limit_permutation_column, row, column, num_args, num_chunks, num_cells, buff);
                 }
@@ -695,27 +701,27 @@ namespace nil {
                     // iota
                     result[cur_config] = configure_xor(witness_amount, limit_permutation_column, row, column, 2);
 
-                    for (int i = 0; i < result.size(); ++i) {
-                        // std::cout << "\n config: " << i << std::endl;
-                        // std::cout << result[i].first_coordinate.row << " " << result[i].first_coordinate.column << " " << result[i].last_coordinate.row << " " << result[i].last_coordinate.column << std::endl;
-                        // std::cout << result[i].copy_from.row << " " << result[i].copy_from.column << std::endl;
-                        // for (int j = 0; j < result[i].copy_to.size(); ++j) {
-                        //     std::cout << result[i].copy_to[j].row << " " << result[i].copy_to[j].column << std::endl;
-                        // }
-                        // for (int j = 0; j < result[i].constraints.size(); ++j) {
-                        //     for (int k = 0; k < result[i].constraints[j].size(); ++k) {
-                        //         std::cout << result[i].constraints[j][k].row << " " << result[i].constraints[j][k].column << ", ";
-                        //     }
-                        //     std::cout << std::endl;
-                        // }
-                        // std::cout << "lookups: " << result[i].lookups.size() << std::endl;
-                        // for (int j = 0; j < result[i].lookups.size(); ++j) {
-                        //     for (int k = 0; k < result[i].lookups[j].size(); ++k) {
-                        //         std::cout << result[i].lookups[j][k].row << " " << result[i].lookups[j][k].column << ", ";
-                        //     }
-                        //     std::cout << std::endl;
-                        // }
-                    }
+                    // for (int i = 0; i < result.size(); ++i) {
+                    //     std::cout << "\n config: " << result[i].name << std::endl;
+                    //     std::cout << result[i].first_coordinate.row << " " << result[i].first_coordinate.column << " " << result[i].last_coordinate.row << " " << result[i].last_coordinate.column << std::endl;
+                    //     std::cout << result[i].copy_from.row << " " << result[i].copy_from.column << std::endl;
+                    //     for (int j = 0; j < result[i].copy_to.size(); ++j) {
+                    //         std::cout << result[i].copy_to[j].row << " " << result[i].copy_to[j].column << std::endl;
+                    //     }
+                    //     for (int j = 0; j < result[i].constraints.size(); ++j) {
+                    //         for (int k = 0; k < result[i].constraints[j].size(); ++k) {
+                    //             std::cout << result[i].constraints[j][k].row << " " << result[i].constraints[j][k].column << ", ";
+                    //         }
+                    //         std::cout << std::endl;
+                    //     }
+                    //     std::cout << "lookups: " << result[i].lookups.size() << std::endl;
+                    //     for (int j = 0; j < result[i].lookups.size(); ++j) {
+                    //         for (int k = 0; k < result[i].lookups[j].size(); ++k) {
+                    //             std::cout << result[i].lookups[j][k].row << " " << result[i].lookups[j][k].column << ", ";
+                    //         }
+                    //         std::cout << std::endl;
+                    //     }
+                    // }
 
                     return result;
                 }
@@ -945,15 +951,20 @@ namespace nil {
                         std::vector<configuration> cur_result;
                         std::size_t cur_row = 0;
                         std::size_t cur_constr = 0;
+                        bool found;
                         while (cur_constr < pairs.size()) {
                             configuration c;
+                            found = false;
                             while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 && pairs[cur_constr].first >= cur_row) {
                                 c.lookups.push_back(cur_config.lookups[cur_constr]);
                                 c.first_coordinate = {cur_row, 0};
                                 ++cur_constr;
+                                found = true;
                             }
                             cur_row = pairs[cur_constr].first;
-                            cur_result.push_back(c);
+                            if(found){
+                                cur_result.push_back(c);
+                            }
                         }
                         result.push_back(cur_result);
                     }
@@ -997,12 +1008,12 @@ namespace nil {
                     std::size_t xor2_cells = calculate_num_cells(lookup_rows, 3);
                     std::size_t xor3_cells = calculate_num_cells(lookup_rows, 4);
                     std::size_t xor5_cells = calculate_num_cells(lookup_rows, 6);
-                    std::size_t chi_cells = calculate_num_cells(lookup_rows, 2);
+                    std::size_t chi_cells = calculate_num_cells(lookup_rows, 5);
                     std::size_t rotate_cells = calculate_num_cells(lookup_rows);
                     std::size_t xor2_buff = calculate_buff(witness_amount, lookup_rows, 3);
                     std::size_t xor3_buff = calculate_buff(witness_amount, lookup_rows, 4);
                     std::size_t xor5_buff = calculate_buff(witness_amount, lookup_rows, 6);
-                    std::size_t chi_buff = calculate_buff(witness_amount, lookup_rows, 2);
+                    std::size_t chi_buff = calculate_buff(witness_amount, lookup_rows, 5);
                     std::size_t rotate_buff = calculate_buff(witness_amount, lookup_rows);
 
                     std::size_t num_cells = (xor3_cells + xor3_buff) * last_round_call
@@ -1088,7 +1099,7 @@ namespace nil {
                     &assignment,
                 const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
-                const std::map<std::string, std::size_t> lookup_tables_indices) {
+                const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
                     
                 using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
@@ -1689,7 +1700,7 @@ namespace nil {
                     }
                     for (std::size_t i = 0; i < component.lookup_gates_configuration[ind].size(); ++i) {
                         for (auto j : g.second) {
-                            // std::cout << j + component.lookup_gates_configuration[ind][i].first_coordinate.row + 1 << ' ';
+                            //std::cout << start_row_index + j + component.lookup_gates_configuration[ind][i].first_coordinate.row + 1 << ' ';
                             assignment.enable_selector(selector_indexes[index],
                                                        start_row_index + j + component.lookup_gates_configuration[ind][i].first_coordinate.row + 1);
                         }

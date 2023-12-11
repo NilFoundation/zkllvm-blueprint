@@ -160,7 +160,7 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
                              typename BlueprintFieldType::value_type RC,
                              std::array<typename BlueprintFieldType::value_type, 25> expected_result) {
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t ConstantColumns = 3;
     constexpr std::size_t SelectorColumns = 25;
     using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
         WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     // test_keccak_round_not_random<field_type, 9, 65536, 10>(); 
                                                 // xor_with_mes, last_round_call   
-    test_keccak_round_random<field_type, 9, 65536, 10, false, false>();
+    test_keccak_round_random<field_type, 9, 65536, 10, true, false>();
     // test_keccak_round_random<field_type, 9, 65536, 10, true, false>();
     // test_keccak_round_random<field_type, 9, 65536, 10, true, true>();
     // test_keccak_round_random<field_type, 15, 65536, 10, false, false>();
