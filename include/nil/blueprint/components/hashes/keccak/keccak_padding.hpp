@@ -202,14 +202,15 @@ namespace nil {
                     std::vector<var> padded_message;
 
                     result_type(const keccak_padding &component, std::size_t start_row_index) {
+                        auto size = component.full_configuration.size();
+                        padded_message.resize(size + component.num_padding_zeros);
                         for (std::size_t i = 0; i < component.full_configuration.size(); ++i) {
                             auto config = component.full_configuration[i];
-                            padded_message.push_back(var(component.W(config.copy_to.back().column),
-                                                    config.copy_to.back().row + start_row_index, false));
+                            padded_message[i] = var(component.W(config.copy_to.back().column),
+                                                    config.copy_to.back().row + start_row_index, false);
                         }
-                        for (std::size_t i = 0; i < component.num_padding_zeros; ++i) {
-                            padded_message.push_back(
-                                var(component.C(0), start_row_index, false, var::column_type::constant));
+                        for (std::size_t i = size; i < size + component.num_padding_zeros; ++i) {
+                            padded_message[i] = var(component.C(0), start_row_index, false, var::column_type::constant);
                         }
                     }
 
@@ -219,7 +220,7 @@ namespace nil {
                 };
 
                 static std::size_t calculate_shift(std::size_t num_blocks, std::size_t num_bits) {
-                    assert(num_blocks * 64 >= num_bits);
+                    // assert(num_blocks * 64 >= num_bits);
                     return num_blocks * 64 - num_bits;
                 }
                 static std::size_t calculate_num_padding_zeros(std::size_t num_blocks) {
@@ -419,37 +420,28 @@ namespace nil {
                     }
                     return configure_inner_with_padding(witness_amount, num_blocks, num_bits, range_check_input, row, column, num_cells, buff);
                 }
-                // static configuration configure_shift(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits, 
-                //                                     bool range_check_input, std::size_t limit_permutation_column,
-                //                                     std::size_t row, std::size_t column,
-                //                                     std::size_t num_cells, std::size_t buff) {
-                //     if (column + 3 > limit_permutation_column) {
-                //         row += 1;
-                //         column = 0;
-                //     }
+                static configuration configure_shift(std::size_t witness_amount, std::size_t row, std::size_t column) {
 
-                //     std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
-                //     std::size_t last_row = row,
-                //                 last_column = column;
-                //     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
-                //     for (int i = 0; i < 2; ++i) {
-                //         copy_to.push_back({last_row + (last_column / witness_amount),
-                //                                         (last_column++) % witness_amount});
-                //     }
-                //     std::pair<std::size_t, std::size_t> cell_copy_from = {last_row + (last_column / witness_amount),
-                //                                         (last_column++) % witness_amount};
-                //     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints = {{cell_copy_from, copy_to[0], copy_to[1]}};
-                //     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups = {{cell_copy_from}};
-
-                //     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
-                // }
+                    std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
+                    std::size_t last_row = row,
+                                last_column = column;
+                    std::pair<std::size_t, std::size_t> cell_copy_from = first_coordinate;
+                    std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints = {{cell_copy_from}};
+                    for (std::size_t i = 0; i < 8; ++i) {
+                        constraints[0].push_back({last_row + (last_column / witness_amount),
+                                                    (last_column++) % witness_amount});
+                    }
+                    return configuration(first_coordinate, {row + 1, 0}, {}, constraints, {}, cell_copy_from);
+                }
                                                     
                 static std::vector<configuration> configure_all(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits,
                                                                 bool range_check_input, std::size_t limit_permutation_column) {
 
-                    std::size_t row = 0,
-                                column = 0;
                     std::vector<configuration> result;
+                    // result.push_back(configure_shift(witness_amount, 0, 0));
+                    std::size_t row = 1,
+                                column = 0;
+
                     if (calculate_shift(num_blocks, num_bits) == 0 && !range_check_input) {
                         for (std::size_t i = 0; i < num_blocks; ++i) {
                             configuration conf;
@@ -480,9 +472,9 @@ namespace nil {
                     //     auto cur_config = result[i];
                     //     std::cout << "config: " << i << "\n";
                     //     std::cout << cur_config.first_coordinate.row << " " << cur_config.first_coordinate.column << " " << cur_config.last_coordinate.row << " " << cur_config.last_coordinate.column << std::endl;
-                    //     std::cout << cur_config.copy_from.row << " " << cur_config.copy_from.column << std::endl;
+                    //     std::cout << "cf: " << cur_config.copy_from.row << " " << cur_config.copy_from.column << std::endl;
                     //     for (int j = 0; j < cur_config.copy_to.size(); ++j) {
-                    //         std::cout << cur_config.copy_to[j].row << " " << cur_config.copy_to[j].column << std::endl;
+                    //         std::cout << "ct: " << cur_config.copy_to[j].row << " " << cur_config.copy_to[j].column << std::endl;
                     //     }
                     //     for (int j = 0; j < cur_config.constraints.size(); ++j) {
                     //         for (int k = 0; k < cur_config.constraints[j].size(); ++k) {
@@ -620,7 +612,7 @@ namespace nil {
                                                     bool range_check_input, 
                                                     std::size_t limit_permutation_column = 7) {
                     auto map = configure_map(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
-                    return map.size() * 2 + range_check_input;
+                    return map.size() * 2 + range_check_input + 2;
                 }
                 static std::size_t get_rows_amount(std::size_t witness_amount,
                                                    std::size_t lookup_column_amount,
@@ -629,7 +621,9 @@ namespace nil {
                                                    bool range_check_input, 
                                                    std::size_t limit_permutation_column) {
                     auto confs = configure_all(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
-                    return confs.back().last_coordinate.row + 1 * (confs.back().last_coordinate.column != 0);
+                    auto res = confs.back().last_coordinate.row + 1 * (confs.back().last_coordinate.column != 0);
+                    if (res < 3) res = 3;
+                    return res;
                 }
 
                 std::map<std::string, std::size_t> component_lookup_tables(){
@@ -692,10 +686,26 @@ namespace nil {
                 std::size_t gate_index = 0;
                 std::size_t lookup_gate_index = 0;
                 int32_t row_shift = (component.shift == 0 || component.witness_amount() == 15) ? 0 : 1;
-                bool checked_first_bit = false;
 
                 std::vector<constraint_type> cur_constraints;
                 std::vector<lookup_constraint_type> cur_lookup_constraints;
+                // range_check shift num_blocks * 64 - num_bits;
+                cur_constraints.push_back(var(component.W(0), -1) 
+                                        + var(component.C(0), 1, true, var::column_type::constant)
+                                        - 64 * var(component.C(0), 0, true, var::column_type::constant));
+                cur_constraints.push_back(var(component.W(0), -1));
+                for (std::size_t i = 1; i < 9; ++i) {
+                    cur_constraints[1] -= var(component.W(i), -1) * (integral_type(1) << ((i-1) * 8));
+                    cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
+                                                    {var(component.W(i), -1)}});
+                }
+                selector_indexes.push_back(bp.add_gate(cur_constraints));
+                gate_index++;
+                selector_indexes.push_back(bp.add_lookup_gate(cur_lookup_constraints));
+                lookup_gate_index++;
+                cur_constraints.clear();
+                cur_lookup_constraints.clear();
+
                 if (component.shift == 0) {
                     if (component.range_check_input) {
                         auto conf = gates_configuration[0][0];
@@ -712,7 +722,7 @@ namespace nil {
                             auto conf = confs[0];
                             constraint_type constraint = var(conf.constraints[0][0].column, static_cast<int>(conf.constraints[0][0].row) - row_shift);
                             for (std::size_t i = 1; i < 9; ++i) {
-                                constraint -= var(conf.constraints[0][i].column, static_cast<int>(conf.constraints[0][i].row) - row_shift)
+                                constraint -= var(component.W(conf.constraints[0][i].column), static_cast<int>(conf.constraints[0][i].row) - row_shift)
                                             * (integral_type(1) << ((i-1) * 8));
                                 cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
                                                                 {var(component.W(conf.constraints[0][i].column), static_cast<int>(conf.constraints[0][i].row) - row_shift)}});
@@ -746,20 +756,20 @@ namespace nil {
                         auto conf = confs[0];
                         // chunk, first, second
                         cur_constraints.push_back(constraint_type(
-                            var(conf.constraints[0][0].column, static_cast<int>(conf.constraints[0][0].row) - row_shift) -
-                            var(conf.constraints[0][1].column, static_cast<int>(conf.constraints[0][1].row) - row_shift) *
+                            var(component.W(conf.constraints[0][0].column), static_cast<int>(conf.constraints[0][0].row) - row_shift) -
+                            var(component.W(conf.constraints[0][1].column), static_cast<int>(conf.constraints[0][1].row) - row_shift) *
                                 (integral_type(1) << (64 - component.shift)) -
-                            var(conf.constraints[0][2].column, static_cast<int>(conf.constraints[0][2].row) - row_shift)));
+                            var(component.W(conf.constraints[0][2].column), static_cast<int>(conf.constraints[0][2].row) - row_shift)));
                         // sum, relay, first
                         cur_constraints.push_back(
-                            var(conf.constraints[1][0].column, static_cast<int>(conf.constraints[1][0].row) - row_shift) -
-                            var(conf.constraints[1][1].column, static_cast<int>(conf.constraints[1][1].row) - row_shift) *
+                            var(component.W(conf.constraints[1][0].column), static_cast<int>(conf.constraints[1][0].row) - row_shift) -
+                            var(component.W(conf.constraints[1][1].column), static_cast<int>(conf.constraints[1][1].row) - row_shift) *
                                 (integral_type(1) << component.shift) -
-                            var(conf.constraints[1][2].column, static_cast<int>(conf.constraints[1][2].row) - row_shift));
+                            var(component.W(conf.constraints[1][2].column), static_cast<int>(conf.constraints[1][2].row) - row_shift));
                         // sum, range_check
                         constraint_type constraint = var(conf.constraints[2][0].column, static_cast<int>(conf.constraints[2][0].row) - row_shift);
                         for (std::size_t i = 1; i < 9; ++i) {
-                            constraint -= var(conf.constraints[2][i].column, static_cast<int>(conf.constraints[2][i].row) - row_shift)
+                            constraint -= var(component.W(conf.constraints[2][i].column), static_cast<int>(conf.constraints[2][i].row) - row_shift)
                                         * (integral_type(1) << ((i-1) * 8));
                             cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
                                                             {var(component.W(conf.constraints[2][i].column), static_cast<int>(conf.constraints[2][i].row) - row_shift)}});
@@ -767,9 +777,9 @@ namespace nil {
                         cur_constraints.push_back(constraint);
                         if (component.range_check_input) {
                             // chunk, range_check
-                            constraint = var(conf.constraints[3][0].column, static_cast<int>(conf.constraints[3][0].row) - row_shift);
+                            constraint = var(component.W(conf.constraints[3][0].column), static_cast<int>(conf.constraints[3][0].row) - row_shift);
                             for (std::size_t i = 1; i < 9; ++i) {
-                                constraint -= var(conf.constraints[3][i].column, static_cast<int>(conf.constraints[3][i].row) - row_shift)
+                                constraint -= var(component.W(conf.constraints[3][i].column), static_cast<int>(conf.constraints[3][i].row) - row_shift)
                                             * (integral_type(1) << ((i-1) * 8));
                                 cur_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),
                                                                 {var(component.W(conf.constraints[3][i].column), static_cast<int>(conf.constraints[3][i].row) - row_shift)}});
@@ -807,7 +817,7 @@ namespace nil {
 
                 std::size_t conf_index_for_input = 0;
                 if (component.shift != 0) {
-                    bp.add_copy_constraint({instance_input.message[input_index++], var(component.W(0), strow, false)});
+                    bp.add_copy_constraint({instance_input.message[input_index++], var(component.W(0), strow + 1, false)});
                     conf_index_for_input = 1;
                 }
 
@@ -851,8 +861,10 @@ namespace nil {
                 using var = typename component_type::var;
 
                 auto selector_indexes = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
+                assignment.enable_selector(selector_indexes[0], start_row_index + 1);
+                assignment.enable_selector(selector_indexes[1], start_row_index + 1);
                 auto gc_map = component.gates_configuration_map;
-                std::size_t sel_ind = 0;
+                std::size_t sel_ind = 2;
                 auto gc_iter = gc_map.begin();
 
                 if (gc_iter != gc_map.end()) {
@@ -902,7 +914,20 @@ namespace nil {
 
                 std::size_t config_index = 0;
                 std::size_t witness_amount = component.witness_amount();
-
+                // range_check shift
+                integral_type mask_range_check = (integral_type(1) << 8) - 1;
+                integral_type shift = component.shift;
+                std::vector<integral_type> shift_range_check;
+                for (std::size_t i = 0; i < 7; ++i) {
+                    shift_range_check.push_back(shift & mask_range_check);
+                    shift >>= 8;
+                }
+                shift_range_check.push_back(shift);
+                assignment.witness(component.W(0), strow) = component.shift;
+                for (int j = 1; j < 9; ++j) {
+                    assignment.witness(component.W(j), strow) = value_type(shift_range_check[j - 1]);
+                }
+                
                 if (component.shift != 0) {
                     integral_type relay_chunk = integral_type(var_value(assignment, instance_input.message[0]).data);
                     for (std::size_t index = 1; index < component.num_blocks + 1; ++index) {
@@ -916,7 +941,6 @@ namespace nil {
                                                                     integral_chunk & mask};
                         integral_type sum = (relay_chunk << component.shift) + chunk_parts[0];
 
-                        integral_type mask_range_check = (integral_type(1) << 8) - 1;
                         std::vector<integral_type> sum_range_check;
                         integral_type sum_to_check = sum;
                         for (std::size_t i = 0; i < 7; ++i) {
@@ -994,6 +1018,8 @@ namespace nil {
                 using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
 
                 assignment.constant(component.C(0), start_row_index) = 0;
+                assignment.constant(component.C(0), start_row_index + 1) = component.num_blocks;
+                assignment.constant(component.C(0), start_row_index + 2) = component.num_bits;
             }
 
         }    // namespace components
