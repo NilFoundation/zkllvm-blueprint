@@ -183,7 +183,8 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                       uint8_t m1 = 0, uint8_t m2 = 0) {
                     static gate_manifest manifest =
                         exp_component::get_gate_manifest(witness_amount, lookup_column_amount)
                             .merge_with(range_component::get_gate_manifest(witness_amount, lookup_column_amount));

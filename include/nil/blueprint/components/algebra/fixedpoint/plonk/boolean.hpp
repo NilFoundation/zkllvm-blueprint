@@ -89,7 +89,8 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(uint8_t m1, uint8_t m2) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount) {
                     return 1;
                 }
 
@@ -146,9 +147,9 @@ namespace nil {
 
                 std::map<std::string, std::size_t> component_lookup_tables() {
                     std::map<std::string, std::size_t> lookup_tables = {};
-                    lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_AND] = 0;    // REQUIRED_TABLE
-                    lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_OR] = 0;     // REQUIRED_TABLE
-                    lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_XOR] = 0;    // REQUIRED_TABLE
+                    lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_AND] = 0;        // REQUIRED_TABLE
+                    lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_OR] = 0;         // REQUIRED_TABLE
+                    lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_XOR] = 0;        // REQUIRED_TABLE
                     lookup_tables[fixedpoint_boolean_table<BlueprintFieldType>::FULL_INVERSE] = 0;    // REQUIRED_TABLE
 
                     return lookup_tables;
