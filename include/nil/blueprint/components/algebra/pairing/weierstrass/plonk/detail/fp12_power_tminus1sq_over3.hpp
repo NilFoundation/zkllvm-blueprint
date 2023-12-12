@@ -135,8 +135,7 @@ namespace nil {
 
                     result_type(const fp12_power_tm1sq3 &component, std::uint32_t start_row_index) {
                         const std::size_t WA = component.witness_amount();
-                        // L(x^(1-t)/3) + L(x^(-t)) + L(*)
-                        std::size_t last_row = start_row_index + ((WA == 12)? (59 + 42 + 3 - 1) : (32 + 22 + 2 - 1));
+                        std::size_t last_row = start_row_index + component.rows_amount - 1;
 
                         for(std::size_t i = 0; i < 12; i++) {
                             output[i] = var(component.W(i), last_row, false, var::column_type::witness);
@@ -397,14 +396,12 @@ namespace nil {
                 using var = typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::var;
 
                 const std::size_t WA = component.witness_amount();
-                std::vector<std::size_t> apply_list;
 
                 // copies of initial data
-                if (WA == 12) {
-                    apply_list = {1, 14 + 3, 14 + 6, 14 + 43};
-                } else {
-                    apply_list = {1, 16 + 3, 16 + 7, 16 + 45};
-                }
+                std::vector<std::size_t> apply_list = (WA == 12) ?
+                    std::vector<std::size_t>{1, 14 + 3, 14 + 6, 14 + 43}:
+                    std::vector<std::size_t>{1, 16 + 3, 16 + 7, 16 + 45};
+
                 for( std::size_t slot : apply_list ) {
                     for(std::size_t i = 0; i < 12; i++) {
                         bp.add_copy_constraint({var(component.W((12*slot + i) % WA), start_row_index + (12*slot)/WA, false),
@@ -412,53 +409,27 @@ namespace nil {
                     }
                 }
 
-                // copies of x^m
-                std::size_t xm_slot = 12 + 2*(WA == 24); // 12 or 14
-                if (WA == 12) {
-                    apply_list = {14 + 0, 14 + 21, 14 + 31 };
-                } else {
-                    apply_list = {16 + 0, 16 + 23, 16 + 33 };
-                }
-                for( std::size_t slot : apply_list ) {
+                std::vector<std::array<std::size_t,2>> pairs = (WA == 12) ?
+                    std::vector<std::array<std::size_t,2>> {
+                      {12, 14 + 0}, {12, 14 + 21}, {12, 14 + 31}, // copies of x^m
+                      {11, 13}, // copies of x^{4^8 - 1}
+                      {14 + 1, 14 + 41}, // copies of x^{2m}
+                      {58, 102} // copies of x^{(1-t)/3}
+                    } :
+                    std::vector<std::array<std::size_t,2>> {
+                      {14, 16 + 0}, {14, 16 + 23}, {14, 16 + 33}, // copies of x^m
+                      {12, 15}, // copies of x^{4^8 - 1}
+                      {16 + 1, 16 + 43}, // copies of x^{2m}
+                      {62, 109}, // copies of x^{(1-t)/3}
+                      {9, 10}, {16 + 5, 16+5+1}, {16 + 21, 16+21+1} // additional copies for alignment
+                    };
+                for( std::array<std::size_t,2> pair : pairs ) {
                     for(std::size_t i = 0; i < 12; i++) {
-                        bp.add_copy_constraint({var(component.W((12*slot + i) % WA), start_row_index + (12*slot)/WA, false),
-                                                var(component.W((12*xm_slot + i) % WA), start_row_index + (12*xm_slot)/WA, false)});
-                    }
-                }
-                // before and x^m we have the same value x^{4^8-1}
-                std::size_t a_slot = xm_slot - 1 - (WA == 24),
-                            b_slot = xm_slot + 1;
-                for(std::size_t i = 0; i < 12; i++) {
-                    bp.add_copy_constraint({var(component.W((12*a_slot + i) % WA), start_row_index + (12*a_slot)/WA, false),
-                                            var(component.W((12*b_slot + i) % WA), start_row_index + (12*b_slot)/WA, false)});
-                }
-
-                // slots with x^{2m}
-                a_slot = (WA == 12)? (14 + 1) : (16 + 1);
-                b_slot = (WA == 12)? (14 + 41) : (16 + 43);
-                for(std::size_t i = 0; i < 12; i++) {
-                    bp.add_copy_constraint({var(component.W((12*a_slot + i) % WA), start_row_index + (12*a_slot)/WA, false),
-                                            var(component.W((12*b_slot + i) % WA), start_row_index + (12*b_slot)/WA, false)});
-                }
-
-                // additional copies for alignment
-                if (WA == 24) {
-                    apply_list = {9, 16 + 5, 16 + 21};
-                    for( std::size_t slot : apply_list ) {
-                        for(std::size_t i = 0; i < 12; i++) {
-                            bp.add_copy_constraint({ var(component.W((12*slot + i) % WA), start_row_index + (12*slot)/WA, false),
-                                                     var(component.W((12*(slot+1) + i) % WA), start_row_index + (12*(slot+1))/WA, false) });
-                        }
+                        bp.add_copy_constraint({var(component.W((12*pair[0] + i) % WA), start_row_index + (12*pair[0])/WA, false),
+                                                var(component.W((12*pair[1] + i) % WA), start_row_index + (12*pair[1])/WA, false)});
                     }
                 }
 
-                // linking slots with x^{(1-t)/3}
-                a_slot = (WA == 12)? 58 : 62;
-                b_slot = (WA == 12)? 102 : 109;
-                for(std::size_t i = 0; i < 12; i++) {
-                    bp.add_copy_constraint({var(component.W((12*a_slot + i) % WA), start_row_index + (12*a_slot)/WA, false),
-                                            var(component.W((12*b_slot + i) % WA), start_row_index + (12*b_slot)/WA, false)});
-                }
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -475,27 +446,26 @@ namespace nil {
                 std::vector<std::size_t> selector_index = generate_gates(component, bp, assignment, instance_input);
                 std::vector<std::size_t> apply_list;
 
-                if (WA == 12) {
-                    apply_list = {14 + 1,14 + 5,14 + 20};
-                } else {
-                    apply_list = {8 + 0,8 + 2,8 + 10};
-                }
-                for( std::size_t row : apply_list ) {
-                    assignment.enable_selector(selector_index[0], start_row_index + row); // square gate
-                }
+                auto apply_selector = [&assignment, &selector_index, &start_row_index](
+                    std::size_t gate_id, std::vector<std::size_t> apply_list) {
+                    for( std::size_t row : apply_list ) {
+                        assignment.enable_selector(selector_index[gate_id], start_row_index + row);
+                    }
+                };
 
-                assignment.enable_selector(selector_index[1], start_row_index + (WA == 12 ? 13 : 7)); // cube gate
+                // square gate #0
+                apply_selector(0, (WA == 12)? std::vector<std::size_t>{14+1,14+5,14+20}: std::vector<std::size_t>{8+0,8+2,8+10});
 
-                if (WA == 12) {
-                    apply_list = { 10, 14 + 3, 14 + 6, 14 + 21, 14 + 31,14+ 41, 14+ 43, 14 + 45 + 42 + 3 - 2 };
-                } else {
-                    apply_list = {  5, 8 + 1,  8 + 3,  8 + 11,  8 + 16, 8 + 21, 8 + 22, 8 + 24 + 22 + 2 - 2 };
-                }
-                for( std::size_t row : apply_list ) {
-                    assignment.enable_selector(selector_index[2], start_row_index + row); // multiplication gate
-                }
+                // cube gate #1
+                apply_selector(1, (WA == 12)? std::vector<std::size_t>{13}: std::vector<std::size_t>{7});
 
-                assignment.enable_selector(selector_index[3], start_row_index + (WA == 12)); // inversion gate (first or second row)
+                // multiplication gate #2
+                apply_selector(2, (WA == 12)?
+                                  std::vector<std::size_t>{10, 14 + 3, 14 + 6, 14 + 21, 14 + 31,14+ 41, 14+ 43, 14 + 45 + 42 + 3 - 2 }:
+                                  std::vector<std::size_t>{5, 8 + 1,  8 + 3,  8 + 11,  8 + 16, 8 + 21, 8 + 22, 8 + 24 + 22 + 2 - 2});
+
+                // inversion gate #3
+                apply_selector(3, (WA == 12)? std::vector<std::size_t>{1}: std::vector<std::size_t>{0});
 
                 // power4 gate
                 if (WA == 12) {
