@@ -112,11 +112,8 @@ void test_fixedpoint_dot_1_gate(std::vector<FixedType> &input1, std::vector<Fixe
                                       dots, FixedType::M_2);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance,
-        public_input,
-        result_check,
-        instance_input,
-        crypto3::detail::connectedness_check_type::NONE);
+        component_instance, public_input, result_check, instance_input, crypto3::detail::connectedness_check_type::NONE,
+        static_cast<uint32_t>(dots), FixedType::M_2);
     // The zero is sometimes not connected
 }
 
@@ -195,11 +192,8 @@ void test_fixedpoint_dot_2_gates(std::vector<FixedType> &input1, std::vector<Fix
                                       dots, FixedType::M_2);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance,
-        public_input,
-        result_check,
-        instance_input,
-        crypto3::detail::connectedness_check_type::NONE);
+        component_instance, public_input, result_check, instance_input, crypto3::detail::connectedness_check_type::NONE,
+        static_cast<uint32_t>(dots), FixedType::M_2);
     // The zero is sometimes not connected
 }
 

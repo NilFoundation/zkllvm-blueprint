@@ -104,7 +104,13 @@ void test_fixedpoint_sin(FixedType input) {
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        crypto3::detail::connectedness_check_type::STRONG,
+        FixedType::M_1,
+        FixedType::M_2);
 }
 
 template<typename FixedType>
@@ -165,7 +171,13 @@ void test_fixedpoint_cos(FixedType input) {
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        crypto3::detail::connectedness_check_type::STRONG,
+        FixedType::M_1,
+        FixedType::M_2);
 }
 
 template<typename FieldType, typename RngType>
