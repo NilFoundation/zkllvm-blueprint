@@ -50,7 +50,7 @@ namespace nil {
             // to two points P from E(F_p) and Q from E'(F_p^2)
             // The curve parameter t is fixed
             // with -t = 0xD201000000010000
-            // Input: xP, yP, xQ[2], yQ[2] ( we assume P and Q are NOT (0,0) i.e. points at infinity
+            // Input: P[2], Q[4] ( we assume P and Q are NOT (0,0), i.e. not the points at infinity, NOT CHECKED )
             // Output: f[12]: an element of F_p^12
             //
             // We realize the circuit in two versions - 12-column and 24-column.
@@ -67,7 +67,7 @@ namespace nil {
                 : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
             static std::size_t gates_amount_internal(std::size_t witness_amount) {
-                return (witness_amount == 12) ? 4 : 5; // TODO
+                return (witness_amount == 12) ? 4 : 5;
             }
 
             public:
@@ -78,8 +78,6 @@ namespace nil {
                 using point_addition_type = bls12_g2_point_addition<
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                     BlueprintFieldType>;
-
-                typename BlueprintFieldType::integral_type minus_t = 0xD201000000010000; // TODO Do we need this?
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -114,11 +112,6 @@ namespace nil {
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    /*
-                    return ((witness_amount == 12)? (7 + 3 + 3 + 4 + 10) : (4 + 2 + 2 + 2 + 6)) + // TODO
-                            power_tm1sq3_type::get_rows_amount(witness_amount,lookup_column_amount) +
-                            3 * power_t_type::get_rows_amount(witness_amount, lookup_column_amount);
-                    */
                     return ( (witness_amount == 12)? (36 + 2*63 + 2*5 + 1) : (20 + 63 + 5 + 1)) +
                            5*point_addition_type::get_rows_amount(witness_amount, lookup_column_amount);
                 }
@@ -142,7 +135,7 @@ namespace nil {
                         std::size_t last_row = start_row_index + component.rows_amount - 1;
 
                         for(std::size_t i = 0; i < 12; i++) {
-                            output[i] = var(component.W(WA - 12 + i), last_row, false, var::column_type::witness); // TODO check!
+                            output[i] = var(component.W(i), last_row, false, var::column_type::witness); // TODO check!
                         }
                     }
 
@@ -192,20 +185,6 @@ namespace nil {
                 using var = typename component_type::var;
                 using value_type = typename BlueprintFieldType::value_type;
 
-                typename BlueprintFieldType::integral_type field_p = BlueprintFieldType::modulus;
-                const std::size_t WA = component.witness_amount();
-
-                value_type xP, yP;
-                xP = var_value(assignment, instance_input.P[0]);
-                yP = var_value(assignment, instance_input.P[1]);
-
-                std::array<value_type,2> xQ, yQ;
-
-                xQ[0] = var_value(assignment, instance_input.Q[0]);
-                xQ[1] = var_value(assignment, instance_input.Q[1]);
-                yQ[0] = var_value(assignment, instance_input.Q[2]);
-                yQ[1] = var_value(assignment, instance_input.Q[3]);
-
                 using policy_type_fp2 = crypto3::algebra::fields::fp2<BlueprintFieldType>;
                 using fp2_element = typename policy_type_fp2::value_type;
                 using curve_point = std::array<fp2_element,2>;
@@ -213,19 +192,26 @@ namespace nil {
 
                 point_addition_type point_addition_instance( component._W, component._C, component._PI);
 
+                const std::size_t WA = component.witness_amount();
+
+                value_type xP = var_value(assignment, instance_input.P[0]),
+                           yP = var_value(assignment, instance_input.P[1]);
+
+                std::array<value_type,2> xQ = {var_value(assignment, instance_input.Q[0]), var_value(assignment, instance_input.Q[1])},
+                                         yQ = {var_value(assignment, instance_input.Q[2]), var_value(assignment, instance_input.Q[3])};
                 curve_point Q = { fp2_element(xQ[0], xQ[1]), fp2_element(yQ[0], yQ[1])},
                             R = Q;
 
-                // for storing all precomputed points, every point is represented by 4 elements
+                // for storing all precomputed points, every point is represented by 4 elements,
+                // for each doubled point we additionally store the "zero-check" = inversed y coordinate
                 std::vector<value_type> all_point_coords = {};
 
                 // precomputation of all curve points that appear in the Miller loop
                 // we consider a slot to be 2 cells wide
-                std::size_t slot   = (WA == 12)? 1 : 7, // skip some slots
+                std::size_t slot   = (WA == 12)? 1 : 7, // start slot depending on WA
                             Q_slot = slot; // save slot number for further use
 
                 auto fill_slot = [&assignment, &component, &start_row_index, &slot, &WA, &all_point_coords](fp2_element V) {
-// std::cout << "Filling slot " << slot << "\n";
                     for(std::size_t i = 0; i < 2; i++) {
                         assignment.witness(component.W((2*slot + i) % WA),start_row_index + (2*slot)/WA) = V.data[i];
                         all_point_coords.push_back(V.data[i]);
@@ -242,7 +228,6 @@ namespace nil {
 
                 auto use_addition = [&assignment, &component, &start_row_index, &WA, &point_addition_instance]
                                                (std::size_t input_slot_1, std::size_t input_slot_2, std::size_t &row) {
-// std::cout << "Using addition with input slots " << input_slot_1 << ", " << input_slot_2 << "\n";
                     std::array<var,4> P, Q;
                     for(std::size_t i = 0; i < 4; i++) {
                         P[i] = var(component.W((2*input_slot_1 + i) % WA),start_row_index + (2*input_slot_1)/WA,false);
@@ -314,12 +299,9 @@ namespace nil {
                 using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
                 using fp12_element = typename policy_type_fp12::value_type;
 
-                fp12_element f = fp12_element::one(); // initial f value for Miller loop is 1
-                std::size_t point_idx = 0; // the index of the current curve point in all_point_coords (it's Q actually)
-
                 auto LineFunctionDouble = [&assignment, &component, &current_row, &WA, &xP, &yP](
                         fp12_element f,
-                        std::array<value_type,6> T) {
+                        std::array<value_type,6> T) { // T = the point to double and it's zero check
                     fp12_element x  = fp12_element::one() * xP,
                                  y  = fp12_element::one() * yP,
                                  x1 = fp12_element({ {0,0}, {0,0}, {(T[1] + T[0])/2, (T[1] - T[0])/2} }, { {0,0}, {0,0}, {0,0} }),
@@ -332,12 +314,10 @@ namespace nil {
                     if (WA == 12) { current_row++; } // in 12-column version go to next row
                     assignment.witness(component.W((12 + 0) % WA),current_row) = xP;
                     assignment.witness(component.W((12 + 1) % WA),current_row) = yP;
-                    assignment.witness(component.W((12 + 2) % WA),current_row) = T[0];
-                    assignment.witness(component.W((12 + 3) % WA),current_row) = T[1];
-                    assignment.witness(component.W((12 + 4) % WA),current_row) = T[2];
-                    assignment.witness(component.W((12 + 5) % WA),current_row) = T[3];
-                    assignment.witness(component.W((12 + 6) % WA),current_row) = T[4]; // the zero check cells of
-                    assignment.witness(component.W((12 + 7) % WA),current_row) = T[5]; // the doubling for point Q
+                    for(std::size_t i = 0; i < 6; i++) {
+                        assignment.witness(component.W((12 + 2 + i) % WA),current_row) = T[i];
+                    }
+
                     current_row++; // unconditional
                     return g;
                 };
@@ -371,6 +351,9 @@ namespace nil {
 
                      return g;
                 };
+
+                fp12_element f = fp12_element::one(); // initial f value for Miller loop is 1
+                std::size_t point_idx = 0; // the index of the current curve point in all_point_coords (it's Q actually)
 
                 std::set<std::size_t> addition_bits = {1,3,6,15,47};
                 for(std::size_t bit_num = 1; bit_num < 64; bit_num++) {
@@ -543,30 +526,43 @@ namespace nil {
                 std::size_t current_row = start_row_index + ((WA == 12)? 46+1 : 25),
                             row_step = (WA == 12)? 2 : 1;
                 std::set<std::size_t> addition_bits = {1,3,6,15,47};
+                std::map<std::size_t,std::size_t> skip_blocks = (WA == 12)?
+                     std::map<std::size_t,std::size_t>{ {1,0}, {3,1}, {6,0}, {15,1}, {47,1}} :
+                     std::map<std::size_t,std::size_t>{ {1,0}, {3,1}, {6,2}, {15,3}, {47,3}};
+                // at this moment "slot" points to the cell, where Q storage starts
                 for(std::size_t bit_num = 1; bit_num < 64; bit_num++) {
                     bp.add_copy_constraint({var(component.W((12 + 0) % WA), current_row, false), instance_input.P[0]});
                     bp.add_copy_constraint({var(component.W((12 + 1) % WA), current_row, false), instance_input.P[1]});
+                    // link the T argument to its source
+                    for(std::size_t i = 0; i < 6; i++) {
+                        bp.add_copy_constraint({var(component.W((2*slot + i) % WA), start_row_index + (2*slot + i)/WA, false),
+                                                var(component.W((12 + 2 + i) % WA), current_row, false)});
+                    }
+                    slot += 3;
                     current_row += row_step;
                     if (addition_bits.count(bit_num)) {
                         bp.add_copy_constraint({var(component.W((12 + 0) % WA), current_row, false), instance_input.P[0]});
                         bp.add_copy_constraint({var(component.W((12 + 1) % WA), current_row, false), instance_input.P[1]});
+                        // link the T argument to its source
+                        for(std::size_t i = 0; i < 4; i++) {
+                            bp.add_copy_constraint({var(component.W((2*slot + i) % WA), start_row_index + (2*slot + i)/WA, false),
+                                                    var(component.W((12 + 2 + i) % WA), current_row, false)});
+                        }
+                        // account for the slots linked above
+                        slot += 2;
+                        // skip slots, that correspond to addition subcomponent
+                        slot += 12;
+                        // additional skip due to alignment
+                        slot += 3*skip_blocks[bit_num];
+                        // skip the first slot of the addition output block (TODO : might be changed)
+                        slot++;
+                        // link the Q argument to its source
                         for(std::size_t i = 0; i < 4; i++) {
                             bp.add_copy_constraint({var(component.W((12 + 6 + i) % WA), current_row, false), instance_input.Q[i]});
                         }
                         current_row += row_step;
                     }
                 }
-/*
-                std::vector<std::array<std::size_t,2>> pairs = (WA == 12)?
-                    std::vector<std::array<std::size_t,2>>{{0,3}, {111,202}, {6,249}, {113,251}, {204,253}, {158,255}} :
-                    std::vector<std::array<std::size_t,2>>{{0,3}, {120,217}, {6,267}, {123,269}, {219,271}, {171,273}, {121,122}, {169,170}, {265,266}};
-                for( std::array<std::size_t,2> pair : pairs ) {
-                    for(std::size_t i = 0; i < 12; i++) {
-                        bp.add_copy_constraint({var(component.W((12*pair[0] + i) % WA), start_row_index + (12*pair[0])/WA, false),
-                                                var(component.W((12*pair[1] + i) % WA), start_row_index + (12*pair[1])/WA, false)});
-                    }
-                }
-*/
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
