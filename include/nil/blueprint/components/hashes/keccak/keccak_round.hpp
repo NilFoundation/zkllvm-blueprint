@@ -90,6 +90,9 @@ namespace nil {
                 static std::size_t calculate_buff(std::size_t witness_amount, std::size_t num_rows, std::size_t base = 0) {
                     std::size_t buff = 0;
                     std::size_t cells = calculate_num_cells(num_rows, base);
+                    if (base == 0) {
+                        return 3 * witness_amount - cells;
+                    }
                     if (base == 6) {
                         return witness_amount * ((cells - 1) / witness_amount + 1) - cells;
                     }
@@ -125,83 +128,7 @@ namespace nil {
                     }
                     return res;
                 }
- 
-                class normalize_table_type : public lookup_table_definition{
-                    std::size_t base;
-                    virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base(std::size_t base, typename BlueprintFieldType::integral_type num) {
-                        typename BlueprintFieldType::integral_type result = 0;
-                        typename BlueprintFieldType::integral_type normalized_result = 0;
-                        typename BlueprintFieldType::integral_type power = 1;
-                        while (num > 0) {
-                            result = result + (num % base)*power;
-                            normalized_result = normalized_result  + ((num % base) & 1)*power;
-                            num /= base;
-                            power <<= 3;
-                        }
-                        return {result, normalized_result};
-                    }  
-                public:
-                    normalize_table_type(std::size_t base_): lookup_table_definition("keccak_normalize" + std::to_string(base_) + "_table"), base(base_) {
-                        this->subtables["full"] = {{0,1}, 0, 65536};
-                    }
-                    virtual void generate(){
-                        this->_table.resize(2);
-                        std::vector<std::size_t> value_sizes = {8};
 
-                        for (typename BlueprintFieldType::integral_type i = 0;
-                            i < typename BlueprintFieldType::integral_type(65536);
-                            i++
-                        ) {
-                            std::array<typename BlueprintFieldType::integral_type, 2> value = to_base(base, i);
-                            this->_table[0].push_back(value[0]);
-                            this->_table[1].push_back(value[1]);
-                        }
-                    }
-                    virtual std::size_t get_columns_number(){ return 2; }
-                    virtual std::size_t get_rows_number(){ return 65536; }
-                };
-                class chi_table_type : public lookup_table_definition{
-                    virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base_chi(typename BlueprintFieldType::integral_type num) {
-                        std::size_t base = 5;
-                        typename BlueprintFieldType::integral_type table[5] = {0, 1, 1, 0, 0};
-                        typename BlueprintFieldType::integral_type result = 0;
-                        typename BlueprintFieldType::integral_type chi_result = 0;
-                        typename BlueprintFieldType::integral_type power = 1;
-                        typename BlueprintFieldType::integral_type mask = 7;
-                        while (num > 0) {
-                            result = result + (num % base) * power;
-                            chi_result = chi_result + table[int(num % base)] * power;
-                            num /= base;
-                            power <<= 3;
-                        }
-                        return {result, chi_result};
-                    }
-                public:
-                    chi_table_type(): lookup_table_definition("keccak_chi_table") {
-                        this->subtables["full"] = {{0,1}, 0, 65536};
-                    }
-                    virtual void generate(){
-                        this->_table.resize(2);
-                        std::vector<std::size_t> value_sizes = {8};
-
-                        for (typename BlueprintFieldType::integral_type i = 0;
-                            i < typename BlueprintFieldType::integral_type(65536);
-                            i++
-                        ) {
-                            std::array<typename BlueprintFieldType::integral_type, 2> value = to_base_chi(i);
-                            this->_table[0].push_back(value[0]);
-                            this->_table[1].push_back(value[1]);
-                        }
-                    }
-                    virtual std::size_t get_columns_number(){ return 2; }
-                    virtual std::size_t get_rows_number(){ return 65536; }
-                };
-
-            protected:
-                std::shared_ptr<lookup_table_definition> normalize3_table;
-                std::shared_ptr<lookup_table_definition> normalize4_table;
-                std::shared_ptr<lookup_table_definition> normalize6_table;
-                std::shared_ptr<lookup_table_definition> chi_table;
             public:
                 using manifest_type = nil::blueprint::plonk_component_manifest;
 
@@ -328,6 +255,9 @@ namespace nil {
                 // num columns for the permutation argument
                 const std::size_t limit_permutation_column;
 
+                const typename BlueprintFieldType::integral_type big_rot_const = calculate_sparse((integral_type(1) << 64) - 1);
+                const std::array<std::array<typename BlueprintFieldType::integral_type, 2>, 29> all_rot_consts = calculate_rot_consts();
+
                 const std::size_t normalize3_chunk_size = calculate_chunk_size(lookup_rows, 3);
                 const std::size_t normalize4_chunk_size = calculate_chunk_size(lookup_rows, 4);
                 const std::size_t normalize6_chunk_size = calculate_chunk_size(lookup_rows, 6);
@@ -406,6 +336,30 @@ namespace nil {
                         return result;
                     }
                 };
+
+                typename BlueprintFieldType::integral_type calculate_sparse(const typename BlueprintFieldType::integral_type& value) const {
+                    typename BlueprintFieldType::integral_type result = 0;
+                    typename BlueprintFieldType::integral_type power = 1;
+                    typename BlueprintFieldType::integral_type val = value;
+                    while (val > 0) {
+                        result += (val & 1) * power;
+                        power <<= 3;
+                        val >>= 1;
+                    }
+                    return result;
+                }
+                std::array<std::array<typename BlueprintFieldType::integral_type, 2>, 29> calculate_rot_consts() const {
+                    std::array<std::array<typename BlueprintFieldType::integral_type, 2>, 29> result;
+                    for (int i = 0; i < 5; ++i) {
+                        result[i][0] = calculate_sparse((integral_type(1) << 1) - 1);
+                        result[i][1] = calculate_sparse((integral_type(1) << 63) - 1);
+                    }
+                    for (int i = 1; i < 25; ++i) {
+                        result[i + 4][0] = calculate_sparse((integral_type(1) << rho_offsets[i]) - 1);
+                        result[i + 4][1] = calculate_sparse((integral_type(1) << (64 - rho_offsets[i])) - 1);
+                    }
+                    return result;
+                }
 
                 integral_type normalize(const integral_type& integral_value) const {
                     integral_type result = 0;
@@ -548,12 +502,13 @@ namespace nil {
 
                 static configuration configure_rot(std::size_t witness_amount, std::size_t limit_permutation_column, std::size_t row, std::size_t column) {
                     // regular constraints:
-                    // a = small_part << (192 - r) + big_part;
-                    // a_rot = big_part << r + small_part;
-                    // bound_small = small_part - (1 << r) + (1 << 192);
+                    // a = small_part * (1 << (192 - 3 * r)) + big_part;
+                    // a_rot = big_part * (1 << (3 * r)) + small_part;
+                    // bound_small = small_part - sparse((1 << r) - 1) + sparse((1 << 64) - 1);
                     // bound_small = small_chunk0 + small_chunk1 * 2^chunk_size + ... + small_chunkk * 2^(k*chunk_size)
-                    // bound_big = big_part - (1 << (192 - r)) + (1 << 192);
+                    // bound_big = big_part - sparse((1 << (64 - r)) - 1) + sparse((1 << 64) - 1);
                     // bound_big = big_chunk0 + big_chunk1 * 2^chunk_size + ... + big_chunkk * 2^(k*chunk_size)
+                    // 1 << 192 = (1 << (192 - 3 * r)) * (1 << (3 * r))
 
                     std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
 
@@ -980,7 +935,6 @@ namespace nil {
                     //     }
                     //     cur_row = pairs[cur_constr].first;
                     // }
-                    std::cout << "lookup gates: " << result.size() << std::endl;
                     return result;
                 }
                 static std::size_t get_gates_amount(std::size_t witness_amount,
@@ -996,7 +950,6 @@ namespace nil {
                     for (std::size_t i = 0; i < lookup_gates_configuration.size(); ++i) {
                         res += lookup_gates_configuration[i].size();
                     }
-                    std::cout << "GATES: " << res << '\n';
                     return res;
                 }
 
@@ -1029,18 +982,18 @@ namespace nil {
                     return num_cells / witness_amount + bool(num_cells % witness_amount);
                 }
 
-                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
-                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
-                    normalize3_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(3));
-                    normalize4_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(4));
-                    normalize6_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(6));
-                    chi_table = std::shared_ptr<lookup_table_definition>(new chi_table_type());
-                    result.push_back(normalize3_table);
-                    result.push_back(normalize4_table);
-                    result.push_back(normalize6_table);
-                    result.push_back(chi_table);
-                    return result;
-                }
+                // std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
+                //     std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                //     normalize3_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(3));
+                //     normalize4_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(4));
+                //     normalize6_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(6));
+                //     chi_table = std::shared_ptr<lookup_table_definition>(new chi_table_type());
+                //     result.push_back(normalize3_table);
+                //     result.push_back(normalize4_table);
+                //     result.push_back(normalize6_table);
+                //     result.push_back(chi_table);
+                //     return result;
+                // }
 
                 std::map<std::string, std::size_t> component_lookup_tables(){
                     std::map<std::string, std::size_t> lookup_tables;
@@ -1263,6 +1216,8 @@ namespace nil {
                         }
                         case 7:
                         {
+                            std::size_t true_first_row = cur_config_vec[i].first_coordinate.row;
+
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                     + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
@@ -1293,8 +1248,8 @@ namespace nil {
 
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                     - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    - (integral_type(1) << 192));
+                                                    + var(component.C(0), true_first_row + 1 - cur_config_vec[i].first_coordinate.row - 1, true, var::column_type::constant)
+                                                    - component.big_rot_const);
                             
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
@@ -1323,8 +1278,8 @@ namespace nil {
 
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
                                                     - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    - (integral_type(1) << 192));
+                                                    + var(component.C(0), true_first_row + 2 - cur_config_vec[i].first_coordinate.row - 1, true, var::column_type::constant)
+                                                    - component.big_rot_const);
                             
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
@@ -1648,9 +1603,13 @@ namespace nil {
                 std::sort(rotate_rows.begin(), rotate_rows.end());
                 for (std::size_t i = 0; i < 5; i++) {
                     assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << 3;
+                    assignment.constant(component.C(0), row + rotate_rows[i] + 1) = component.all_rot_consts[i][0];
+                    assignment.constant(component.C(0), row + rotate_rows[i] + 2) = component.all_rot_consts[i][1];
                 }
                 for (std::size_t i = 5; i < 29; i++) {
                     assignment.constant(component.C(0), row + rotate_rows[i]) = integral_type(1) << (3 * component_type::rho_offsets[i - 4]);
+                    assignment.constant(component.C(0), row + rotate_rows[i] + 1) = component.all_rot_consts[i][0];
+                    assignment.constant(component.C(0), row + rotate_rows[i] + 2) = component.all_rot_consts[i][1];
                 }
             }
 
@@ -1861,15 +1820,22 @@ namespace nil {
                 // }
                 // std::cout << "\n";
 
+                // ROT
                 std::array<value_type, 5> C_rot;
+                integral_type for_bound_smaller = component.calculate_sparse((integral_type(1) << 64) - 1) - component.calculate_sparse((integral_type(1) << 1) - 1);
+                integral_type for_bound_bigger = component.calculate_sparse((integral_type(1) << 64) - 1) - component.calculate_sparse((integral_type(1) << 63) - 1);
+                // std::cout << "for_bound_smaller: " << for_bound_smaller << ", for_bound_bigger: " << for_bound_bigger << '\n';
+                // std::cout << component.calculate_sparse((integral_type(1) << 64) - 1) << "\n" << component.calculate_sparse((integral_type(1) << 63) - 1) << "\n" << component.calculate_sparse((integral_type(1) << 1) - 1) << "\n";
                 for (int index = 0; index < 5; ++index) {
                     integral_type integral_C = integral_type(C[index].data);
                     integral_type smaller_part = integral_C >> 189;
                     integral_type bigger_part = integral_C & ((integral_type(1) << 189) - 1);
                     integral_type integral_C_rot = (bigger_part << 3) + smaller_part;
                     C_rot[index] = value_type(integral_C_rot);
-                    integral_type bound_smaller = smaller_part - (integral_type(1) << 3) + (integral_type(1) << 192);
-                    integral_type bound_bigger = bigger_part - (integral_type(1) << 189) + (integral_type(1) << 192);
+                    // integral_type bound_smaller = smaller_part - (integral_type(1) << 3) + (integral_type(1) << 192);
+                    // integral_type bound_bigger = bigger_part - (integral_type(1) << 189) + (integral_type(1) << 192);
+                    integral_type bound_smaller = smaller_part + for_bound_smaller;
+                    integral_type bound_bigger = bigger_part + for_bound_bigger;
                     auto copy_bound_smaller = bound_smaller;
                     auto copy_bound_bigger = bound_bigger;
                     auto chunk_size = component.rotate_chunk_size;
@@ -1883,6 +1849,13 @@ namespace nil {
                         integral_big_chunks.push_back(bound_bigger & mask);
                         bound_bigger >>= chunk_size;
                     }
+                    // auto check = integral_big_chunks[0];
+                    // auto power = integral_type(1);
+                    // for (std::size_t j = 1; j < num_chunks; ++j) {
+                    //     power <<= chunk_size;
+                    //     check += integral_big_chunks[j] * power;
+                    // }
+                    // std::cout << "check: " << check << ' ' << copy_bound_bigger << '\n';
 
                     auto cur_config = component.full_configuration[index + config_index];
                     assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = C[index];
@@ -1962,8 +1935,12 @@ namespace nil {
                     integral_type bigger_part = integral_A & ((integral_type(1) << minus_r) - 1);
                     integral_type integral_A_rot = (bigger_part << r) + smaller_part;
                     B[perm[index]] = value_type(integral_A_rot);
-                    integral_type bound_smaller = smaller_part - (integral_type(1) << r) + (integral_type(1) << 192);
-                    integral_type bound_bigger = bigger_part - (integral_type(1) << minus_r) + (integral_type(1) << 192);
+                    // integral_type bound_smaller = smaller_part - (integral_type(1) << r) + (integral_type(1) << 192);
+                    // integral_type bound_bigger = bigger_part - (integral_type(1) << minus_r) + (integral_type(1) << 192);
+                    integral_type bound_smaller = smaller_part + component.calculate_sparse((integral_type(1) << 64) - 1)
+                                                    - component.calculate_sparse((integral_type(1) << component.rho_offsets[index]) - 1);
+                    integral_type bound_bigger = bigger_part + component.calculate_sparse((integral_type(1) << 64) - 1)
+                                                    - component.calculate_sparse((integral_type(1) << (64-component.rho_offsets[index])) - 1);
                     auto copy_bound_smaller = bound_smaller;
                     auto copy_bound_bigger = bound_bigger;
                     auto chunk_size = component.rotate_chunk_size;
