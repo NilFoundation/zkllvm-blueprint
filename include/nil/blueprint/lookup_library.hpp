@@ -357,6 +357,79 @@ namespace nil {
                 virtual std::size_t get_columns_number(){ return 1; }
                 virtual std::size_t get_rows_number(){ return 129; }
             };
+ 
+            class normalize_base8_table_type : public lookup_table_definition{
+                std::size_t base;
+                virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base(std::size_t base, typename BlueprintFieldType::integral_type num) {
+                    typename BlueprintFieldType::integral_type result = 0;
+                    typename BlueprintFieldType::integral_type normalized_result = 0;
+                    typename BlueprintFieldType::integral_type power = 1;
+                    while (num > 0) {
+                        result = result + (num % base)*power;
+                        normalized_result = normalized_result  + ((num % base) & 1)*power;
+                        num /= base;
+                        power <<= 3;
+                    }
+                    return {result, normalized_result};
+                }  
+            public:
+                normalize_base8_table_type(std::size_t base_): lookup_table_definition("keccak_normalize" + std::to_string(base_) + "_table"), base(base_) {
+                    this->subtables["full"] = {{0,1}, 0, 65536};
+                }
+                virtual void generate(){
+                    this->_table.resize(2);
+                    std::vector<std::size_t> value_sizes = {8};
+
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(65536);
+                        i++
+                    ) {
+                        std::array<typename BlueprintFieldType::integral_type, 2> value = to_base(base, i);
+                        this->_table[0].push_back(value[0]);
+                        this->_table[1].push_back(value[1]);
+                    }
+                }
+                virtual std::size_t get_columns_number(){ return 2; }
+                virtual std::size_t get_rows_number(){ return 65536; }
+            };
+
+            class chi_table_type : public lookup_table_definition{
+                virtual std::array<typename BlueprintFieldType::integral_type, 2> to_base_chi(typename BlueprintFieldType::integral_type num) {
+                    std::size_t base = 5;
+                    typename BlueprintFieldType::integral_type table[5] = {0, 1, 1, 0, 0};
+                    typename BlueprintFieldType::integral_type result = 0;
+                    typename BlueprintFieldType::integral_type chi_result = 0;
+                    typename BlueprintFieldType::integral_type power = 1;
+                    typename BlueprintFieldType::integral_type mask = 7;
+                    while (num > 0) {
+                        result = result + (num % base) * power;
+                        chi_result = chi_result + table[int(num % base)] * power;
+                        num /= base;
+                        power <<= 3;
+                    }
+                    return {result, chi_result};
+                }
+            public:
+                chi_table_type(): lookup_table_definition("keccak_chi_table") {
+                    this->subtables["full"] = {{0,1}, 0, 65536};
+                }
+                virtual void generate(){
+                    this->_table.resize(2);
+                    std::vector<std::size_t> value_sizes = {8};
+
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(65536);
+                        i++
+                    ) {
+                        std::array<typename BlueprintFieldType::integral_type, 2> value = to_base_chi(i);
+                        this->_table[0].push_back(value[0]);
+                        this->_table[1].push_back(value[1]);
+                    }
+                }
+                virtual std::size_t get_columns_number(){ return 2; }
+                virtual std::size_t get_rows_number(){ return 65536; }
+            };
+            
         public:
             using bimap_type = boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::set_of<std::size_t>>;
             using left_reserved_type = typename bimap_type::left_map;
@@ -375,6 +448,10 @@ namespace nil {
                 tables["sha256_ch"] = std::shared_ptr<lookup_table_definition>(new ch_function_table());
                 tables["keccak_pack_table"] = std::shared_ptr<lookup_table_definition>(new sparse_values_base8_table());
                 tables["keccak_sign_bit_table"] = std::shared_ptr<lookup_table_definition>(new sparse_values_base8_sign_bit_table());
+                tables["keccak_normalize3_table"] = std::shared_ptr<lookup_table_definition>(new normalize_base8_table_type(3));
+                tables["keccak_normalize4_table"] = std::shared_ptr<lookup_table_definition>(new normalize_base8_table_type(4));
+                tables["keccak_normalize6_table"] = std::shared_ptr<lookup_table_definition>(new normalize_base8_table_type(6)); 
+                tables["keccak_chi_table"] = std::shared_ptr<lookup_table_definition>(new chi_table_type());
             }
 
             void register_lookup_table(std::shared_ptr<lookup_table_definition> table){

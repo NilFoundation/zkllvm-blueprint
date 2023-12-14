@@ -153,15 +153,15 @@ std::array<typename BlueprintFieldType::value_type, 25> sparse_round_function(st
     return inner_state;
 }
 
-template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns, bool xor_with_mes, bool last_round_call, std::size_t last_perm_col = 7>
+template<typename BlueprintFieldType, std::size_t WitnessesAmount,
+         bool xor_with_mes, bool last_round_call, std::size_t last_perm_col = 7>
 auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type, 25> inner_state,
                              std::array<typename BlueprintFieldType::value_type, 17> padded_message_chunk,
                              typename BlueprintFieldType::value_type RC,
                              std::array<typename BlueprintFieldType::value_type, 25> expected_result) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
-    constexpr std::size_t SelectorColumns = 25;
+    constexpr std::size_t SelectorColumns = 30;
     using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
         WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
@@ -221,8 +221,7 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
                                 xor_with_mes, last_round_call, last_perm_col);
 }
 
-template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns>
+template<typename BlueprintFieldType, std::size_t WitnessesAmount>
 void test_keccak_round_not_random() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
@@ -232,7 +231,7 @@ void test_keccak_round_not_random() {
     std::array<value_type, 25> inner_state = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     value_type RC = to_sparse<BlueprintFieldType>(value_type(1));
     std::array<value_type, 25> expected_result = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     //call 2
@@ -243,7 +242,7 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     //call 3
@@ -257,7 +256,7 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     //call 4
@@ -271,7 +270,7 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     //call 5
@@ -285,7 +284,7 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     //call 6
@@ -299,7 +298,7 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     // call 12
@@ -320,7 +319,7 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 
     // call 24
@@ -341,12 +340,12 @@ void test_keccak_round_not_random() {
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, false, false>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, false, false>
                             (inner_state, padded_message_chunk, RC, expected_result);
 }
 
-template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows,
-         std::size_t LookupColumns, bool xor_with_mes, bool last_round_call, std::size_t last_perm_col = 7>
+template<typename BlueprintFieldType, std::size_t WitnessesAmount,
+         bool xor_with_mes, bool last_round_call, std::size_t last_perm_col = 7>
 void test_keccak_round_random() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
@@ -373,7 +372,7 @@ void test_keccak_round_random() {
     
     auto expected_result = sparse_round_function<BlueprintFieldType, xor_with_mes, last_round_call>(inner_state, padded_message_chunk, RC);
 
-    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns, xor_with_mes, last_round_call, last_perm_col>
+    test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, xor_with_mes, last_round_call, last_perm_col>
                             (inner_state, padded_message_chunk, RC, expected_result);
 }
 
@@ -381,46 +380,25 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_not_random<field_type, 9, 65536, 10>(); 
+    // test_keccak_round_not_random<field_type, 9>(); 
+    // test_keccak_round_not_random<field_type, 15>(); 
                                                 // xor_with_mes, last_round_call   
-    test_keccak_round_random<field_type, 9, 65536, 10, true, false>();
-    // test_keccak_round_random<field_type, 9, 65536, 10, true, false>();
-    // test_keccak_round_random<field_type, 9, 65536, 10, true, true>();
-    // test_keccak_round_random<field_type, 15, 65536, 10, false, false>();
-    // test_keccak_round_random<field_type, 15, 65536, 10, true, false>();
-    // test_keccak_round_random<field_type, 15, 65536, 10, true, true>();
-}
-
-BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_lookup_rows) {
-    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_not_random<field_type, 9, 70000, 10>(); 
-    // test_keccak_round_not_random<field_type, 15, 40000, 10>(); 
-    // test_keccak_round_random<field_type, 9, 60000, 10, false, false>();
-    // test_keccak_round_random<field_type, 9, 30000, 10, true, false>();
-    // test_keccak_round_random<field_type, 9, 100000, 10, true, true>();
-    // test_keccak_round_random<field_type, 15, 15000, 10, false, false>();
-    // test_keccak_round_random<field_type, 15, 10000, 10, true, false>();
-    // test_keccak_round_random<field_type, 15, 50000, 10, true, true>();
+    // test_keccak_round_random<field_type, 9, false, false>();
+    // test_keccak_round_random<field_type, 9, true, false>();
+    // test_keccak_round_random<field_type, 9, true, true>();
+    // test_keccak_round_random<field_type, 15, false, false>();
+    // test_keccak_round_random<field_type, 15, true, false>();
+    // test_keccak_round_random<field_type, 15, true, true>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_diff_perm_cols) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_random<field_type, 9, 60000, 10, false, false, 5>();
-    // test_keccak_round_random<field_type, 9, 30000, 10, true, false, 6>();
-    // test_keccak_round_random<field_type, 9, 100000, 10, true, true, 7>();
-    // test_keccak_round_random<field_type, 15, 15000, 10, false, false, 5>();
-    // test_keccak_round_random<field_type, 15, 10000, 10, true, false, 6>();
-    // test_keccak_round_random<field_type, 15, 50000, 10, true, true, 9>();
-}
-
-BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_lookup_rows_to_fail) {
-    // these test need to fail because with small numbers for lookup rows, 
-    // the chunks for normalization will be smaller, so more cells per operation - 
-    // +-1 row for constraints won't be fullfilled: Assertion `max - min <= 2' failed.
-    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_random<field_type, 9, 3000, 10, true, false>();
-    // test_keccak_round_random<field_type, 9, 1000, 10, true, true>();
-    // test_keccak_round_random<field_type, 15, 100, 10, true, false>();
+    // test_keccak_round_random<field_type, 9, false, false, 5>();
+    test_keccak_round_random<field_type, 9, true, false, 6>();
+    // test_keccak_round_random<field_type, 9, true, true, 7>();
+    test_keccak_round_random<field_type, 15, false, false, 5>();
+    // test_keccak_round_random<field_type, 15, true, false, 6>();
+    // test_keccak_round_random<field_type, 15, true, true, 9>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
