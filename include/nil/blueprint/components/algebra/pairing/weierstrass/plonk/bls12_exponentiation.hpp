@@ -65,7 +65,7 @@ namespace nil {
                 : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
             static std::size_t gates_amount_internal(std::size_t witness_amount) {
-                return (witness_amount == 12) ? 9 : 10;
+                return (witness_amount == 12) ? 8 : 9;
             }
 
             public:
@@ -99,7 +99,7 @@ namespace nil {
                                                        std::size_t lookup_column_amount) {
                     static gate_manifest manifest =
                         gate_manifest(gate_manifest_type(witness_amount)) ;
-//                        .merge_with(power_t_type::get_gate_manifest(witness_amount,lookup_column_amount));
+//                        .merge_with(power_tm1sq3_type::get_gate_manifest(witness_amount,lookup_column_amount));
                     return manifest;
                 }
 
@@ -114,7 +114,7 @@ namespace nil {
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    return ((witness_amount == 12)? (7 + 3 + 3 + 4 + 10) : (4 + 2 + 2 + 2 + 6)) +
+                    return ((witness_amount == 12)? (8 + 3 + 3 + 4 + 10) : (5 + 2 + 2 + 2 + 6)) +
                             power_tm1sq3_type::get_rows_amount(witness_amount,lookup_column_amount) +
                             3 * power_t_type::get_rows_amount(witness_amount, lookup_column_amount);
                 }
@@ -237,8 +237,16 @@ namespace nil {
                 power_tm1sq3_type power_tm1sq3_instance( component._W, component._C, component._PI);
                 power_t_type power_t_instance( component._W, component._C, component._PI);
 
-                fill_slot(F.inversed()); // F^{-1}
-                fill_slot(F); // F
+                if (WA == 12) { // F^{p^3} --- in transition to elimination of the conjugation gate
+                    fill_slot(F.inversed()); // F^{-1}
+                    fill_slot(F); // F
+                    fill_slot(F.pow(field_p).pow(field_p).pow(field_p));
+                } else {
+                    fill_slot(F); // F
+                    fill_slot(F.inversed()); // F^{-1}
+                    fill_slot(F.inversed().pow(field_p).pow(field_p).pow(field_p));
+                    fill_slot(F.pow(field_p).pow(field_p).pow(field_p));
+                }
                 Y = F.unitary_inversed(); fill_slot(Y); // F^{p^6} = conjugated(F) = conjugated(a + wb) = a - wb
                 fill_slot(F.inversed()); // F^{-1}
                 Y = Y * F.inversed(); fill_slot(Y); // F^{p^6 - 1}
@@ -252,7 +260,6 @@ namespace nil {
                 fp12_element G = use_block(power_tm1sq3_instance,slot,current_row); // this computes g = y^{(1-t)^2/3}
                 slot = ((current_row - start_row_index)*WA)/12;
                 fill_slot(G.inversed()); fill_slot(G); // G^{-1}, G
-                if (WA == 24) { fill_slot(G); } // additional slot for alignment when WA = 24
                 fill_slot(G.pow(field_p).pow(field_p).pow(field_p)); // G^{p^3}
 
                 // ---------------- start of g^{-t}
@@ -326,27 +333,14 @@ namespace nil {
                 }
                 gate_list.push_back(bp.add_gate(inversion_constrs));
 
-                // conjugation gate (first column = conj(second column, prev row))
-                for(std::size_t i = 0; i < 12; i++) {
-                    X[i] = var(component.W((i+12) % WA), -1, true);
-                    Y[i] = var(component.W(i), 0, true);
-                }
-                std::vector<constraint_type> conjugation_constrs = {};
-                for(std::size_t i = 0; i < 6; i++) {
-                    conjugation_constrs.push_back(X[i] - Y[i]);
-                }
-                for(std::size_t i = 6; i < 12; i++) {
-                    conjugation_constrs.push_back(X[i] + Y[i]);
-                }
-                gate_list.push_back(bp.add_gate(conjugation_constrs));
-
                 // power p^k gates
                 std::array<std::array<constraint_type,2>,6> Z2;
                 std::array<typename BlueprintFieldType::value_type,12> F;
                 for( auto &Power : { p_one, p_two, p_three } ) {
                     for(std::size_t i = 0; i < 12; i++) {
-                        X[i] = var(component.W(i), -(WA == 12), true);
-                        Y[i] = var(component.W((i+12) % WA), 0, true);
+                        // special fix for p^3 in 24-column var
+                        X[i] = var(component.W((i+12*(Power == p_three)) % WA), -(WA == 12 || Power == p_three), true);
+                        Y[i] = var(component.W((i+12*(Power != p_three)) % WA), 0, true);
                     }
                     F = get_fp12_frobenius_coefficients<BlueprintFieldType>(Power);
                     for(std::size_t i = 0; i < 6; i++) {
@@ -395,15 +389,15 @@ namespace nil {
 
                 const std::size_t WA = component.witness_amount();
 
-                std::size_t slot = 1; // location of initial data
+                std::size_t slot = (WA == 12)? 1 : 0; // location of initial data
                 for(std::size_t i = 0; i < 12; i++) {
                     bp.add_copy_constraint({var(component.W((12*slot + i) % WA), start_row_index + (12*slot)/WA, false),
                                                 instance_input.x[i]});
                 }
 
                 std::vector<std::array<std::size_t,2>> pairs = (WA == 12)?
-                    std::vector<std::array<std::size_t,2>>{{0,3}, {111,202}, {6,249}, {113,251}, {204,253}, {158,255}} :
-                    std::vector<std::array<std::size_t,2>>{{0,3}, {120,217}, {6,267}, {123,269}, {219,271}, {171,273}, {121,122}, {169,170}, {265,266}};
+                    std::vector<std::array<std::size_t,2>>{{0,4}, {112,203}, {7,250}, {114,252}, {205,254}, {159,256}} :
+                    std::vector<std::array<std::size_t,2>>{{1,5}, {122,219}, {8,269}, {124,271}, {221,273}, {173,275}, {171,172}, {267,268}};
                 for( std::array<std::size_t,2> pair : pairs ) {
                     for(std::size_t i = 0; i < 12; i++) {
                         bp.add_copy_constraint({var(component.W((12*pair[0] + i) % WA), start_row_index + (12*pair[0])/WA, false),
@@ -433,24 +427,19 @@ namespace nil {
                 };
 
                 // inversion gate #0
-                apply_selector(0, (WA == 12)? std::vector<std::size_t>{1,112,157,248} : std::vector<std::size_t>{0,60,84,132});
+                apply_selector(0, (WA == 12)? std::vector<std::size_t>{1,113,158,249} : std::vector<std::size_t>{0,1,61,85,133});
 
-                // conjugation gate #1
-                apply_selector(1, (WA == 12)? std::vector<std::size_t>{2} : std::vector<std::size_t>{1});
+                // Frobenius gates (powers p, p^2, p^3) ## 1,2,3
+                // p
+                apply_selector(1, (WA == 12)? std::vector<std::size_t>{205} : std::vector<std::size_t>{110});
+                // p^2
+                apply_selector(2, (WA == 12)? std::vector<std::size_t>{6,159} : std::vector<std::size_t>{3,86});
+                // p^3
+                apply_selector(3, (WA == 12)? std::vector<std::size_t>{2,3,114} : std::vector<std::size_t>{1,2,62});
 
-                // Frobenius gates (powers p, p^2, p^3) ## 2,3,4
-                std::array<std::size_t,3> frobenius_line = (WA == 12) ?
-                                                           std::array<std::size_t,3>{204,5,113} :
-                                                           std::array<std::size_t,3>{109,2,61};
-                for(std::size_t i = 0; i < 3; i++) {
-                    apply_selector(i+2, {frobenius_line[i]});
-                }
-                // one more power p^2 gate #3
-                apply_selector(3,(WA == 12)? std::vector<std::size_t>{158} : std::vector<std::size_t>{85});
-
-                // multiplication gate #5
-                apply_selector(5, (WA == 12)? std::vector<std::size_t>{3,5,202,249,251,253,255} :
-                                              std::vector<std::size_t>{1,2,108,133,134,135,136});
+                // multiplication gate #4
+                apply_selector(4, (WA == 12)? std::vector<std::size_t>{4,6,203,250,252,254,256} :
+                                              std::vector<std::size_t>{2,3,109,134,135,136,137});
 
                 using component_type = plonk_bls12_exponentiation<BlueprintFieldType, ArithmetizationParams>;
                 using var = typename component_type::var;
@@ -460,7 +449,7 @@ namespace nil {
                 power_tm1sq3_type power_tm1sq3_instance( component._W, component._C, component._PI);
                 power_t_type power_t_instance( component._W, component._C, component._PI);
 
-                std::size_t slot = 6;
+                std::size_t slot = (WA == 12)? 7 : 8;
                 std::array<var,12> transfer_vars;
                 for(std::size_t i = 0; i < 12; i++) {
                     transfer_vars[i] = var(component.W((12*slot + i) % WA),start_row_index + (12*slot)/WA,false);
@@ -470,7 +459,7 @@ namespace nil {
                 typename power_tm1sq3_type::result_type power_tm1sq3_res =
                     generate_circuit(power_tm1sq3_instance, bp, assignment, power_tm1sq3_input, current_row);
 
-                slot = (WA == 12)? 112 : 121; // slot for linking output
+                slot = (WA == 12)? 113 : 123; // slot for linking output
                 for(std::size_t i = 0; i < 12; i++) {
                     bp.add_copy_constraint({power_tm1sq3_res.output[i],
                                             var(component.W((12*slot + i) % WA), start_row_index + (12*slot)/WA, false)});
@@ -480,13 +469,13 @@ namespace nil {
                                           block_input,
                                           block_output;
                 if (WA == 12) {
-                    block_start = {114,159,205};
-                    block_input = {112,156,203};
-                    block_output= {156,201,247};
+                    block_start = {115,160,206};
+                    block_input = {113,157,204};
+                    block_output= {157,202,248};
                 } else {
-                    block_start = {124,172,220};
-                    block_input = {122,168,218};
-                    block_output= {168,216,264};
+                    block_start = {126,174,222};
+                    block_input = {123,170,220};
+                    block_output= {170,218,266};
                 }
 
                 for(std::size_t j = 0; j < block_start.size(); j++) {
