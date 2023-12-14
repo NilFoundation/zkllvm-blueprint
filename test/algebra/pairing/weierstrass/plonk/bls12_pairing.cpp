@@ -45,6 +45,7 @@
 
 #include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_exponentiation.hpp>
 #include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_miller_loop.hpp>
+#include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_381_pairing.hpp>
 
 #include "../../../../test_plonk_component.hpp"
 
@@ -203,16 +204,12 @@ void test_bls12_exponentiation(std::vector<typename FieldType::value_type> publi
            component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
 }
 
-template <typename CurveType, std::size_t WitnessColumns>
-void test_bls12_miller_loop(std::vector<typename CurveType::base_field_type::value_type> public_input,
-    typename CurveType::template g2_type<>::value_type expected_res) {
-
-    using curve_type = CurveType;
-    using FieldType = typename curve_type::g2_type<>::field_type::base_field_type;
-
+template <typename FieldType, std::size_t WitnessColumns>
+void test_bls12_381_pairing(std::vector<typename FieldType::value_type> public_input,
+                            std::vector<typename FieldType::value_type> expected_res) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? 5 : 6;
+    constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? (5 + 9) : (6 + 10);
 
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
@@ -224,71 +221,27 @@ void test_bls12_miller_loop(std::vector<typename CurveType::base_field_type::val
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::bls12_miller_loop<ArithmetizationType, FieldType>;
+    using component_type = blueprint::components::bls12_381_pairing<ArithmetizationType, FieldType>;
 
-    typename component_type::input_type instance_input;
-/*
-    value_type xP, yP;
-    std::array<value_type,2> xQ, yQ;
-    std::array<value_type,12> expected_res;
-*/
-    instance_input.P[0] = var(0,0, false, var::column_type::public_input); // xP    = public_input[0];
-    instance_input.P[1] = var(0,1, false, var::column_type::public_input); // yP    = public_input[1];
-    instance_input.Q[0] = var(0,2, false, var::column_type::public_input); // xQ[0] = public_input[2];
-    instance_input.Q[1] = var(0,3, false, var::column_type::public_input); // xQ[1] = public_input[3];
-    instance_input.Q[2] = var(0,4, false, var::column_type::public_input); // yQ[0] = public_input[4];
-    instance_input.Q[3] = var(0,5, false, var::column_type::public_input); // yQ[1] = public_input[5];
-
-/*
-    using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<FieldType>;
-    using fp12_element = typename policy_type_fp12::value_type;
-
-
-    fp12_element e = fp12_element::zero();
-    fp12_element({ {X[0],X[1]}, {X[2],X[3]}, {X[4],X[5]} }, { {X[6],X[7]}, {X[8],X[9]}, {X[10],X[11]} }),
-                 e = e0, f;
-
-    for(std::size_t i = 0; i < 6; i++) {
-        e = e.pow(field_p);
-    } // e0^{p^6}
-    e = e * e0.inversed(); // e0^{p^6 - 1}
-    e = e.pow(field_p).pow(field_p) * e; // (e0^{p^6 - 1})^{p^2 + 1}
-    f = e.pow((minus_t + 1)*(minus_t + 1)/3);
-
-    e = e * f.pow(field_p).pow(field_p).pow(field_p) * f.pow(minus_t).inversed().pow(field_p).pow(field_p) *
-            f.pow(minus_t*minus_t-1).pow(field_p - minus_t);
-
-    expected_res = {
-       e.data[0].data[0].data[0], e.data[0].data[0].data[1],
-       e.data[0].data[1].data[0], e.data[0].data[1].data[1],
-       e.data[0].data[2].data[0], e.data[0].data[2].data[1],
-       e.data[1].data[0].data[0], e.data[1].data[0].data[1],
-       e.data[1].data[1].data[0], e.data[1].data[1].data[1],
-       e.data[1].data[2].data[0], e.data[1].data[2].data[1] };
-
-*/
+    typename component_type::input_type instance_input = {
+        var(0,0, false, var::column_type::public_input), // xP
+        var(0,1, false, var::column_type::public_input), // yP
+        var(0,2, false, var::column_type::public_input), // xQ[0]
+        var(0,3, false, var::column_type::public_input), // xQ[1]
+        var(0,4, false, var::column_type::public_input), // yQ[0]
+        var(0,5, false, var::column_type::public_input)  // yQ[1]
+      };
 
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
-            typename component_type::result_type &real_res) {
-        typename curve_type::g2_type<>::field_type::value_type expected_x = expected_res.X / expected_res.Z.pow(2),
-                                                               expected_y = expected_res.Y / expected_res.Z.pow(3);
-
-        std::array<value_type,4> exp_res_arr = {expected_x.data[0],
-                                                expected_x.data[1],
-                                                expected_y.data[0],
-                                                expected_y.data[1]
-                                               };
+        typename component_type::result_type &real_res) {
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-        std::cout << "BLS12-381 Miller loop expected res vs output\n";
-        std::cout << "expected: " << expected_x.data[0] << "," << expected_x.data[1] << ",\n";
-        std::cout << "        : " << expected_y.data[0] << "," << expected_y.data[1] << ",\n";
-        std::cout << "real    : " << var_value(assignment, real_res.output[8]).data << ","
-                                  << var_value(assignment, real_res.output[9]).data << ",\n";
-        std::cout << "          " << var_value(assignment, real_res.output[10]).data << ","
-                                  << var_value(assignment, real_res.output[11]).data << "\n\n";
+        std::cout << "BLS12-381 pairing: expected res VS output\n";
+        for(std::size_t i = 0; i < 12; i++) {
+            std::cout << std::dec << expected_res[i].data << " =? " << var_value(assignment, real_res.output[i]).data << "\n";
+        }
         #endif
-        for(std::size_t i = 0; i < 4; i++) {
-//            assert(exp_res_arr[i] == var_value(assignment, real_res.output[8 + i]));
+        for(std::size_t i = 0; i < 12; i++) {
+                assert(expected_res[i] == var_value(assignment, real_res.output[i]));
         }
     };
 
@@ -306,7 +259,6 @@ void test_bls12_miller_loop(std::vector<typename CurveType::base_field_type::val
            component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
 }
 
-
 static const std::size_t random_tests_amount = 5;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
@@ -320,7 +272,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
     nil::crypto3::random::algebraic_engine<field_type> generate_random;
     boost::random::mt19937 seed_seq;
     generate_random.seed(seed_seq);
-/*
+
     for(std::size_t i = 0; i < random_tests_amount; i++) {
         std::cout << "Random test # " << (i+1) << "\n";
 
@@ -341,84 +293,54 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
         std::cout << "24 columns\n";
         test_bls12_exponentiation<field_type,24>(x);
     }
+
+     std::vector<field_type::value_type> x = {
+         0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb_cppui381,
+         0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1_cppui381,
+         0x024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8_cppui381,
+         0x13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e_cppui381,
+         0x0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801_cppui381,
+         0x0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be_cppui381
+     },
+/*
+     // reference result values from draft-irtf-cfrg-pairing-friendly-curves-11
+     // (https://www.ietf.org/archive/id/draft-irtf-cfrg-pairing-friendly-curves-11.html)
+     // FAULTY!!! values 0-5 are OK, but 6-11 don't match!
+     e = {
+         0x11619b45f61edfe3b47a15fac19442526ff489dcda25e59121d9931438907dfd448299a87dde3a649bdba96e84d54558_cppui381,
+         0x153ce14a76a53e205ba8f275ef1137c56a566f638b52d34ba3bf3bf22f277d70f76316218c0dfd583a394b8448d2be7f_cppui381,
+         0x095668fb4a02fe930ed44767834c915b283b1c6ca98c047bd4c272e9ac3f3ba6ff0b05a93e59c71fba77bce995f04692_cppui381,
+         0x16deedaa683124fe7260085184d88f7d036b86f53bb5b7f1fc5e248814782065413e7d958d17960109ea006b2afdeb5f_cppui381,
+         0x09c92cf02f3cd3d2f9d34bc44eee0dd50314ed44ca5d30ce6a9ec0539be7a86b121edc61839ccc908c4bdde256cd6048_cppui381,
+         0x111061f398efc2a97ff825b04d21089e24fd8b93a47e41e60eae7e9b2a38d54fa4dedced0811c34ce528781ab9e929c7_cppui381,
+         0x01ecfcf31c86257ab00b4709c33f1c9c4e007659dd5ffc4a735192167ce197058cfb4c94225e7f1b6c26ad9ba68f63bc_cppui381,
+         0x08890726743a1f94a8193a166800b7787744a8ad8e2f9365db76863e894b7a11d83f90d873567e9d645ccf725b32d26f_cppui381,
+         0x0e61c752414ca5dfd258e9606bac08daec29b3e2c57062669556954fb227d3f1260eedf25446a086b0844bcd43646c10_cppui381,
+         0x0fe63f185f56dd29150fc498bbeea78969e7e783043620db33f75a05a0a2ce5c442beaff9da195ff15164c00ab66bdde_cppui381,
+         0x10900338a92ed0b47af211636f7cfdec717b7ee43900eee9b5fc24f0000c5874d4801372db478987691c566a8c474978_cppui381,
+         0x1454814f3085f0e6602247671bc408bbce2007201536818c901dbd4d2095dd86c1ec8b888e59611f60a301af7776be3d_cppui381
+     };
 */
-    std::cout << "The Miller loop\n";
-    typedef typename g2_group_type::value_type g2_group_value_type;
-    typedef typename g2_group_type::field_type::value_type g2_field_value_type;
-    typedef typename g2_group_type::field_type::integral_type g2_integral_type;
+     // reference result values generated by python code from https://github.com/algorand/bls_sigs_ref/tree/master/python-impl
+     e = {
+         0x11619b45f61edfe3b47a15fac19442526ff489dcda25e59121d9931438907dfd448299a87dde3a649bdba96e84d54558_cppui381,
+         0x153ce14a76a53e205ba8f275ef1137c56a566f638b52d34ba3bf3bf22f277d70f76316218c0dfd583a394b8448d2be7f_cppui381,
+         0x95668fb4a02fe930ed44767834c915b283b1c6ca98c047bd4c272e9ac3f3ba6ff0b05a93e59c71fba77bce995f04692_cppui381,
+         0x16deedaa683124fe7260085184d88f7d036b86f53bb5b7f1fc5e248814782065413e7d958d17960109ea006b2afdeb5f_cppui381,
+         0x9c92cf02f3cd3d2f9d34bc44eee0dd50314ed44ca5d30ce6a9ec0539be7a86b121edc61839ccc908c4bdde256cd6048_cppui381,
+         0x111061f398efc2a97ff825b04d21089e24fd8b93a47e41e60eae7e9b2a38d54fa4dedced0811c34ce528781ab9e929c7_cppui381,
+         0x181414f71cf9c11f9b1060ac800c903b1676d52b16251674f3df408a79cf5f1e91b0b36a8ef580e44dd85264597046ef_cppui381,
+         0x11780ac3c545c705a3026d9fdb4af55eed32a2d765557f598bba4c626d657c12466c6f263dfd816255a2308da4ccd83c_cppui381,
+         0xb9f4a97f83340ba78c2be55d79fa3fc784d97a22e14b058d1da3d5144892232f89d120c5d0d5f79097ab432bc9b3e9b_cppui381,
+         0xa1ad2d1da290971360be31d875d054dfa8f6401ef4ef1e43339789b560e27c7da8014ff13b26a00a4e8b3ff5498eccd_cppui381,
+         0x9710eb1905115e5d0299652d3ceaeeaf2fbcca0ba8423d5b134adb0f6a49daf4a2bec8bd60c767850e2a99573b86133_cppui381,
+         0x5ac909b08f9f5b3eaf9604f2787a41b96574464de4e9132d7131553d61b189d5cbf747622fa9ee0595bfe508888ec6e_cppui381
+     };
 
-    g2_integral_type minus_t = 0xD201000000010000;
-
-    std::vector<g2_group_value_type> test_g2elems = {  g2_group_value_type(
-                                g2_field_value_type(g2_integral_type("19354805336845174941142151562851080662656573665208680741935"
-                                                             "4395577367693778571452628423727082668900187036482254730"),
-                                                 g2_integral_type("89193000964309942330810277795125089969455920364772498836102"
-                                                             "2851024990473423938537113948850338098230396747396259901")),
-                                g2_field_value_type(g2_integral_type("77171727205583415237828170597267125700535714547880090837365"
-                                                             "9404991537354153455452961747174765859335819766715637138"),
-                                                 g2_integral_type("28103101185821266340411334541807053043930791391032529565024"
-                                                             "04531123692847658283858246402311867775854528543237781718")),
-                                g2_field_value_type::one()),
-                              g2_group_value_type(
-                                g2_field_value_type(g2_integral_type("424958340463073975547762735517193206833255107941790909009827635"
-                                                             "556634414746056077714431786321247871628515967727334"),
-                                                 g2_integral_type("301867980397012787726282639381447252855741350432919474049536385"
-                                                             "2840690589001358162447917674089074634504498585239512")),
-                                g2_field_value_type(g2_integral_type("362130818512839545988899552652712755661476860447213217606042330"
-                                                             "2734876099689739385100475320409412954617897892887112"),
-                                                 g2_integral_type("102447784096837908713257069727879782642075240724579670654226801"
-                                                       "345708452018676587771714457671432122751958633012502")),
-                                g2_field_value_type::one()),
-                              g2_group_value_type(
-                                g2_field_value_type(g2_integral_type("278579072823914661770244330824853538101603574852069839969013232"
-                                                             "5213972292102741627498014391457605127656937478044880"),
-                                                 g2_integral_type("385570939363183188091016781827643518714796337112619879965480309"
-                                                             "9743427431977934703201153169947378798970358200024876")),
-                                g2_field_value_type(g2_integral_type("821938378705205565995357931232097952117504537366318395539093959"
-                                                             "918654729488074273868834599496909844419980823111624"),
-                                                 g2_integral_type("180242033557577995098293558042145430208756792638522270794752735"
-                                                             "3462942499437987207287862072369052390195154530059198")),
-                                g2_field_value_type::one()),
-                              g2_group_value_type(
-                                g2_field_value_type(g2_integral_type("394904109851368845549123118074972479469719294319673003085328501"
-                                                             "1755806989731870696216017360514887069032515603535834"),
-                                                 g2_integral_type("141689369450613197680900293521221631713294194257076384932306538"
-                                                             "1335907430566747765697423320407614734575486820936593")),
-                                g2_field_value_type(g2_integral_type("322745371086383503299296260585144940139139935513544272889379018"
-                                                             "6263669279022343042444878900124369614767241382891922"),
-                                                 g2_integral_type("149873883407375987188646612293399676447188951453282792720277792"
-                                                             "2460876335493588931070034160657995151627624577390178")),
-                                g2_field_value_type::one()),
-                              g2_group_value_type(
-                                g2_field_value_type(g2_integral_type("254155017921606149907129844368549510385368618440139550318910532"
-                                                             "874259603395336903946742408725761795820224536519988"),
-                                                 g2_integral_type("276843145929673042677916621854414979160158598623313058301150172"
-                                                             "7704972362141149700714785450629498506208393873593705")),
-                                g2_field_value_type(g2_integral_type("175533934474433745731856511606202566998475061793772124522071142"
-                                                             "5551575490663761638802010265668157125441634554205566"),
-                                                 g2_integral_type("560643043433789571968941329642646582974304556331567393300563909"
-                                                             "451776257854214387388500126524984624222885267024722")),
-                                g2_field_value_type::one())};
-
-//    for(std::size_t i = 0; i < test_g2elems.size(); i++) {
-        std::size_t i = 0; // TODO remove!
-        std::cout << "Test instance # " << (i+1) << "\n";
-
-        g2_group_value_type Q = test_g2elems[i];
-
-        std::vector<field_type::value_type> x = {};
-        for(std::size_t j = 0; j < 2; j++) {
-            x.push_back(generate_random());
-        }
-        x.push_back(Q.X.data[0]);
-        x.push_back(Q.X.data[1]);
-        x.push_back(Q.Y.data[0]);
-        x.push_back(Q.Y.data[1]);
-        std::cout << "12 columns\n";
-        test_bls12_miller_loop<curve_type,12>(x, Q*minus_t);
-        std::cout << "24 columns\n";
-        test_bls12_miller_loop<curve_type,24>(x, Q*minus_t);
-//    }
+     std::cout << "BLS12-381 pairing test\n 12 columns\n";
+     test_bls12_381_pairing<field_type,12>(x, e);
+     std::cout << "24 columns\n";
+     test_bls12_381_pairing<field_type,24>(x, e);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

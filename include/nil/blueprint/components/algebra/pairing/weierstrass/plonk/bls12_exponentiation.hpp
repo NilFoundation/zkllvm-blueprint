@@ -107,7 +107,8 @@ namespace nil {
                     static manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(new manifest_range_param(12,24,12)), // 12 or 24
                         false
-                    ).merge_with(power_t_type::get_manifest());
+                    ).merge_with(power_t_type::get_manifest())
+                     .merge_with(power_tm1sq3_type::get_manifest());
                     return manifest;
                 }
 
