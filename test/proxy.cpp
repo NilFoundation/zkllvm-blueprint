@@ -176,8 +176,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_selector_test) {
 
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
         std::vector<assignment_proxy<ArithmetizationType>> assignments;
-        assignments.emplace_back(assignment_ptr, 0);
-        assignments.emplace_back(assignment_ptr, 1);
+        assignments.emplace_back(assignment_ptr, 0, 0);
+        assignments.emplace_back(assignment_ptr, 1, 0);
 
         // add selectors
         assignments[0].selector(0, 0);
@@ -192,10 +192,10 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_selector_test) {
         BOOST_ASSERT(assignments[0].selector_column_size(1) == assignments[1].selector_column_size(1));
         BOOST_ASSERT(assignments[0].selector_column_size(1) == 3);
 
-        std::set<uint32_t> used_rows_0 = {0, 1};
-        BOOST_ASSERT(assignments[0].get_used_rows() == used_rows_0);
-        std::set<uint32_t> used_rows_1 = {2};
-        BOOST_ASSERT(assignments[1].get_used_rows() == used_rows_1);
+        std::set<uint32_t> used_selector_rows_0 = {0, 1};
+        BOOST_ASSERT(assignments[0].get_used_selector_rows() == used_selector_rows_0);
+        std::set<uint32_t> used_selector_rows_1 = {2};
+        BOOST_ASSERT(assignments[1].get_used_selector_rows() == used_selector_rows_1);
 
         // enable selectors
         assignments[0].enable_selector(2, 3, 5, 2); // selectors in col 2 rows 3 and 5
@@ -209,10 +209,10 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_selector_test) {
         BOOST_ASSERT(assignments[0].selector_column_size(3) == assignments[1].selector_column_size(3));
         BOOST_ASSERT(assignments[0].selector_column_size(3) == 8);
 
-        used_rows_0 = {0, 1, 3, 5};
-        BOOST_ASSERT(assignments[0].get_used_rows() == used_rows_0);
-        used_rows_1 = {2, 6, 7};
-        BOOST_ASSERT(assignments[1].get_used_rows() == used_rows_1);
+        used_selector_rows_0 = {0, 1, 3, 5};
+        BOOST_ASSERT(assignments[0].get_used_selector_rows() == used_selector_rows_0);
+        used_selector_rows_1 = {2, 6, 7};
+        BOOST_ASSERT(assignments[1].get_used_selector_rows() == used_selector_rows_1);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_shared_test) {
@@ -228,8 +228,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_shared_test) {
 
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
         std::vector<assignment_proxy<ArithmetizationType>> assignments;
-        assignments.emplace_back(assignment_ptr, 0);
-        assignments.emplace_back(assignment_ptr, 1);
+        assignments.emplace_back(assignment_ptr, 0, 0);
+        assignments.emplace_back(assignment_ptr, 1, 0);
 
         // add shareds
         assignments[0].shared(0, 0);
@@ -238,11 +238,6 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_shared_test) {
 
         BOOST_ASSERT(assignments[0].shared_column_size(0) == assignments[1].shared_column_size(0));
         BOOST_ASSERT(assignments[0].shared_column_size(0) == 3);
-
-        std::set<uint32_t> used_rows_0 = {};
-        BOOST_ASSERT(assignments[0].get_used_rows() == used_rows_0);
-        std::set<uint32_t> used_rows_1 = {};
-        BOOST_ASSERT(assignments[1].get_used_rows() == used_rows_1);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_witness_test) {
@@ -258,8 +253,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_witness_test) {
 
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
         std::vector<assignment_proxy<ArithmetizationType>> assignments;
-        assignments.emplace_back(assignment_ptr, 0);
-        assignments.emplace_back(assignment_ptr, 1);
+        assignments.emplace_back(assignment_ptr, 0, 0);
+        assignments.emplace_back(assignment_ptr, 1, 0);
 
         // add witness
         assignments[0].witness(0, 0);
@@ -277,10 +272,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_witness_test) {
         BOOST_ASSERT(assignments[0].witness_column_size(1) == assignments[1].witness_column_size(1));
         BOOST_ASSERT(assignments[0].witness_column_size(1) == 3);
 
-        std::set<uint32_t> used_rows_0 = {0, 1};
-        BOOST_ASSERT(assignments[0].get_used_rows() == used_rows_0);
-        std::set<uint32_t> used_rows_1 = {2};
-        BOOST_ASSERT(assignments[1].get_used_rows() == used_rows_1);
+        BOOST_ASSERT(assignments[0].get_num_private_rows() == 2);
+        BOOST_ASSERT(assignments[1].get_num_private_rows() == 1);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_constant_test) {
@@ -296,8 +289,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_constant_test) {
 
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
         std::vector<assignment_proxy<ArithmetizationType>> assignments;
-        assignments.emplace_back(assignment_ptr, 0);
-        assignments.emplace_back(assignment_ptr, 1);
+        assignments.emplace_back(assignment_ptr, 0, 0);
+        assignments.emplace_back(assignment_ptr, 1, 0);
 
         // add constants
         assignments[0].constant(0, 0);
@@ -315,10 +308,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_constant_test) {
         BOOST_ASSERT(assignments[0].constant_column_size(1) == assignments[1].constant_column_size(1));
         BOOST_ASSERT(assignments[0].constant_column_size(1) == 3);
 
-        std::set<uint32_t> used_rows_0 = {0, 1};
-        BOOST_ASSERT(assignments[0].get_used_rows() == used_rows_0);
-        std::set<uint32_t> used_rows_1 = {2};
-        BOOST_ASSERT(assignments[1].get_used_rows() == used_rows_1);
+        BOOST_ASSERT(assignments[0].get_num_private_rows() == 2);
+        BOOST_ASSERT(assignments[1].get_num_private_rows() == 1);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_public_input_test) {
@@ -334,8 +325,8 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_public_input_test) {
 
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
         std::vector<assignment_proxy<ArithmetizationType>> assignments;
-        assignments.emplace_back(assignment_ptr, 0);
-        assignments.emplace_back(assignment_ptr, 1);
+        assignments.emplace_back(assignment_ptr, 0, 0);
+        assignments.emplace_back(assignment_ptr, 1, 0);
 
         // add public_inputs
         assignments[0].public_input(0, 0);
@@ -348,11 +339,6 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_public_input_test) {
 
         BOOST_ASSERT(assignments[0].public_input_column_size(0) == assignments[1].public_input_column_size(0));
         BOOST_ASSERT(assignments[0].public_input_column_size(0) == 3);
-
-        std::set<uint32_t> used_rows_0 = {};
-        BOOST_ASSERT(assignments[0].get_used_rows() == used_rows_0);
-        std::set<uint32_t> used_rows_1 = {};
-        BOOST_ASSERT(assignments[1].get_used_rows() == used_rows_1);
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_save_shared_test) {
@@ -368,7 +354,7 @@ BOOST_AUTO_TEST_CASE(blueprint_assignment_proxy_save_shared_test) {
         using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
-        assignment_proxy<ArithmetizationType> assignment(assignment_ptr, 0);
+        assignment_proxy<ArithmetizationType> assignment(assignment_ptr, 0, 0);
 
         const std::vector<var> v = {var(0, 0, true, var::column_type::witness), var(0, 1, true, var::column_type::witness)};
         assignment.witness(0, 0) = 1;
@@ -405,7 +391,7 @@ BOOST_AUTO_TEST_CASE(blueprint_proxy_call_pack_lookup_tables_test) {
         auto bp_ptr = std::make_shared<circuit<ArithmetizationType>>();
         circuit_proxy<ArithmetizationType> bp(bp_ptr, 0);
         auto assignment_ptr = std::make_shared<assignment<ArithmetizationType>>();
-        assignment_proxy<ArithmetizationType> assignment(assignment_ptr, 0);
+        assignment_proxy<ArithmetizationType> assignment(assignment_ptr, 0, 0);
 
         std::vector<std::size_t> lookup_columns_indices = {0, 1, 2, 3, 4};
         std::size_t usable_rows_amount = assignment.allocated_rows();

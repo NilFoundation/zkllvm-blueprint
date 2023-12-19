@@ -49,14 +49,17 @@ namespace nil {
         private:
             std::shared_ptr<assignment<ArithmetizationType>> assignment_ptr;
             std::uint32_t id;
+            std::uint32_t start_row;
+            std::uint32_t end_row;
             bool check;
-            std::set<std::uint32_t> used_rows;
             std::set<std::uint32_t> used_selector_rows;
         public:
             assignment_proxy(std::shared_ptr<assignment<ArithmetizationType>> assignment,
-                             std::uint32_t _id) :
+                             std::uint32_t _id, std::uint32_t _start_row) :
                 assignment_ptr(assignment),
                 id(_id),
+                start_row(_start_row),
+                end_row(_start_row),
                 check(false) {
                 assert(assignment_ptr);
             }
@@ -75,12 +78,16 @@ namespace nil {
                 return id;
             }
 
-            void set_check(bool flag) {
-                check = flag;
+            std::uint32_t get_start_row() const {
+                return start_row;
             }
 
-            const std::set<std::uint32_t>& get_used_rows() const {
-                return used_rows;
+            std::uint32_t get_num_private_rows() const {
+                return end_row - start_row + 1;
+            }
+
+            void set_check(bool flag) {
+                check = flag;
             }
 
             const std::set<std::uint32_t>& get_used_selector_rows() const {
@@ -96,7 +103,7 @@ namespace nil {
             }
 
             value_type &selector(std::size_t selector_index, std::uint32_t row_index) override {
-                used_rows.insert(row_index);
+                BLUEPRINT_ASSERT(row_index >= start_row);
                 used_selector_rows.insert(row_index);
                 return assignment_ptr->selector(selector_index, row_index);
             }
@@ -126,7 +133,7 @@ namespace nil {
             }
 
             void enable_selector(const std::size_t selector_index, const std::size_t row_index) override {
-                used_rows.insert(row_index);
+                BLUEPRINT_ASSERT(row_index >= start_row);
                 used_selector_rows.insert(row_index);
                 assignment_ptr->enable_selector(selector_index, row_index);
             }
@@ -177,12 +184,15 @@ namespace nil {
             }
 
             value_type &witness(std::uint32_t witness_index, std::uint32_t row_index) override {
-                used_rows.insert(row_index);
+                BLUEPRINT_ASSERT(row_index >= start_row);
+                if (row_index > end_row) {
+                    end_row = row_index;
+                }
                 return assignment_ptr->witness(witness_index, row_index);
             }
 
             value_type witness(std::uint32_t witness_index, std::uint32_t row_index) const override {
-                if (check && used_rows.find(row_index) == used_rows.end()) {
+                if (check && (row_index > end_row || row_index < start_row)) {
                     std::cout << id << ": Not found witness " << witness_index << " on row " << row_index << std::endl;
                     BLUEPRINT_ASSERT(false);
                 }
@@ -225,7 +235,10 @@ namespace nil {
 
             value_type &constant(
                 std::uint32_t constant_index, std::uint32_t row_index) override {
-                used_rows.insert(row_index);
+                BLUEPRINT_ASSERT(row_index >= start_row);
+                if (row_index > end_row) {
+                    end_row = row_index;
+                }
                 return assignment_ptr->constant(constant_index, row_index);
             }
 
@@ -233,7 +246,7 @@ namespace nil {
                 if (check) {
                     const auto lookup_constant_cols = assignment_ptr->get_lookup_constant_cols();
                     if (lookup_constant_cols.find(constant_index) == lookup_constant_cols.end() &&
-                        used_rows.find(row_index) == used_rows.end()) {
+                        (row_index > end_row || row_index < start_row)) {
                         std::cout << id << ": Not found constant " << constant_index << " on row " << row_index << std::endl;
                         BLUEPRINT_ASSERT(false);
                     }
@@ -329,13 +342,7 @@ namespace nil {
                    << "constants_size: " << constants_size << " "
                    << "selectors_size: " << selectors_size << " "
                    << "max_size: " << max_size << " "
-                   << "internal used rows size: " << used_rows.size() << "\n";
-
-                os << "internal used rows: ";
-                for (const auto& it : used_rows) {
-                    os << it << " ";
-                }
-                os << "\n";
+                   << "selector used rows size: " << used_selector_rows.size() << "\n";
 
                 os << "internal used selector rows: ";
                 for (const auto& it : used_selector_rows) {
@@ -361,7 +368,7 @@ namespace nil {
 
                 for (std::uint32_t i = 0; i < max_size; i++) {
                     os << i << ": ";
-                    const auto is_used_row = used_rows.find(i) != used_rows.end();
+                    const auto is_used_row = (i <= end_row && i >= start_row);
                     for (std::uint32_t j = 0; j < witnesses_size; j++) {
                         os << std::setw(width)
                            << (i < assignment_ptr->witness_column_size(j) && is_used_row ?
