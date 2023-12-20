@@ -172,8 +172,11 @@ namespace nil {
                 struct input_type {
                     std::vector<var> message;
 
-                    std::vector<var> all_vars() const {
-                        return message;
+                    std::vector<std::reference_wrapper<var>> all_vars() const {
+                        std::vector<std::reference_wrapper<var>> res;
+                        res.reserve(message.size());
+                        res.insert(res.end(), message.begin(), message.end());
+                        return res;
                     }
                 };
 
