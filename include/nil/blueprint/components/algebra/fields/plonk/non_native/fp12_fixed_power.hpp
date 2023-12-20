@@ -105,7 +105,6 @@ namespace nil {
                                  (std::count(exp_plan.begin(),exp_plan.end(),2) > 0) };
                     }
                 public:
-                    std::size_t witness_amount;
                     unsigned long long Power;
                     gate_manifest_type(unsigned long long Power_) : Power(Power_) {}
 
@@ -137,7 +136,6 @@ namespace nil {
                     return manifest;
                 }
 
-
                 constexpr static std::vector<unsigned short int> get_precomputed_exps(const std::vector<unsigned short int> exps) {
                     std::vector<unsigned short int> precompute = {exps[0]};
                     if ((exps[0] != 3) && (std::count(exps.begin(),exps.end(),3) > 0)) {
@@ -163,7 +161,6 @@ namespace nil {
                     }
                     return rows;
                 }
-
 
                 unsigned long long Power;
                 const std::vector<unsigned short int> exp_plan = base4(Power),
@@ -245,7 +242,6 @@ namespace nil {
 
                 for(std::size_t i = 0; i < 12; i++) {
                     x[i] = var_value(assignment, instance_input.x[i]);
-                    assignment.witness(component.W(i),start_row_index) = x[i];
                 }
 
                 using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
