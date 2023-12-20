@@ -308,8 +308,8 @@ namespace nil {
                     std::array<var, 17> padded_message_chunk;
                     var round_constant;
                     
-                    std::vector<var> all_vars() const {
-                        std::vector<var> result;
+                    std::vector<std::reference_wrapper<var>> all_vars() const {
+                        std::vector<std::reference_wrapper<var>> result;
                         result.insert(result.end(), inner_state.begin(), inner_state.end());
                         result.insert(result.end(), padded_message_chunk.begin(), padded_message_chunk.end());
                         result.push_back(round_constant);
