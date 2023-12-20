@@ -69,8 +69,8 @@ template<typename BlueprintFieldType, std::size_t WitnessesAmount,
 auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> message,
                         std::vector<typename BlueprintFieldType::value_type> expected_result) {
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = 20;
+    constexpr std::size_t ConstantColumns = 3;
+    constexpr std::size_t SelectorColumns = 30;
     using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
         WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
@@ -129,9 +129,9 @@ void test_keccak_0() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
 
-    std::vector<value_type> message = {1};
-    const std::size_t num_blocks = 1;
-    const std::size_t num_bits = 1;
+    std::vector<value_type> message = {1, 2};
+    const std::size_t num_blocks = 2;
+    const std::size_t num_bits = 65;
     const bool range_check_input = true;
     const std::size_t limit_permutation_column = 7;
 

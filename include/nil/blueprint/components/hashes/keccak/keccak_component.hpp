@@ -211,8 +211,8 @@ namespace nil {
                     while (input > 0) {
                         auto bit = input % 2;
                         sparse_res += bit * power;
-                        power *= 8;
-                        input /= 2;
+                        power <<= 3;
+                        input >>= 1;
                     }
                     return sparse_res;
                 }
@@ -221,12 +221,14 @@ namespace nil {
                     integral_type sparse_input = const_sparse_input;
                     integral_type res = 0;
                     integral_type power = 1;
+                    integral_type mask = (integral_type(1) << 3) - 1;
                     while (sparse_input > 0) {
-                        auto bit = sparse_input % 8;
+                        auto bit = sparse_input & mask;
+                        std::cout << "bit: " << bit << std::endl;
                         BOOST_ASSERT(bit * (1 - bit) == 0);
                         res += bit * power;
-                        power *= 2;
-                        sparse_input /= 8;
+                        power <<= 1;
+                        sparse_input >>= 3;
                     }
                     return res;
                 }
@@ -376,9 +378,9 @@ namespace nil {
                     auto config = configure_all(witness_amount, num_blocks, num_bits, limit_permutation_column);
                     std::size_t row = 0,
                                 column = 0;
-                    std::size_t row_shift = padding_component_type::get_rows_amount(witness_amount, 0, 
-                                                                            num_blocks, num_bits, range_check_input, 
-                                                                            limit_permutation_column);
+                    std::size_t row_shift = 0;//padding_component_type::get_rows_amount(witness_amount, 0, 
+                                                                            // num_blocks, num_bits, range_check_input, 
+                                                                            // limit_permutation_column);
 
                     std::map<std::size_t, std::vector<std::size_t>> config_map;
 
@@ -402,14 +404,14 @@ namespace nil {
                         }
                     }
 
-                    std::cout << "MAP\n";
-                    for (auto c : config_map) {
-                        std::cout << c.first << ": ";
-                        for (auto r : c.second) {
-                            std::cout << r << " ";
-                        }
-                        std::cout << std::endl;
-                    }
+                    // std::cout << "MAP\n";
+                    // for (auto c : config_map) {
+                    //     std::cout << c.first << ": ";
+                    //     for (auto r : c.second) {
+                    //         std::cout << r << " ";
+                    //     }
+                    //     std::cout << std::endl;
+                    // }
 
                     return config_map;
                 }
@@ -456,18 +458,18 @@ namespace nil {
                         result.push_back(cur_result);
                     }
                     
-                    // for (std::size_t i = 0; i < result.size(); ++i) {
-                    //     std::cout << "config " << i << ":\n";
-                    //     for (auto cur_config : result[i]) {
-                    //         std::cout << "gate:\n";
-                    //         for (int j = 0; j < cur_config.constraints.size(); ++j) {
-                    //             for (int k = 0; k < cur_config.constraints[j].size(); ++k) {
-                    //                 std::cout << cur_config.constraints[j][k].row << " " << cur_config.constraints[j][k].column << ", ";
-                    //             }
-                    //             std::cout << std::endl;
-                    //         }
-                    //     }
-                    // }
+                    for (std::size_t i = 0; i < result.size(); ++i) {
+                        std::cout << "config " << i << ":\n";
+                        for (auto cur_config : result[i]) {
+                            std::cout << "gate:\n";
+                            for (int j = 0; j < cur_config.constraints.size(); ++j) {
+                                for (int k = 0; k < cur_config.constraints[j].size(); ++k) {
+                                    std::cout << cur_config.constraints[j][k].row << " " << cur_config.constraints[j][k].column << ", ";
+                                }
+                                std::cout << std::endl;
+                            }
+                        }
+                    }
 
                     return result;
                 }
@@ -497,9 +499,6 @@ namespace nil {
                         if (c.first >= 10 * witness_amount) res++;
                         else res += 2;
                     }
-                    // if (witness_amount == 9) res = 1;
-                    // if (witness_amount == 15) res = 3;
-                    res += padding_component_type::get_gates_amount(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
                     return res;
                 }
 
@@ -614,7 +613,7 @@ namespace nil {
                         constraint_0 -= var(conf.constraints[0][i].column, static_cast<int>(conf.constraints[0][i].row))
                                     * (integral_type(1) << ((i-1) * 8));
                         constraint_1 -= var(conf.constraints[1][i].column, static_cast<int>(conf.constraints[1][i].row))
-                                    * (integral_type(1) << ((i-1) * 8));
+                                    * (integral_type(1) << ((i-1) * 24));
                         lookup_constraints_0.push_back({lookup_tables_indices.at("keccak_pack_table/full"),
                                                     {var(component.W(conf.constraints[0][i].column), static_cast<int>(conf.constraints[0][i].row)),
                                                     var(component.W(conf.constraints[1][i].column), static_cast<int>(conf.constraints[1][i].row))}});
@@ -624,9 +623,9 @@ namespace nil {
                     }
                     selector_indexes.push_back(bp.add_gate({constraint_0, constraint_1}));
                     gate_index++;
-                    selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_0));
-                    selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_1));
-                    lookup_gate_index += 2;
+                    // selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_0));
+                    // selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_1));
+                    // lookup_gate_index += 2;
                 }
 
                 return selector_indexes;
@@ -694,22 +693,24 @@ namespace nil {
                 for (auto config : config_map) {
                     if (config.first < component.witnesses) {
                         for (auto gate_row : config.second) {
-                            std::cout << "enabling: " << selector_indexes[sel_ind] << " " << selector_indexes[sel_ind + 1] << std::endl;
+                            // std::cout << "enabling: " << selector_indexes[sel_ind] << " " << selector_indexes[sel_ind + 1] << std::endl;
                             assignment.enable_selector(selector_indexes[sel_ind], gate_row + row);
-                            assignment.enable_selector(selector_indexes[sel_ind + 1], gate_row + row);
+                            // assignment.enable_selector(selector_indexes[sel_ind + 1], gate_row + row);
                         }
-                        sel_ind += 3;
+                        // std::cout << std::endl;
+                        sel_ind += 1;
                     }
                 }
                 sel_ind = 0;
                 for (auto config : config_map) {
                     if (config.first >= 10 * component.witnesses) {
                         for (auto gate_row : config.second) {
-                            std::cout << "enabling2: " << selector_indexes[sel_ind] << " " << selector_indexes[sel_ind + 2] << std::endl;
+                            // std::cout << "enabling2: " << selector_indexes[sel_ind] << " " << selector_indexes[sel_ind + 2] << std::endl;
                             assignment.enable_selector(selector_indexes[sel_ind], gate_row + row);
-                            assignment.enable_selector(selector_indexes[sel_ind + 2], gate_row + row);
+                            // assignment.enable_selector(selector_indexes[sel_ind + 2], gate_row + row);
                         }
-                        sel_ind += 3;
+                        // std::cout << std::endl;
+                        sel_ind += 1;
                     }
                 }
 
@@ -754,28 +755,37 @@ namespace nil {
                     integral_type regular = integral_type(regular_value.data);
                     // std::cout << "pad elem: " << regular << std::endl;
                     integral_type sparse = component.pack(regular);
+                    auto copy_sparse = sparse;
                     auto chunk_size = component.pack_chunk_size;
                     auto num_chunks = component.pack_num_chunks;
                     std::vector<integral_type> integral_chunks;
                     std::vector<integral_type> integral_sparse_chunks;
                     integral_type mask = (integral_type(1) << chunk_size) - 1;
+                    integral_type sparse_mask = (integral_type(1) << (chunk_size * 3)) - 1;
+                    integral_type power = 1;
+                    // std::cout << "sparse: " << sparse << std::endl;
                     for (std::size_t j = 0; j < num_chunks; ++j) {
                         integral_chunks.push_back(regular & mask);
                         regular >>= chunk_size;
-                        integral_sparse_chunks.push_back(component.pack(integral_chunks.back()));
+                        integral_sparse_chunks.push_back(sparse & sparse_mask);
+                        sparse >>= (chunk_size * 3);
+                        // std::cout << "chunks: " << integral_chunks.back() << " " << integral_sparse_chunks.back() << std::endl;
+                        copy_sparse -= power * integral_sparse_chunks.back();
+                        power <<= (3 * chunk_size);
                     }
                     sparse_padded_message[index] = value_type(sparse);
 
                     auto cur_config = component.full_configuration[config_index];
                     assignment.witness(component.W(cur_config.constraints[0][0].column), cur_config.constraints[0][0].row + cur_row) = regular_value;
                     assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + cur_row) = value_type(sparse);
+                    // std::cout << cur_config.constraints[1][0].column << ' ' << cur_config.constraints[1][0].row + cur_row << std::endl;
                     for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[0][j].column), cur_config.constraints[0][j].row + cur_row) = value_type(integral_chunks[j - 1]);
                         assignment.witness(component.W(cur_config.constraints[1][j].column), cur_config.constraints[1][j].row + cur_row) = value_type(integral_sparse_chunks[j - 1]);
                     }
                     config_index++;
                 }
-                std::cout << "here: " << component.full_configuration[config_index - 1].last_coordinate.row << std::endl;
+                // std::cout << "here: " << component.full_configuration[config_index - 1].last_coordinate.row << std::endl;
                 cur_row += component.full_configuration[config_index - 1].last_coordinate.row
                         + (component.full_configuration[config_index - 1].last_coordinate.column > 0);
 
@@ -792,11 +802,11 @@ namespace nil {
                 // }
 
                 // from sparse
-                std::array<value_type, 5> result_message;
                 for (std::size_t index = 0; index < 5; ++index) {
-                    value_type sparse_value = var_value(assignment, inner_state[index]);
-                    integral_type sparse = integral_type(sparse_value.data);
+                    // value_type sparse_value = var_value(assignment, inner_state[index]);
+                    integral_type sparse = integral_type(0);
                     integral_type regular = component.unpack(sparse);
+                    // std::cout << "from sparse: " << sparse << " " << regular << std::endl;
                     auto chunk_size = component.pack_chunk_size;
                     auto num_chunks = component.pack_num_chunks;
                     std::vector<integral_type> integral_sparse_chunks;
@@ -810,7 +820,7 @@ namespace nil {
                     sparse_padded_message[index] = value_type(regular);
 
                     auto cur_config = component.full_configuration[config_index];
-                    assignment.witness(component.W(cur_config.constraints[0][0].column), cur_config.constraints[0][0].row + cur_row) = sparse_value;
+                    assignment.witness(component.W(cur_config.constraints[0][0].column), cur_config.constraints[0][0].row + cur_row) = value_type(sparse);
                     assignment.witness(component.W(cur_config.constraints[1][0].column), cur_config.constraints[1][0].row + cur_row) = value_type(regular);
                     for (int j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[0][j].column), cur_config.constraints[0][j].row + cur_row) = value_type(integral_sparse_chunks[j - 1]);
@@ -818,11 +828,10 @@ namespace nil {
                     }
                     config_index++;
                 }
-                std::cout << "here: " << component.full_configuration[config_index - 1].last_coordinate.row << std::endl;
+                // std::cout << "here: " << component.full_configuration[config_index - 1].last_coordinate.row << std::endl;
                 cur_row += component.full_configuration[config_index - 1].last_coordinate.row
                         + (component.full_configuration[config_index - 1].last_coordinate.column > 0);
 
-                std::cout << cur_row << ' ' << start_row_index << ' ' << component.rows_amount << std::endl;
                 BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);
 
                 return typename component_type::result_type(component, start_row_index);
