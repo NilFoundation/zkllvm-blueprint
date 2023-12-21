@@ -94,18 +94,16 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
-                    static gate_manifest manifest =
-                        floor_component::get_gate_manifest(witness_amount, lookup_column_amount);
+                    gate_manifest manifest = floor_component::get_gate_manifest(witness_amount, lookup_column_amount);
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest = floor_component::get_manifest(m1, m2);
+                    manifest_type manifest = floor_component::get_manifest(m1, m2);
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount) {
                     return floor_component::get_rows_amount(witness_amount, lookup_column_amount);
                 }
 

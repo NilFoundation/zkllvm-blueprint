@@ -122,7 +122,7 @@ namespace nil {
                 FixedPoint(const FixedPoint &) = default;
                 FixedPoint &operator=(const FixedPoint &) = default;
 
-                static FixedPoint max();
+                static constexpr FixedPoint max();
                 bool geq_0() const;
 
                 bool operator==(const FixedPoint &other) const;
@@ -568,7 +568,7 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
-            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::max() {
+            constexpr FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::max() {
                 if constexpr (M1 == 2 && M2 == 2) {
                     return (FixedPoint((uint64_t)(-1), SCALE));
                 } else if constexpr (M1 + M2 < 4) {
@@ -625,10 +625,21 @@ namespace nil {
                     }
                 }
 
-                auto exp_a = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_exp_a_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_exp_a_32();
-                auto exp_b = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_exp_b_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_exp_b_32();
+                using value_type = typename BlueprintFieldType::value_type;
+
+                std::vector<value_type> exp_a;
+                if constexpr (M2 == 1) {
+                    exp_a = FixedPointTables<BlueprintFieldType>::get_exp_a_16();
+                } else {
+                    exp_a = FixedPointTables<BlueprintFieldType>::get_exp_a_32();
+                }
+
+                std::vector<value_type> exp_b;
+                if constexpr (M2 == 1) {
+                    exp_b = FixedPointTables<BlueprintFieldType>::get_exp_b_16();
+                } else {
+                    exp_b = FixedPointTables<BlueprintFieldType>::get_exp_b_32();
+                }
 
                 uint64_t pre, post;
                 bool sign = helper::split_exp(value, scale, pre, post);
@@ -669,25 +680,51 @@ namespace nil {
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
             FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::sin() const {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
-                auto zero = BlueprintFieldType::value_type::zero();
-                auto one = BlueprintFieldType::value_type::one();
-                auto delta = typename BlueprintFieldType::value_type(DELTA);
 
-                auto sin_a = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_sin_a_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_sin_a_32();
-                auto sin_b = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_sin_b_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_sin_b_32();
-                auto sin_c = FixedPointTables<BlueprintFieldType>::get_sin_c_32();
-                auto cos_a = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_cos_a_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_cos_a_32();
-                auto cos_b = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_cos_b_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_cos_b_32();
+                using value_type = typename BlueprintFieldType::value_type;
 
-                constexpr auto two_pi = typename BlueprintFieldType::value_type(26986075409ULL);
+                auto zero = value_type::zero();
+                auto one = value_type::one();
+                auto delta = value_type(DELTA);
+
+                std::vector<value_type> sin_a;
+                if constexpr (M2 == 1) {
+                    sin_a = FixedPointTables<BlueprintFieldType>::get_sin_a_16();
+                } else {
+                    sin_a = FixedPointTables<BlueprintFieldType>::get_sin_a_32();
+                }
+
+                std::vector<value_type> sin_b;
+                if constexpr (M2 == 1) {
+                    sin_b = FixedPointTables<BlueprintFieldType>::get_sin_b_16();
+                } else {
+                    sin_b = FixedPointTables<BlueprintFieldType>::get_sin_b_32();
+                }
+
+                std::vector<value_type> sin_c;
+                if constexpr (M2 == 2) {
+                    sin_c = FixedPointTables<BlueprintFieldType>::get_sin_c_32();
+                }
+
+                std::vector<value_type> cos_a;
+                if constexpr (M2 == 1) {
+                    cos_a = FixedPointTables<BlueprintFieldType>::get_cos_a_16();
+                } else {
+                    cos_a = FixedPointTables<BlueprintFieldType>::get_cos_a_32();
+                }
+
+                std::vector<value_type> cos_b;
+                if constexpr (M2 == 1) {
+                    cos_b = FixedPointTables<BlueprintFieldType>::get_cos_b_16();
+                } else {
+                    cos_b = FixedPointTables<BlueprintFieldType>::get_cos_b_32();
+                }
+
+                constexpr auto two_pi = value_type(26986075409ULL);
 
                 std::vector<uint16_t> x0_val;
                 auto reduced_val = value;    // x_reduced guarantees the use of only one pre-comma limb
-                if constexpr (M1 == 2) {               // if two pre-comma limbs are used, x is reduced mod 2*pi
+                if constexpr (M1 == 2) {     // if two pre-comma limbs are used, x is reduced mod 2*pi
                     if constexpr (M2 == 2) {
                         reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value, two_pi).remainder;
                     } else {    // case fixedpoint 32.16: use 32 post comma bits (2 limbs) for better precision
@@ -695,11 +732,11 @@ namespace nil {
                     }
                 }
                 bool sign = FixedPointHelper<BlueprintFieldType>::decompose(reduced_val, x0_val);
-                if (M1 == 2) {
+                if constexpr (M1 == 2) {
                     BLUEPRINT_RELEASE_ASSERT(!sign);
                 }
                 // case fixedpoint 32.16: trash the smallest limb, as the result has one post comma limb only
-                if (M1 == 2 && M2 == 1) {
+                if constexpr (M1 == 2 && M2 == 1) {
                     x0_val.erase(x0_val.begin());
                 }
                 BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= M2 + 1);
@@ -707,15 +744,25 @@ namespace nil {
 
                 auto sin0 = sin_a[x0_val[M2 - 0]];
                 auto sin1 = sin_b[x0_val[M2 - 1]];
-                auto sin2 = M2 == 1 ? zero : sin_c[x0_val[M2 - 2]];
+                value_type sin2 = zero;
+                if constexpr (M2 == 2) {
+                    sin2 = sin_c[x0_val[M2 - 2]];
+                }
                 auto cos0 = cos_a[x0_val[M2 - 0]];
                 auto cos1 = cos_b[x0_val[M2 - 1]];
                 auto cos2 = delta;
 
-                auto actual_delta = M2 == 1 ? delta : delta * delta;
-                auto computation =
-                    M2 == 1 ? sign_val * (sin0 * cos1 + cos0 * sin1) :
-                              sign_val * (cos2 * (sin0 * cos1 + cos0 * sin1) + sin2 * (cos0 * cos1 - sin0 * sin1));
+                value_type actual_delta = delta;
+                if constexpr (M2 == 2) {
+                    actual_delta *= delta;
+                }
+
+                value_type computation;
+                if constexpr (M2 == 1) {
+                    computation = sign_val * (sin0 * cos1 + cos0 * sin1);
+                } else {
+                    computation = sign_val * (cos2 * (sin0 * cos1 + cos0 * sin1) + sin2 * (cos0 * cos1 - sin0 * sin1));
+                }
                 auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
                 return FixedPoint(divmod.quotient, SCALE);
             }
@@ -723,25 +770,51 @@ namespace nil {
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
             FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::cos() const {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
-                auto zero = BlueprintFieldType::value_type::zero();
-                auto one = BlueprintFieldType::value_type::one();
-                auto delta = typename BlueprintFieldType::value_type(DELTA);
 
-                auto sin_a = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_sin_a_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_sin_a_32();
-                auto sin_b = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_sin_b_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_sin_b_32();
-                auto sin_c = FixedPointTables<BlueprintFieldType>::get_sin_c_32();
-                auto cos_a = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_cos_a_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_cos_a_32();
-                auto cos_b = M2 == 1 ? FixedPointTables<BlueprintFieldType>::get_cos_b_16() :
-                                       FixedPointTables<BlueprintFieldType>::get_cos_b_32();
+                using value_type = typename BlueprintFieldType::value_type;
 
-                constexpr auto two_pi = typename BlueprintFieldType::value_type(26986075409ULL);
+                auto zero = value_type::zero();
+                auto one = value_type::one();
+                auto delta = value_type(DELTA);
+
+                std::vector<value_type> sin_a;
+                if constexpr (M2 == 1) {
+                    sin_a = FixedPointTables<BlueprintFieldType>::get_sin_a_16();
+                } else {
+                    sin_a = FixedPointTables<BlueprintFieldType>::get_sin_a_32();
+                }
+
+                std::vector<value_type> sin_b;
+                if constexpr (M2 == 1) {
+                    sin_b = FixedPointTables<BlueprintFieldType>::get_sin_b_16();
+                } else {
+                    sin_b = FixedPointTables<BlueprintFieldType>::get_sin_b_32();
+                }
+
+                std::vector<value_type> sin_c;
+                if constexpr (M2 == 2) {
+                    sin_c = FixedPointTables<BlueprintFieldType>::get_sin_c_32();
+                }
+
+                std::vector<value_type> cos_a;
+                if constexpr (M2 == 1) {
+                    cos_a = FixedPointTables<BlueprintFieldType>::get_cos_a_16();
+                } else {
+                    cos_a = FixedPointTables<BlueprintFieldType>::get_cos_a_32();
+                }
+
+                std::vector<value_type> cos_b;
+                if constexpr (M2 == 1) {
+                    cos_b = FixedPointTables<BlueprintFieldType>::get_cos_b_16();
+                } else {
+                    cos_b = FixedPointTables<BlueprintFieldType>::get_cos_b_32();
+                }
+
+                constexpr auto two_pi = value_type(26986075409ULL);
 
                 std::vector<uint16_t> x0_val;
                 auto reduced_val = value;    // x_reduced guarantees the use of only one pre-comma limb
-                if constexpr (M1 == 2) {               // if two pre-comma limbs are used, x is reduced mod 2*pi
+                if constexpr (M1 == 2) {     // if two pre-comma limbs are used, x is reduced mod 2*pi
                     if constexpr (M2 == 2) {
                         reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value, two_pi).remainder;
                     } else {    // case fixedpoint 32.16: use 32 post comma bits (2 limbs) for better precision
@@ -760,14 +833,25 @@ namespace nil {
 
                 auto sin0 = sin_a[x0_val[M2 - 0]];
                 auto sin1 = sin_b[x0_val[M2 - 1]];
-                auto sin2 = M2 == 1 ? zero : sin_c[x0_val[M2 - 2]];
+                value_type sin2 = zero;
+                if constexpr (M2 == 2) {
+                    sin2 = sin_c[x0_val[M2 - 2]];
+                }
                 auto cos0 = cos_a[x0_val[M2 - 0]];
                 auto cos1 = cos_b[x0_val[M2 - 1]];
                 auto cos2 = delta;
 
-                auto actual_delta = M2 == 1 ? delta : delta * delta;
-                auto computation = M2 == 1 ? (cos0 * cos1 - sin0 * sin1) :
-                                             (cos2 * (cos0 * cos1 - sin0 * sin1) - sin2 * (sin0 * cos1 + cos0 * sin1));
+                value_type actual_delta = delta;
+                if constexpr (M2 == 2) {
+                    actual_delta *= delta;
+                }
+
+                value_type computation;
+                if constexpr (M2 == 1) {
+                    computation = (cos0 * cos1 - sin0 * sin1);
+                } else {
+                    computation = (cos2 * (cos0 * cos1 - sin0 * sin1) - sin2 * (sin0 * cos1 + cos0 * sin1));
+                }
                 auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
                 return FixedPoint(divmod.quotient, SCALE);
             }
@@ -800,7 +884,7 @@ namespace nil {
 
                 auto int_val = out.convert_to<nil::crypto3::multiprecision::cpp_int>();
 
-                if (M2 == 2) {
+                if constexpr (M2 == 2) {
                     // The smallest 16 bit limb does not influence the exp output in this case
                     int_val.backend().limbs()[0] &= 0xFFFFFFFFFFFF0000;
                 }
@@ -809,7 +893,10 @@ namespace nil {
                 auto fix = FixedPoint(field_val, SCALE);
 
                 // Rounding correctly to lowest value that produces the correct exp result
-                auto offset = M2 == 1 ? 1 : 1ULL << 16;
+                auto offset = 1ULL;
+                if constexpr (M2 == 2) {
+                    offset = 1ULL << 16;
+                }
                 auto exp = fix.exp();
                 while (exp.get_value() < value) {
                     fix.value += offset;
@@ -911,10 +998,10 @@ namespace std {
         using FixedType = typename nil::blueprint::components::FixedPoint<BlueprintFieldType, M1, M2>;
 
     public:
-        static FixedType max() {
+        static constexpr FixedType max() {
             return FixedType::max();
         };
-        static FixedType min() {
+        static constexpr FixedType min() {
             return -max();
         };
     };

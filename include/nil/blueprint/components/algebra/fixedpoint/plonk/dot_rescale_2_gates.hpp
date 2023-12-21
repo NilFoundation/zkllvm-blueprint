@@ -43,6 +43,7 @@ namespace nil {
 
             private:
                 uint32_t dots;
+                uint8_t m2;
                 uint32_t dots_per_row;
                 rescale_component rescale;
 
@@ -63,6 +64,10 @@ namespace nil {
                     }
                     return rescale_component(witness_list, std::array<std::uint32_t, 0>(),
                                              std::array<std::uint32_t, 0>(), m2);
+                }
+
+                static std::size_t gates_amount_internal(std::size_t witness_amount, uint32_t dots, uint8_t m2) {
+                    return get_dot_rows(witness_amount, 0, dots, m2) == 1 ? 1 : 2;
                 }
 
             public:
@@ -97,47 +102,54 @@ namespace nil {
 
                 class gate_manifest_type : public component_gate_manifest {
                 private:
+                    std::size_t witness_amount;
                     uint32_t dots;
                     uint8_t m2;    // Post-comma 16-bit limbs
 
                 public:
-                    gate_manifest_type(uint16_t dots, uint8_t m2) : dots(dots), m2(M(m2)) {
+                    gate_manifest_type(std::size_t witness_amount, uint16_t dots, uint8_t m2) :
+                        witness_amount(witness_amount), dots(dots), m2(M(m2)) {
                     }
 
                     std::uint32_t gates_amount() const override {
-                        return fix_dot_rescale_2_gates::gates_amount + 2;
+                        return fix_dot_rescale_2_gates::gates_amount_internal(witness_amount, dots, m2);
                     }
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint16_t dots, uint8_t m2) {
-                    static gate_manifest manifest =
-                        gate_manifest(gate_manifest_type(dots, m2))
+                    gate_manifest manifest =
+                        gate_manifest(gate_manifest_type(witness_amount, dots, m2))
                             .merge_with(rescale_component::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
                 }
 
                 // Hardcoded to max 15 for now
                 static manifest_type get_manifest(uint32_t dots, uint8_t m2) {
-                    static manifest_type manifest =
+                    manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(3, 15)), false)
                             .merge_with(rescale_component::get_manifest(m2));
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint32_t dots,
-                                                             uint8_t m2) {
+                static std::size_t get_dot_rows(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                uint32_t dots, uint8_t m2) {
                     uint32_t dots_per_row = (witness_amount - 1) / 2;    // -1 for sum
                     uint32_t rows = dots / dots_per_row;
                     if (dots % dots_per_row != 0) {
                         rows++;
                     }
+                    return rows;
+                }
+
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint32_t dots, uint8_t m2) {
+                    uint32_t rows = get_dot_rows(witness_amount, lookup_column_amount, dots, m2);
                     rows += rescale_component::get_rows_amount(witness_amount, lookup_column_amount);
                     return rows;
                 }
 
-                constexpr static const std::size_t gates_amount = rescale_component::gates_amount + 2;
+                const std::size_t gates_amount = gates_amount_internal(this->witness_amount(), dots, m2);
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, dots, rescale.get_m2());
 
                 struct input_type {
@@ -211,7 +223,7 @@ namespace nil {
 
                 template<typename ContainerType>
                 explicit fix_dot_rescale_2_gates(ContainerType witness, uint32_t dots, uint8_t m2) :
-                    component_type(witness, {}, {}, get_manifest(dots, m2)), dots(dots),
+                    component_type(witness, {}, {}, get_manifest(dots, m2)), dots(dots), m2(m2),
                     rescale(instantiate_rescale(m2)) {
                     dots_per_row = (this->witness_amount() - 1) / 2;
                 };
@@ -221,7 +233,7 @@ namespace nil {
                 fix_dot_rescale_2_gates(WitnessContainerType witness, ConstantContainerType constant,
                                         PublicInputContainerType public_input, uint32_t dots, uint8_t m2) :
                     component_type(witness, constant, public_input, get_manifest(dots, m2)),
-                    dots(dots), rescale(instantiate_rescale(m2)) {
+                    dots(dots), m2(m2), rescale(instantiate_rescale(m2)) {
                     dots_per_row = (this->witness_amount() - 1) / 2;
                 };
 
@@ -232,7 +244,7 @@ namespace nil {
                         public_inputs,
                     uint32_t dots, uint8_t m2) :
                     component_type(witnesses, constants, public_inputs, get_manifest(dots, m2)),
-                    dots(dots), rescale(instantiate_rescale(m2)) {
+                    dots(dots), m2(m2), rescale(instantiate_rescale(m2)) {
                     dots_per_row = (this->witness_amount() - 1) / 2;
                 };
             };
@@ -414,7 +426,7 @@ namespace nil {
                 std::size_t first_selector = generate_first_gate(component, bp, assignment, instance_input);
                 assignment.enable_selector(first_selector, start_row_index);
 
-                if (rows > 2) {
+                if (component.gates_amount == 2) {
                     std::size_t second_selector = generate_second_gate(component, bp, assignment, instance_input);
                     assignment.enable_selector(second_selector, start_row_index + 1, var_pos.rescale_row - 1);
                 }

@@ -150,7 +150,7 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
-                    static gate_manifest manifest =
+                    gate_manifest manifest =
                         gate_manifest(gate_manifest_type())
                             .merge_with(exp_component::get_gate_manifest(witness_amount, lookup_column_amount))
                             .merge_with(range_component::get_gate_manifest(witness_amount, lookup_column_amount))
@@ -159,7 +159,7 @@ namespace nil {
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest =
+                    manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(7)), false)
                             .merge_with(exp_component::get_manifest(m2))
                             .merge_with(range_component::get_manifest(m1, m2))
@@ -167,15 +167,14 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint8_t m1, uint8_t m2) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint8_t m1, uint8_t m2) {
                     return range_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2) +
                            exp_component::get_rows_amount(witness_amount, lookup_column_amount) +
                            div_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2) + 1;
                 }
 
-                constexpr static const std::size_t gates_amount =
-                    exp_component::gates_amount + div_component::gates_amount + range_component::gates_amount + 1;
+                constexpr static const std::size_t gates_amount = 1;
                 const std::size_t rows_amount =
                     get_rows_amount(this->witness_amount(), 0, range.get_m1(), range.get_m2());
 
@@ -378,13 +377,6 @@ namespace nil {
                 const int64_t start_row_index = static_cast<int64_t>(1) - component.rows_amount;
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                // range output
-                auto range_comp = component.get_range_component();
-                auto range_res = typename plonk_fixedpoint_tanh<
-                    BlueprintFieldType, ArithmetizationParams>::range_component::result_type(range_comp,
-                                                                                             static_cast<std::size_t>(
-                                                                                                 var_pos.range_row));
-
                 auto x = var(splat(var_pos.x));
                 auto y = var(splat(var_pos.y));
                 auto exp_x = var(splat(var_pos.exp_x));
@@ -396,9 +388,9 @@ namespace nil {
                 auto const_min = var(splat(var_pos.const_min), true, var::column_type::constant);
                 auto const_max = var(splat(var_pos.const_max), true, var::column_type::constant);
 
-                auto in = range_res.in;
-                auto lt = range_res.lt;
-                auto gt = range_res.gt;
+                auto in = var(splat(var_pos.range_pos.in));
+                auto lt = var(splat(var_pos.range_pos.lt));
+                auto gt = var(splat(var_pos.range_pos.gt));
 
                 auto div_comp = component.get_div_component();
                 auto one = typename plonk_fixedpoint_tanh<BlueprintFieldType, ArithmetizationParams>::value_type(
@@ -442,9 +434,9 @@ namespace nil {
                                                    ArithmetizationParams>::div_component::result_type(div_comp,
                                                                                                       div_row);
 
-                auto x = var(splat(var_pos.x));
-                auto exp_y = var(splat(var_pos.exp_y));
-                auto div_z = var(splat(var_pos.div_z));
+                auto x = var(splat(var_pos.x), false);
+                auto exp_y = var(splat(var_pos.exp_y), false);
+                auto div_z = var(splat(var_pos.div_z), false);
 
                 bp.add_copy_constraint({instance_input.x, x});
                 bp.add_copy_constraint({exp_res.output, exp_y});

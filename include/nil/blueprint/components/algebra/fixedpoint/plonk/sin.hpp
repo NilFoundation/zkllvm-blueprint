@@ -144,7 +144,7 @@ namespace nil {
                     return this->m1 + this->m2;
                 }
 
-                constexpr static std::size_t get_witness_columns(uint8_t m1, uint8_t m2) {
+                static std::size_t get_witness_columns(uint8_t m1, uint8_t m2) {
                     if (m1 == 2 && m2 == 1) {
                         return 11;
                     }
@@ -171,19 +171,23 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    if (m1 == 2) {
+                        manifest = manifest.merge_with(
+                            rem_component::get_gate_manifest(witness_amount, lookup_column_amount, 2, 2));
+                    }
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest = manifest_type(
+                    manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(new manifest_single_value_param(get_witness_columns(m1, m2))),
                         true);
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint8_t m1, uint8_t m2) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint8_t m1, uint8_t m2) {
                     if (M(m1) == 2 && M(m2) == 1) {
                         return 1 +
                                rem_component::get_rows_amount(get_witness_columns(m1, m2), lookup_column_amount, m1, 2);
@@ -204,7 +208,11 @@ namespace nil {
                     return this->m1 == 2 && this->m2 == 1;
                 }
 
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
                 constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, this->m1, this->m2);
 
                 struct input_type {
@@ -341,20 +349,20 @@ namespace nil {
                     auto rem_component = component.get_rem_component();
                     typename plonk_fixedpoint_sin<BlueprintFieldType, ArithmetizationParams>::rem_component::input_type
                         rem_input;
-                    rem_input.x = var(splat(var_pos.x));
-                    rem_input.y = var(splat(var_pos.two_pi), true, var::column_type::constant);
+                    rem_input.x = var(splat(var_pos.x), false);
+                    rem_input.y = var(splat(var_pos.two_pi), false, var::column_type::constant);
                     generate_assignments(rem_component, assignment, rem_input, var_pos.rem_row);
                     int64_t z_offset = m2 == 1 ? 1 : 0;
                     for (int64_t i = 0; i < m2 + 1; i++) {    // copy decomposition of z to sin
-                        auto rem_zi_val = var_value(
-                            assignment, var(var_pos.rem_pos.z0.column() + z_offset + i, var_pos.rem_pos.z0.row()));
+                        auto rem_zi_val = var_value(assignment, var(var_pos.rem_pos.z0.column() + z_offset + i,
+                                                                    var_pos.rem_pos.z0.row(), false));
                         // we know the value of rem_z_val is in [0, 2^16) because of the decomposition step
                         auto rem_zi_val_uint16 =
                             static_cast<uint16_t>(FixedPointHelper<BlueprintFieldType>::field_to_double(rem_zi_val));
                         x0_val.push_back(rem_zi_val_uint16);
                     }
                     // sign of y is sign of z in rem
-                    s_x_val = var_value(assignment, var(splat(var_pos.rem_pos.s_y)));
+                    s_x_val = var_value(assignment, var(splat(var_pos.rem_pos.s_y), false));
                 } else {    // if one pre-comma limb is used, x gets decomposed into up to three limbs
                     bool sign = FixedPointHelper<BlueprintFieldType>::decompose(x_val, x0_val);
                     s_x_val = sign ? -one : one;
