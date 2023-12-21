@@ -102,20 +102,19 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest =
-                        manifest_type(std::shared_ptr<manifest_param>(
-                                          new manifest_range_param(5 + (M(m2) + M(m1)), 5 + 3 * (m2 + m1))),
-                                      false);
+                    manifest_type manifest = manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(
+                                                               5 + (M(m2) + M(m1)), 5 + 3 * (m2 + m1))),
+                                                           false);
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint8_t m1, uint8_t m2) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint8_t m1, uint8_t m2) {
                     if (5 + 3 * (M(m2) + M(m1)) <= witness_amount) {
                         return 1;
                     } else {
@@ -123,8 +122,12 @@ namespace nil {
                     }
                 }
 
-                // Includes the constraints + lookup_gates
+// Includes the constraints + lookup_gates
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
                 constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
                 const std::size_t rows_amount =
                     get_rows_amount(this->witness_amount(), 0, div_by_pos.get_m1(), div_by_pos.get_m2());
 

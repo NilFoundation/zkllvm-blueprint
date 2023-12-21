@@ -85,28 +85,31 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest = manifest_type(
-                                                        // I include the number of witness for cmp before the merge,
-                                                        // since merge chooses max and we put everything in one row
-                                                        std::shared_ptr<manifest_param>(new manifest_single_value_param(
-                                                            3 + cmp_component::get_witness_columns(m1, m2))),
-                                                        false)
-                                                        .merge_with(cmp_component::get_manifest(m1, m2));
+                    manifest_type manifest = manifest_type(
+                                                 // I include the number of witness for cmp before the merge,
+                                                 // since merge chooses max and we put everything in one row
+                                                 std::shared_ptr<manifest_param>(new manifest_single_value_param(
+                                                     3 + cmp_component::get_witness_columns(m1, m2))),
+                                                 false)
+                                                 .merge_with(cmp_component::get_manifest(m1, m2));
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount) {
                     return 1;
                 }
 
-                // Includes the constraints + lookup_gates
+// Includes the constraints + lookup_gates
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
                 constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 using input_type = typename cmp_component::input_type;

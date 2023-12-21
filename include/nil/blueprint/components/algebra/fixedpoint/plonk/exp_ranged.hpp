@@ -185,20 +185,20 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
-                    static gate_manifest manifest =
+                    gate_manifest manifest =
                         exp_component::get_gate_manifest(witness_amount, lookup_column_amount)
                             .merge_with(range_component::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest =
+                    manifest_type manifest =
                         exp_component::get_manifest(m2).merge_with(range_component::get_manifest(m1, m2));
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint8_t m1, uint8_t m2) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint8_t m1, uint8_t m2) {
                     return range_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2) +
                            exp_component::get_rows_amount(witness_amount, lookup_column_amount);
                 }

@@ -107,24 +107,22 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
-                    static gate_manifest manifest =
+                    gate_manifest manifest =
                         gate_manifest(gate_manifest_type())
                             .merge_with(exp_component::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest =
-                        manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(
-                                          std::max(5, 2 * (M(m1) + M(m2))), 5 + 2 * (m2 + m1))),
-                                      false)
-                            .merge_with(exp_component::get_manifest(m1, m2));
+                    manifest_type manifest = manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(
+                                                               std::max(5, 2 * (M(m1) + M(m2))), 5 + 2 * (m2 + m1))),
+                                                           false)
+                                                 .merge_with(exp_component::get_manifest(m1, m2));
                     return manifest;
                 }
 
-                constexpr static std::size_t get_log_rows_amount(std::size_t witness_amount,
-                                                                 std::size_t lookup_column_amount, uint8_t m1,
-                                                                 uint8_t m2) {
+                static std::size_t get_log_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                       uint8_t m1, uint8_t m2) {
                     if (5 + 2 * (M(m2) + M(m1)) <= witness_amount) {
                         return 1;
                     } else {
@@ -132,14 +130,20 @@ namespace nil {
                     }
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint8_t m1, uint8_t m2) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint8_t m1, uint8_t m2) {
                     auto exp_rows = exp_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
                     auto log_rows = get_log_rows_amount(witness_amount, lookup_column_amount, m1, m2);
                     return 2 * exp_rows + log_rows;
                 }
 
-                constexpr static const std::size_t gates_amount = exp_component::gates_amount + 2;
+// Includes the constraints + lookup_gates
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
+                constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
+
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
                 const std::size_t log_rows_amount = get_log_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
 
@@ -439,9 +443,9 @@ namespace nil {
                 auto exp1_res = exp_comp.get_result((std::size_t)var_pos.exp1_row);
                 auto exp2_res = exp_comp.get_result((std::size_t)var_pos.exp2_row);
 
-                auto x = var(splat(var_pos.x));
-                auto exp1_out = var(splat(var_pos.exp1_out));
-                auto exp2_out = var(splat(var_pos.exp2_out));
+                auto x = var(splat(var_pos.x), false);
+                auto exp1_out = var(splat(var_pos.exp1_out), false);
+                auto exp2_out = var(splat(var_pos.exp2_out), false);
 
                 bp.add_copy_constraint({instance_input.x, x});
                 bp.add_copy_constraint({exp1_res.output, exp1_out});

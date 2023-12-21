@@ -297,7 +297,7 @@ namespace nil {
                 using range_table = fixedpoint_range_table<BlueprintFieldType>;
 
                 static manifest_type get_manifest() {
-                    static manifest_type manifest =
+                    manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(1)), false);
                     return manifest;
                 }

@@ -77,12 +77,12 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    static manifest_type manifest = manifest_type(
+                    manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(new manifest_single_value_param(5 + M(m2) + M(m1))), false);
                     return manifest;
                 }
@@ -92,8 +92,12 @@ namespace nil {
                     return 1;
                 }
 
-                // Includes the constraints + lookup_gates
+// Includes the constraints + lookup_gates
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
                 constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 struct input_type {

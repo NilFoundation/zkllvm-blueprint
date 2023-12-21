@@ -129,12 +129,12 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m2) {
-                    static manifest_type manifest = manifest_type(
+                    manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(new manifest_single_value_param(get_witness_columns(m2))),
                         false);
                     return manifest;
@@ -145,8 +145,12 @@ namespace nil {
                     return 1;
                 }
 
-                // Includes the constraints + lookup_gates
+// Includes the constraints + lookup_gates
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
                 constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 struct input_type {
@@ -302,7 +306,7 @@ namespace nil {
                 using var = typename plonk_fixedpoint_exp<BlueprintFieldType, ArithmetizationParams>::var;
                 typename plonk_fixedpoint_exp<BlueprintFieldType, ArithmetizationParams>::rescale_component::input_type
                     rescale_input;
-                rescale_input.x = var(splat(var_pos.y_mul));
+                rescale_input.x = var(splat(var_pos.y_mul), false);
                 auto rescale_comp = component.get_rescale_component();
                 generate_assignments(rescale_comp, assignment, rescale_input, start_row_index);
 
@@ -346,8 +350,7 @@ namespace nil {
 
                 // Constrain rescale
                 typename plonk_fixedpoint_exp<BlueprintFieldType, ArithmetizationParams>::rescale_component::input_type
-                    rescale_input;
-                rescale_input.x = var(splat(var_pos.y_mul));
+                    rescale_input;    // get_constraint never uses the input, no need to assign a value to it
                 auto rescale_comp = component.get_rescale_component();
                 auto constraint_3 = get_constraint(rescale_comp, bp, assignment, rescale_input);
 

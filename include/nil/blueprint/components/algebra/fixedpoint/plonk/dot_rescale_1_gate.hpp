@@ -105,13 +105,13 @@ namespace nil {
                     }
 
                     std::uint32_t gates_amount() const override {
-                        return fix_dot_rescale_1_gate::gates_amount + 1;
+                        return fix_dot_rescale_1_gate::gates_amount;
                     }
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint16_t dots, uint8_t m2) {
-                    static gate_manifest manifest =
+                    gate_manifest manifest =
                         gate_manifest(gate_manifest_type(dots, m2))
                             .merge_with(rescale_component::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
@@ -119,15 +119,14 @@ namespace nil {
 
                 // Hardcoded to max 16 for now
                 static manifest_type get_manifest(uint32_t dots, uint8_t m2) {
-                    static manifest_type manifest =
+                    manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(4, 16)), false)
                             .merge_with(rescale_component::get_manifest(m2));
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount, uint32_t dots,
-                                                             uint8_t m2) {
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                   uint32_t dots, uint8_t m2) {
                     uint32_t dots_per_row = (witness_amount - 2) / 2;    // -2 for sum and previous sum
                     uint32_t rows = dots / dots_per_row;
                     if (dots % dots_per_row != 0) {
@@ -137,7 +136,7 @@ namespace nil {
                     return rows;
                 }
 
-                constexpr static const std::size_t gates_amount = rescale_component::gates_amount + 1;
+                constexpr static const std::size_t gates_amount = 1;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, dots, rescale.get_m2());
 
                 struct input_type {
@@ -354,7 +353,7 @@ namespace nil {
                 auto dots = component.get_dots();
                 auto dots_per_row = component.get_dots_per_row();
 
-                // constraint first previous dot to zero
+                // constrain first previous dot to zero
                 bp.add_copy_constraint({instance_input.zero, var(splat(var_pos.dot_p_0), false)});
 
                 for (auto i = 0; i < dots; i++) {
@@ -378,8 +377,8 @@ namespace nil {
 
                 // dot_p_n = dot_c_n-1 (this row's previous dot must be the previous row's current dot)
                 for (int row = 1; row < var_pos.dot_rows_amount; row++) {
-                    auto dot_p = var(var_pos.dot_p_0.column(), var_pos.dot_p_0.row() + row);
-                    auto dot_c = var(var_pos.dot_c_0.column(), var_pos.dot_c_0.row() + row - 1);
+                    auto dot_p = var(var_pos.dot_p_0.column(), var_pos.dot_p_0.row() + row, false);
+                    auto dot_c = var(var_pos.dot_c_0.column(), var_pos.dot_c_0.row() + row - 1, false);
                     bp.add_copy_constraint({dot_c, dot_p});
                 }
             }
