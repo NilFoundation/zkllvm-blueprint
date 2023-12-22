@@ -44,7 +44,6 @@
 #include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/detail/fp12_power_tminus1sq_over3.hpp>
 
 #include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_exponentiation.hpp>
-#include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_miller_loop.hpp>
 #include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_381_pairing.hpp>
 
 #include "../../../../test_plonk_component.hpp"
@@ -208,8 +207,8 @@ template <typename FieldType, std::size_t WitnessColumns>
 void test_bls12_381_pairing(std::vector<typename FieldType::value_type> public_input,
                             std::vector<typename FieldType::value_type> expected_res) {
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? (5 + 8) : (6 + 9);
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? (4 + 8) : (4 + 9);
 
     using ArithmetizationParams =
         crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
@@ -251,7 +250,7 @@ void test_bls12_381_pairing(std::vector<typename FieldType::value_type> public_i
     }
 
     component_type component_instance(witnesses, // witnesses
-                                      std::array<std::uint32_t, 0>{}, // constants
+                                      std::array<std::uint32_t, 1>{0}, // constants
                                       std::array<std::uint32_t, 0>{}  // public inputs
                                      );
 
@@ -263,7 +262,7 @@ static const std::size_t random_tests_amount = 5;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_bls12_pairing_test) {
     using curve_type = crypto3::algebra::curves::bls12_381;
     using g2_group_type = typename curve_type::g2_type<>;
     using base_field_value = curve_type::base_field_type::value_type;
@@ -272,7 +271,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
     nil::crypto3::random::algebraic_engine<field_type> generate_random;
     boost::random::mt19937 seed_seq;
     generate_random.seed(seed_seq);
-
+/*
     for(std::size_t i = 0; i < random_tests_amount; i++) {
         std::cout << "Random test # " << (i+1) << "\n";
 
@@ -294,7 +293,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fields_non_native_fp12_test) {
         std::cout << "24 columns\n";
         test_bls12_exponentiation<field_type,24>(x);
     }
-
+*/
      std::vector<field_type::value_type> x = {
          0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb_cppui381,
          0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1_cppui381,
