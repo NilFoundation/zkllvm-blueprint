@@ -34,7 +34,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_miller_loop.hpp>
+#include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/miller_loop.hpp>
 #include <nil/blueprint/components/algebra/pairing/weierstrass/plonk/bls12_exponentiation.hpp>
 
 namespace nil {
@@ -59,18 +59,18 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             class bls12_381_pairing<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                            BlueprintFieldType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
+                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
 
             static std::size_t gates_amount_internal(std::size_t witness_amount) {
                 return 0;
             }
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
-                using bls12_miller_loop_type = bls12_miller_loop<
+                using bls12_miller_loop_type = miller_loop<
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                     BlueprintFieldType>;
                 using bls12_exponentiation_type = bls12_exponentiation<
@@ -112,7 +112,7 @@ namespace nil {
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    return bls12_miller_loop_type::get_rows_amount(witness_amount, lookup_column_amount) +
+                    return bls12_miller_loop_type::get_rows_amount(witness_amount, lookup_column_amount,0xD201000000010000) +
                            bls12_exponentiation_type::get_rows_amount(witness_amount, lookup_column_amount);
                 }
 
@@ -139,14 +139,13 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit bls12_381_pairing(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {};
+                explicit bls12_381_pairing(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) { };
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 bls12_381_pairing(WitnessContainerType witness, ConstantContainerType constant,
                          PublicInputContainerType public_input) :
-                    component_type(witness, constant, public_input, get_manifest()) {};
-
+                    component_type(witness, constant, public_input, get_manifest()) { };
                 bls12_381_pairing(
                     std::initializer_list<typename component_type::witness_container_type::value_type>
                         witnesses,
@@ -154,7 +153,7 @@ namespace nil {
                         constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()) {};
+                    component_type(witnesses, constants, public_inputs, get_manifest()) { };
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -176,7 +175,7 @@ namespace nil {
                 using bls12_miller_loop_type = typename component_type::bls12_miller_loop_type;
                 using bls12_exponentiation_type = typename component_type::bls12_exponentiation_type;
 
-                bls12_miller_loop_type miller_loop_instance( component._W, component._C, component._PI);
+                bls12_miller_loop_type miller_loop_instance( component._W, component._C, component._PI, 0xD201000000010000);
                 bls12_exponentiation_type exponentiation_instance( component._W, component._C, component._PI);
 
                 typename bls12_miller_loop_type::input_type miller_loop_input = {instance_input.P, instance_input.Q};
@@ -252,7 +251,7 @@ namespace nil {
                 using bls12_miller_loop_type = typename component_type::bls12_miller_loop_type;
                 using bls12_exponentiation_type = typename component_type::bls12_exponentiation_type;
 
-                bls12_miller_loop_type miller_loop_instance( component._W, component._C, component._PI);
+                bls12_miller_loop_type miller_loop_instance( component._W, component._C, component._PI, 0xD201000000010000);
                 bls12_exponentiation_type exponentiation_instance( component._W, component._C, component._PI);
 
                 typename bls12_miller_loop_type::input_type miller_loop_input = {instance_input.P, instance_input.Q};
