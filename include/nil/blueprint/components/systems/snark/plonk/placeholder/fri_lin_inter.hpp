@@ -156,6 +156,16 @@ namespace nil {
                     component, start_row_index);
 	    }
 
+        template<typename BlueprintFieldType, typename ArithmetizationParams>
+        typename plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams>::result_type
+            generate_empty_assignments(
+                const plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                const typename plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams>::input_type instance_input,
+                const std::uint32_t start_row) {
+                return generate_assignments(component, assignment, instance_input, start_row);
+        }
+
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             std::size_t generate_gates(
                 const plonk_fri_lin_inter<BlueprintFieldType, ArithmetizationParams> &component,

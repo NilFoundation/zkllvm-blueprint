@@ -248,6 +248,16 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            typename plonk_reduction<BlueprintFieldType, ArithmetizationParams>::result_type
+                generate_empty_assignments(
+                    const plonk_reduction<BlueprintFieldType, ArithmetizationParams> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    const typename plonk_reduction<BlueprintFieldType, ArithmetizationParams>::input_type instance_input,
+                    const std::uint32_t start_row) {
+                return generate_assignments(component, assignment, instance_input, start_row);
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             std::array<std::size_t, 2> generate_gates(
                 const plonk_reduction<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,

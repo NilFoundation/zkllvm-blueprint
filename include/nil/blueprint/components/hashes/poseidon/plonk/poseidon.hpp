@@ -246,6 +246,16 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename FieldType>
+            typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::result_type
+                generate_empty_assignments(
+                    const plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                    const typename plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::input_type instance_input,
+                    const std::uint32_t start_row) {
+                return generate_assignments(component, assignment, instance_input, start_row);
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams, typename FieldType>
             std::array<std::size_t,
                 plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::rounds_amount /
                 plonk_poseidon<BlueprintFieldType, ArithmetizationParams, FieldType>::rounds_per_row>

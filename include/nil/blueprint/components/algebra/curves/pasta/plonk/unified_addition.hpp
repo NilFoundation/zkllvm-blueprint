@@ -226,6 +226,16 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
+            typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::result_type
+            generate_empty_assignments(
+                const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
+                const typename plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType>::input_type instance_input,
+                const std::uint32_t start_row) {
+                return generate_assignments(component, assignment, instance_input, start_row);
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams, typename CurveType>
             std::size_t generate_gates(
                 const plonk_native_unified_addition<BlueprintFieldType, ArithmetizationParams, CurveType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
