@@ -96,7 +96,6 @@ namespace nil {
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
 
-
                 class gate_manifest_type : public component_gate_manifest {
                     std::array<std::size_t,3> gates_footprint(unsigned long long Power) const {
                         std::vector<unsigned short int> exp_plan = base4(Power);
@@ -289,8 +288,10 @@ namespace nil {
 
                 using var = typename plonk_fp12_fixed_power<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
+                using integral_type = typename policy_type_fp12::extension_policy::integral_type;
 
-                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type,BlueprintFieldType>;
 
                 const std::vector<unsigned short int> exp_plan = component.exp_plan,
                                                       exp_precompute = component.exp_precompute;
