@@ -157,7 +157,7 @@ namespace nil {
                     std::vector<var> y;
                     var zero = var(0, 0, false);    // for asserting zero for unused constraints
 
-                    std::vector<var> all_vars() const {
+                    std::vector<std::reference_wrapper<var>> all_vars() {
                         auto z = x;
                         z.insert(end(z), begin(y), end(y));
                         z.push_back(zero);
