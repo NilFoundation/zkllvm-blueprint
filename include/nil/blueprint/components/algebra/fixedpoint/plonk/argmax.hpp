@@ -1,6 +1,7 @@
 #ifndef CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_ARGMAX_HPP
 #define CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_ARGMAX_HPP
 
+#include <functional>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
@@ -130,7 +131,7 @@ namespace nil {
                     var y = var(0, 0, false);
                     var index_x = var(0, 0, false);
 
-                    std::vector<var> all_vars() const {
+                    std::vector<std::reference_wrapper<var>> all_vars() {
                         return {x, y, index_x};
                     }
                 };
