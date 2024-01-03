@@ -82,9 +82,9 @@ namespace nil {
 
             virtual value_type &selector(std::size_t selector_index, std::uint32_t row_index) {
 
-                assert(selector_index < this->_public_table._selectors.size());
+                auto& column = zk_type::selector(selector_index);
 
-                if (this->_public_table._selectors[selector_index].size() <= row_index)
+                if (column.size() <= row_index)
                     this->_public_table._selectors[selector_index].resize(row_index + 1);
 
                 return this->_public_table._selectors[selector_index][row_index];
@@ -172,9 +172,10 @@ namespace nil {
             }
 
             virtual value_type &witness(std::uint32_t witness_index, std::uint32_t row_index) {
-                BLUEPRINT_ASSERT(witness_index < ArithmetizationParams::WitnessColumns);
 
-                if (this->_private_table._witnesses[witness_index].size() <= row_index)
+                auto& column = zk_type::witness(witness_index);
+
+                if (column.size() <= row_index)
                     this->_private_table._witnesses[witness_index].resize(row_index + 1);
 
                 assignment_allocated_rows = std::max(assignment_allocated_rows, row_index + 1);
@@ -203,9 +204,9 @@ namespace nil {
             virtual value_type &public_input(
                 std::uint32_t public_input_index, std::uint32_t row_index) {
 
-                BLUEPRINT_ASSERT(public_input_index < zk_type::public_inputs_amount());
+                auto& column = zk_type::public_input(public_input_index);
 
-                if (zk_type::public_input_column_size(public_input_index) <= row_index)
+                if (column.size() <= row_index)
                     this->_public_table._public_inputs[public_input_index].resize(row_index + 1);
 
                 return this->_public_table._public_inputs[public_input_index][row_index];
@@ -235,9 +236,9 @@ namespace nil {
             virtual value_type &constant(
                 std::uint32_t constant_index, std::uint32_t row_index) {
 
-                assert(constant_index < zk_type::constants_amount());
+                auto& column = zk_type::constant(constant_index);
 
-                if (zk_type::constant_column_size(constant_index) <= row_index)
+                if (column.size() <= row_index)
                     this->_public_table._constants[constant_index].resize(row_index + 1);
 
                 assignment_allocated_rows = std::max(assignment_allocated_rows, row_index + 1);
