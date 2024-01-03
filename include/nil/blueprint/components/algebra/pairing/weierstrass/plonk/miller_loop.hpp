@@ -63,11 +63,43 @@ namespace nil {
             //
             // Component for computing the result of applying the Miller loop
             // to two points P from E(F_p) and Q from E'(F_p^2).
-            // The loop parameter C is passed to the constructor.
+            // The loop parameter C_val is passed to the constructor.
             // Input: P[2], Q[4] ( we assume P and Q are NOT (0,0), i.e. not the points at infinity, NOT CHECKED )
             // Output: f[12]: an element of F_p^12
             //
-
+            // Each iteration of the Miller loop adds two rows to the circuit:
+            // +------+------+------+------+------+------+-------+-------+-------+-------+
+            // | f[0] | f[1] | f[2] | f[3] | f[4] | f[5] | f[6]  | f[7]  |  .... | f[11] |
+            // +------+------+------+------+------+------+-------+-------+-------+-------+
+            // | P[0] | P[1] | T[0] | T[1] | T[2] | T[3] | ZC[0] | ZC[1] |               |
+            // +------+------+------+------+------+------+-------+-------+---------------+
+            //
+            // These two rows are always followed by two similar rows with f := f² * LineFunction(P,T,T) and T:=T+T
+            // In case the current bit of the loop-driving bit sequence iz 0, these two rows are formed by the
+            // next iteration of the loop. In case this bit is 1, these two rows are part of the addition block.
+            // The addition block is designed as follows:
+            // +------+------+------+------+------+------+-------+-------+------+------+-------+-------+
+            // | f[0] | f[1] | f[2] | f[3] | f[4] | f[5] | f[6]  | f[7]  | f[8] | f[9] | f[10] | f[11] |
+            // +------+------+------+------+------+------+-------+-------+------+------+-------+-------+
+            // |      |      | T[0] | T[1] | T[2] | T[3] |                                             |
+            // +------+------+------+------+------+------+---------------------------------------------+
+            // |                                                                                       |
+            // |               External subcomponent assuring the computation of T + Q                 |
+            // |                                                                                       |
+            // +------+------+------+------+------+------+-------+-------+------+------+-------+-------+
+            // | f[0] | f[1] | f[2] | f[3] | f[4] | f[5] | f[6]  | f[7]  | f[8] | f[9] | f[10] | f[11] |
+            // +------+------+------+------+------+------+-------+-------+------+------+-------+-------+
+            // | P[0] | P[1] | T[0] | T[1] | T[2] | T[3] | Q[0]  | Q[1]  | Q[2] | Q[3] |       |       |
+            // +------+------+------+------+------+------+-------+-------+------+------+-------+-------+
+            //
+            // The last two rows contain the result of the Miller loop and the result of the last point operation
+            // (this point data is irrelevant, but kept for the sake of gate uniformity):
+            // +------+------+------+------+------+------+------+-------+
+            // | f[0] | f[1] | f[2] | f[3] | f[4] | f[5] | .... | f[11] |
+            // +------+------+------+------+------+------+------+-------+
+            // |      |      | T[0] | T[1] | T[2] | T[3] |              |
+            // +------+------+------+------+------+------+--------------+
+            //
             using namespace detail;
             using detail::base;
 
@@ -395,7 +427,7 @@ namespace nil {
                 gate_list.push_back(bp.add_gate(doubling_constrs));
 
                 // All the following constraints are for Fp12 elements
-                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type,BlueprintFieldType>;
 
                 // LineFunction Doubling case gate
                 fp12_constraint X, Y, twoX1, twoY1, F, G, C12;
@@ -423,7 +455,7 @@ namespace nil {
 
                 // LineFunction Adding case gate
                 fp12_constraint twoX2, twoY2;
-                // we REUSE X, Y, twoX1, twoX2, F, G from the previous gate and REDEFINE C
+                // we REUSE X, Y, twoX1, twoX2, F, G from the previous gate and REDEFINE C12
                 for(std::size_t i = 0; i < 12; i++) {
                     twoX2[i] = constraint_type();
                     twoY2[i] = constraint_type();
@@ -472,7 +504,7 @@ namespace nil {
 
                 std::vector<unsigned short int> C_bin = component.C_bin;
 
-// TODO !!! We need to CC the 0-th f row to constants (1,0,...,0)
+                // Copy constraints for the 0-th f row to constants (1,0,...,0) in constant column
                 bp.add_copy_constraint({var(0, start_row_index + 1, false, var::column_type::constant),
                                         var(component.W(0), start_row_index, false)});
                 for(std::size_t j = 1; j < 12; j++) {

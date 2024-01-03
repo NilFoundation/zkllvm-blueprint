@@ -249,7 +249,7 @@ namespace nil {
                 using var = typename plonk_fp12_power_t<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
-                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type,BlueprintFieldType>;
 
                 const std::size_t WA = component.witness_amount();
                 std::vector<std::size_t> gate_list = {}; // 5 gate ids (if WA==12, the last two are the same)

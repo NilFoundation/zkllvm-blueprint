@@ -26,9 +26,14 @@
 
 #include <boost/test/unit_test.hpp>
 
+/*
 #include <nil/crypto3/algebra/curves/bls12.hpp>
 #include <nil/crypto3/algebra/fields/bls12/base_field.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/bls12.hpp>
+*/
+#include <nil/crypto3/algebra/curves/alt_bn128.hpp>
+#include <nil/crypto3/algebra/fields/alt_bn128/base_field.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/alt_bn128.hpp>
 
 #include <nil/crypto3/algebra/fields/detail/element/fp12_2over3over2.hpp>
 #include <nil/crypto3/algebra/fields/fp12_2over3over2.hpp>
@@ -123,10 +128,10 @@ static const std::size_t random_tests_amount = 5;
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_pairing_bn) {
-    using curve_type = crypto3::algebra::curves::bls12_381;
+    using curve_type = crypto3::algebra::curves::alt_bn128_254;
     using g2_group_type = typename curve_type::g2_type<>;
     using base_field_value = curve_type::base_field_type::value_type;
-    using field_type = typename curve_type::g2_type<>::field_type::base_field_type; //typename crypto3::algebra::fields::bls12_fq<381>;
+    using field_type = typename curve_type::g2_type<>::field_type::base_field_type;
 
     nil::crypto3::random::algebraic_engine<field_type> generate_random;
     boost::random::mt19937 seed_seq;

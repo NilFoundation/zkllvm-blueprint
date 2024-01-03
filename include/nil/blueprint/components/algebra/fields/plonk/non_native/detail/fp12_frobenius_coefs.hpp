@@ -24,12 +24,18 @@
 // @file Declaration of coefficients for F_p^{12} computation of p^k (k = 1,2,3)
 // We use towered field extension
 // F_p^12 = F_p^6[w]/(w^2 - v),
-// F_p^6 = F_p^2[v]/(v^3-(u+1)),
+// F_p^6 = F_p^2[v]/(v^3-(non_residue[1] u + non_residue[0])),
 // F_p^2 = F_p[u]/(u^2 - (-1)).
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_FP12_FROBENIUS_COEFS_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_FP12_FROBENIUS_COEFS_HPP
+
+#include <nil/crypto3/algebra/fields/detail/element/fp12_2over3over2.hpp>
+#include <nil/crypto3/algebra/fields/fp12_2over3over2.hpp>
+
+#include <nil/crypto3/algebra/fields/detail/element/fp2.hpp>
+#include <nil/crypto3/algebra/fields/fp2.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -89,16 +95,22 @@ namespace nil {
                         }
                     } else {
                         // otherwise fallback to computation of constants
+//std::cout << "We have to recompute Frobenius coefs for power = " << int(Power) << "\n";
+                        // to obtain the correct non-residue values for the extension field
+                        using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
+
                         typename BlueprintFieldType::integral_type field_p = BlueprintFieldType::modulus,
                                                                    coef_exp = (field_p - 1)/6;
                         fp2_element frob_coef = fp2_element::one(),
-                                    u_plus_1_pow = fp2_element(1,1).pow(coef_exp);
+                                    non_residue_pow = fp2_element(policy_type_fp12::extension_policy::non_residue.data[0],
+                                                                  policy_type_fp12::extension_policy::non_residue.data[1]
+                                                                 ).pow(coef_exp);
                         int k = int(Power);
 
                         for(std::size_t i = 0; i < 6; i++) {
                             res[2*i] = frob_coef.data[0];
                             res[2*i+1] = frob_coef.data[1];
-                            frob_coef *= u_plus_1_pow;
+                            frob_coef *= non_residue_pow;
                         }
 
                         if (k > 1) {
@@ -119,6 +131,7 @@ namespace nil {
                             }
                         }
                     }
+//for(std::size_t i = 0; i < 12; i++) std::cout << "c[" << std::dec << i << "] = " << std::hex << res[i] << "\n";
                     return res;
                 }
             } // namespace detail

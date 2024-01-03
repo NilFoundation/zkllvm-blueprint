@@ -21,15 +21,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
-// @file Declaration of F_p^{12} elements over ab abstract entity (to be used with constraints).
+// @file Declaration of F_p^{12} elements over an abstract entity (to be used with constraints).
 // We use towered field extension
 // F_p^12 = F_p^6[w]/(w^2 - v),
-// F_p^6 = F_p^2[v]/(v^3-(u+1)),
+// F_p^6 = F_p^2[v]/(v^3-(non_res[1]u + non_res[0])),
 // F_p^2 = F_p[u]/(u^2 - (-1)).
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ABSTRACT_FP12_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ABSTRACT_FP12_HPP
+
+#include <nil/crypto3/algebra/fields/fp12_2over3over2.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -37,12 +39,12 @@ namespace nil {
             namespace detail {
 
                 // actually compute all bilinear forms that represent multiplication in F_p^12
-                template<typename T>
-                std::array<T,12> perform_fp12_mult(std::array<T,12> a, std::array<T,12> b) {
+                template<typename T, typename ST>
+                std::array<T,12> perform_fp12_mult(std::array<T,12> a, std::array<T,12> b, ST fp3_non_residue_0, ST fp3_non_residue_1) {
                     std::array<T,12> c;
 
                     for(std::size_t i = 0; i < 12; i++) {
-                        c[i] = T(); // assume default constructor creates a "zero" object which is true for constraints and numbers
+                        c[i] = T(); // assume default constructor creates a "zero" object, which is true for constraints and numbers
                     }
 
                     for(std::size_t i = 0; i < 12; i++) {
@@ -51,36 +53,42 @@ namespace nil {
                             std::size_t dv = (i % 6)/2 + (j % 6)/2;
                             std::size_t du = (i % 2) + (j % 2);
 
-                            if (dw == 2) {
-                                // reduction according to w^2 = v
-                                dw = 0; dv++;
-                            }
+                            // reduction according to w^2 = v
+                            dv += (dw / 2);
+                            dw %= 2;
+
                             // possible change of sign according to u^2 = -1
                             // NB: the only reason for having this "if" (and the one several lines below)
                             // instead of possibly multiplying  the product a[i]*b[j] by (-1), is to
                             // have constraints that are written shorter, as opposed to the ones that contain -1.
                             // Because -1 is a number with a lot of digits in F_p.
+                            //
+                            // If dv > 2, there is actually a reduction of v^3, so we also have to multiply
+                            // by the coefficient from the Fp3 non-residue.
+                            //
                             if (du > 1) {
-                                c[6*dw + 2*(dv % 3) + (du % 2)] -= a[i] * b[j];
+                                c[6*dw + 2*(dv % 3) + (du % 2)] -= a[i] * b[j] * (dv > 2? fp3_non_residue_0 : 1);
                             } else {
-                                c[6*dw + 2*(dv % 3) + (du % 2)] += a[i] * b[j];
+                                c[6*dw + 2*(dv % 3) + (du % 2)] += a[i] * b[j] * (dv > 2? fp3_non_residue_0 : 1);
                             }
                             if (dv > 2) {
-                                // reduction according to v^3 = u + 1
+                                // reduction according to v^3 = fp3_non_residue[0] + fp3_non_residue[1] u
                                 dv -= 3; du++;
-                                // account for u in the reduction v^3 = u + 1
+                                // account for u in the reduction v^3 = fp3_non_residue[0] + fp3_non_residue[1] u
                                 if (du > 1) {
-                                    c[6*dw + 2*dv + (du % 2)] -= a[i] * b[j];
+                                    c[6*dw + 2*dv + (du % 2)] -= a[i] * b[j] * fp3_non_residue_1;
                                 } else {
-                                    c[6*dw + 2*dv + (du % 2)] += a[i] * b[j];
+                                    c[6*dw + 2*dv + (du % 2)] += a[i] * b[j] * fp3_non_residue_1;
                                 }
                             }
                         }
                     }
                     return c;
                 }
-                template<typename T>
+                template<typename T, typename UnderlyingFieldType>
                 class abstract_fp12_element {
+                    using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<UnderlyingFieldType>;
+
                 public:
                     std::array<T,12> data;
 
@@ -92,7 +100,10 @@ namespace nil {
                     }
 
                     constexpr abstract_fp12_element operator*(const abstract_fp12_element& other) {
-                        std::array<T,12> res = perform_fp12_mult(data,other.data);
+                        std::array<T,12> res = perform_fp12_mult(data,other.data,
+                                             policy_type_fp12::extension_policy::non_residue.data[0],
+                                             policy_type_fp12::extension_policy::non_residue.data[1]
+                                         );
                         return { res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9], res[10], res[11] };
                     }
                     constexpr abstract_fp12_element operator*(const int x) {

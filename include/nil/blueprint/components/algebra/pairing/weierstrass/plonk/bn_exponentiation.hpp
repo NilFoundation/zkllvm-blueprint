@@ -299,8 +299,9 @@ namespace nil {
 
                 using var = typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
 
-                using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
+                using fp12_constraint = detail::abstract_fp12_element<constraint_type,BlueprintFieldType>;
 
                 std::vector<std::size_t> gate_list = {};
 
