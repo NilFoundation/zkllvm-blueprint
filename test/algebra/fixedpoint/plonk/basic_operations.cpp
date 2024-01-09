@@ -273,6 +273,123 @@ void test_int_to_fixedpoint(typename FixedType::value_type input) {
         component_instance, public_input, result_check, instance_input);
 }
 
+template<typename FixedType, typename Integer>
+void test_fixedpoint_to_int_inner(FixedType input) {
+    using BlueprintFieldType = typename FixedType::field_type;
+    constexpr std::size_t WitnessColumns = 4 + FixedType::M_1 + FixedType::M_2;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 3;
+    constexpr std::size_t SelectorColumns = 3;
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns,
+                                                                                   ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
+
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
+    using component_type =
+        blueprint::components::fix_to_int<ArithmetizationType, BlueprintFieldType,
+                                          nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
+
+    Integer expected_res_i = static_cast<Integer>(input.to_double());
+    Integer expected_res = input.template to_int<Integer>();
+    BLUEPRINT_RELEASE_ASSERT(expected_res == expected_res_i);
+
+    auto result_check = [&expected_res, &expected_res_i, input](AssignmentType &assignment,
+                                                                typename component_type::result_type &real_res) {
+        auto real_res_ = var_value(assignment, real_res.output);
+        auto expected_res_ = expected_res < 0 ? -typename BlueprintFieldType::value_type(-expected_res) :
+                                                typename BlueprintFieldType::value_type(expected_res);
+        auto expected_res_i_ = expected_res_i < 0 ? -typename BlueprintFieldType::value_type(-expected_res_i) :
+                                                    typename BlueprintFieldType::value_type(expected_res_i);
+        // #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "fixed_point to int test: "
+                  << "\n";
+        std::cout << "input   : " << input.get_value().data << "\n";
+        std::cout << "expected: " << expected_res_i << "\n";
+        std::cout << "real    : " << real_res_.data << "\n\n";
+        // #endif
+        if (expected_res_ != expected_res_i_ || expected_res_ != real_res_) {
+            std::cout << "expected        : " << expected_res_.data << "\n";
+            std::cout << "real            : " << real_res_.data << "\n";
+            std::cout << "expected (float): " << expected_res_i_.data << "\n\n";
+            abort();
+        }
+    };
+
+    std::vector<std::uint32_t> witness_list;
+    witness_list.reserve(WitnessColumns);
+    for (auto i = 0; i < WitnessColumns; i++) {
+        witness_list.push_back(i);
+    }
+    // Is done by the manifest in a real circuit
+    component_type component_instance(witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(),
+                                      FixedType::M_1, FixedType::M_2, component_type::template get_type<Integer>());
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        component_instance, public_input, result_check, instance_input);
+}
+
+template<typename FixedType, typename Integer, typename RngType>
+void test_fixedpoint_to_int_random_tester(RngType &rng, FixedType post_comma) {
+    using distribution = boost::random::uniform_int_distribution<Integer>;
+    using limits = std::numeric_limits<Integer>;
+
+    int64_t max_fix = (1ull << (16 * FixedType::M_1)) - 1;
+    auto max = limits::max();
+    if (max > max_fix) {
+        max = max_fix;
+    }
+
+    distribution dist = distribution(0, max);
+    auto val = dist(rng);
+
+    auto value = typename FixedType::value_type((uint64_t)val * FixedType::DELTA);
+    FixedType input = post_comma + FixedType(value, FixedType::SCALE);
+
+    if constexpr (std::is_signed_v<Integer>) {
+        distribution dist_bool = distribution(0, 1);
+        bool sign = dist_bool(rng) == 1;
+
+        if (sign) {
+            input = -input;
+        }
+    }
+
+    test_fixedpoint_to_int_inner<FixedType, Integer>(input);
+}
+
+template<typename FixedType, typename RngType>
+void test_fixedpoint_to_int_random(RngType &rng, FixedType post_comma) {
+    // test_fixedpoint_to_int_random_tester<FixedType, uint8_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, uint16_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, uint32_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, uint64_t>(rng, post_comma);
+
+    // test_fixedpoint_to_int_random_tester<FixedType, int8_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, int16_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, int32_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, int64_t>(rng, post_comma);
+}
+
+template<typename FixedType>
+void test_fixedpoint_to_int(FixedType input) {
+    // test_fixedpoint_to_int_inner<FixedType, uint8_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, uint16_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, uint32_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, uint64_t>(input);
+
+    // test_fixedpoint_to_int_inner<FixedType, int8_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, int16_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, int32_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, int64_t>(input);
+}
+
 template<typename FixedType>
 void test_fixedpoint_mul_rescale(FixedType input1, FixedType input2) {
     using BlueprintFieldType = typename FixedType::field_type;
