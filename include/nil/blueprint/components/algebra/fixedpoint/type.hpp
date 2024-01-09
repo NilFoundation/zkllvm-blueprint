@@ -13,6 +13,13 @@
 // macro for getting a variable list from a cell position for fixedpoint components
 #define splat(x) x.column(), x.row()
 
+#define SIN_COMPUTATION_1(sin0, sin1, cos0, cos1, sign_val) sign_val *(sin0 * cos1 + cos0 * sin1)
+#define SIN_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2, sign_val) \
+    sign_val *(cos2 * (sin0 * cos1 + cos0 * sin1) + sin2 * (cos0 * cos1 - sin0 * sin1))
+#define COS_COMPUTATION_1(sin0, sin1, cos0, cos1) (cos0 * cos1 - sin0 * sin1)
+#define COS_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2) \
+    (cos2 * (cos0 * cos1 - sin0 * sin1) - sin2 * (sin0 * cos1 + cos0 * sin1))
+
 namespace nil {
     namespace blueprint {
         namespace components {
@@ -106,6 +113,14 @@ namespace nil {
                 value_type value;
                 uint16_t scale;
 
+                void trigonometric_helper(value_type &sin0,
+                                          value_type &sin1,
+                                          value_type &sin2,
+                                          value_type &cos0,
+                                          value_type &cos1,
+                                          value_type &cos2,
+                                          value_type &sign_val) const;
+
             public:
                 static constexpr uint8_t M_1 = M1;
                 static constexpr uint8_t M_2 = M2;
@@ -147,6 +162,7 @@ namespace nil {
                 FixedPoint log() const;
                 FixedPoint sin() const;
                 FixedPoint cos() const;
+                FixedPoint tan() const;
                 FixedPoint rescale() const;
                 static FixedPoint dot(const std::vector<FixedPoint> &, const std::vector<FixedPoint> &);
 
@@ -678,7 +694,13 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
-            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::sin() const {
+            void FixedPoint<BlueprintFieldType, M1, M2>::trigonometric_helper(value_type &sin0,
+                                                                              value_type &sin1,
+                                                                              value_type &sin2,
+                                                                              value_type &cos0,
+                                                                              value_type &cos1,
+                                                                              value_type &cos2,
+                                                                              value_type &sign_val) const {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
 
                 using value_type = typename BlueprintFieldType::value_type;
@@ -740,17 +762,28 @@ namespace nil {
                     x0_val.erase(x0_val.begin());
                 }
                 BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= M2 + 1);
-                auto sign_val = sign ? -one : one;
+                sign_val = sign ? -one : one;
 
-                auto sin0 = sin_a[x0_val[M2 - 0]];
-                auto sin1 = sin_b[x0_val[M2 - 1]];
-                value_type sin2 = zero;
+                sin0 = sin_a[x0_val[M2 - 0]];
+                sin1 = sin_b[x0_val[M2 - 1]];
+                sin2 = zero;
                 if constexpr (M2 == 2) {
                     sin2 = sin_c[x0_val[M2 - 2]];
                 }
-                auto cos0 = cos_a[x0_val[M2 - 0]];
-                auto cos1 = cos_b[x0_val[M2 - 1]];
-                auto cos2 = delta;
+                cos0 = cos_a[x0_val[M2 - 0]];
+                cos1 = cos_b[x0_val[M2 - 1]];
+                cos2 = delta;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::sin() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                using value_type = typename BlueprintFieldType::value_type;
+                auto delta = value_type(DELTA);
+
+                value_type sin0, sin1, sin2, cos0, cos1, cos2, sign_val;
+                trigonometric_helper(sin0, sin1, sin2, cos0, cos1, cos2, sign_val);
 
                 value_type actual_delta = delta;
                 if constexpr (M2 == 2) {
@@ -759,9 +792,9 @@ namespace nil {
 
                 value_type computation;
                 if constexpr (M2 == 1) {
-                    computation = sign_val * (sin0 * cos1 + cos0 * sin1);
+                    computation = SIN_COMPUTATION_1(sin0, sin1, cos0, cos1, sign_val);
                 } else {
-                    computation = sign_val * (cos2 * (sin0 * cos1 + cos0 * sin1) + sin2 * (cos0 * cos1 - sin0 * sin1));
+                    computation = SIN_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2, sign_val);
                 }
                 auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
                 return FixedPoint(divmod.quotient, SCALE);
@@ -772,74 +805,10 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
 
                 using value_type = typename BlueprintFieldType::value_type;
-
-                auto zero = value_type::zero();
-                auto one = value_type::one();
                 auto delta = value_type(DELTA);
 
-                std::vector<value_type> sin_a;
-                if constexpr (M2 == 1) {
-                    sin_a = FixedPointTables<BlueprintFieldType>::get_sin_a_16();
-                } else {
-                    sin_a = FixedPointTables<BlueprintFieldType>::get_sin_a_32();
-                }
-
-                std::vector<value_type> sin_b;
-                if constexpr (M2 == 1) {
-                    sin_b = FixedPointTables<BlueprintFieldType>::get_sin_b_16();
-                } else {
-                    sin_b = FixedPointTables<BlueprintFieldType>::get_sin_b_32();
-                }
-
-                std::vector<value_type> sin_c;
-                if constexpr (M2 == 2) {
-                    sin_c = FixedPointTables<BlueprintFieldType>::get_sin_c_32();
-                }
-
-                std::vector<value_type> cos_a;
-                if constexpr (M2 == 1) {
-                    cos_a = FixedPointTables<BlueprintFieldType>::get_cos_a_16();
-                } else {
-                    cos_a = FixedPointTables<BlueprintFieldType>::get_cos_a_32();
-                }
-
-                std::vector<value_type> cos_b;
-                if constexpr (M2 == 1) {
-                    cos_b = FixedPointTables<BlueprintFieldType>::get_cos_b_16();
-                } else {
-                    cos_b = FixedPointTables<BlueprintFieldType>::get_cos_b_32();
-                }
-
-                constexpr auto two_pi = value_type(26986075409ULL);
-
-                std::vector<uint16_t> x0_val;
-                auto reduced_val = value;    // x_reduced guarantees the use of only one pre-comma limb
-                if constexpr (M1 == 2) {     // if two pre-comma limbs are used, x is reduced mod 2*pi
-                    if constexpr (M2 == 2) {
-                        reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value, two_pi).remainder;
-                    } else {    // case fixedpoint 32.16: use 32 post comma bits (2 limbs) for better precision
-                        reduced_val = FixedPointHelper<BlueprintFieldType>::div_mod(value * delta, two_pi).remainder;
-                    }
-                }
-                bool sign = FixedPointHelper<BlueprintFieldType>::decompose(reduced_val, x0_val);
-                if constexpr (M1 == 2) {
-                    BLUEPRINT_RELEASE_ASSERT(!sign);
-                }
-                // case fixedpoint 32.16: trash the smallest limb, as the result has one post comma limb only
-                if constexpr (M1 == 2 && M2 == 1) {
-                    x0_val.erase(x0_val.begin());
-                }
-                BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= M2 + 1);
-
-                auto sin0 = sin_a[x0_val[M2 - 0]];
-                auto sin1 = sin_b[x0_val[M2 - 1]];
-                value_type sin2 = zero;
-                if constexpr (M2 == 2) {
-                    sin2 = sin_c[x0_val[M2 - 2]];
-                }
-                auto cos0 = cos_a[x0_val[M2 - 0]];
-                auto cos1 = cos_b[x0_val[M2 - 1]];
-                auto cos2 = delta;
+                value_type sin0, sin1, sin2, cos0, cos1, cos2, sign_val;
+                trigonometric_helper(sin0, sin1, sin2, cos0, cos1, cos2, sign_val);
 
                 value_type actual_delta = delta;
                 if constexpr (M2 == 2) {
@@ -848,12 +817,45 @@ namespace nil {
 
                 value_type computation;
                 if constexpr (M2 == 1) {
-                    computation = (cos0 * cos1 - sin0 * sin1);
+                    computation = COS_COMPUTATION_1(sin0, sin1, cos0, cos1);
                 } else {
-                    computation = (cos2 * (cos0 * cos1 - sin0 * sin1) - sin2 * (sin0 * cos1 + cos0 * sin1));
+                    computation = COS_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2);
                 }
                 auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
                 return FixedPoint(divmod.quotient, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::tan() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                using value_type = typename BlueprintFieldType::value_type;
+                auto delta = value_type(DELTA);
+
+                value_type sin0, sin1, sin2, cos0, cos1, cos2, sign_val;
+                trigonometric_helper(sin0, sin1, sin2, cos0, cos1, cos2, sign_val);
+
+                value_type computation_sin, computation_cos;
+                if constexpr (M2 == 1) {
+                    computation_sin = SIN_COMPUTATION_1(sin0, sin1, cos0, cos1, sign_val);
+                    computation_cos = COS_COMPUTATION_1(sin0, sin1, cos0, cos1);
+                } else {
+                    computation_sin = SIN_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2, sign_val);
+                    computation_cos = COS_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2);
+                }
+
+                value_type tan_input_sin = computation_sin;
+                value_type tan_input_cos = computation_cos;
+
+                if constexpr (M2 == 1) {
+                    tan_input_sin = computation_sin * delta;
+                } else { /* M2 == 2 */
+                    auto divmod_cos = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation_cos, delta);
+                    tan_input_cos = divmod_cos.quotient;
+                }
+
+                auto divmod_tan = FixedPointHelper<BlueprintFieldType>::round_div_mod(tan_input_sin, tan_input_cos);
+                return FixedPoint(divmod_tan.quotient, SCALE);
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>

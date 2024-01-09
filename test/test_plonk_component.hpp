@@ -112,15 +112,10 @@ namespace nil {
 
             std::vector<std::shared_ptr<math::evaluation_domain<FieldType>>> domain_set =
                 math::calculate_domain_set<FieldType>(degree_log + expand_factor, r);
+            std::size_t max_degree = (1 << degree_log) - 1;
+            auto step_list = generate_random_step_list(r, max_step);
 
-            typename fri_type::params_type params(
-                (1 << degree_log) - 1,
-                domain_set,
-                generate_random_step_list(r, max_step),
-                expand_factor
-            );
-
-            return params;
+            return typename fri_type::params_type(max_degree, domain_set, step_list, expand_factor);
         }
 
         template<typename ComponentType, typename BlueprintFieldType, typename ArithmetizationParams>

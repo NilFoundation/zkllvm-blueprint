@@ -66,7 +66,9 @@ include(CMDeploy)
 include(FindPkgConfig)
 
 option(BUILD_WITH_CCACHE "Build with ccache usage" TRUE)
-option(BUILD_TESTS "Build unit tests" FALSE)
+if(BUILD_BLUEPRINT_TESTS)
+	set(BUILD_TESTS TRUE)
+endif()
 option(BUILD_EXAMPLES "Build examples" FALSE)
 
 if(UNIX AND BUILD_WITH_CCACHE)

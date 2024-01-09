@@ -145,10 +145,17 @@ namespace nil {
                     var zero = var(0, 0, false);    // for asserting zero for unused constraints
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
-                        auto z = x;
-                        z.insert(end(z), begin(y), end(y));
-                        z.push_back(zero);
-                        return z;
+                        std::vector<std::reference_wrapper<var>> result;
+                        result.reserve(x.size() + y.size() + 1);
+                        for (auto &elem : x) {
+                            result.push_back(elem);
+                        }
+                        for (auto &elem : y) {
+                            result.push_back(elem);
+                        }
+                        var &zero_ref = zero;
+                        result.push_back(zero_ref);
+                        return result;
                     }
                 };
 

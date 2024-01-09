@@ -12,7 +12,8 @@ namespace nil {
 
             /**
              * Component representing a division operation with inputs x and y and output z, where
-             * z = x / y. The sign of z and is equal to the sign of x.
+             * z = x / y. The sign of z and is equal to the sign of x (TACEO_TODO this is wrong if y is negative is
+             * it?).
              *
              * The user needs to ensure that the deltas of x and y match (the scale must be the same). The delta of z is
              * equal to the deltas of y and z.
@@ -78,11 +79,11 @@ namespace nil {
                     return div_by_pos.get_delta();
                 }
 
-                constexpr static std::size_t get_witness_columns(std::size_t witness_amount,
+                static std::size_t get_witness_columns(std::size_t witness_amount,
                                                                  std::size_t lookup_column_amount, uint8_t m1,
                                                                  uint8_t m2) {
                     return get_rows_amount(witness_amount, lookup_column_amount, m1, m2) == 1 ? 5 + 3 * (m1 + m2) :
-                                                                                                4 + (m1 + m2);
+                                                                                                5 + (m1 + m2);
                 }
 
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
@@ -161,7 +162,7 @@ namespace nil {
                             break;
                         case 2:
 
-                            // trace layout (4+m col(s), 2 row(s))
+                            // trace layout (5+m col(s), 2 row(s))
                             // recall that m is at most 4.
                             //
                             //  r\c| 0  | .. | m-1  | m  | .. | 2m-1 |
