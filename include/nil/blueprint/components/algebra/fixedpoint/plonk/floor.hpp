@@ -176,10 +176,6 @@ namespace nil {
                 }
 #endif
 
-                template<typename ContainerType>
-                explicit fix_floor(ContainerType witness, uint8_t m1, uint8_t m2) :
-                    component_type(witness, {}, {}, get_manifest(m1, m2)), m1(M(m1)), m2(M(m2)) {};
-
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 fix_floor(WitnessContainerType witness, ConstantContainerType constant,

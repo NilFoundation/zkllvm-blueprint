@@ -126,11 +126,6 @@ namespace nil {
                 }
 #endif
 
-                template<typename ContainerType>
-                explicit fix_ceil(ContainerType witness, uint8_t m1, uint8_t m2) :
-                    component_type(witness, {}, {}, get_manifest(m1, m2)), floor(instantiate_floor(m1, m2)),
-                    offset(floor.get_delta() - 1) {};
-
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 fix_ceil(WitnessContainerType witness, ConstantContainerType constant,
