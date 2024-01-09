@@ -158,10 +158,17 @@ namespace nil {
                     var zero = var(0, 0, false);    // for asserting zero for unused constraints
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
-                        auto z = x;
-                        z.insert(end(z), begin(y), end(y));
-                        z.push_back(zero);
-                        return z;
+                        std::vector<std::reference_wrapper<var>> result;
+                        result.reserve(x.size() + y.size() + 1);
+                        for (auto &elem : x) {
+                            result.push_back(elem);
+                        }
+                        for (auto &elem : y) {
+                            result.push_back(elem);
+                        }
+                        var &zero_ref = zero;
+                        result.push_back(zero_ref);
+                        return result;
                     }
                 };
 
@@ -321,7 +328,7 @@ namespace nil {
                 const typename plonk_fixedpoint_dot_rescale_2_gates<
                     BlueprintFieldType, ArithmetizationParams>::input_type &instance_input) {
 
-                int64_t row = 0;    // row index is 0, we create a constraint for one row
+                int64_t row = 0;
                 const auto var_pos = component.get_var_pos(row);
 
                 using var =
@@ -349,7 +356,7 @@ namespace nil {
                 const typename plonk_fixedpoint_dot_rescale_2_gates<
                     BlueprintFieldType, ArithmetizationParams>::input_type &instance_input) {
 
-                int64_t row = 0;    // row index is 0, no use of relative row indices here
+                int64_t row = 0;
                 const auto var_pos = component.get_var_pos(row);
 
                 using var =
@@ -380,7 +387,7 @@ namespace nil {
                                                                     ArithmetizationParams>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                int64_t row = 0;    // row index is 0, no use of relative row indices here
+                int64_t row = 0;
                 const auto var_pos = component.get_var_pos(row);
 
                 using var =

@@ -28,6 +28,7 @@ using blueprint::components::FixedPoint;
 
 static constexpr double EPSILON = 0.001;
 static constexpr double BIG_EPSILON = 0.01;
+static constexpr double BIG_BIG_EPSILON = 0.1;
 
 bool doubleEquals(double a, double b, double epsilon) {
     // Essentially equal from
@@ -711,6 +712,22 @@ void add_cos(ComponentType &component, FixedType input) {
 }
 
 template<typename FixedType, typename ComponentType>
+void add_tan(ComponentType &component, FixedType input) {
+
+    double expected_res_f = tan(input.to_double());
+    auto expected_res = input.tan();
+
+    BLUEPRINT_RELEASE_ASSERT(doubleEqualsExp(expected_res_f, expected_res.to_double(), BIG_BIG_EPSILON));
+
+    std::vector<typename FixedType::value_type> inputs = {input.get_value()};
+    std::vector<typename FixedType::value_type> outputs = {expected_res.get_value()};
+    std::vector<typename FixedType::value_type> constants = {};
+
+    component.add_testcase(blueprint::components::FixedPointComponents::TAN, inputs, outputs, constants, FixedType::M_1,
+                           FixedType::M_2);
+}
+
+template<typename FixedType, typename ComponentType>
 void add_sign_abs(ComponentType &component, FixedType input) {
 
     double input_f = input.to_double();
@@ -877,6 +894,40 @@ FieldType generate_random_post_comma_for_fixedpoint(uint8_t m2, RngType &rng) {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+double correct_for_tan(double i) {
+    static constexpr const double pi_half = 1.5707963267948966;
+    static constexpr const double pi = 3.141592653589793;
+    static constexpr const double forbidden_degrees_plus_minus = 5.;    // <-- edit to change the forbidden range
+    static constexpr const double forbidden_plus_minus = forbidden_degrees_plus_minus * pi / 180.;
+    // move slightly away from i mod pi being close to pi half as our implementation will not be accurate for values
+    // close to i mod pi = pi half.
+    // If i mod pi in [pi_half - forbidden_plus_minus, pi_half + forbidden_plus_minus]: let
+    // i_corrected be the closest value to i that is not in the previously specified range. else: let i_corrected = i
+    double i_corrected = i;
+    double i_mod_pi = fmod(i, pi);
+    if (i_mod_pi < 0.) {
+        i_mod_pi += pi;
+    }
+#define TMP_IF_STMT pi_half + forbidden_plus_minus > i_mod_pi &&i_mod_pi > pi_half - forbidden_plus_minus
+    if (TMP_IF_STMT) {
+        // correction required
+        double diff_high = pi_half + forbidden_plus_minus - i_mod_pi;
+        double diff_low = i_mod_pi - pi_half + forbidden_plus_minus;
+        if (diff_high < diff_low) {
+            i_corrected = i + diff_high;
+        } else {
+            i_corrected = i - diff_low;
+        }
+        i_mod_pi = fmod(i_corrected, pi);
+        if (i_mod_pi < 0.) {
+            i_mod_pi += pi;
+        }
+    }
+    BLUEPRINT_RELEASE_ASSERT(!(TMP_IF_STMT));
+#undef TMP_IF_STMT
+    return i_corrected;
+}
+
 template<typename FixedType, typename ComponentType>
 void test_components_unary_basic(ComponentType &component, int i) {
     FixedType x((int64_t)i);
@@ -906,7 +957,11 @@ void test_components_unary_basic(ComponentType &component, int i) {
             FixedType a(i_dbl * pi_two + pi_half * q_dbl);
             FixedType b(i_dbl * pi_two + pi_half * q_dbl + pi_half / 2.);
             add_sin<FixedType, ComponentType>(component, a);
+            add_sin<FixedType, ComponentType>(component, b);
+            add_cos<FixedType, ComponentType>(component, a);
             add_cos<FixedType, ComponentType>(component, b);
+            add_tan<FixedType, ComponentType>(component, FixedType(correct_for_tan(a.to_double())));
+            add_tan<FixedType, ComponentType>(component, FixedType(correct_for_tan(b.to_double())));
         }
     }
 }
@@ -1055,6 +1110,7 @@ void test_components_on_random_data(ComponentType &component, RngType &rng) {
     // TRIGON
     add_sin<FixedType, ComponentType>(component, x);
     add_cos<FixedType, ComponentType>(component, x);
+    add_tan<FixedType, ComponentType>(component, FixedType(correct_for_tan(x.to_double())));
 }
 
 template<typename FixedType, typename ComponentType, typename RngType>
@@ -1129,6 +1185,7 @@ void test_components_on_post_comma_random_data(ComponentType &component, RngType
     // TRIGON
     add_sin<FixedType, ComponentType>(component, x);
     add_cos<FixedType, ComponentType>(component, x);
+    add_tan<FixedType, ComponentType>(component, FixedType(correct_for_tan(x.to_double())));
 }
 
 template<typename FixedType, typename ComponentType>

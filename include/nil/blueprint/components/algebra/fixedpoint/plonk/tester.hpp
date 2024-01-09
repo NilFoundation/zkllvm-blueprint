@@ -31,6 +31,7 @@
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/tanh.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/sin.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/cos.hpp"
+#include "nil/blueprint/components/algebra/fixedpoint/plonk/tan.hpp"
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/sign_abs.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/ceil.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/floor.hpp>
@@ -71,6 +72,7 @@ namespace nil {
                 SQRT,
                 SQRT_FLOOR,
                 SUB,
+                TAN,
                 TANH,
                 TO_FIXEDPOINT
             };
@@ -231,6 +233,9 @@ namespace nil {
                         case FixedPointComponents::SUB:
                             component_rows = macro_rows_amount(subtraction);
                             break;
+                        case FixedPointComponents::TAN:
+                            component_rows = macro_rows_amount(fix_tan, m1, m2);
+                            break;
                         case FixedPointComponents::TANH:
                             component_rows = macro_rows_amount(fix_tanh, m1, m2);
                             break;
@@ -353,6 +358,7 @@ namespace nil {
                         case FixedPointComponents::SQRT:
                         case FixedPointComponents::SQRT_FLOOR:
                         case FixedPointComponents::SUB:
+                        case FixedPointComponents::TAN:
                         case FixedPointComponents::TANH:
                             return true;
                         default:
@@ -376,6 +382,7 @@ namespace nil {
                     switch (component) {
                         case FixedPointComponents::SIN:
                         case FixedPointComponents::COS:
+                        case FixedPointComponents::TAN:
                             return true;
                         default:
                             return false;
@@ -772,6 +779,10 @@ namespace nil {
                             macro_assigner_2_inputs(subtraction, 0);
                             break;
                         }
+                        case FixedPointComponents::TAN: {
+                            macro_assigner_1_input(fix_tan, 0, m1, m2);
+                            break;
+                        }
                         case FixedPointComponents::TANH: {
                             macro_assigner_1_input(fix_tanh, 0, m1, m2);
                             break;
@@ -966,6 +977,10 @@ namespace nil {
                         }
                         case FixedPointComponents::SUB: {
                             macro_circuit_2_inputs(subtraction, 0);
+                            break;
+                        }
+                        case FixedPointComponents::TAN: {
+                            macro_circuit_1_input(fix_tan, 0, m1, m2);
                             break;
                         }
                         case FixedPointComponents::TANH: {

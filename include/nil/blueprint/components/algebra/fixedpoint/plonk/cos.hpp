@@ -63,7 +63,6 @@ namespace nil {
                     //              (would be 10 cols for cos, but rem requires 11 cols)
                     //
                     // rem only exists if m1=2; rem_rows = 0 if m1=1
-                    // two_pi only exists if rem exists
                     // t = 0 if m2 = 1
                     // t = 3 if m2 = 2
                     //
@@ -170,10 +169,10 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
-                                                       uint8_t m1 = 0, uint8_t m2 = 0) {
+                                                       uint8_t m1, uint8_t m2 = 0) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
                     if (m1 == 2) {
-                        manifest = manifest.merge_with(
+                        manifest.merge_with(
                             rem_component::get_gate_manifest(witness_amount, lookup_column_amount, 2, 2));
                     }
                     return manifest;
