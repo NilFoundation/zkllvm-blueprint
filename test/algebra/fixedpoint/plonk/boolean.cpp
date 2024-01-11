@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE blueprint_plonk_fixedpoint_trigonometric_operations_test
+#define BOOST_TEST_MODULE blueprint_plonk_fixedpoint_boolean_operations_test
 
 // Enable for faster tests
 // #define TEST_WITHOUT_LOOKUP_TABLES

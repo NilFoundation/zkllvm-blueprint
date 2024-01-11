@@ -206,6 +206,7 @@ SET(FIXEDPOINT_TESTS_FILES
     "algebra/fixedpoint/plonk/tester"
     "algebra/fixedpoint/plonk/trigonometric"
     "algebra/fixedpoint/plonk/boolean"
+    "algebra/fields/plonk/bitwise"
 )
 
 SET(ALGEBRA_TESTS_FILES

@@ -119,6 +119,7 @@ list(APPEND ${CURRENT_PROJECT_NAME}_PUBLIC_HEADERS
     include/nil/crypto3/zk/components/boolean/r1cs/inner_product.hpp
     include/nil/crypto3/zk/components/detail/r1cs/loose_multiplexing.hpp
     include/nil/crypto3/zk/components/component_from_r1cs.hpp
+    include/nil/crypto3/zk/components/cell_position.hpp
     include/nil/crypto3/zk/component.hpp
     include/nil/crypto3/zk/blueprint/r1cs.hpp
     include/nil/crypto3/zk/blueprint/plonk.hpp)
