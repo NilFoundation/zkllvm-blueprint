@@ -10,6 +10,8 @@
 #include <nil/crypto3/multiprecision/cpp_bin_float.hpp>
 #include <nil/crypto3/multiprecision/detail/default_ops.hpp>
 
+#include "nil/blueprint/components/cell_position.hpp"
+
 // macro for getting a variable list from a cell position for fixedpoint components
 #define splat(x) x.column(), x.row()
 
@@ -29,31 +31,6 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 value_type quotient;
                 value_type remainder;
-            };
-
-            /**
-             * Defines the position (column and row indices) of a cell for easier handling thereof in functions.
-             *
-             * Using uint64_t to be on the safe side for any computations as of today.
-             */
-            class CellPosition {
-                int64_t column_;
-                int64_t row_;
-                bool valid_;
-
-            public:
-                CellPosition() : column_(0), row_(0), valid_(false) {
-                }
-                CellPosition(int64_t column, int64_t row) : column_(column), row_(row), valid_(true) {
-                }
-                int64_t column() const {
-                    BLUEPRINT_RELEASE_ASSERT(valid_ && "CellPosition is not defined");
-                    return column_;
-                }
-                int64_t row() const {
-                    BLUEPRINT_RELEASE_ASSERT(valid_ && "CellPosition is not defined");
-                    return row_;
-                }
             };
 
             template<typename BlueprintFieldType>
