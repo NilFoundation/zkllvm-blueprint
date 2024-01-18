@@ -12,9 +12,6 @@
 
 #include "nil/blueprint/components/cell_position.hpp"
 
-// macro for getting a variable list from a cell position for fixedpoint components
-#define splat(x) x.column(), x.row()
-
 #define SIN_COMPUTATION_1(sin0, sin1, cos0, cos1, sign_val) sign_val *(sin0 * cos1 + cos0 * sin1)
 #define SIN_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2, sign_val) \
     sign_val *(cos2 * (sin0 * cos1 + cos0 * sin1) + sin2 * (cos0 * cos1 - sin0 * sin1))
@@ -140,6 +137,7 @@ namespace nil {
                 FixedPoint sin() const;
                 FixedPoint cos() const;
                 FixedPoint tan() const;
+                FixedPoint erf() const;
                 FixedPoint rescale() const;
                 static FixedPoint dot(const std::vector<FixedPoint> &, const std::vector<FixedPoint> &);
 
@@ -833,6 +831,62 @@ namespace nil {
 
                 auto divmod_tan = FixedPointHelper<BlueprintFieldType>::round_div_mod(tan_input_sin, tan_input_cos);
                 return FixedPoint(divmod_tan.quotient, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::erf() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                using value_type = typename BlueprintFieldType::value_type;
+                using target_fixed_point = FixedPoint<BlueprintFieldType, M1, M2>;
+                using fixed_point = FixedPoint<BlueprintFieldType, 2, 2>;
+                static const constexpr uint16_t target_scale = 16 * M2;
+                static const constexpr uint16_t scale = 16 * 2;
+                static const constexpr auto target_delta = value_type(1ULL << target_scale);
+                static const constexpr auto delta = value_type(1ULL << scale);
+                static const constexpr auto zero = value_type::zero();
+                static const constexpr auto one = value_type::one();
+
+                static const constexpr value_type a[] = {value_type(302894315ULL), value_type(181599860ULL),
+                                                         value_type(39816611ULL),  value_type(652896ULL),
+                                                         value_type(1187847ULL),   value_type(184958ULL)};
+                static const constexpr value_type h = value_type(15569256448ULL);    // == 3.625
+
+                value_type x_abs = value;
+                bool sign = FixedPointHelper<BlueprintFieldType>::abs(x_abs);
+                value_type s_x = sign ? -one : one;
+
+                if constexpr (1 == M2) {
+                    x_abs *= target_delta;    // target_delta is 2^16, x currently uses 2^16, internally we need 2^32
+                }
+
+                // return -1 or 1 if x is outside [-h ,h]
+                value_type d = h - x_abs;
+                if (FixedPointHelper<BlueprintFieldType>::abs(d)) {
+                    return target_fixed_point(s_x);
+                }
+
+                value_type xp2 = fixed_point(x_abs * x_abs, 2 * scale).rescale().get_value();
+                value_type xp3 = fixed_point(xp2 * x_abs, 2 * scale).rescale().get_value();
+                value_type g = fixed_point(delta * delta * delta +       // 1 +
+                                               a[0] * x_abs * delta +    // a1 * x +
+                                               a[1] * xp2 * delta +      // a2 * x^2 +
+                                               a[2] * xp3 * delta +      // a3 * x^3 +
+                                               a[3] * xp2 * xp2 +        // a4 * x^4 +
+                                               a[4] * xp3 * xp2 +        // a5 * x^5 +
+                                               a[5] * xp3 * xp3          // a6 * x^6
+                                           ,
+                                           2 * scale)
+                                   .rescale()
+                                   .get_value();                        // rescale asserts that scale is 2 * scale ..
+                g = fixed_point(g, 2 * scale).rescale().get_value();    // .. so we need to rescale a second time
+                value_type gp2 = fixed_point(g * g, 2 * scale).rescale().get_value();
+                value_type gp4 = fixed_point(gp2 * gp2, 2 * scale).rescale().get_value();
+                value_type gp8 = fixed_point(gp4 * gp4, 2 * scale).rescale().get_value();
+                value_type gp16 = fixed_point(gp8 * gp8, 2 * scale).rescale().get_value();
+                value_type gp16_inv =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(delta * target_delta, gp16).quotient;
+                return target_fixed_point(s_x * (target_delta - gp16_inv), target_scale);
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>

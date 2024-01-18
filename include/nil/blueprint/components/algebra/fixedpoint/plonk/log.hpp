@@ -10,7 +10,8 @@ namespace nil {
             // Works by proving that the output y = floor(log(x))  The error of the output is at most 2^{-16}.
 
             /**
-             * Component representing a sqrt operation with input x and output y, where y = floor(log(x)).
+             * Component representing a log operation (natural logarithm) with input x and output y, where y =
+             * floor(log(x)).
              *
              * The delta of y is equal to the delta of x.
              *
