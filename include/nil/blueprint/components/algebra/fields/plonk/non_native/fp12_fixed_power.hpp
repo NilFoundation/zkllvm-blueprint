@@ -49,7 +49,7 @@ namespace nil {
             namespace detail {
                 std::vector<unsigned short int> base4(unsigned long long x) {
                     if (x > 0) {
-                        std::vector<unsigned short int> res = {int(x % 4)};
+                        std::vector<unsigned short int> res = {(unsigned short int)(x % 4)};
                         x /= 4;
                         while (x > 0) {
                             res.insert(res.begin(), x % 4);
@@ -135,7 +135,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::vector<unsigned short int> get_precomputed_exps(const std::vector<unsigned short int> exps) {
+                static std::vector<unsigned short int> get_precomputed_exps(const std::vector<unsigned short int> exps) {
                     std::vector<unsigned short int> precompute = {exps[0]};
                     if ((exps[0] != 3) && (std::count(exps.begin(),exps.end(),3) > 0)) {
                         precompute.insert(precompute.begin(),3);
@@ -146,7 +146,7 @@ namespace nil {
                     return precompute;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount,
                                                              unsigned long long power) {
                     std::vector<unsigned short int> exp_plan = base4(power),
