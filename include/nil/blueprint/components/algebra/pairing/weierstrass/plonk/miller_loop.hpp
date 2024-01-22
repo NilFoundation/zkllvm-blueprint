@@ -48,7 +48,7 @@ namespace nil {
             namespace detail {
                 template<unsigned short int B, typename T>
                 std::vector<unsigned short int> base(T x) {
-                    std::vector<unsigned short int> res = {x % B};
+                    std::vector<unsigned short int> res = {(unsigned short int)(x % B)};
                     if (x > 0) {
                         x /= B;
                         while (x > 0) {
@@ -147,7 +147,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
+                static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount, unsigned long long C_val) {
                     std::vector<unsigned short int> C_bin = base<2>(C_val);
 

@@ -116,6 +116,7 @@ namespace nil {
                            bls12_exponentiation_type::get_rows_amount(witness_amount, lookup_column_amount);
                 }
 
+                const std::size_t gates_amount = gates_amount_internal(this->witness_amount());
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 struct input_type {
