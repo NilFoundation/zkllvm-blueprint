@@ -52,7 +52,7 @@ namespace nil {
                 tan_component instantiate_tan(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
 
-                    auto witness_columns = tan_component::get_witness_columns(this->witness_amount(), m1, m2);
+                    auto witness_columns = tan_component::get_witness_columns(m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
                     for (auto i = 0; i < witness_columns; i++) {
@@ -71,9 +71,9 @@ namespace nil {
                     for (auto i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
-                    // TODO
+                    // TODO set to range -pi/2 < x < pi/2
                     auto high = 0;
-                    auto low = 0;
+                    auto low = -high;
                     return range_component(witness_list, std::array<std::uint32_t, 2>({this->C(0), this->C(1)}),
                                            std::array<std::uint32_t, 0>(), m1, m2, low, high);
                 }
@@ -202,7 +202,7 @@ namespace nil {
                     pos.range_row = pos.tan2_row + tan.rows_amount;
                     int64_t row_index = pos.range_row + range.rows_amount;
 
-                    switch (this->log_rows_amount) {
+                    switch (this->atan_rows_amount) {
                         case 1:
 
                             // trace layout (6 + 2*m col(s), 2 constant col(s), 1 row(s))
@@ -213,7 +213,7 @@ namespace nil {
                             // | tan1_row(s)  |              <tan_witnesses>
                             // | tan2_row(s)  |              <tan_witnesses>
                             // | range_row(s) |              <range_witnesses>
-                            // |      0       | x | y | exp1_out | exp2_in | exp2_out | in_range |
+                            // |      0       | x | y | tan1_out | tan2_in | tan2_out | in_range |
 
                             //            witness                |    constant   |
                             //     | 6  |..|6+m-1 |6+m |..|6+2m-1|   0   |   1   |
@@ -247,7 +247,7 @@ namespace nil {
                             //               |                  witness                         |   constant  |
                             //      r\c      | 0 | 1 |    2     |    3    |    4     |    5     |   0  |   1  |
                             // +-------------+---+---+----------+---------+----------+----------+------+------+
-                            // |      1      | x | y | exp1_out | exp2_in | exp2_out | in_range |   -  |   -  |
+                            // |      1      | x | y | tan1_out | tan2_in | tan2_out | in_range |   -  |   -  |
 
                             pos.a0 = CellPosition(this->W(0 + 0 * m), row_index);    // occupies m cells
                             pos.b0 = CellPosition(this->W(0 + 1 * m), row_index);    // occupies m cells
@@ -259,7 +259,8 @@ namespace nil {
                             pos.in_range = CellPosition(this->W(5), row_index + 1);
                             break;
                         default:
-                            BLUEPRINT_RELEASE_ASSERT(false && "log rows_amount (i.e., without exp) must be 1 or 2");
+                            BLUEPRINT_RELEASE_ASSERT(false &&
+                                                     "atan rows_amount (i.e., without tan and range) must be 1 or 2");
                     }
                     return pos;
                 }
@@ -333,61 +334,73 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                // auto exp_comp = component.get_exp_component();
+                auto tan_comp = component.get_tan_component();
+                auto range_comp = component.get_range_component();
 
-                // // Exp inputs
-                // typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::exp_component::input_type
-                //     exp1_input,
-                //     exp2_input;
-                // exp1_input.x = var(splat(var_pos.y), false);
-                // exp2_input.x = var(splat(var_pos.exp2_in), false);
+                // Tan inputs
+                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::tan_component::input_type
+                    tan1_input,
+                    tan2_input;
+                tan1_input.x = var(splat(var_pos.y), false);
+                tan2_input.x = var(splat(var_pos.tan2_in), false);
 
-                // ////////////////////////////////////////////////////////
-                // // Build the trace
-                // ////////////////////////////////////////////////////////
+                // Range input
+                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_component::input_type
+                    range_input;
+                range_input.x = var(splat(var_pos.y), false);
 
-                // auto m1 = component.get_m1();
-                // auto m2 = component.get_m2();
+                ////////////////////////////////////////////////////////
+                // Build the trace
+                ////////////////////////////////////////////////////////
 
-                // auto x_val = var_value(assignment, instance_input.x);
-                // auto y_val = component.calc_log(x_val, m1, m2);
+                auto m1 = component.get_m1();
+                auto m2 = component.get_m2();
 
-                // auto exp2_in_val = y_val - 1;
+                auto x_val = var_value(assignment, instance_input.x);
+                auto y_val = component.calc_atan(x_val, m1, m2);
 
-                // assignment.witness(splat(var_pos.x)) = x_val;
-                // assignment.witness(splat(var_pos.y)) = y_val;
-                // assignment.witness(splat(var_pos.exp2_in)) = exp2_in_val;
+                auto tan2_in_val = y_val - 1;
 
-                // // Assign exp gadgets
-                // auto exp1_out = generate_assignments(exp_comp, assignment, exp1_input, var_pos.exp1_row);
-                // auto exp2_out = generate_assignments(exp_comp, assignment, exp2_input, var_pos.exp2_row);
+                assignment.witness(splat(var_pos.x)) = x_val;
+                assignment.witness(splat(var_pos.y)) = y_val;
+                assignment.witness(splat(var_pos.tan2_in)) = tan2_in_val;
 
-                // auto exp1_out_val = var_value(assignment, exp1_out.output);
-                // auto exp2_out_val = var_value(assignment, exp2_out.output);
-                // assignment.witness(splat(var_pos.exp1_out)) = exp1_out_val;
-                // assignment.witness(splat(var_pos.exp2_out)) = exp2_out_val;
+                // Assign tan gadgets
+                auto tan1_out = generate_assignments(tan_comp, assignment, tan1_input, var_pos.tan1_row);
+                auto tan2_out = generate_assignments(tan_comp, assignment, tan2_input, var_pos.tan2_row);
 
-                // // Decompositions
-                // auto a_val = exp1_out_val - x_val;
-                // auto b_val = x_val - exp2_out_val - 1;
+                auto tan1_out_val = var_value(assignment, tan1_out.output);
+                auto tan2_out_val = var_value(assignment, tan2_out.output);
+                assignment.witness(splat(var_pos.tan1_out)) = tan1_out_val;
+                assignment.witness(splat(var_pos.tan2_out)) = tan2_out_val;
 
-                // std::vector<uint16_t> a0_val;
-                // std::vector<uint16_t> b0_val;
+                // Assign range gadgets
+                auto range_out = generate_assignments(range_comp, assignment, range_input, var_pos.range_row);
 
-                // bool sign = FixedPointHelper<BlueprintFieldType>::decompose(a_val, a0_val);
-                // BLUEPRINT_RELEASE_ASSERT(!sign);
-                // sign = FixedPointHelper<BlueprintFieldType>::decompose(b_val, b0_val);
-                // BLUEPRINT_RELEASE_ASSERT(!sign);
+                auto range_out_val = var_value(assignment, range_out.in);
+                assignment.witness(splat(var_pos.in_range)) = range_out_val;
 
-                // // is ok because decomp is at least of size 4 and the biggest we have is 32.32
-                // auto m = component.get_m();
-                // BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
-                // BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= m);
+                // Decompositions
+                auto a_val = tan1_out_val - x_val;
+                auto b_val = x_val - tan2_out_val - 1;
 
-                // for (auto i = 0; i < m; i++) {
-                //     assignment.witness(var_pos.a0.column() + i, var_pos.a0.row()) = a0_val[i];
-                //     assignment.witness(var_pos.b0.column() + i, var_pos.b0.row()) = b0_val[i];
-                // }
+                std::vector<uint16_t> a0_val;
+                std::vector<uint16_t> b0_val;
+
+                bool sign = FixedPointHelper<BlueprintFieldType>::decompose(a_val, a0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign);
+                sign = FixedPointHelper<BlueprintFieldType>::decompose(b_val, b0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign);
+
+                // is ok because decomp is at least of size 4 and the biggest we have is 32.32
+                auto m = component.get_m();
+                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
+                BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= m);
+
+                for (auto i = 0; i < m; i++) {
+                    assignment.witness(var_pos.a0.column() + i, var_pos.a0.row()) = a0_val[i];
+                    assignment.witness(var_pos.b0.column() + i, var_pos.b0.row()) = b0_val[i];
+                }
 
                 return typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
@@ -417,9 +430,9 @@ namespace nil {
                 auto x = var(splat(var_pos.x));
                 auto y = var(splat(var_pos.y));
                 auto in_range = var(splat(var_pos.in_range));
-                auto tan1_out = var(splat(var_pos.exp1_out));
-                auto tan2_in = var(splat(var_pos.exp2_in));
-                auto tan2_out = var(splat(var_pos.exp2_out));
+                auto tan1_out = var(splat(var_pos.tan1_out));
+                auto tan2_in = var(splat(var_pos.tan2_in));
+                auto tan2_out = var(splat(var_pos.tan2_out));
 
                 auto constraint_1 = tan1_out - x - a0;
                 auto constraint_2 = x - tan2_out - 1 - b0;

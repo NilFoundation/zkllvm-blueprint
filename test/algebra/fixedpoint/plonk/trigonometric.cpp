@@ -253,15 +253,14 @@ void test_fixedpoint_tan(FixedType input) {
 template<typename FixedType>
 void test_fixedpoint_atan(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
-    constexpr std::size_t WitnessColumns = FixedType::M_2 == 2 && FixedType::M_1 == 2 ? 11 : 10;    // TODO UPDATE
-    constexpr std::size_t PublicInputColumns = 1;                                                   // TODO UPDATE
+    constexpr std::size_t WitnessColumns = 12;
+    constexpr std::size_t PublicInputColumns = 1;
 #ifdef TEST_WITHOUT_LOOKUP_TABLES
-    constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns =
-        static_cast<std::size_t>((FixedType::M_1 - 1) + FixedType::M_2);    // TODO UPDATE
+    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t SelectorColumns = 10;
 #else
-    constexpr std::size_t ConstantColumns = 15;    // TODO UPDATE
-    constexpr std::size_t SelectorColumns = 15;    // TODO UPDATE
+    constexpr std::size_t ConstantColumns = 15;
+    constexpr std::size_t SelectorColumns = 15;
 #endif
     using ArithmetizationParams = crypto3::zk::snark::
         plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
@@ -272,11 +271,10 @@ void test_fixedpoint_atan(FixedType input) {
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    // using component_type = blueprint::components::
-    //     fix_atan<ArithmetizationType, BlueprintFieldType,
-    //     nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+    using component_type = blueprint::components::
+        fix_atan<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
-    // typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
     double expected_res_f = atan(input.to_double());
     auto expected_res = input.atan();
@@ -286,42 +284,42 @@ void test_fixedpoint_atan(FixedType input) {
     std::cout << "expected        : " << expected_res.to_double() << "\n";
     std::cout << "expected (float): " << expected_res_f << "\n\n";
 
-    //     auto result_check = [&expected_res, &expected_res_f, input](AssignmentType &assignment,
-    //                                                                 typename component_type::result_type &real_res) {
-    //         auto real_res_ = FixedType(var_value(assignment, real_res.output), FixedType::SCALE);
-    //         double real_res_f = real_res_.to_double();
-    // #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-    //         PRINT_FIXED_POINT_TEST("atan")
-    // #endif
-    //         if (!doubleEquals(expected_res_f, real_res_f, EPSILON_TAN) || expected_res != real_res_) {
-    //             PRINT_FIXED_POINT_TEST("atan")
-    //             abort();
-    //         }
-    //     };
+    auto result_check = [&expected_res, &expected_res_f, input](AssignmentType &assignment,
+                                                                typename component_type::result_type &real_res) {
+        auto real_res_ = FixedType(var_value(assignment, real_res.output), FixedType::SCALE);
+        double real_res_f = real_res_.to_double();
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        PRINT_FIXED_POINT_TEST("atan")
+#endif
+        if (!doubleEquals(expected_res_f, real_res_f, EPSILON) || expected_res != real_res_) {
+            PRINT_FIXED_POINT_TEST("atan")
+            abort();
+        }
+    };
 
-    //     std::vector<std::uint32_t> witness_list;
-    //     witness_list.reserve(WitnessColumns);
-    //     for (auto i = 0; i < WitnessColumns; i++) {
-    //         witness_list.push_back(i);
-    //     }
-    //     std::vector<std::uint32_t> const_list;
-    //     const_list.reserve(ConstantColumns);
-    //     for (auto i = 0; i < ConstantColumns; i++) {
-    //         const_list.push_back(i);
-    //     }
-    //     // Is done by the manifest in a real circuit
-    //     component_type component_instance(
-    //         witness_list, const_list, std::array<std::uint32_t, 0>(), FixedType::M_1, FixedType::M_2);
+    std::vector<std::uint32_t> witness_list;
+    witness_list.reserve(WitnessColumns);
+    for (auto i = 0; i < WitnessColumns; i++) {
+        witness_list.push_back(i);
+    }
+    std::vector<std::uint32_t> const_list;
+    const_list.reserve(ConstantColumns);
+    for (auto i = 0; i < ConstantColumns; i++) {
+        const_list.push_back(i);
+    }
+    // Is done by the manifest in a real circuit
+    component_type component_instance(
+        witness_list, const_list, std::array<std::uint32_t, 0>(), FixedType::M_1, FixedType::M_2);
 
-    //     std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
-    //     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-    //         component_instance,
-    //         public_input,
-    //         result_check,
-    //         instance_input,
-    //         crypto3::detail::connectedness_check_type::STRONG,
-    //         FixedType::M_1,
-    //         FixedType::M_2);
+    std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        crypto3::detail::connectedness_check_type::STRONG,
+        FixedType::M_1,
+        FixedType::M_2);
 }
 
 template<typename FieldType, typename RngType>

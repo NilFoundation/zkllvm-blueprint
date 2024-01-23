@@ -318,6 +318,14 @@ namespace nil {
                     }
                 };
 
+                result_type get_result(std::uint32_t start_row_index) const {
+                    return result_type(*this, static_cast<size_t>(start_row_index));
+                }
+
+                result_type get_result(std::size_t start_row_index) const {
+                    return result_type(*this, static_cast<size_t>(start_row_index));
+                }
+
 // Allows disabling lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
                 std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
