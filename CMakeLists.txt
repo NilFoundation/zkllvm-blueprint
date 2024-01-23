@@ -38,6 +38,7 @@ endif()
 
 option(BLUEPRINT_TESTS_PROFILING "Build tests with blueprint table profiling" FALSE)
 option(BLUEPRINT_PLACEHOLDER_PROOF_GEN "Build with placeholder proof generation running" FALSE)
+option(TEST_WITHOUT_LOOKUP_TABLES "Build proofs without lookup tables" FALSE)
 
 if(BLUEPRINT_TESTS_PROFILING)
     message(STATUS "BLUEPRINT TESTS PROFILING enabled")
@@ -47,6 +48,11 @@ endif()
 if(BLUEPRINT_PLACEHOLDER_PROOF_GEN)
     message(STATUS "BLUEPRINT PROOF GENERATION enabled")
     add_definitions(-DBLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED)
+endif()
+
+if(TEST_WITHOUT_LOOKUP_TABLES)
+    message(STATUS "BLUEPRINT Lookup Tables disabled")
+    add_definitions(-DTEST_WITHOUT_LOOKUP_TABLES)
 endif()
 
 macro(cm_find_package NAME)
