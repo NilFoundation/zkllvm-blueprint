@@ -137,6 +137,7 @@ namespace nil {
                 FixedPoint sin() const;
                 FixedPoint cos() const;
                 FixedPoint tan() const;
+                FixedPoint atan() const;
                 FixedPoint erf() const;
                 FixedPoint rescale() const;
                 static FixedPoint dot(const std::vector<FixedPoint> &, const std::vector<FixedPoint> &);
@@ -1018,6 +1019,32 @@ namespace nil {
                 auto exp_m = exp - one;
 
                 return exp_m / exp_p;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::atan() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                auto tmp = value;
+                auto sign = helper::abs(tmp);
+                modular_backend val = helper::field_to_backend(tmp);
+                typename BlueprintFieldType::integral_type val_int(val);
+                big_float val_float(val_int);
+                val_float /= DELTA;
+                big_float out;
+                nil::crypto3::multiprecision::default_ops::eval_atan(out.backend(), val_float.backend());
+                out *= DELTA;
+
+                auto int_val = out.convert_to<nil::crypto3::multiprecision::cpp_int>();
+
+                auto field_val = value_type(int_val);
+                auto fix = FixedPoint(field_val, SCALE);
+
+                if (sign) {
+                    fix = -fix;
+                }
+
+                return fix;
             }
 
         }    // namespace components
