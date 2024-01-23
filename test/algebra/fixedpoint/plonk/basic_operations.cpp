@@ -30,6 +30,7 @@
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/sign_abs.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/floor.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/ceil.hpp>
+#include <nil/blueprint/components/algebra/fixedpoint/plonk/to_int.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/addition.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/subtraction.hpp>
 
