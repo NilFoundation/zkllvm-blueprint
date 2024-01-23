@@ -393,81 +393,83 @@ namespace nil {
                     component, start_row_index);
             }
 
-            // template<typename BlueprintFieldType, typename ArithmetizationParams>
-            // std::size_t generate_gates(
-            //     const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
-            //     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-            //     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-            //         &assignment,
-            //     const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
-            //         &instance_input) {
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_gates(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
 
-            //     using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-            //     auto m = component.get_m();
-            //     const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
-            //     const auto var_pos = component.get_var_pos(start_row_index);
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+                auto m = component.get_m();
+                const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
+                const auto var_pos = component.get_var_pos(start_row_index);
 
-            //     auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
-            //     auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
-            //     for (auto i = 1; i < m; i++) {
-            //         a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
-            //         b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));
-            //     }
+                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
+                for (auto i = 1; i < m; i++) {
+                    a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
+                    b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));
+                }
 
-            //     auto x = var(splat(var_pos.x));
-            //     auto y = var(splat(var_pos.y));
-            //     auto exp1_out = var(splat(var_pos.exp1_out));
-            //     auto exp2_in = var(splat(var_pos.exp2_in));
-            //     auto exp2_out = var(splat(var_pos.exp2_out));
+                auto x = var(splat(var_pos.x));
+                auto y = var(splat(var_pos.y));
+                auto in_range = var(splat(var_pos.in_range));
+                auto tan1_out = var(splat(var_pos.exp1_out));
+                auto tan2_in = var(splat(var_pos.exp2_in));
+                auto tan2_out = var(splat(var_pos.exp2_out));
 
-            //     auto constraint_1 = exp1_out - x - a0;
-            //     auto constraint_2 = x - exp2_out - 1 - b0;
-            //     auto constraint_3 = y - 1 - exp2_in;
+                auto constraint_1 = tan1_out - x - a0;
+                auto constraint_2 = x - tan2_out - 1 - b0;
+                auto constraint_3 = y - 1 - tan2_in;
+                auto constraint_4 = in_range - 1;
 
-            //     return bp.add_gate({constraint_1, constraint_2, constraint_3});
-            // }
+                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
+            }
 
-            // template<typename BlueprintFieldType, typename ArithmetizationParams>
-            // std::size_t generate_lookup_gates(
-            //     const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
-            //     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-            //     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-            //         &assignment,
-            //     const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
-            //         &instance_input) {
-            //     int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
-            //     const auto var_pos = component.get_var_pos(start_row_index);
-            //     auto m = component.get_m();
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gates(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
+                    &instance_input) {
+                int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
+                const auto var_pos = component.get_var_pos(start_row_index);
+                auto m = component.get_m();
 
-            //     const auto &lookup_tables_indices = bp.get_reserved_indices();
+                const auto &lookup_tables_indices = bp.get_reserved_indices();
 
-            //     using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-            //     using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-            //     using range_table =
-            //         typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_table;
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using range_table =
+                    typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_table;
 
-            //     std::vector<constraint_type> constraints;
-            //     constraints.reserve(2 * m);
+                std::vector<constraint_type> constraints;
+                constraints.reserve(2 * m);
 
-            //     auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
-            //     BLUEPRINT_RELEASE_ASSERT(var_pos.a0.row() == var_pos.b0.row());
+                auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
+                BLUEPRINT_RELEASE_ASSERT(var_pos.a0.row() == var_pos.b0.row());
 
-            //     for (auto i = 0; i < m; i++) {
-            //         constraint_type constraint_a, constraint_b;
-            //         constraint_a.table_id = table_id;
-            //         constraint_b.table_id = table_id;
+                for (auto i = 0; i < m; i++) {
+                    constraint_type constraint_a, constraint_b;
+                    constraint_a.table_id = table_id;
+                    constraint_b.table_id = table_id;
 
-            //         // We put row=0 here and enable the selector in the correct one
-            //         auto ai = var(var_pos.a0.column() + i, 0);
-            //         auto bi = var(var_pos.b0.column() + i, 0);
-            //         constraint_a.lookup_input = {ai};
-            //         constraint_b.lookup_input = {bi};
-            //         constraints.push_back(constraint_a);
-            //         constraints.push_back(constraint_b);
-            //     }
+                    // We put row=0 here and enable the selector in the correct one
+                    auto ai = var(var_pos.a0.column() + i, 0);
+                    auto bi = var(var_pos.b0.column() + i, 0);
+                    constraint_a.lookup_input = {ai};
+                    constraint_b.lookup_input = {bi};
+                    constraints.push_back(constraint_a);
+                    constraints.push_back(constraint_b);
+                }
 
-            //     return bp.add_lookup_gate(constraints);
-            // }
+                return bp.add_lookup_gate(constraints);
+            }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
@@ -481,20 +483,24 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
-                // const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                // auto exp_comp = component.get_exp_component();
+                auto tan_comp = component.get_tan_component();
+                auto range_comp = component.get_range_component();
 
-                // auto exp1_res = exp_comp.get_result((std::size_t)var_pos.exp1_row);
-                // auto exp2_res = exp_comp.get_result((std::size_t)var_pos.exp2_row);
+                auto tan1_res = tan_comp.get_result((std::size_t)var_pos.tan1_row);
+                auto tan2_res = tan_comp.get_result((std::size_t)var_pos.tan2_row);
+                auto range_res = range_comp.get_result((std::size_t)var_pos.range_row);
 
-                // auto x = var(splat(var_pos.x), false);
-                // auto exp1_out = var(splat(var_pos.exp1_out), false);
-                // auto exp2_out = var(splat(var_pos.exp2_out), false);
+                auto x = var(splat(var_pos.x), false);
+                auto tan1_out = var(splat(var_pos.tan1_out), false);
+                auto tan2_out = var(splat(var_pos.tan2_out), false);
+                auto in_range = var(splat(var_pos.in_range), false);
 
-                // bp.add_copy_constraint({instance_input.x, x});
-                // bp.add_copy_constraint({exp1_res.output, exp1_out});
-                // bp.add_copy_constraint({exp2_res.output, exp2_out});
+                bp.add_copy_constraint({instance_input.x, x});
+                bp.add_copy_constraint({tan1_res.output, tan1_out});
+                bp.add_copy_constraint({tan2_res.output, tan2_out});
+                bp.add_copy_constraint({range_res.in, in_range});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -509,39 +515,43 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
-                //                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                //                 auto exp_comp = component.get_exp_component();
+                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+                auto tan_comp = component.get_tan_component();
+                auto range_comp = component.get_range_component();
 
-                //                 // Exp inputs
-                //                 typename plonk_fixedpoint_atan<BlueprintFieldType,
-                //                 ArithmetizationParams>::exp_component::input_type
-                //                     exp1_input,
-                //                     exp2_input;
-                //                 exp1_input.x = var(splat(var_pos.y), false);
-                //                 exp2_input.x = var(splat(var_pos.exp2_in), false);
+                // Tan inputs
+                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::tan_component::input_type
+                    tan1_input,
+                    tan2_input;
+                tan1_input.x = var(splat(var_pos.y), false);
+                tan2_input.x = var(splat(var_pos.tan2_in), false);
 
-                //                 // Enable the exp components
-                //                 generate_circuit(exp_comp, bp, assignment, exp1_input, var_pos.exp1_row);
-                //                 generate_circuit(exp_comp, bp, assignment, exp2_input, var_pos.exp2_row);
+                // Range input
+                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_component::input_type
+                    range_input;
+                range_input.x = var(splat(var_pos.y), false);
 
-                //                 // Enable the log component
-                //                 std::size_t selector_index = generate_gates(component, bp, assignment,
-                //                 instance_input);
+                // Enable the tan components
+                generate_circuit(tan_comp, bp, assignment, tan1_input, var_pos.tan1_row);
+                generate_circuit(tan_comp, bp, assignment, tan2_input, var_pos.tan2_row);
 
-                // // Allows disabling the lookup tables for faster testing
-                // #ifndef TEST_WITHOUT_LOOKUP_TABLES
-                //                 // Enable the log lookup tables
-                //                 std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment,
-                //                 instance_input); assignment.enable_selector(lookup_selector_index, var_pos.a0.row());
-                //                 // same as b0.row()
-                // #endif
+                // Enable the range component
+                generate_circuit(range_comp, bp, assignment, range_input, var_pos.range_row);
 
-                //                 // selector goes onto last row and gate uses all rows
-                //                 assignment.enable_selector(selector_index, start_row_index + component.rows_amount -
-                //                 1);
+                // Enable the atan component
+                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
-                //                 generate_copy_constraints(component, bp, assignment, instance_input,
-                //                 start_row_index);
+// Allows disabling the lookup tables for faster testing
+#ifndef TEST_WITHOUT_LOOKUP_TABLES
+                // Enable the atan lookup tables
+                std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment, instance_input);
+                assignment.enable_selector(lookup_selector_index, var_pos.a0.row());    // same as b0.row()
+#endif
+
+                // selector goes onto last row and gate uses all rows
+                assignment.enable_selector(selector_index, start_row_index + component.rows_amount - 1);
+
+                generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 return typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
