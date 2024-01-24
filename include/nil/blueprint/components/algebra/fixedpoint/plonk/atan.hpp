@@ -398,7 +398,7 @@ namespace nil {
                 assignment.witness(splat(var_pos.pad1)) = BlueprintFieldType::value_type::zero();
 
                 // Finally, output depending on gt1
-                assignment.witness(splat(var_pos.y1)) = abs > BlueprintFieldType::value_type::one() ? z_val : abs;
+                assignment.witness(splat(var_pos.y1)) = abs > delta ? z_val : abs;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
