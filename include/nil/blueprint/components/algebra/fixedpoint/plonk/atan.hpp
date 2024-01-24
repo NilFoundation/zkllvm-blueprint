@@ -561,6 +561,7 @@ namespace nil {
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
                 auto delta = component.get_delta();
+                auto m2 = component.get_m2();
 
                 auto x_val = assignment.witness(splat(var_pos.y2));
 
@@ -573,9 +574,53 @@ namespace nil {
 
                 DivMod<BlueprintFieldType> res_x33 =
                     FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x3.quotient * static_cast<int64_t>(delta / 3.), delta);
-
                 DivMod<BlueprintFieldType> res_x55 =
                     FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x5.quotient * static_cast<int64_t>(delta / 5.), delta);
+
+                assignment.witness(splat(var_pos.p2)) = res_x2.quotient;
+                assignment.witness(splat(var_pos.p3)) = res_x3.quotient;
+                assignment.witness(splat(var_pos.p33)) = res_x33.quotient;
+                assignment.witness(splat(var_pos.p5)) = res_x5.quotient;
+                assignment.witness(splat(var_pos.p55)) = res_x55.quotient;
+
+
+                if (component.get_m2() == 1) {
+                    assignment.witness(splat(var_pos.p20)) = res_x2.remainder;
+                    assignment.witness(splat(var_pos.p30)) = res_x3.remainder;
+                    assignment.witness(splat(var_pos.p330)) = res_x33.remainder;
+                    assignment.witness(splat(var_pos.p50)) = res_x5.remainder;
+                    assignment.witness(splat(var_pos.p550)) = res_x55.remainder;
+                } else {
+                    std::vector<uint16_t> q20_val;
+                    std::vector<uint16_t> q30_val;
+                    std::vector<uint16_t> q330_val;
+                    std::vector<uint16_t> q50_val;
+                    std::vector<uint16_t> q550_val;
+
+                    bool sign = FixedPointHelper<BlueprintFieldType>::decompose(res_x2.remainder, q20_val);
+                    BLUEPRINT_RELEASE_ASSERT(!sign);
+                    sign = FixedPointHelper<BlueprintFieldType>::decompose(res_x3.remainder, q30_val);
+                    BLUEPRINT_RELEASE_ASSERT(!sign);
+                    sign = FixedPointHelper<BlueprintFieldType>::decompose(res_x33.remainder, q330_val);
+                    BLUEPRINT_RELEASE_ASSERT(!sign);
+                    sign = FixedPointHelper<BlueprintFieldType>::decompose(res_x5.remainder, q50_val);
+                    BLUEPRINT_RELEASE_ASSERT(!sign);
+                    sign = FixedPointHelper<BlueprintFieldType>::decompose(res_x55.remainder, q550_val);
+                    BLUEPRINT_RELEASE_ASSERT(!sign);
+                    // is ok because q0_val is at least of size 4 and the biggest we have is 32.32
+                    BLUEPRINT_RELEASE_ASSERT(q20_val.size() >= m2);
+                    BLUEPRINT_RELEASE_ASSERT(q30_val.size() >= m2);
+                    BLUEPRINT_RELEASE_ASSERT(q330_val.size() >= m2);
+                    BLUEPRINT_RELEASE_ASSERT(q50_val.size() >= m2);
+                    BLUEPRINT_RELEASE_ASSERT(q550_val.size() >= m2);
+                    for (auto i = 0; i < m2; i++) {
+                        assignment.witness(var_pos.p20.column() + i, var_pos.p20.row()) = q20_val[i];
+                        assignment.witness(var_pos.p30.column() + i, var_pos.p30.row()) = q30_val[i];
+                        assignment.witness(var_pos.p330.column() + i, var_pos.p330.row()) = q330_val[i];
+                        assignment.witness(var_pos.p50.column() + i, var_pos.p50.row()) = q50_val[i];
+                        assignment.witness(var_pos.p550.column() + i, var_pos.p550.row()) = q550_val[i];
+                    }
+                }
 
             }
 
