@@ -283,13 +283,15 @@ namespace nil {
                          BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
-            void generate_assignments_row0(
+            typename BlueprintFieldType::value_type generate_assignments_row0(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
                 const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
                     instance_input,
                 const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+
+                // Basically combines abs and abs > 1
 
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
@@ -348,6 +350,57 @@ namespace nil {
                 for (auto i = 0; i < m; i++) {
                     assignment.witness(var_pos.b0.column() + i, var_pos.b0.row()) = d0_val[i];
                 }
+
+                return x_val;
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_row1(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos, typename BlueprintFieldType::value_type& abs) {
+
+                // Basically a div_by_pos gadget, where x is hardcoded to be one.
+
+                auto m = component.get_m();
+                auto delta = component.get_delta();
+
+                auto x_val = typename BlueprintFieldType::value_type(delta) * delta;
+
+                DivMod<BlueprintFieldType> tmp_div =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, abs);
+                auto z_val = tmp_div.quotient;
+
+                assignment.witness(splat(var_pos.abs)) = abs;
+                assignment.witness(splat(var_pos.ainv)) = z_val;
+
+                std::vector<uint16_t> q0_val;
+                std::vector<uint16_t> a0_val;
+
+                auto sign = FixedPointHelper<BlueprintFieldType>::decompose(tmp_div.remainder, q0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign);
+                sign = FixedPointHelper<BlueprintFieldType>::decompose(abs - tmp_div.remainder - 1, a0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign);
+                // is ok because decomp is at least of size 4 and the biggest we have is 32.32
+                BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= m);
+                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
+
+                auto y_ = FixedPointHelper<BlueprintFieldType>::field_to_backend(abs);
+                assignment.witness(splat(var_pos.c1)) = typename BlueprintFieldType::value_type(y_.limbs()[0] & 1);
+
+                for (auto i = 0; i < m; i++) {
+                    assignment.witness(var_pos.c0.column() + i, var_pos.c0.row()) = q0_val[i];
+                    assignment.witness(var_pos.d0.column() + i, var_pos.d0.row()) = a0_val[i];
+                }
+
+                // We pad to have the same lookup gate as for row0
+                assignment.witness(splat(var_pos.pad1)) = BlueprintFieldType::value_type::zero();
+
+                // Finally, output depending on gt1
+                assignment.witness(splat(var_pos.y1)) = abs > BlueprintFieldType::value_type::one() ? z_val : abs;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -361,7 +414,8 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                generate_assignments_row0(component, assignment, instance_input, var_pos);
+                auto abs = generate_assignments_row0(component, assignment, instance_input, var_pos);
+                generate_assignments_row1(component, assignment, instance_input, var_pos, abs);
 
                 // TODO
 
