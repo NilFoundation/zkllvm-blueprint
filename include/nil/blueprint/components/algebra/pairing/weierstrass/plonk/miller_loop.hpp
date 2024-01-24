@@ -168,7 +168,7 @@ namespace nil {
                     std::array<var,2> P;
                     std::array<var,4> Q;
 
-                    std::vector<var> all_vars() const {
+                    std::vector<std::reference_wrapper<var>> all_vars() {
                         return {P[0], P[1], Q[0], Q[1], Q[2], Q[3]};
                     }
                 };
