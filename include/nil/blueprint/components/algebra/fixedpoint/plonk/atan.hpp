@@ -1,18 +1,25 @@
 #ifndef CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_ATAN_HPP
 #define CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_ATAN_HPP
 
-#include "nil/blueprint/components/algebra/fixedpoint/plonk/tan.hpp"
-#include "nil/blueprint/components/algebra/fixedpoint/plonk/range.hpp"
+#include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
+
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/manifest.hpp>
+#include <nil/blueprint/basic_non_native_policy.hpp>
+
+#include "nil/blueprint/components/algebra/fixedpoint/type.hpp"
+#include "nil/blueprint/components/algebra/fixedpoint/lookup_tables/range.hpp"
 
 namespace nil {
     namespace blueprint {
         namespace components {
 
-            // Works by proving that the output y = floor(atan(x))  The error of the output is at most 2^{-16}.
+            // Works by evaluating a taylor series with corrections for intervals outside of 0 <= x <= 0.7
 
             /**
-             * Component representing a atan operation with input x and output y, where y =
-             * floor(atan(x)).
+             * Component representing a atan operation with input x and output y, where y = atan(x).
              *
              * The delta of y is equal to the delta of x.
              *
@@ -25,22 +32,14 @@ namespace nil {
             template<typename BlueprintFieldType, typename ArithmetizationParams, typename NonNativePolicyType>
             class fix_atan<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
                            BlueprintFieldType, NonNativePolicyType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 2, 0> {
+                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
 
             public:
                 using value_type = typename BlueprintFieldType::value_type;
 
-                using tan_component =
-                    fix_tan<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                            BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
-
-                using range_component =
-                    fix_range<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                              BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
-
             private:
-                tan_component tan;
-                range_component range;
+                uint8_t m1;    // Pre-comma 16-bit limbs
+                uint8_t m2;    // Post-comma 16-bit limbs
 
                 static uint8_t M(uint8_t m) {
                     if (m == 0 || m > 2) {
@@ -49,46 +48,21 @@ namespace nil {
                     return m;
                 }
 
-                tan_component instantiate_tan(uint8_t m1, uint8_t m2) const {
-                    std::vector<std::uint32_t> witness_list;
-
-                    auto witness_columns = tan_component::get_witness_columns(m1, m2);
-                    BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
-                    witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
-                        witness_list.push_back(this->W(i));
-                    }
-                    return tan_component(witness_list, std::array<std::uint32_t, 1>({this->C(0)}),
-                                         std::array<std::uint32_t, 0>(), m1, m2);
-                }
-
-                range_component instantiate_range(uint8_t m1, uint8_t m2) const {
-                    std::vector<std::uint32_t> witness_list;
-
-                    auto witness_columns = range_component::get_witness_columns(this->witness_amount(), m1, m2);
-                    BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
-                    witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
-                        witness_list.push_back(this->W(i));
-                    }
-                    // TODO set to range -pi/2 < x < pi/2
-                    auto high = 0;
-                    auto low = -high;
-                    return range_component(witness_list, std::array<std::uint32_t, 2>({this->C(0), this->C(1)}),
-                                           std::array<std::uint32_t, 0>(), m1, m2, low, high);
-                }
-
             public:
                 uint8_t get_m() const {
-                    return range.get_m();
+                    return m1 + m2;
                 }
 
                 uint8_t get_m1() const {
-                    return range.get_m1();
+                    return m1;
                 }
 
                 uint8_t get_m2() const {
-                    return range.get_m2();
+                    return m2;
+                }
+
+                uint64_t get_delta() const {
+                    return 1ULL << (16 * m2);
                 }
 
                 value_type calc_atan(const value_type &x, uint8_t m1, uint8_t m2) const {
@@ -110,15 +84,7 @@ namespace nil {
                     }
                 }
 
-                const tan_component &get_tan_component() const {
-                    return tan;
-                }
-
-                const range_component &get_range_component() const {
-                    return range;
-                }
-
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 2, 0>;
+                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
@@ -135,50 +101,30 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
-                    gate_manifest manifest =
-                        gate_manifest(gate_manifest_type())
-                            .merge_with(tan_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2))
-                            .merge_with(
-                                range_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    manifest_type manifest = manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(
-                                                               std::max(6, 2 * (M(m1) + M(m2))), 6 + 2 * (m2 + m1))),
-                                                           false)
-                                                 .merge_with(tan_component::get_manifest(m1, m2))
-                                                 .merge_with(range_component::get_manifest(m1, m2));
+                    auto value = M(m1) == 1 ? 11 : 13;
+                    value = M(m2) == 2 ? 15 : value;
+                    manifest_type manifest =
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(value)), false);
                     return manifest;
                 }
 
-                static std::size_t get_atan_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
-                                                        uint8_t m1, uint8_t m2) {
-                    if (6 + 2 * (M(m2) + M(m1)) <= witness_amount) {
-                        return 1;
-                    } else {
-                        return 2;
-                    }
-                }
-
-                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
-                                                   uint8_t m1, uint8_t m2) {
-                    auto tan_rows = tan_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
-                    auto range_rows = range_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
-                    auto atan_rows = get_atan_rows_amount(witness_amount, lookup_column_amount, m1, m2);
-                    return 2 * tan_rows + range_rows + atan_rows;
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount) {
+                    return 6;
                 }
 
 // Includes the constraints + lookup_gates
 #ifdef TEST_WITHOUT_LOOKUP_TABLES
-                constexpr static const std::size_t gates_amount = 1;
+                constexpr static const std::size_t gates_amount = 6;
 #else
-                constexpr static const std::size_t gates_amount = 2;
+                constexpr static const std::size_t gates_amount = 9;
 #endif    // TEST_WITHOUT_LOOKUP_TABLES
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
-                const std::size_t atan_rows_amount =
-                    get_atan_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
                 struct input_type {
                     var x = var(0, 0, false);
@@ -189,79 +135,96 @@ namespace nil {
                 };
 
                 struct var_positions {
-                    CellPosition x, y, tan1_out, tan2_in, tan2_out, in_range, a0, b0;
-                    int64_t tan1_row, tan2_row, range_row;
+                    CellPosition x, sx, gt1, s1, eq1, inv1, a0, b0;
+                    CellPosition y1, abs, ainv, c1, c0, d0, pad1;
+                    CellPosition x1, gt2, num, denom, s2, eq2, inv2, e0, f0;
+                    CellPosition y2, num1, denom1, z, c2, g0, h0, pad2;
+                    CellPosition p2, p3, p33, p5, p55, p20, p30, p330, p50, p550;
+                    CellPosition y, t1, t3, t5, f1, f2, f3;
                 };
 
                 var_positions get_var_pos(const int64_t start_row_index) const {
 
+                    auto m2 = this->get_m2();
                     auto m = this->get_m();
                     var_positions pos;
-                    pos.tan1_row = start_row_index;
-                    pos.tan2_row = pos.tan1_row + tan.rows_amount;
-                    pos.range_row = pos.tan2_row + tan.rows_amount;
-                    int64_t row_index = pos.range_row + range.rows_amount;
 
-                    switch (this->atan_rows_amount) {
-                        case 1:
+                    // trace layout (between 11 and 15 columns, 6 row(s))
+                    //
+                    // First row calculates the abs value (a0..am-1) and compares it to 1 (gt1)
+                    // Second row takes the inverse of abs if gt1=1, otherwise it takes the abs value
+                    // Third row compares the output of the second row to 0.7 (gt2), and prepares the division for the next row
+                    // Fourth row calculates the a division and takes the result if gt2=1, otherwise it takes the result of the second row
+                    // Fifth row calculates the taylor polynomial
+                    // Sixth row calculates the output from the flags sx, gt1, gt2, and the taylor polynomial
+                    //
+                    // pad1 and pad2 are just here to allow the same lookup table gate in row0, row1, and row3
+                    //
+                    //       |                witness
+                    //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  .. | .. |  ..  |  ..  |  ..  | .. |
+                    // +-----+----+------+--------+-------+-----+------+------+------+------+-----+----+------+------+------+----|
+                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   |                    7 + 2 * m
+                    // |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |             4 + 2 * m
+                    // |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | e0   |  ..  | em  | f0 |  ..  |                    8 + m + m2
+                    // |  3  | y2 | num1 | denom1 | z     | c2  |  -   | g0   |  ..  | gm-1 | h0  | .. | hm-1 | pad2 |             5 + 2 * m
+                    // |  4  | p2 | p3   | p33    | p5    | p55 | p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   | p550 | .. | 5 + 5 * m2
+                    // |  5  | y  | t1   | t3     | t5    | f1  | f2   | f3   |                                                    7
 
-                            // trace layout (6 + 2*m col(s), 2 constant col(s), 1 row(s))
-                            //
-                            //                |                witness
-                            //     r\c        | 0 | 1 |     2    |    3    |     4    |     5    |
-                            // +--------------+---+---+----------+---------+----------+----------| ...
-                            // | tan1_row(s)  |              <tan_witnesses>
-                            // | tan2_row(s)  |              <tan_witnesses>
-                            // | range_row(s) |              <range_witnesses>
-                            // |      0       | x | y | tan1_out | tan2_in | tan2_out | in_range |
+                    pos.x = CellPosition(this->W(0), start_row_index);
+                    pos.sx = CellPosition(this->W(1), start_row_index);
+                    pos.gt1 = CellPosition(this->W(2), start_row_index);
+                    pos.s1 = CellPosition(this->W(3), start_row_index);
+                    pos.eq1 = CellPosition(this->W(4), start_row_index);
+                    pos.inv1 = CellPosition(this->W(5), start_row_index);
+                    pos.a0 = CellPosition(this->W(6 + 0 * m), start_row_index);    // occupies m cells
+                    pos.b0 = CellPosition(this->W(6 + 1 * m), start_row_index);    // occupies m + 1 cells
 
-                            //            witness                |    constant   |
-                            //     | 6  |..|6+m-1 |6+m |..|6+2m-1|   0   |   1   |
-                            // ... +----+--+------+----+--+------+-------+-------+
-                            //            <tan_witnesses>        |  <tan_const>  |
-                            //            <tan_witnesses>        |  <tan_const>  |
-                            //            <range_witnesses>      | <range_const> |
-                            //     | a0 |..| am-1 | b0 |..| bm-1 |   -   |   -   |
+                    pos.y1 = CellPosition(this->W(0), start_row_index + 1);
+                    pos.abs = CellPosition(this->W(1), start_row_index + 1);
+                    pos.ainv = CellPosition(this->W(2), start_row_index + 1);
+                    pos.c1 = CellPosition(this->W(3), start_row_index + 1);
+                    pos.c0 = CellPosition(this->W(6 + 0 * m), start_row_index + 1);    // occupies m cells
+                    pos.d0 = CellPosition(this->W(6 + 1 * m), start_row_index + 1);    // occupies m cells
+                    pos.pad1 = CellPosition(this->W(6 + 2 * m), start_row_index + 1);
 
-                            pos.x = CellPosition(this->W(0), row_index);
-                            pos.y = CellPosition(this->W(1), row_index);
-                            pos.tan1_out = CellPosition(this->W(2), row_index);
-                            pos.tan2_in = CellPosition(this->W(3), row_index);
-                            pos.tan2_out = CellPosition(this->W(4), row_index);
-                            pos.in_range = CellPosition(this->W(5), row_index);
-                            pos.a0 = CellPosition(this->W(6 + 0 * m), row_index);    // occupies m cells
-                            pos.b0 = CellPosition(this->W(6 + 1 * m), row_index);    // occupies m cells
-                            break;
-                        case 2:
+                    pos.x1 = CellPosition(this->W(0), start_row_index + 2);
+                    pos.gt2 = CellPosition(this->W(1), start_row_index + 2);
+                    pos.num = CellPosition(this->W(2), start_row_index + 2);
+                    pos.denom = CellPosition(this->W(3), start_row_index + 2);
+                    pos.s2 = CellPosition(this->W(4), start_row_index + 2);
+                    pos.eq2 = CellPosition(this->W(5), start_row_index + 2);
+                    pos.inv2 = CellPosition(this->W(6), start_row_index + 2);
+                    pos.e0 = CellPosition(this->W(7 + 0 * (m + 1)), start_row_index + 2);    // occupies m + 1 cells
+                    pos.f0 = CellPosition(this->W(7 + 1 * (m + 1)), start_row_index + 2);    // occupies m2 cells
 
-                            // trace layout (max(6, 2 * m), 2 constant col(s), 2 row(s))
-                            //
-                            //                |           witness              |   constant    |
-                            //      r\c       |  0 |..|  m-1  | m  | .. | 2m-1 |   0   |   1   |
-                            // +--------------+----+--+-------+----+----+------+------+--------+
-                            // | tan1_row(s)  |       <tan_witnesses>          | <tan_const>   |
-                            // | tan1_row(s)  |       <tan_witnesses>          | <tan_const>   |
-                            // | range_row(s) |       <range_witnesses>        | <range_const> |
-                            // |      0       | a0 |..| am-1  | b0 | .. | bm-1 |   -   |   -   |
+                    pos.y2 = CellPosition(this->W(0), start_row_index + 3);
+                    pos.num1 = CellPosition(this->W(1), start_row_index + 3);
+                    pos.denom1 = CellPosition(this->W(2), start_row_index + 3);
+                    pos.z = CellPosition(this->W(3), start_row_index + 3);
+                    pos.c2 = CellPosition(this->W(4), start_row_index + 3);
+                    pos.g0 = CellPosition(this->W(6 + 0 * m), start_row_index + 3);    // occupies m cells
+                    pos.h0 = CellPosition(this->W(6 + 1 * m), start_row_index + 3);    // occupies m2 cells
+                    pos.pad2 = CellPosition(this->W(6 + 2 * m), start_row_index + 3);
 
-                            //               |                  witness                         |   constant  |
-                            //      r\c      | 0 | 1 |    2     |    3    |    4     |    5     |   0  |   1  |
-                            // +-------------+---+---+----------+---------+----------+----------+------+------+
-                            // |      1      | x | y | tan1_out | tan2_in | tan2_out | in_range |   -  |   -  |
+                    pos.p2 = CellPosition(this->W(0), start_row_index + 4);
+                    pos.p3 = CellPosition(this->W(1), start_row_index + 4);
+                    pos.p33 = CellPosition(this->W(2), start_row_index + 4);
+                    pos.p5 = CellPosition(this->W(3), start_row_index + 4);
+                    pos.p55 = CellPosition(this->W(4), start_row_index + 4);
+                    pos.p20 = CellPosition(this->W(5 + 0 * m2), start_row_index + 4); // occupies m2 cells
+                    pos.p30 = CellPosition(this->W(5 + 1 * m2), start_row_index + 4); // occupies m2 cells
+                    pos.p330 = CellPosition(this->W(5 + 2 * m2), start_row_index + 4); // occupies m2 cells
+                    pos.p50 = CellPosition(this->W(5 + 3 * m2), start_row_index + 4); // occupies m2 cells
+                    pos.p550 = CellPosition(this->W(5 + 4 * m2), start_row_index + 4); // occupies m2 cells
 
-                            pos.a0 = CellPosition(this->W(0 + 0 * m), row_index);    // occupies m cells
-                            pos.b0 = CellPosition(this->W(0 + 1 * m), row_index);    // occupies m cells
-                            pos.x = CellPosition(this->W(0), row_index + 1);
-                            pos.y = CellPosition(this->W(1), row_index + 1);
-                            pos.tan1_out = CellPosition(this->W(2), row_index + 1);
-                            pos.tan2_in = CellPosition(this->W(3), row_index + 1);
-                            pos.tan2_out = CellPosition(this->W(4), row_index + 1);
-                            pos.in_range = CellPosition(this->W(5), row_index + 1);
-                            break;
-                        default:
-                            BLUEPRINT_RELEASE_ASSERT(false &&
-                                                     "atan rows_amount (i.e., without tan and range) must be 1 or 2");
-                    }
+                    pos.y = CellPosition(this->W(0), start_row_index + 5);
+                    pos.t1 = CellPosition(this->W(1), start_row_index + 5);
+                    pos.t3 = CellPosition(this->W(2), start_row_index + 5);
+                    pos.t5 = CellPosition(this->W(3), start_row_index + 5);
+                    pos.f1 = CellPosition(this->W(4), start_row_index + 5);
+                    pos.f2 = CellPosition(this->W(5), start_row_index + 5);
+                    pos.f3 = CellPosition(this->W(6), start_row_index + 5);
+
                     return pos;
                 }
 
@@ -285,18 +248,16 @@ namespace nil {
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
                 std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
-                    auto result = tan.component_custom_lookup_tables();
-                    auto range_tables = range.component_custom_lookup_tables();
-                    result.reserve(result.size() + range_tables.size());
-                    result.insert(result.end(), range_tables.begin(), range_tables.end());
+                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+                    auto table = std::shared_ptr<lookup_table_definition>(new range_table());
+                    result.push_back(table);
                     return result;
                 }
 
                 std::map<std::string, std::size_t> component_lookup_tables() {
-                    auto result = tan.component_lookup_tables();
-                    auto range_tables = range.component_lookup_tables();
-                    result.insert(range_tables.begin(), range_tables.end());
-                    return result
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables[range_table::FULL_TABLE_NAME] = 0;    // REQUIRED_TABLE
+                    return lookup_tables;
                 }
 #endif
 
@@ -305,7 +266,7 @@ namespace nil {
                 fix_atan(WitnessContainerType witness, ConstantContainerType constant,
                          PublicInputContainerType public_input, uint8_t m1, uint8_t m2) :
                     component_type(witness, constant, public_input, get_manifest(m1, m2)),
-                    tan(instantiate_tan(m1, m2)), range(instantiate_range(m1, m2)) {};
+                    m1(M(m1)), m2(M(m2)) {};
 
                 fix_atan(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                          std::initializer_list<typename component_type::constant_container_type::value_type> constants,
@@ -313,7 +274,7 @@ namespace nil {
                              public_inputs,
                          uint8_t m1, uint8_t m2) :
                     component_type(witnesses, constants, public_inputs, get_manifest(m1, m2)),
-                    tan(instantiate_tan(m1, m2)), range(instantiate_range(m1, m2)) {};
+                    m1(M(m1)), m2(M(m2)) {};
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -334,159 +295,10 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                auto tan_comp = component.get_tan_component();
-                auto range_comp = component.get_range_component();
-
-                // Tan inputs
-                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::tan_component::input_type
-                    tan1_input,
-                    tan2_input;
-                tan1_input.x = var(splat(var_pos.y), false);
-                tan2_input.x = var(splat(var_pos.tan2_in), false);
-
-                // Range input
-                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_component::input_type
-                    range_input;
-                range_input.x = var(splat(var_pos.y), false);
-
-                ////////////////////////////////////////////////////////
-                // Build the trace
-                ////////////////////////////////////////////////////////
-
-                auto m1 = component.get_m1();
-                auto m2 = component.get_m2();
-
-                auto x_val = var_value(assignment, instance_input.x);
-                auto y_val = component.calc_atan(x_val, m1, m2);
-
-                auto tan2_in_val = y_val - 1;
-
-                assignment.witness(splat(var_pos.x)) = x_val;
-                assignment.witness(splat(var_pos.y)) = y_val;
-                assignment.witness(splat(var_pos.tan2_in)) = tan2_in_val;
-
-                // Assign tan gadgets
-                auto tan1_out = generate_assignments(tan_comp, assignment, tan1_input, var_pos.tan1_row);
-                auto tan2_out = generate_assignments(tan_comp, assignment, tan2_input, var_pos.tan2_row);
-
-                auto tan1_out_val = var_value(assignment, tan1_out.output);
-                auto tan2_out_val = var_value(assignment, tan2_out.output);
-                assignment.witness(splat(var_pos.tan1_out)) = tan1_out_val;
-                assignment.witness(splat(var_pos.tan2_out)) = tan2_out_val;
-
-                // Assign range gadgets
-                auto range_out = generate_assignments(range_comp, assignment, range_input, var_pos.range_row);
-
-                auto range_out_val = var_value(assignment, range_out.in);
-                assignment.witness(splat(var_pos.in_range)) = range_out_val;
-
-                // Decompositions
-                auto a_val = tan1_out_val - x_val;
-                auto b_val = x_val - tan2_out_val - 1;
-
-                std::vector<uint16_t> a0_val;
-                std::vector<uint16_t> b0_val;
-
-                bool sign = FixedPointHelper<BlueprintFieldType>::decompose(a_val, a0_val);
-                if (sign) {
-                    std::cout << tan1_out_val << " " << x_val << std::endl;
-                }
-                BLUEPRINT_RELEASE_ASSERT(!sign);
-                sign = FixedPointHelper<BlueprintFieldType>::decompose(b_val, b0_val);
-                BLUEPRINT_RELEASE_ASSERT(!sign);
-
-                // is ok because decomp is at least of size 4 and the biggest we have is 32.32
-                auto m = component.get_m();
-                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
-                BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= m);
-
-                for (auto i = 0; i < m; i++) {
-                    assignment.witness(var_pos.a0.column() + i, var_pos.a0.row()) = a0_val[i];
-                    assignment.witness(var_pos.b0.column() + i, var_pos.b0.row()) = b0_val[i];
-                }
+                // TODO
 
                 return typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
-            }
-
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            std::size_t generate_gates(
-                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
-                    &instance_input) {
-
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-                auto m = component.get_m();
-                const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
-                const auto var_pos = component.get_var_pos(start_row_index);
-
-                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
-                for (auto i = 1; i < m; i++) {
-                    a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
-                    b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));
-                }
-
-                auto x = var(splat(var_pos.x));
-                auto y = var(splat(var_pos.y));
-                auto in_range = var(splat(var_pos.in_range));
-                auto tan1_out = var(splat(var_pos.tan1_out));
-                auto tan2_in = var(splat(var_pos.tan2_in));
-                auto tan2_out = var(splat(var_pos.tan2_out));
-
-                auto constraint_1 = tan1_out - x - a0;
-                auto constraint_2 = x - tan2_out - 1 - b0;
-                auto constraint_3 = y - 1 - tan2_in;
-                auto constraint_4 = in_range - 1;
-
-                // TODO activate again
-                // return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
-                return bp.add_gate({constraint_1, constraint_2, constraint_3});
-            }
-
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            std::size_t generate_lookup_gates(
-                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
-                    &instance_input) {
-                int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
-                const auto var_pos = component.get_var_pos(start_row_index);
-                auto m = component.get_m();
-
-                const auto &lookup_tables_indices = bp.get_reserved_indices();
-
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-                using range_table =
-                    typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_table;
-
-                std::vector<constraint_type> constraints;
-                constraints.reserve(2 * m);
-
-                auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
-                BLUEPRINT_RELEASE_ASSERT(var_pos.a0.row() == var_pos.b0.row());
-
-                for (auto i = 0; i < m; i++) {
-                    constraint_type constraint_a, constraint_b;
-                    constraint_a.table_id = table_id;
-                    constraint_b.table_id = table_id;
-
-                    // We put row=0 here and enable the selector in the correct one
-                    auto ai = var(var_pos.a0.column() + i, 0);
-                    auto bi = var(var_pos.b0.column() + i, 0);
-                    constraint_a.lookup_input = {ai};
-                    constraint_b.lookup_input = {bi};
-                    constraints.push_back(constraint_a);
-                    constraints.push_back(constraint_b);
-                }
-
-                return bp.add_lookup_gate(constraints);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -503,22 +315,7 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                auto tan_comp = component.get_tan_component();
-                auto range_comp = component.get_range_component();
-
-                auto tan1_res = tan_comp.get_result((std::size_t)var_pos.tan1_row);
-                auto tan2_res = tan_comp.get_result((std::size_t)var_pos.tan2_row);
-                auto range_res = range_comp.get_result((std::size_t)var_pos.range_row);
-
-                auto x = var(splat(var_pos.x), false);
-                auto tan1_out = var(splat(var_pos.tan1_out), false);
-                auto tan2_out = var(splat(var_pos.tan2_out), false);
-                auto in_range = var(splat(var_pos.in_range), false);
-
-                bp.add_copy_constraint({instance_input.x, x});
-                bp.add_copy_constraint({tan1_res.output, tan1_out});
-                bp.add_copy_constraint({tan2_res.output, tan2_out});
-                bp.add_copy_constraint({range_res.in, in_range});
+                // TODO
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -534,42 +331,8 @@ namespace nil {
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                auto tan_comp = component.get_tan_component();
-                auto range_comp = component.get_range_component();
 
-                // Tan inputs
-                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::tan_component::input_type
-                    tan1_input,
-                    tan2_input;
-                tan1_input.x = var(splat(var_pos.y), false);
-                tan2_input.x = var(splat(var_pos.tan2_in), false);
-
-                // Range input
-                typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_component::input_type
-                    range_input;
-                range_input.x = var(splat(var_pos.y), false);
-
-                // Enable the tan components
-                generate_circuit(tan_comp, bp, assignment, tan1_input, var_pos.tan1_row);
-                generate_circuit(tan_comp, bp, assignment, tan2_input, var_pos.tan2_row);
-
-                // Enable the range component
-                generate_circuit(range_comp, bp, assignment, range_input, var_pos.range_row);
-
-                // Enable the atan component
-                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
-
-// Allows disabling the lookup tables for faster testing
-#ifndef TEST_WITHOUT_LOOKUP_TABLES
-                // Enable the atan lookup tables
-                std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment, instance_input);
-                assignment.enable_selector(lookup_selector_index, var_pos.a0.row());    // same as b0.row()
-#endif
-
-                // selector goes onto last row and gate uses all rows
-                assignment.enable_selector(selector_index, start_row_index + component.rows_amount - 1);
-
-                generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
+                // TODO
 
                 return typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);

@@ -1026,7 +1026,8 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
 
                 // We implement atan(x) as its taylor series x - x^3/3 + x^5/5 - x^7/7 + ...
-                // It converges good between 0 and 0.8, so we need some adjustments for other ranges. See https://stackoverflow.com/questions/20161346/approximation-of-arcsin-in-c/50894477#50894477
+                // It converges good between 0 and 0.8, so we need some adjustments for other ranges. See
+                // https://stackoverflow.com/questions/20161346/approximation-of-arcsin-in-c/50894477#50894477
 
                 // Adjustments are:
                 // - Work on absolute value and add the sign at the end
@@ -1067,7 +1068,7 @@ namespace nil {
 
                 if (abs > zero_7) {
                     auto num = (abs - sqrt3_3) * DELTA;
-                    auto tmp = FixedPoint(abs, SCALE) * FixedPoint(sqrt3_3, SCALE); // includes rescale
+                    auto tmp = FixedPoint(abs, SCALE) * FixedPoint(sqrt3_3, SCALE);    // includes rescale
                     auto denom = tmp.value + one;
                     auto divmod = helper::round_div_mod(num, denom);
                     abs = divmod.quotient;
@@ -1076,12 +1077,12 @@ namespace nil {
 
                 // polynomial
                 auto fix = FixedPoint(abs, SCALE);
-                auto square = fix * fix; // includes rescale
+                auto square = fix * fix;    // includes rescale
                 auto current = fix;
 
                 for (auto i = 0; i < 2; i++) {
-                    current = current * square; // includes rescale
-                    auto res = current * FixedPoint(1 / double(2ULL * i + 3)); // includes rescale
+                    current = current * square;                                   // includes rescale
+                    auto res = current * FixedPoint(1 / double(2ULL * i + 3));    // includes rescale
                     if ((i & 1) == 0) {
                         fix.value -= res.value;
                     } else {

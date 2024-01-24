@@ -318,10 +318,7 @@ void test_fixedpoint_atan(FixedType input) {
         component_instance,
         public_input,
         result_check,
-        instance_input,
-        crypto3::detail::connectedness_check_type::STRONG,
-        FixedType::M_1,
-        FixedType::M_2);
+        instance_input);
 }
 
 template<typename FieldType, typename RngType>
