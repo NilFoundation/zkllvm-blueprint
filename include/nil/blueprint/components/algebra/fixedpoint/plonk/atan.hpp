@@ -497,6 +497,59 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_row3(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+
+                // Basically a div_by_positive gadget, and setting an output based on previous flags
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                 auto m = component.get_m();
+
+                auto x_val = assignment.witness(splat(var_pos.num));
+                auto y_val = assignment.witness(splat(var_pos.denom));
+
+                DivMod<BlueprintFieldType> tmp_div =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, y_val);
+                auto z_val = tmp_div.quotient;
+
+                assignment.witness(splat(var_pos.num1)) = x_val;
+                assignment.witness(splat(var_pos.denom1)) = y_val;
+                assignment.witness(splat(var_pos.z)) = z_val;
+
+                std::vector<uint16_t> q0_val;
+                std::vector<uint16_t> a0_val;
+
+                FixedPointHelper<BlueprintFieldType>::abs(y_val);    // For gadgets using this gadget
+                auto sign = FixedPointHelper<BlueprintFieldType>::decompose(tmp_div.remainder, q0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign);
+                sign = FixedPointHelper<BlueprintFieldType>::decompose(y_val - tmp_div.remainder - 1, a0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign);
+                // is ok because decomp is at least of size 4 and the biggest we have is 32.32
+                BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= m);
+                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
+
+                auto y_ = FixedPointHelper<BlueprintFieldType>::field_to_backend(y_val);
+                assignment.witness(splat(var_pos.c2)) = typename BlueprintFieldType::value_type(y_.limbs()[0] & 1);
+
+                for (auto i = 0; i < m; i++) {
+                    assignment.witness(var_pos.g0.column() + i, var_pos.g0.row()) = q0_val[i];
+                    assignment.witness(var_pos.h0.column() + i, var_pos.h0.row()) = a0_val[i];
+                }
+
+                 // We pad to have the same lookup gate as for row0
+                assignment.witness(splat(var_pos.pad2)) = BlueprintFieldType::value_type::zero();
+
+                // Finally, output depending on gt2
+                auto gt = assignment.witness(splat(var_pos.gt2));
+                auto x = assignment.witness(splat(var_pos.x1));
+                assignment.witness(splat(var_pos.y2)) = gt == BlueprintFieldType::value_type::one() ? z_val : x;
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
@@ -510,6 +563,7 @@ namespace nil {
                 auto abs = generate_assignments_row0(component, assignment, instance_input, var_pos);
                 generate_assignments_row1(component, assignment, var_pos, abs);
                 generate_assignments_row2(component, assignment, var_pos);
+                generate_assignments_row3(component, assignment, var_pos);
 
                 // TODO
 
