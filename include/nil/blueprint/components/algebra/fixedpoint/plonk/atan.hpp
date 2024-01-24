@@ -318,7 +318,7 @@ namespace nil {
                 }
 
                 // abs > 1
-                auto d_val = x_val - one;
+                auto d_val = x_val - component.get_delta();
                 std::vector<uint16_t> d0_val;
                 sign = FixedPointHelper<BlueprintFieldType>::abs(d_val);
                 sign_ = FixedPointHelper<BlueprintFieldType>::decompose(d_val, d0_val);
@@ -402,6 +402,101 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_row2(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+
+                // Basically a comparison of the input x > 0.7 and preparing the values for a division in hte next row
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto m = component.get_m();
+                auto m2 = component.get_m2();
+                auto delta = component.get_delta();
+                const auto one = BlueprintFieldType::value_type::one();
+                const auto zero = BlueprintFieldType::value_type::zero();
+
+                // constants
+                uint64_t sqrt3_3 = 0;
+                uint64_t zero_7 = 0;
+
+                if (m2 == 1) {
+                    zero_7 = 45875;
+                    sqrt3_3 = 37837;
+                } else if (m2 == 2) {
+                    zero_7 = 3006477107;
+                    sqrt3_3 = 2479700525;
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
+
+                // x_val > 0.7
+                auto x_val = assignment.witness(splat(var_pos.y1));
+                assignment.witness(splat(var_pos.x1)) = x_val;
+
+                auto d_val = x_val - zero_7;
+                std::vector<uint16_t> d0_val;
+                bool sign = FixedPointHelper<BlueprintFieldType>::abs(d_val);
+                bool sign_ = FixedPointHelper<BlueprintFieldType>::decompose(d_val, d0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign_);
+                // is ok because d0_val is at least of size 4 and the biggest we have is 32.32
+                BLUEPRINT_RELEASE_ASSERT(d0_val.size() >= m);
+                bool eq = d_val == 0;
+                BLUEPRINT_RELEASE_ASSERT(eq && !sign || !eq);    // sign must be false if equal is true
+                auto eq_val = typename BlueprintFieldType::value_type(static_cast<uint64_t>(eq));
+                auto gt_val = typename BlueprintFieldType::value_type((uint64_t)(!eq && !sign));
+                assignment.witness(splat(var_pos.eq2)) = eq_val;
+                assignment.witness(splat(var_pos.gt2)) = gt_val;
+                assignment.witness(splat(var_pos.s2)) = sign ? -one : one;
+
+                 // if eq:  Does not matter what to put here
+                assignment.witness(splat(var_pos.inv2)) = eq ? zero : d_val.inversed();
+
+                // Additional limb due to potential overflow of diff
+                // FixedPointHelper::decompose creates a vector whose size is a multiple of 4.
+                // Furthermore, the size of the vector might be larger than required (e.g. if 4 limbs would suffice the
+                // vector could be of size 8)
+                if (d0_val.size() > m) {
+                    BLUEPRINT_RELEASE_ASSERT(d0_val[m] == 0 || d0_val[m] == 1);
+                    assignment.witness(var_pos.e0.column() + m, var_pos.e0.row()) = d0_val[m];
+                } else {
+                    assignment.witness(var_pos.e0.column() + m, var_pos.e0.row()) = zero;
+                }
+
+                for (auto i = 0; i < m; i++) {
+                    assignment.witness(var_pos.e0.column() + i, var_pos.e0.row()) = d0_val[i];
+                }
+
+                // prepare the division
+                auto num_val = (x_val - sqrt3_3) * delta;
+                assignment.witness(splat(var_pos.num)) = num_val;
+
+                // mul rescale
+                auto tmp = x_val * sqrt3_3;
+                auto res = FixedPointHelper<BlueprintFieldType>::round_div_mod(tmp, delta);
+
+                auto z_val = res.quotient;
+                auto q_val = res.remainder;
+
+                if (component.get_m2() == 1) {
+                    assignment.witness(splat(var_pos.f0)) = q_val;
+                } else {
+                    std::vector<uint16_t> q0_val;
+                    bool sign = FixedPointHelper<BlueprintFieldType>::decompose(q_val, q0_val);
+                    BLUEPRINT_RELEASE_ASSERT(!sign);
+                    // is ok because q0_val is at least of size 4 and the biggest we have is 32.32
+                    BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= m2);
+                    for (auto i = 0; i < m2; i++) {
+                        assignment.witness(var_pos.f0.column() + i, var_pos.f0.row()) = q0_val[i];
+                    }
+                }
+
+                assignment.witness(splat(var_pos.denom)) = z_val + delta;
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
@@ -414,6 +509,7 @@ namespace nil {
 
                 auto abs = generate_assignments_row0(component, assignment, instance_input, var_pos);
                 generate_assignments_row1(component, assignment, var_pos, abs);
+                generate_assignments_row2(component, assignment, var_pos);
 
                 // TODO
 

@@ -253,10 +253,10 @@ void test_fixedpoint_tan(FixedType input) {
 template<typename FixedType>
 void test_fixedpoint_atan(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
-    constexpr std::size_t WitnessColumns = 12;
+    constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
 #ifdef TEST_WITHOUT_LOOKUP_TABLES
-    constexpr std::size_t ConstantColumns = 2;
+    constexpr std::size_t ConstantColumns = 5;
     constexpr std::size_t SelectorColumns = 10;
 #else
     constexpr std::size_t ConstantColumns = 15;
