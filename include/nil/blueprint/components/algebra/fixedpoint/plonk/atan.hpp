@@ -550,6 +550,36 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_row4(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+
+                // Basically a taylor polynomial
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto delta = component.get_delta();
+
+                auto x_val = assignment.witness(splat(var_pos.y2));
+
+                DivMod<BlueprintFieldType> res_x2 =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val * x_val, delta);
+                DivMod<BlueprintFieldType> res_x3 =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x2.quotient * x_val, delta);
+                DivMod<BlueprintFieldType> res_x5 =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x2.quotient * res_x3.quotient, delta);
+
+                DivMod<BlueprintFieldType> res_x33 =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x3.quotient * static_cast<int64_t>(delta / 3.), delta);
+
+                DivMod<BlueprintFieldType> res_x55 =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x5.quotient * static_cast<int64_t>(delta / 5.), delta);
+
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
@@ -564,6 +594,7 @@ namespace nil {
                 generate_assignments_row1(component, assignment, var_pos, abs);
                 generate_assignments_row2(component, assignment, var_pos);
                 generate_assignments_row3(component, assignment, var_pos);
+                generate_assignments_row4(component, assignment, var_pos);
 
                 // TODO
 

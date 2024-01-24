@@ -1082,7 +1082,7 @@ namespace nil {
 
                 for (auto i = 0; i < 2; i++) {
                     current = current * square;                                   // includes rescale
-                    auto res = current * FixedPoint(1 / double(2ULL * i + 3));    // includes rescale
+                    auto res = current * FixedPoint(static_cast<int64_t>(DELTA / double(2ULL * i + 3)), SCALE);    // includes rescale
                     if ((i & 1) == 0) {
                         fix.value -= res.value;
                     } else {

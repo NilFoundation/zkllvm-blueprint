@@ -279,6 +279,13 @@ void test_fixedpoint_atan(FixedType input) {
     double expected_res_f = atan(input.to_double());
     auto expected_res = input.atan();
 
+    // std::cout << "input           : " << input.get_value().data << "\n";
+    // std::cout << "input (float)   : " << input.to_double() << "\n";
+    // std::cout << "expected        : " << expected_res.to_double() << "\n";
+    // std::cout << "expected (float): " << expected_res_f << "\n\n";
+
+    // return;
+
     auto result_check = [&expected_res, &expected_res_f, input](AssignmentType &assignment,
                                                                 typename component_type::result_type &real_res) {
         auto real_res_ = FixedType(var_value(assignment, real_res.output), FixedType::SCALE);
