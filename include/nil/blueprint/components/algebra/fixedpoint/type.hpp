@@ -1060,7 +1060,7 @@ namespace nil {
                 }
 
                 if (abs > one) {
-                    auto divmod = helper::round_div_mod(DELTA << SCALE, abs);
+                    auto divmod = helper::round_div_mod(value_type(DELTA) * DELTA, abs);
                     abs = divmod.quotient;
                     invert = true;
                 }
