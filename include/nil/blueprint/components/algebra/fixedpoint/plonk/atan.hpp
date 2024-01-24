@@ -359,8 +359,6 @@ namespace nil {
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
-                    instance_input,
                 const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos, typename BlueprintFieldType::value_type& abs) {
 
                 // Basically a div_by_pos gadget, where x is hardcoded to be one.
@@ -415,7 +413,7 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 auto abs = generate_assignments_row0(component, assignment, instance_input, var_pos);
-                generate_assignments_row1(component, assignment, instance_input, var_pos, abs);
+                generate_assignments_row1(component, assignment, var_pos, abs);
 
                 // TODO
 
