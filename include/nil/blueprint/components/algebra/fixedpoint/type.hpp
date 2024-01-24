@@ -1080,14 +1080,12 @@ namespace nil {
                 auto current = fix;
 
                 for (auto i = 0; i < 2; i++) {
-                    auto mul = current.value * square.value;
-                    auto div = ((2ULL * i + 3) << SCALE) / (2ULL * i + 1);
-                    auto divmod = helper::round_div_mod(mul, div);
-                    current.value = divmod.quotient;
+                    current = current * square; // includes rescale
+                    auto res = current * FixedPoint(1 / double(2ULL * i + 3)); // includes rescale
                     if ((i & 1) == 0) {
-                        fix.value -= divmod.quotient;
+                        fix.value -= res.value;
                     } else {
-                        fix.value += divmod.quotient;
+                        fix.value += res.value;
                     }
                 }
 
