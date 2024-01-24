@@ -1081,9 +1081,9 @@ namespace nil {
 
                 for (auto i = 0; i < 2; i++) {
                     auto mul = current.value * square.value;
-                    auto divisor = double((2ULL * i + 1) << SCALE) / (2 * i + 3);
-                    auto divmod = helper::round_div_mod(mul, divisor);
-                    current = FixedPoint(divmod.quotient, SCALE);
+                    auto div = ((2ULL * i + 3) << SCALE) / (2ULL * i + 1);
+                    auto divmod = helper::round_div_mod(mul, div);
+                    current.value = divmod.quotient;
                     if ((i & 1) == 0) {
                         fix.value -= divmod.quotient;
                     } else {
