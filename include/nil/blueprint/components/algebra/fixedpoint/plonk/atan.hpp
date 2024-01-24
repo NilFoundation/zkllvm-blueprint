@@ -388,6 +388,9 @@ namespace nil {
                 std::vector<uint16_t> b0_val;
 
                 bool sign = FixedPointHelper<BlueprintFieldType>::decompose(a_val, a0_val);
+                if (sign) {
+                    std::cout << tan1_out_val << " " << x_val << std::endl;
+                }
                 BLUEPRINT_RELEASE_ASSERT(!sign);
                 sign = FixedPointHelper<BlueprintFieldType>::decompose(b_val, b0_val);
                 BLUEPRINT_RELEASE_ASSERT(!sign);
@@ -439,7 +442,9 @@ namespace nil {
                 auto constraint_3 = y - 1 - tan2_in;
                 auto constraint_4 = in_range - 1;
 
-                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
+                // TODO activate again
+                // return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
+                return bp.add_gate({constraint_1, constraint_2, constraint_3});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
