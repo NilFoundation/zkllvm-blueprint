@@ -283,6 +283,74 @@ namespace nil {
                          BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_row0(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
+                    instance_input,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                const auto one = BlueprintFieldType::value_type::one();
+                const auto zero = BlueprintFieldType::value_type::zero();
+                auto m = component.get_m();
+
+                auto x_val = var_value(assignment, instance_input.x);
+                assignment.witness(splat(var_pos.x)) = x_val;
+
+                // abs
+                std::vector<uint16_t> x0_val;
+                auto sign = FixedPointHelper<BlueprintFieldType>::abs(x_val);
+                assignment.witness(splat(var_pos.sx)) = sign ? -one : one;
+
+                // decompose
+                bool sign_ = FixedPointHelper<BlueprintFieldType>::decompose(x_val, x0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign_);
+                // is ok because x0_val is at least of size 4 and the biggest we have is 32.32
+                BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= m);
+
+                for (auto i = 0; i < m; i++) {
+                    assignment.witness(var_pos.a0.column() + i, var_pos.a0.row()) = x0_val[i];
+                }
+
+                // abs > 1
+                auto d_val = x_val - one;
+                std::vector<uint16_t> d0_val;
+                sign = FixedPointHelper<BlueprintFieldType>::abs(d_val);
+                sign_ = FixedPointHelper<BlueprintFieldType>::decompose(d_val, d0_val);
+                BLUEPRINT_RELEASE_ASSERT(!sign_);
+                // is ok because d0_val is at least of size 4 and the biggest we have is 32.32
+                BLUEPRINT_RELEASE_ASSERT(d0_val.size() >= m);
+                bool eq = d_val == 0;
+                BLUEPRINT_RELEASE_ASSERT(eq && !sign || !eq);    // sign must be false if equal is true
+                auto eq_val = typename BlueprintFieldType::value_type(static_cast<uint64_t>(eq));
+                auto gt_val = typename BlueprintFieldType::value_type((uint64_t)(!eq && !sign));
+                assignment.witness(splat(var_pos.eq1)) = eq_val;
+                assignment.witness(splat(var_pos.gt1)) = gt_val;
+                assignment.witness(splat(var_pos.s1)) = sign ? -one : one;
+
+                 // if eq:  Does not matter what to put here
+                assignment.witness(splat(var_pos.inv1)) = eq ? zero : d_val.inversed();
+
+                // Additional limb due to potential overflow of diff
+                // FixedPointHelper::decompose creates a vector whose size is a multiple of 4.
+                // Furthermore, the size of the vector might be larger than required (e.g. if 4 limbs would suffice the
+                // vector could be of size 8)
+                if (d0_val.size() > m) {
+                    BLUEPRINT_RELEASE_ASSERT(d0_val[m] == 0 || d0_val[m] == 1);
+                    assignment.witness(var_pos.b0.column() + m, var_pos.b0.row()) = d0_val[m];
+                } else {
+                    assignment.witness(var_pos.b0.column() + m, var_pos.b0.row()) = zero;
+                }
+
+                for (auto i = 0; i < m; i++) {
+                    assignment.witness(var_pos.b0.column() + i, var_pos.b0.row()) = d0_val[i];
+                }
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
@@ -291,9 +359,9 @@ namespace nil {
                     instance_input,
                 const std::uint32_t start_row_index) {
 
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
+
+                generate_assignments_row0(component, assignment, instance_input, var_pos);
 
                 // TODO
 
