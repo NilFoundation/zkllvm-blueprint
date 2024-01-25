@@ -157,7 +157,7 @@ namespace nil {
                 };
 
                 struct var_positions {
-                    CellPosition x, y, exp1_out, exp2_in, exp2_out, a0, b0, c0;
+                    CellPosition x, y, exp1_out, exp2_in, exp2_out, a0, b0;
                     int64_t exp1_row, exp2_row;
                 };
 
@@ -184,6 +184,7 @@ namespace nil {
                             //            witness                |   constant  |
                             //     | 5  |..|5+m-1 |5+m |..|5+2m-1|   0  |   1  |
                             // ... +----+--+------+----+--+------+------+------+
+                            //            <exp_witnesses>        | <exp_const> |
                             //            <exp_witnesses>        | <exp_const> |
                             //     | a0 |..| am-1 | b0 |..| bm-1 |   -  |   -  |
 

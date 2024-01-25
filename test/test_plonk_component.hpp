@@ -314,10 +314,10 @@ namespace nil {
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
 
-#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
 
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             profiling(assignment);
 #endif
             //assignment.export_table(std::cout);

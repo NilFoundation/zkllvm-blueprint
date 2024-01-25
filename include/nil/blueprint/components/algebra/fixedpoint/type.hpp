@@ -137,6 +137,7 @@ namespace nil {
                 FixedPoint sin() const;
                 FixedPoint cos() const;
                 FixedPoint tan() const;
+                FixedPoint atan() const;
                 FixedPoint erf() const;
                 FixedPoint rescale() const;
                 static FixedPoint dot(const std::vector<FixedPoint> &, const std::vector<FixedPoint> &);
@@ -1018,6 +1019,92 @@ namespace nil {
                 auto exp_m = exp - one;
 
                 return exp_m / exp_p;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::atan() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                // We implement atan(x) as its taylor series x - x^3/3 + x^5/5 - x^7/7 + ...
+                // It converges good between 0 and 0.8, so we need some adjustments for other ranges. See
+                // https://stackoverflow.com/questions/20161346/approximation-of-arcsin-in-c/50894477#50894477
+
+                // Adjustments are:
+                // - Work on absolute value and add the sign at the end
+                // - atan(x) = atan(1/x) - pi/2 for x > 1
+                // - atan(x) = atan((x - sqrt(3)/3) / (1 + sqrt(3)*x/3) for x > 0.7) + pi/6
+
+                auto abs = value;
+                auto sign = helper::abs(abs);
+                auto invert = false;
+                auto shift = false;
+
+                // constants
+                uint64_t one = DELTA;
+                uint64_t sqrt3_3 = 0;
+                uint64_t zero_7 = 0;
+                uint64_t pi_2 = 0;
+                uint64_t pi_6 = 0;
+
+                if constexpr (M2 == 1) {
+                    zero_7 = 45875;
+                    sqrt3_3 = 37837;
+                    pi_2 = 102944;
+                    pi_6 = 34315;
+                } else if constexpr (M2 == 2) {
+                    zero_7 = 3006477107;
+                    sqrt3_3 = 2479700525;
+                    pi_2 = 6746518852;
+                    pi_6 = 2248839617;
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
+
+                if (abs > one) {
+                    auto divmod = helper::round_div_mod(value_type(DELTA) * DELTA, abs);
+                    abs = divmod.quotient;
+                    invert = true;
+                }
+
+                if (abs > zero_7) {
+                    auto num = (abs - sqrt3_3) * DELTA;
+                    auto tmp = FixedPoint(abs, SCALE) * FixedPoint(sqrt3_3, SCALE);    // includes rescale
+                    auto denom = tmp.value + one;
+                    auto divmod = helper::round_div_mod(num, denom);
+                    abs = divmod.quotient;
+                    shift = true;
+                }
+
+                // polynomial
+                auto fix = FixedPoint(abs, SCALE);
+                auto square = fix * fix;    // includes rescale
+                auto current = fix;
+
+                for (auto i = 0; i < 2; i++) {
+                    current = current * square;    // includes rescale
+                    auto res = current * FixedPoint(static_cast<uint64_t>(DELTA / double(2ULL * i + 3)),
+                                                    SCALE);    // includes rescale
+                    if ((i & 1) == 0) {
+                        fix.value -= res.value;
+                    } else {
+                        fix.value += res.value;
+                    }
+                }
+
+                // adjustments
+                if (shift) {
+                    fix.value += pi_6;
+                }
+
+                if (invert) {
+                    fix.value = pi_2 - fix.value;
+                }
+
+                if (sign) {
+                    fix.value = -fix.value;
+                }
+
+                return fix;
             }
 
         }    // namespace components
