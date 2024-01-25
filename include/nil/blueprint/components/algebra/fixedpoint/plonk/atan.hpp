@@ -600,9 +600,9 @@ namespace nil {
                     FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x2.quotient * res_x3.quotient, delta);
 
                 DivMod<BlueprintFieldType> res_x33 = FixedPointHelper<BlueprintFieldType>::round_div_mod(
-                    res_x3.quotient * static_cast<int64_t>(delta / 3.), delta);
+                    res_x3.quotient * static_cast<uint64_t>(delta / 3.), delta);
                 DivMod<BlueprintFieldType> res_x55 = FixedPointHelper<BlueprintFieldType>::round_div_mod(
-                    res_x5.quotient * static_cast<int64_t>(delta / 5.), delta);
+                    res_x5.quotient * static_cast<uint64_t>(delta / 5.), delta);
 
                 assignment.witness(splat(var_pos.p2)) = res_x2.quotient;
                 assignment.witness(splat(var_pos.p3)) = res_x3.quotient;
@@ -935,29 +935,36 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m2 = component.get_m2();
 
-                auto p20 = nil::crypto3::math::expression(var(var_pos.p20.column(), 0, false));
-                auto p30 = nil::crypto3::math::expression(var(var_pos.p30.column(), 0, false));
-                auto p330 = nil::crypto3::math::expression(var(var_pos.p330.column(), 0, false));
-                auto p50 = nil::crypto3::math::expression(var(var_pos.p50.column(), 0, false));
-                auto p550 = nil::crypto3::math::expression(var(var_pos.p550.column(), 0, false));
+                auto x2q = nil::crypto3::math::expression(var(var_pos.p20.column(), 0, false));
+                auto x3q = nil::crypto3::math::expression(var(var_pos.p30.column(), 0, false));
+                auto x33q = nil::crypto3::math::expression(var(var_pos.p330.column(), 0, false));
+                auto x5q = nil::crypto3::math::expression(var(var_pos.p50.column(), 0, false));
+                auto x55q = nil::crypto3::math::expression(var(var_pos.p550.column(), 0, false));
                 for (auto i = 1; i < m2; i++) {
-                    p20 += var(var_pos.p20.column() + i, 0) * (1ULL << (16 * i));
-                    p30 += var(var_pos.p30.column() + i, 0) * (1ULL << (16 * i));
-                    p330 += var(var_pos.p330.column() + i, 0) * (1ULL << (16 * i));
-                    p50 += var(var_pos.p50.column() + i, 0) * (1ULL << (16 * i));
-                    p550 += var(var_pos.p550.column() + i, 0) * (1ULL << (16 * i));
+                    x2q += var(var_pos.p20.column() + i, 0) * (1ULL << (16 * i));
+                    x3q += var(var_pos.p30.column() + i, 0) * (1ULL << (16 * i));
+                    x33q += var(var_pos.p330.column() + i, 0) * (1ULL << (16 * i));
+                    x5q += var(var_pos.p50.column() + i, 0) * (1ULL << (16 * i));
+                    x55q += var(var_pos.p550.column() + i, 0) * (1ULL << (16 * i));
                 }
 
                 auto x = var(var_pos.y2.column(), -1, false);
-                auto p2 = var(var_pos.p2.column(), 0, false);
-                auto p3 = var(var_pos.p3.column(), 0, false);
-                auto p33 = var(var_pos.p33.column(), 0, false);
-                auto p5 = var(var_pos.p5.column(), 0, false);
-                auto p55 = var(var_pos.p55.column(), 0, false);
+                auto x2 = var(var_pos.p2.column(), 0, false);
+                auto x3 = var(var_pos.p3.column(), 0, false);
+                auto x33 = var(var_pos.p33.column(), 0, false);
+                auto x5 = var(var_pos.p5.column(), 0, false);
+                auto x55 = var(var_pos.p55.column(), 0, false);
 
-                // TODO
+                auto div_3 = static_cast<uint64_t>(delta / 3.);
+                auto div_5 = static_cast<uint64_t>(delta / 5.);
 
-                return bp.add_gate({});
+                auto constraint_1 = 2 * (x * x - x2 * delta - x2q) + delta;
+                auto constraint_2 = 2 * (x2 * x - x3 * delta - x3q) + delta;
+                auto constraint_3 = 2 * (x2 * x3 - x5 * delta - x5q) + delta;
+                auto constraint_4 = 2 * (x3 * div_3 - x33 * delta - x33q) + delta;
+                auto constraint_5 = 2 * (x5 * div_5 - x55 * delta - x55q) + delta;
+
+                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>

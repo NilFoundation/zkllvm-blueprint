@@ -1081,8 +1081,9 @@ namespace nil {
                 auto current = fix;
 
                 for (auto i = 0; i < 2; i++) {
-                    current = current * square;                                   // includes rescale
-                    auto res = current * FixedPoint(static_cast<int64_t>(DELTA / double(2ULL * i + 3)), SCALE);    // includes rescale
+                    current = current * square;    // includes rescale
+                    auto res = current * FixedPoint(static_cast<uint64_t>(DELTA / double(2ULL * i + 3)),
+                                                    SCALE);    // includes rescale
                     if ((i & 1) == 0) {
                         fix.value -= res.value;
                     } else {
