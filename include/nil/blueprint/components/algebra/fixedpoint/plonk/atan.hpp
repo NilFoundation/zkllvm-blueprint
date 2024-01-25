@@ -372,12 +372,16 @@ namespace nil {
                 auto m = component.get_m();
                 auto delta = component.get_delta();
 
-                auto x_val = typename BlueprintFieldType::value_type(delta) * delta;
+                bool gt = abs > delta;
 
-                DivMod<BlueprintFieldType> tmp_div = FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, abs);
+                auto x_val = typename BlueprintFieldType::value_type(delta) * delta;
+                // Set the divisor to 1 if no division should happen to prevent division by zero
+                auto y_val = gt ? abs : delta;
+
+                DivMod<BlueprintFieldType> tmp_div = FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, y_val);
                 auto z_val = tmp_div.quotient;
 
-                assignment.witness(splat(var_pos.abs)) = abs;
+                assignment.witness(splat(var_pos.abs)) = y_val;
                 assignment.witness(splat(var_pos.ainv)) = z_val;
 
                 std::vector<uint16_t> q0_val;
@@ -385,7 +389,7 @@ namespace nil {
 
                 auto sign = FixedPointHelper<BlueprintFieldType>::decompose(tmp_div.remainder, q0_val);
                 BLUEPRINT_RELEASE_ASSERT(!sign);
-                sign = FixedPointHelper<BlueprintFieldType>::decompose(abs - tmp_div.remainder - 1, a0_val);
+                sign = FixedPointHelper<BlueprintFieldType>::decompose(y_val - tmp_div.remainder - 1, a0_val);
                 BLUEPRINT_RELEASE_ASSERT(!sign);
                 // is ok because decomp is at least of size 4 and the biggest we have is 32.32
                 BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= m);
@@ -403,7 +407,7 @@ namespace nil {
                 assignment.witness(splat(var_pos.pad1)) = BlueprintFieldType::value_type::zero();
 
                 // Finally, output depending on gt1
-                assignment.witness(splat(var_pos.y1)) = abs > delta ? z_val : abs;
+                assignment.witness(splat(var_pos.y1)) = gt ? z_val : abs;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -499,7 +503,9 @@ namespace nil {
                     }
                 }
 
-                assignment.witness(splat(var_pos.denom)) = z_val + delta;
+                // Set the divisor to 1 if no division should happen to prevent division by zero
+                auto denom_val = gt_val == one ? z_val + delta : delta;
+                assignment.witness(splat(var_pos.denom)) = denom_val;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
