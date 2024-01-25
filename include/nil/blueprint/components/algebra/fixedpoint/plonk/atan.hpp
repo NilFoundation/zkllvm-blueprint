@@ -753,7 +753,7 @@ namespace nil {
                 auto eq1 = var(var_pos.eq1.column(), 0, false);
                 auto inv1 = var(var_pos.inv1.column(), 0, false);
 
-                auto inv2 = typename BlueprintFieldType::value_type(2).inversed();
+                auto inv_of_2 = typename BlueprintFieldType::value_type(2).inversed();
 
                 // abs
                 auto constraint_1 = x - sx * a;
@@ -764,7 +764,7 @@ namespace nil {
                 auto constraint_4 = (s1 - 1) * (s1 + 1);
                 auto constraint_5 = eq1 * b;
                 auto constraint_6 = 1 - eq1 - inv1 * b;
-                auto constraint_7 = gt1 - inv2 * (1 + s1) * (1 - eq1);
+                auto constraint_7 = gt1 - inv_of_2 * (1 + s1) * (1 - eq1);
 
                 return bp.add_gate(
                     {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6, constraint_7});
@@ -811,6 +811,67 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_gate2(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto delta = component.get_delta();
+                auto m2 = component.get_m2();
+                auto m = component.get_m();
+
+                auto e = nil::crypto3::math::expression(var(var_pos.e0.column(), 0, false));
+                auto f = nil::crypto3::math::expression(var(var_pos.f0.column(), 0, false));
+                for (auto i = 1; i < m2; i++) {
+                    f += var(var_pos.f0.column() + i, 0) * (1ULL << (16 * i));
+                }
+                for (auto i = 1; i < m; i++) {
+                    e += var(var_pos.e0.column() + i, 0) * (1ULL << (16 * i));
+                }
+                // 1ULL << 16m could overflow 64-bit int
+                typename BlueprintFieldType::value_type tmp = 1ULL << (16 * (m - 1));
+                tmp *= 1ULL << 16;
+                e += var(var_pos.e0.column() + m, 0) * tmp;
+
+                // constants
+                uint64_t sqrt3_3 = 0;
+                uint64_t zero_7 = 0;
+
+                if (m2 == 1) {
+                    zero_7 = 45875;
+                    sqrt3_3 = 37837;
+                } else if (m2 == 2) {
+                    zero_7 = 3006477107;
+                    sqrt3_3 = 2479700525;
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
+
+                auto x1 = var(var_pos.x1.column(), 0, false);
+                auto gt2 = var(var_pos.gt2.column(), 0, false);
+                auto s2 = var(var_pos.s2.column(), 0, false);
+                auto eq2 = var(var_pos.eq2.column(), 0, false);
+                auto inv2 = var(var_pos.inv2.column(), 0, false);
+                auto num = var(var_pos.num.column(), 0, false);
+                auto denom = var(var_pos.denom.column(), 0, false);
+
+                auto inv_of_2 = typename BlueprintFieldType::value_type(2).inversed();
+
+                // x > 0.7
+                auto d = x1 - zero_7;
+                auto constraint_1 = d - s2 * e;
+                auto constraint_2 = (s2 - 1) * (s2 + 1);
+                auto constraint_3 = eq2 * e;
+                auto constraint_4 = 1 - eq2 - inv2 * e;
+                auto constraint_5 = gt2 - inv_of_2 * (1 + s2) * (1 - eq2);
+
+                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
@@ -824,9 +885,14 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                // First row
+                // row0
                 var x = var(splat(var_pos.x), false);
                 bp.add_copy_constraint({instance_input.x, x});
+
+                // row1
+                var x1 = var(splat(var_pos.x1), false);
+                var y1 = var(splat(var_pos.y1), false);
+                bp.add_copy_constraint({x1, y1});
 
                 // TODO
             }
@@ -850,6 +916,9 @@ namespace nil {
 
                 selector_index = generate_gate1(component, bp, var_pos);
                 assignment.enable_selector(selector_index, start_row_index + 1);
+
+                selector_index = generate_gate2(component, bp, var_pos);
+                assignment.enable_selector(selector_index, start_row_index + 2);
 
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
