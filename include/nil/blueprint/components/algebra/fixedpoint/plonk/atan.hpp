@@ -138,7 +138,7 @@ namespace nil {
                     CellPosition x, sx, gt1, s1, eq1, inv1, a0, b0;
                     CellPosition y1, abs, ainv, c1, c0, d0, pad1;
                     CellPosition x1, gt2, num, denom, s2, eq2, inv2, z1, e0, f0;
-                    CellPosition y2, num1, denom1, z2, c2, g0, h0, pad2;
+                    CellPosition y2, num1, denom1, x3, gt3, z2, c2, g0, h0;
                     CellPosition p2, p3, p33, p5, p55, p20, p30, p330, p50, p550;
                     CellPosition y, t1, t3, t5, f1, f2, f3, i1, i2;
                 };
@@ -158,7 +158,8 @@ namespace nil {
                     // the result of the second row Fifth row calculates the taylor polynomial Sixth row calculates the
                     // output from the flags sx, gt1, gt2, and the taylor polynomial
                     //
-                    // pad1 and pad2 are just here to allow the same lookup table gate in row0, row1, and row3
+                    // pad1 is just here to allow the same lookup table gate in row0, row1, and row3 (lookup is always
+                    // true for gt3)
                     //
                     //       |                witness
                     //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  .. | .. |  ..  |  ..  |
@@ -167,7 +168,7 @@ namespace nil {
                     // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   |
                     // |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |
                     // |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | z1   | e0   |  .. | em | f0   |  ..  |
-                    // |  3  | y2 | num1 | denom1 | z2    | c2  |  -   | g0   |  ..  | gm-1 | h0  | .. | hm-1 | pad2 |
+                    // |  3  | y2 | num1 | denom1 | x3    | c2  | z2   | gt3  | g0   |  ..  | gm-1 | h0  | .. | hm-1 |
                     // |  4  | p2 | p3   | p33    | p5    | p55 | p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   |
                     // p550 | .. |
                     // | 5 | y | t1 | t3 | t5 | f1 | f2 | f3 | i1 | i2 |
@@ -176,7 +177,7 @@ namespace nil {
                     // 0: 7 + 2 * m
                     // 1: 4 + 2 * m
                     // 2: 9 + m + m2
-                    // 3: 5 + 2 * m
+                    // 3: 7 + 2 * m
                     // 4: 5 + 5 * m2
                     // 5: 9
 
@@ -211,11 +212,12 @@ namespace nil {
                     pos.y2 = CellPosition(this->W(0), start_row_index + 3);
                     pos.num1 = CellPosition(this->W(1), start_row_index + 3);
                     pos.denom1 = CellPosition(this->W(2), start_row_index + 3);
-                    pos.z2 = CellPosition(this->W(3), start_row_index + 3);
+                    pos.x3 = CellPosition(this->W(3), start_row_index + 3);
                     pos.c2 = CellPosition(this->W(4), start_row_index + 3);
-                    pos.g0 = CellPosition(this->W(6 + 0 * m), start_row_index + 3);    // occupies m cells
-                    pos.h0 = CellPosition(this->W(6 + 1 * m), start_row_index + 3);    // occupies m2 cells
-                    pos.pad2 = CellPosition(this->W(6 + 2 * m), start_row_index + 3);
+                    pos.z2 = CellPosition(this->W(5), start_row_index + 3);
+                    pos.gt3 = CellPosition(this->W(6), start_row_index + 3);
+                    pos.g0 = CellPosition(this->W(7 + 0 * m), start_row_index + 3);    // occupies m cells
+                    pos.h0 = CellPosition(this->W(7 + 1 * m), start_row_index + 3);    // occupies m2 cells
 
                     pos.p2 = CellPosition(this->W(0), start_row_index + 4);
                     pos.p3 = CellPosition(this->W(1), start_row_index + 4);
@@ -536,6 +538,8 @@ namespace nil {
 
                 auto x_val = assignment.witness(splat(var_pos.num));
                 auto y_val = assignment.witness(splat(var_pos.denom));
+                auto gt_val = assignment.witness(splat(var_pos.gt2));
+                auto x = assignment.witness(splat(var_pos.x1));
 
                 DivMod<BlueprintFieldType> tmp_div = FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, y_val);
                 auto z_val = tmp_div.quotient;
@@ -543,6 +547,8 @@ namespace nil {
                 assignment.witness(splat(var_pos.num1)) = x_val;
                 assignment.witness(splat(var_pos.denom1)) = y_val;
                 assignment.witness(splat(var_pos.z2)) = z_val;
+                assignment.witness(splat(var_pos.gt3)) = gt_val;
+                assignment.witness(splat(var_pos.x3)) = x;
 
                 std::vector<uint16_t> q0_val;
                 std::vector<uint16_t> a0_val;
@@ -564,14 +570,9 @@ namespace nil {
                     assignment.witness(var_pos.h0.column() + i, var_pos.h0.row()) = a0_val[i];
                 }
 
-                // We pad to have the same lookup gate as for row0
-                assignment.witness(splat(var_pos.pad2)) = zero;
-
                 // Finally, output depending on gt2
-                auto gt = assignment.witness(splat(var_pos.gt2));
-                BLUEPRINT_RELEASE_ASSERT(gt == one || gt == zero);
-                auto x = assignment.witness(splat(var_pos.x1));
-                assignment.witness(splat(var_pos.y2)) = gt == one ? z_val : x;
+                BLUEPRINT_RELEASE_ASSERT(gt_val == one || gt_val == zero);
+                assignment.witness(splat(var_pos.y2)) = gt_val == one ? z_val : x;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -888,6 +889,42 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_gate3(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto delta = component.get_delta();
+                auto m = component.get_m();
+
+                auto g = nil::crypto3::math::expression(var(var_pos.g0.column(), 0, false));
+                auto h = nil::crypto3::math::expression(var(var_pos.h0.column(), 0, false));
+                for (auto i = 1; i < m; i++) {
+                    g += var(var_pos.g0.column() + i, 0) * (1ULL << (16 * i));
+                    h += var(var_pos.h0.column() + i, 0) * (1ULL << (16 * i));
+                }
+
+                auto y2 = var(var_pos.y2.column(), 0, false);
+                auto num = var(var_pos.num1.column(), 0, false);
+                auto denom = var(var_pos.denom1.column(), 0, false);
+                auto z2 = var(var_pos.z2.column(), 0, false);
+                auto c2 = var(var_pos.c2.column(), 0, false);
+                auto gt3 = var(var_pos.gt3.column(), 0, false);
+                auto x3 = var(var_pos.x3.column(), 0, false);
+
+                // auto constraint_1 = gt * (abs_val - delta) + delta - abs;
+                // auto constraint_2 = 2 * (x_val - abs * ainv - c) + abs - c1;
+                // auto constraint_3 = (c1 - 1) * c1;
+                // auto constraint_4 = abs - c - d - 1;
+                // auto constraint_5 = gt * (ainv - abs_val) + abs_val - y1;
+
+                return bp.add_gate({});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
@@ -909,6 +946,19 @@ namespace nil {
                 var x1 = var(splat(var_pos.x1), false);
                 var y1 = var(splat(var_pos.y1), false);
                 bp.add_copy_constraint({x1, y1});
+
+                // row3
+                var num = var(splat(var_pos.num), false);
+                var num1 = var(splat(var_pos.num1), false);
+                var denom = var(splat(var_pos.denom), false);
+                var denom1 = var(splat(var_pos.denom1), false);
+                var x3 = var(splat(var_pos.x3), false);
+                var gt2 = var(splat(var_pos.gt2), false);
+                var gt3 = var(splat(var_pos.gt3), false);
+                bp.add_copy_constraint({num, num1});
+                bp.add_copy_constraint({denom, denom1});
+                bp.add_copy_constraint({x1, x3});
+                bp.add_copy_constraint({gt2, gt3});
 
                 // TODO
             }
@@ -935,6 +985,11 @@ namespace nil {
 
                 selector_index = generate_gate2(component, bp, var_pos);
                 assignment.enable_selector(selector_index, start_row_index + 2);
+
+                selector_index = generate_gate3(component, bp, var_pos);
+                assignment.enable_selector(selector_index, start_row_index + 3);
+
+                // TODO
 
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
