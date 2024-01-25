@@ -162,16 +162,16 @@ namespace nil {
                     // true for gt3)
                     //
                     //       |                witness
-                    //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  .. | .. |  ..  |  ..  |
+                    //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  ..  | .. |  ..  |  ..  |
                     //   ..  | .. |
-                    // +-----+----+------+--------+-------+-----+------+------+------+------+-----+----+------+------+------+----|
-                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   |
-                    // |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |
-                    // |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | z1   | e0   |  .. | em | f0   |  ..  |
+                    // +-----+----+------+--------+-------+-----+------+------+------+------+------+----+------+------+------+----|
+                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0   | .. | bm   |
+                    // |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0   | .. | dm-1 | pad1 |
+                    // |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | z1   | e0   |  ..  | em | f0   |  ..  |
                     // |  3  | y2 | num1 | denom1 | x3    | c2  | z2   | gt3  | g0   |  ..  | gm-1 | h0  | .. | hm-1 |
-                    // |  4  | p2 | p3   | p33    | p5    | p55 | p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   |
+                    // |  4  | p2 | p3   | p33    | p5    | p55 | p20  | ..   | p30  |  ..  | p330 | .. | p50 | ..   |
                     // p550 | .. |
-                    // | 5 | y | t1 | t3 | t5 | f1 | f2 | f3 | i1 | i2 |
+                    // | 5   | y | t1 | t3 | t5 | f1 | f2 | f3 | i1 | i2 |
 
                     // columns:
                     // 0: 7 + 2 * m
@@ -990,9 +990,132 @@ namespace nil {
                     BLUEPRINT_RELEASE_ASSERT(false);
                 }
 
-                // TODO
+                auto x = var(var_pos.t1.column(), 0, false);
+                auto x3 = var(var_pos.t3.column(), 0, false);
+                auto x5 = var(var_pos.t5.column(), 0, false);
+                auto shift = var(var_pos.f1.column(), 0, false);
+                auto invert = var(var_pos.f2.column(), 0, false);
+                auto sign = var(var_pos.f3.column(), 0, false);
+                auto y = var(var_pos.y.column(), 0, false);
+                auto tmp1 = var(var_pos.i1.column(), 0, false);
+                auto tmp2 = var(var_pos.i2.column(), 0, false);
+
+                auto poly = x - x3 + x5;
+                auto constraint_1 = poly + shift * pi_6 - tmp1;
+                auto constraint_2 = invert * (pi_2 - tmp1 - tmp1) + tmp1 - tmp2;
+                auto constraint_3 = y - sign * tmp2;
 
                 return bp.add_gate({});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gate0(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions &var_pos,
+                const std::size_t table_id) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+
+                auto m = component.get_m();
+                std::vector<constraint_type> constraints;
+                constraints.reserve(2 * m + 1);
+
+                for (auto i = 0; i < m; i++) {
+                    constraint_type constraint_a;
+                    constraint_a.table_id = table_id;
+
+                    auto ai = var(var_pos.a0.column() + i, 0);
+                    constraint_a.lookup_input = {ai};
+
+                    constraints.push_back(constraint_a);
+                }
+                for (auto i = 0; i <= m; i++) {
+                    constraint_type constraint_b;
+                    constraint_b.table_id = table_id;
+
+                    auto bi = var(var_pos.b0.column() + i, 0);
+                    constraint_b.lookup_input = {bi};
+
+                    constraints.push_back(constraint_b);
+                }
+
+                return bp.add_lookup_gate(constraints);
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gate2(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions &var_pos,
+                const std::size_t table_id) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+
+                auto m = component.get_m();
+                auto m2 = component.get_m2();
+                std::vector<constraint_type> constraints;
+                constraints.reserve(m + m2 + 1);
+
+                for (auto i = 0; i <= m; i++) {
+                    constraint_type constraint_e;
+                    constraint_e.table_id = table_id;
+
+                    auto ei = var(var_pos.e0.column() + i, 0);
+                    constraint_e.lookup_input = {ei};
+
+                    constraints.push_back(constraint_e);
+                }
+                for (auto i = 0; i < m2; i++) {
+                    constraint_type constraint_f;
+                    constraint_f.table_id = table_id;
+
+                    auto fi = var(var_pos.f0.column() + i, 0);
+                    constraint_f.lookup_input = {fi};
+
+                    constraints.push_back(constraint_f);
+                }
+
+                return bp.add_lookup_gate(constraints);
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_lookup_gate4(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions &var_pos,
+                const std::size_t table_id) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+                using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+
+                auto m2 = component.get_m2();
+                std::vector<constraint_type> constraints;
+                std::vector<uint16_t> indices;
+                constraints.reserve(5 * m2);
+                indices.reserve(5 * m2);
+
+                for (auto i = 0; i < m2; i++) {
+                    indices.push_back(var_pos.p20.column() + i);
+                    indices.push_back(var_pos.p30.column() + i);
+                    indices.push_back(var_pos.p330.column() + i);
+                    indices.push_back(var_pos.p50.column() + i);
+                    indices.push_back(var_pos.p550.column() + i);
+                }
+
+                for (auto i : indices) {
+                    constraint_type constraint;
+                    constraint.table_id = table_id;
+
+                    auto ai = var(i, 0);
+                    constraint.lookup_input = {ai};
+
+                    constraints.push_back(constraint);
+                }
+
+                return bp.add_lookup_gate(constraints);
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -1086,7 +1209,21 @@ namespace nil {
 
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
-                // TODO
+                using range_table =
+                    typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::range_table;
+                const auto &lookup_tables_indices = bp.get_reserved_indices();
+                auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
+
+                std::size_t lookup_selector_index = generate_lookup_gate0(component, bp, var_pos, table_id);
+                assignment.enable_selector(lookup_selector_index, start_row_index);
+                assignment.enable_selector(lookup_selector_index, start_row_index + 1);
+                assignment.enable_selector(lookup_selector_index, start_row_index + 3);
+
+                lookup_selector_index = generate_lookup_gate2(component, bp, var_pos, table_id);
+                assignment.enable_selector(lookup_selector_index, start_row_index + 2);
+
+                lookup_selector_index = generate_lookup_gate4(component, bp, var_pos, table_id);
+                assignment.enable_selector(lookup_selector_index, start_row_index + 4);
 #endif
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
