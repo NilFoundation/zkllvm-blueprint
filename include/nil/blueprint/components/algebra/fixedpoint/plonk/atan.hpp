@@ -771,6 +771,46 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_gate1(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto delta = component.get_delta();
+                auto m = component.get_m();
+
+                auto c = nil::crypto3::math::expression(var(var_pos.c0.column(), 0, false));
+                auto d = nil::crypto3::math::expression(var(var_pos.d0.column(), 0, false));
+                auto abs_val =
+                    nil::crypto3::math::expression(var(var_pos.a0.column(), -1, false));    // abs from prev row
+                for (auto i = 1; i < m; i++) {
+                    c += var(var_pos.c0.column() + i, 0) * (1ULL << (16 * i));
+                    d += var(var_pos.d0.column() + i, 0) * (1ULL << (16 * i));
+                    abs_val += var(var_pos.a0.column() + i, -1) * (1ULL << (16 * i));
+                }
+
+                auto y1 = var(var_pos.y1.column(), 0, false);
+                auto abs = var(var_pos.abs.column(), 0, false);
+                auto ainv = var(var_pos.ainv.column(), 0, false);
+                auto c1 = var(var_pos.c1.column(), 0, false);
+                // auto pad1 = var(var_pos.pad1.column(), 0, false); // Enforced by lookup table
+                auto gt = var(var_pos.gt1.column(), -1, false);
+
+                auto x_val = typename BlueprintFieldType::value_type(delta) * delta;
+
+                auto constraint_1 = gt * (abs_val - delta) + delta - abs;
+                auto constraint_2 = 2 * (x_val - abs * ainv - c) + abs - c1;
+                auto constraint_3 = (c1 - 1) * c1;
+                auto constraint_4 = abs - c - d - 1;
+                auto constraint_5 = gt * (ainv - abs_val) + abs_val - y1;
+
+                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
@@ -807,6 +847,9 @@ namespace nil {
 
                 std::size_t selector_index = generate_gate0(component, bp, var_pos);
                 assignment.enable_selector(selector_index, start_row_index);
+
+                selector_index = generate_gate1(component, bp, var_pos);
+                assignment.enable_selector(selector_index, start_row_index + 1);
 
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
