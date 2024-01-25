@@ -106,7 +106,7 @@ namespace nil {
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    auto value = M(m1) == 1 ? 11 : 13;
+                    auto value = M(m1) == 1 ? 12 : 13;
                     value = M(m2) == 2 ? 15 : value;
                     manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(value)), false);
@@ -137,8 +137,8 @@ namespace nil {
                 struct var_positions {
                     CellPosition x, sx, gt1, s1, eq1, inv1, a0, b0;
                     CellPosition y1, abs, ainv, c1, c0, d0, pad1;
-                    CellPosition x1, gt2, num, denom, s2, eq2, inv2, e0, f0;
-                    CellPosition y2, num1, denom1, z, c2, g0, h0, pad2;
+                    CellPosition x1, gt2, num, denom, s2, eq2, inv2, z1, e0, f0;
+                    CellPosition y2, num1, denom1, z2, c2, g0, h0, pad2;
                     CellPosition p2, p3, p33, p5, p55, p20, p30, p330, p50, p550;
                     CellPosition y, t1, t3, t5, f1, f2, f3, i1, i2;
                 };
@@ -164,13 +164,21 @@ namespace nil {
                     //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  .. | .. |  ..  |  ..  |
                     //   ..  | .. |
                     // +-----+----+------+--------+-------+-----+------+------+------+------+-----+----+------+------+------+----|
-                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   | 7 + 2 *
-                    // m |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |
-                    // 4 + 2 * m |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | e0   |  ..  | em  | f0 |  ..
-                    // |                    8 + m + m2 |  3  | y2 | num1 | denom1 | z     | c2  |  -   | g0   |  ..  |
-                    // gm-1 | h0  | .. | hm-1 | pad2 |             5 + 2 * m |  4  | p2 | p3   | p33    | p5    | p55 |
-                    // p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   | p550 | .. | 5 + 5 * m2 |  5  | y  | t1   |
-                    // t3     | t5    | f1  | f2   | f3   | i1   | i2   |                                      7
+                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   |
+                    // |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |
+                    // |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | z1   | e0   |  .. | em | f0   |  ..  |
+                    // |  3  | y2 | num1 | denom1 | z2    | c2  |  -   | g0   |  ..  | gm-1 | h0  | .. | hm-1 | pad2 |
+                    // |  4  | p2 | p3   | p33    | p5    | p55 | p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   |
+                    // p550 | .. |
+                    // | 5 | y | t1 | t3 | t5 | f1 | f2 | f3 | i1 | i2 |
+
+                    // columns:
+                    // 0: 7 + 2 * m
+                    // 1: 4 + 2 * m
+                    // 2: 9 + m + m2
+                    // 3: 5 + 2 * m
+                    // 4: 5 + 5 * m2
+                    // 5: 9
 
                     pos.x = CellPosition(this->W(0), start_row_index);
                     pos.sx = CellPosition(this->W(1), start_row_index);
@@ -196,13 +204,14 @@ namespace nil {
                     pos.s2 = CellPosition(this->W(4), start_row_index + 2);
                     pos.eq2 = CellPosition(this->W(5), start_row_index + 2);
                     pos.inv2 = CellPosition(this->W(6), start_row_index + 2);
-                    pos.e0 = CellPosition(this->W(7 + 0 * (m + 1)), start_row_index + 2);    // occupies m + 1 cells
-                    pos.f0 = CellPosition(this->W(7 + 1 * (m + 1)), start_row_index + 2);    // occupies m2 cells
+                    pos.z1 = CellPosition(this->W(7), start_row_index + 2);
+                    pos.e0 = CellPosition(this->W(8 + 0 * (m + 1)), start_row_index + 2);    // occupies m + 1 cells
+                    pos.f0 = CellPosition(this->W(8 + 1 * (m + 1)), start_row_index + 2);    // occupies m2 cells
 
                     pos.y2 = CellPosition(this->W(0), start_row_index + 3);
                     pos.num1 = CellPosition(this->W(1), start_row_index + 3);
                     pos.denom1 = CellPosition(this->W(2), start_row_index + 3);
-                    pos.z = CellPosition(this->W(3), start_row_index + 3);
+                    pos.z2 = CellPosition(this->W(3), start_row_index + 3);
                     pos.c2 = CellPosition(this->W(4), start_row_index + 3);
                     pos.g0 = CellPosition(this->W(6 + 0 * m), start_row_index + 3);    // occupies m cells
                     pos.h0 = CellPosition(this->W(6 + 1 * m), start_row_index + 3);    // occupies m2 cells
@@ -489,6 +498,7 @@ namespace nil {
 
                 auto z_val = res.quotient;
                 auto q_val = res.remainder;
+                assignment.witness(splat(var_pos.z1)) = z_val;
 
                 if (component.get_m2() == 1) {
                     assignment.witness(splat(var_pos.f0)) = q_val;
@@ -532,7 +542,7 @@ namespace nil {
 
                 assignment.witness(splat(var_pos.num1)) = x_val;
                 assignment.witness(splat(var_pos.denom1)) = y_val;
-                assignment.witness(splat(var_pos.z)) = z_val;
+                assignment.witness(splat(var_pos.z2)) = z_val;
 
                 std::vector<uint16_t> q0_val;
                 std::vector<uint16_t> a0_val;
@@ -857,6 +867,7 @@ namespace nil {
                 auto inv2 = var(var_pos.inv2.column(), 0, false);
                 auto num = var(var_pos.num.column(), 0, false);
                 auto denom = var(var_pos.denom.column(), 0, false);
+                auto z1 = var(var_pos.z1.column(), 0, false);
 
                 auto inv_of_2 = typename BlueprintFieldType::value_type(2).inversed();
 
@@ -867,8 +878,13 @@ namespace nil {
                 auto constraint_3 = eq2 * e;
                 auto constraint_4 = 1 - eq2 - inv2 * e;
                 auto constraint_5 = gt2 - inv_of_2 * (1 + s2) * (1 - eq2);
+                // num and denom
+                auto constraint_6 = num - (x1 - sqrt3_3) * delta;
+                auto constraint_7 = 2 * (x1 * sqrt3_3 - z1 * delta - f) + delta;
+                auto constraint_8 = gt2 * z1 + delta - denom;
 
-                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
+                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
+                                    constraint_7, constraint_8});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -889,7 +905,7 @@ namespace nil {
                 var x = var(splat(var_pos.x), false);
                 bp.add_copy_constraint({instance_input.x, x});
 
-                // row1
+                // row2
                 var x1 = var(splat(var_pos.x1), false);
                 var y1 = var(splat(var_pos.y1), false);
                 bp.add_copy_constraint({x1, y1});
