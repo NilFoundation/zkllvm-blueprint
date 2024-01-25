@@ -237,8 +237,8 @@ namespace nil {
                     pos.f1 = CellPosition(this->W(4), start_row_index + 5);
                     pos.f2 = CellPosition(this->W(5), start_row_index + 5);
                     pos.f3 = CellPosition(this->W(6), start_row_index + 5);
-                    pos.i1 = CellPosition(this->W(5), start_row_index + 5);
-                    pos.i2 = CellPosition(this->W(6), start_row_index + 5);
+                    pos.i1 = CellPosition(this->W(7), start_row_index + 5);
+                    pos.i2 = CellPosition(this->W(8), start_row_index + 5);
 
                     return pos;
                 }
@@ -935,6 +935,26 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m2 = component.get_m2();
 
+                auto p20 = nil::crypto3::math::expression(var(var_pos.p20.column(), 0, false));
+                auto p30 = nil::crypto3::math::expression(var(var_pos.p30.column(), 0, false));
+                auto p330 = nil::crypto3::math::expression(var(var_pos.p330.column(), 0, false));
+                auto p50 = nil::crypto3::math::expression(var(var_pos.p50.column(), 0, false));
+                auto p550 = nil::crypto3::math::expression(var(var_pos.p550.column(), 0, false));
+                for (auto i = 1; i < m2; i++) {
+                    p20 += var(var_pos.p20.column() + i, 0) * (1ULL << (16 * i));
+                    p30 += var(var_pos.p30.column() + i, 0) * (1ULL << (16 * i));
+                    p330 += var(var_pos.p330.column() + i, 0) * (1ULL << (16 * i));
+                    p50 += var(var_pos.p50.column() + i, 0) * (1ULL << (16 * i));
+                    p550 += var(var_pos.p550.column() + i, 0) * (1ULL << (16 * i));
+                }
+
+                auto x = var(var_pos.y2.column(), -1, false);
+                auto p2 = var(var_pos.p2.column(), 0, false);
+                auto p3 = var(var_pos.p3.column(), 0, false);
+                auto p33 = var(var_pos.p33.column(), 0, false);
+                auto p5 = var(var_pos.p5.column(), 0, false);
+                auto p55 = var(var_pos.p55.column(), 0, false);
+
                 // TODO
 
                 return bp.add_gate({});
@@ -948,6 +968,20 @@ namespace nil {
                     &var_pos) {
 
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto m2 = component.get_m2();
+
+                uint64_t pi_2 = 0;
+                uint64_t pi_6 = 0;
+                if (m2 == 1) {
+                    pi_2 = 102944;
+                    pi_6 = 34315;
+                } else if (m2 == 2) {
+                    pi_2 = 6746518852;
+                    pi_6 = 2248839617;
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
 
                 // TODO
 
