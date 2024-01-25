@@ -19,6 +19,13 @@
 #define COS_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2) \
     (cos2 * (cos0 * cos1 - sin0 * sin1) - sin2 * (sin0 * cos1 + cos0 * sin1))
 
+#define SINH_COMPUTATION_1(sinh0, sinh1, cosh0, cosh1, sign_val) sign_val *(sinh0 * cosh1 + cosh0 * sinh1)
+#define SINH_COMPUTATION_2(sinh0, sinh1, sinh2, cosh0, cosh1, cosh2, sign_val) \
+    sign_val *(cosh2 * (sinh0 * cosh1 + cosh0 * sinh1) + sinh2 * (cosh0 * cosh1 + sinh0 * sinh1))
+#define COSH_COMPUTATION_1(sinh0, sinh1, cosh0, cosh1) (cosh0 * cosh1 + sinh0 * sinh1)
+#define COSH_COMPUTATION_2(sinh0, sinh1, sinh2, cosh0, cosh1, cosh2) \
+    (cosh2 * (cosh0 * cosh1 + sinh0 * sinh1) + sinh2 * (sinh0 * cosh1 + cosh0 * sinh1))
+
 namespace nil {
     namespace blueprint {
         namespace components {
@@ -87,13 +94,12 @@ namespace nil {
                 value_type value;
                 uint16_t scale;
 
-                void trigonometric_helper(value_type &sin0,
-                                          value_type &sin1,
-                                          value_type &sin2,
-                                          value_type &cos0,
-                                          value_type &cos1,
-                                          value_type &cos2,
-                                          value_type &sign_val) const;
+                void trigonometric_helper(value_type &sin0, value_type &sin1, value_type &sin2, value_type &cos0,
+                                          value_type &cos1, value_type &cos2, value_type &sign_val) const;
+
+                void hyperbolic_helper(value_type &sinh0, value_type &sinh1, value_type &sinh2, value_type &cosh0,
+                                       value_type &cosh1, value_type &cosh2, value_type &sign_val, value_type &h,
+                                       value_type &max) const;
 
             public:
                 static constexpr uint8_t M_1 = M1;
@@ -142,6 +148,8 @@ namespace nil {
                 FixedPoint rescale() const;
                 static FixedPoint dot(const std::vector<FixedPoint> &, const std::vector<FixedPoint> &);
 
+                FixedPoint sinh() const;
+                FixedPoint cosh() const;
                 FixedPoint tanh() const;
 
                 double to_double() const;
@@ -752,6 +760,89 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            void FixedPoint<BlueprintFieldType, M1, M2>::hyperbolic_helper(value_type &sinh0,
+                                                                           value_type &sinh1,
+                                                                           value_type &sinh2,
+                                                                           value_type &cosh0,
+                                                                           value_type &cosh1,
+                                                                           value_type &cosh2,
+                                                                           value_type &sign_val,
+                                                                           value_type &h,
+                                                                           value_type &max) const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                if constexpr (M1 == 1 && M2 == 1) {
+                    h = value_type(772243ULL);
+                    max = value_type(4294967295ULL);
+                } else if constexpr (M1 == 2 && M2 == 1) {
+                    h = value_type(1499061ULL);
+                    max = value_type(281474976710655ULL);
+                } else if constexpr (M1 == 1 && M2 == 2) {
+                    h = value_type(50609756021ULL);
+                    max = value_type(281474976710655ULL);
+                } else if constexpr (M1 == 2 && M2 == 2) {
+                    h = value_type(98242467570ULL);
+                    max = value_type(18446744073709551615ULL);
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
+
+                using value_type = typename BlueprintFieldType::value_type;
+
+                auto zero = value_type::zero();
+                auto one = value_type::one();
+                auto delta = value_type(DELTA);
+
+                std::vector<value_type> sinh_a;
+                if constexpr (M2 == 1) {
+                    sinh_a = FixedPointTables<BlueprintFieldType>::get_sinh_a_16();
+                } else {
+                    sinh_a = FixedPointTables<BlueprintFieldType>::get_sinh_a_32();
+                }
+
+                std::vector<value_type> sinh_b;
+                if constexpr (M2 == 1) {
+                    sinh_b = FixedPointTables<BlueprintFieldType>::get_sinh_b_16();
+                } else {
+                    sinh_b = FixedPointTables<BlueprintFieldType>::get_sinh_b_32();
+                }
+
+                std::vector<value_type> sinh_c;
+                if constexpr (M2 == 2) {
+                    sinh_c = FixedPointTables<BlueprintFieldType>::get_sinh_c_32();
+                }
+
+                std::vector<value_type> cosh_a;
+                if constexpr (M2 == 1) {
+                    cosh_a = FixedPointTables<BlueprintFieldType>::get_cosh_a_16();
+                } else {
+                    cosh_a = FixedPointTables<BlueprintFieldType>::get_cosh_a_32();
+                }
+
+                std::vector<value_type> cosh_b;
+                if constexpr (M2 == 1) {
+                    cosh_b = FixedPointTables<BlueprintFieldType>::get_cosh_b_16();
+                } else {
+                    cosh_b = FixedPointTables<BlueprintFieldType>::get_cosh_b_32();
+                }
+
+                std::vector<uint16_t> x0_val;
+                bool sign = FixedPointHelper<BlueprintFieldType>::decompose(value, x0_val);
+                BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= M2 + M1);
+                sign_val = sign ? -one : one;
+
+                sinh0 = sinh_a[x0_val[M2 - 0]];
+                sinh1 = sinh_b[x0_val[M2 - 1]];
+                sinh2 = zero;
+                if constexpr (M2 == 2) {
+                    sinh2 = sinh_c[x0_val[M2 - 2]];
+                }
+                cosh0 = cosh_a[x0_val[M2 - 0]];
+                cosh1 = cosh_b[x0_val[M2 - 1]];
+                cosh2 = delta;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
             FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::sin() const {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
 
@@ -777,6 +868,38 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::sinh() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                using value_type = typename BlueprintFieldType::value_type;
+                auto delta = value_type(DELTA);
+
+                value_type sinh0, sinh1, sinh2, cosh0, cosh1, cosh2, sign_val, h, max, x_abs, d;
+                hyperbolic_helper(sinh0, sinh1, sinh2, cosh0, cosh1, cosh2, sign_val, h, max);
+
+                x_abs = value;
+                FixedPointHelper<BlueprintFieldType>::abs(x_abs);
+                d = h - x_abs;
+                if (FixedPointHelper<BlueprintFieldType>::abs(d)) {
+                    return FixedPoint(sign_val * max, SCALE);
+                }
+
+                value_type actual_delta = delta;
+                if constexpr (M2 == 2) {
+                    actual_delta *= delta;
+                }
+
+                value_type computation;
+                if constexpr (M2 == 1) {
+                    computation = SINH_COMPUTATION_1(sinh0, sinh1, cosh0, cosh1, sign_val);
+                } else {
+                    computation = SINH_COMPUTATION_2(sinh0, sinh1, sinh2, cosh0, cosh1, cosh2, sign_val);
+                }
+                auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
+                return FixedPoint(divmod.quotient, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
             FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::cos() const {
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
 
@@ -796,6 +919,38 @@ namespace nil {
                     computation = COS_COMPUTATION_1(sin0, sin1, cos0, cos1);
                 } else {
                     computation = COS_COMPUTATION_2(sin0, sin1, sin2, cos0, cos1, cos2);
+                }
+                auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
+                return FixedPoint(divmod.quotient, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::cosh() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                using value_type = typename BlueprintFieldType::value_type;
+                auto delta = value_type(DELTA);
+
+                value_type sinh0, sinh1, sinh2, cosh0, cosh1, cosh2, sign_val, h, max, x_abs, d;
+                hyperbolic_helper(sinh0, sinh1, sinh2, cosh0, cosh1, cosh2, sign_val, h, max);
+
+                x_abs = value;
+                FixedPointHelper<BlueprintFieldType>::abs(x_abs);
+                d = h - x_abs;
+                if (FixedPointHelper<BlueprintFieldType>::abs(d)) {
+                    return FixedPoint(max, SCALE);
+                }
+
+                value_type actual_delta = delta;
+                if constexpr (M2 == 2) {
+                    actual_delta *= delta;
+                }
+
+                value_type computation;
+                if constexpr (M2 == 1) {
+                    computation = COSH_COMPUTATION_1(sinh0, sinh1, cosh0, cosh1);
+                } else {
+                    computation = COSH_COMPUTATION_2(sinh0, sinh1, sinh2, cosh0, cosh1, cosh2);
                 }
                 auto divmod = FixedPointHelper<BlueprintFieldType>::round_div_mod(computation, actual_delta);
                 return FixedPoint(divmod.quotient, SCALE);
