@@ -395,7 +395,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= m);
                 BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m);
 
-                auto y_ = FixedPointHelper<BlueprintFieldType>::field_to_backend(abs);
+                auto y_ = FixedPointHelper<BlueprintFieldType>::field_to_backend(y_val);
                 assignment.witness(splat(var_pos.c1)) = typename BlueprintFieldType::value_type(y_.limbs()[0] & 1);
 
                 for (auto i = 0; i < m; i++) {
