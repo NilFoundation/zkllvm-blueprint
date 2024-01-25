@@ -915,13 +915,12 @@ namespace nil {
                 auto gt3 = var(var_pos.gt3.column(), 0, false);
                 auto x3 = var(var_pos.x3.column(), 0, false);
 
-                // auto constraint_1 = gt * (abs_val - delta) + delta - abs;
-                // auto constraint_2 = 2 * (x_val - abs * ainv - c) + abs - c1;
-                // auto constraint_3 = (c1 - 1) * c1;
-                // auto constraint_4 = abs - c - d - 1;
-                // auto constraint_5 = gt * (ainv - abs_val) + abs_val - y1;
+                auto constraint_1 = 2 * (num - denom * z2 - g) + denom - c2;
+                auto constraint_2 = (c2 - 1) * c2;
+                auto constraint_3 = denom - g - h - 1;
+                auto constraint_4 = gt3 * (z2 - x3) + x3 - y2;
 
-                return bp.add_gate({});
+                return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
