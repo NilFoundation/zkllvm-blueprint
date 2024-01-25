@@ -140,7 +140,7 @@ namespace nil {
                     CellPosition x1, gt2, num, denom, s2, eq2, inv2, e0, f0;
                     CellPosition y2, num1, denom1, z, c2, g0, h0, pad2;
                     CellPosition p2, p3, p33, p5, p55, p20, p30, p330, p50, p550;
-                    CellPosition y, t1, t3, t5, f1, f2, f3;
+                    CellPosition y, t1, t3, t5, f1, f2, f3, i1, i2;
                 };
 
                 var_positions get_var_pos(const int64_t start_row_index) const {
@@ -153,22 +153,24 @@ namespace nil {
                     //
                     // First row calculates the abs value (a0..am-1) and compares it to 1 (gt1)
                     // Second row takes the inverse of abs if gt1=1, otherwise it takes the abs value
-                    // Third row compares the output of the second row to 0.7 (gt2), and prepares the division for the next row
-                    // Fourth row calculates the a division and takes the result if gt2=1, otherwise it takes the result of the second row
-                    // Fifth row calculates the taylor polynomial
-                    // Sixth row calculates the output from the flags sx, gt1, gt2, and the taylor polynomial
+                    // Third row compares the output of the second row to 0.7 (gt2), and prepares the division for the
+                    // next row Fourth row calculates the a division and takes the result if gt2=1, otherwise it takes
+                    // the result of the second row Fifth row calculates the taylor polynomial Sixth row calculates the
+                    // output from the flags sx, gt1, gt2, and the taylor polynomial
                     //
                     // pad1 and pad2 are just here to allow the same lookup table gate in row0, row1, and row3
                     //
                     //       |                witness
-                    //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  .. | .. |  ..  |  ..  |  ..  | .. |
+                    //   r\c | 0  |  1   |   2    |   3   |  4  |  ..  |  ..  |  ..  |  ..  |  .. | .. |  ..  |  ..  |
+                    //   ..  | .. |
                     // +-----+----+------+--------+-------+-----+------+------+------+------+-----+----+------+------+------+----|
-                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   |                    7 + 2 * m
-                    // |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |             4 + 2 * m
-                    // |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | e0   |  ..  | em  | f0 |  ..  |                    8 + m + m2
-                    // |  3  | y2 | num1 | denom1 | z     | c2  |  -   | g0   |  ..  | gm-1 | h0  | .. | hm-1 | pad2 |             5 + 2 * m
-                    // |  4  | p2 | p3   | p33    | p5    | p55 | p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   | p550 | .. | 5 + 5 * m2
-                    // |  5  | y  | t1   | t3     | t5    | f1  | f2   | f3   |                                                    7
+                    // |  0  | x  | sx   | gt1    | s1    | eq1 | inv1 | a0   |  ..  | am-1 | b0  | .. | bm   | 7 + 2 *
+                    // m |  1  | y1 | abs  | ainv   | c1    |  -  |  -   | c0   |  ..  | cm-1 | d0  | .. | dm-1 | pad1 |
+                    // 4 + 2 * m |  2  | x1 | gt2  | num    | denom | s2  | eq2  | inv2 | e0   |  ..  | em  | f0 |  ..
+                    // |                    8 + m + m2 |  3  | y2 | num1 | denom1 | z     | c2  |  -   | g0   |  ..  |
+                    // gm-1 | h0  | .. | hm-1 | pad2 |             5 + 2 * m |  4  | p2 | p3   | p33    | p5    | p55 |
+                    // p20  | ..   | p30  |  ..  | p50 | .. | p55  | ..   | p550 | .. | 5 + 5 * m2 |  5  | y  | t1   |
+                    // t3     | t5    | f1  | f2   | f3   | i1   | i2   |                                      7
 
                     pos.x = CellPosition(this->W(0), start_row_index);
                     pos.sx = CellPosition(this->W(1), start_row_index);
@@ -211,11 +213,11 @@ namespace nil {
                     pos.p33 = CellPosition(this->W(2), start_row_index + 4);
                     pos.p5 = CellPosition(this->W(3), start_row_index + 4);
                     pos.p55 = CellPosition(this->W(4), start_row_index + 4);
-                    pos.p20 = CellPosition(this->W(5 + 0 * m2), start_row_index + 4); // occupies m2 cells
-                    pos.p30 = CellPosition(this->W(5 + 1 * m2), start_row_index + 4); // occupies m2 cells
-                    pos.p330 = CellPosition(this->W(5 + 2 * m2), start_row_index + 4); // occupies m2 cells
-                    pos.p50 = CellPosition(this->W(5 + 3 * m2), start_row_index + 4); // occupies m2 cells
-                    pos.p550 = CellPosition(this->W(5 + 4 * m2), start_row_index + 4); // occupies m2 cells
+                    pos.p20 = CellPosition(this->W(5 + 0 * m2), start_row_index + 4);     // occupies m2 cells
+                    pos.p30 = CellPosition(this->W(5 + 1 * m2), start_row_index + 4);     // occupies m2 cells
+                    pos.p330 = CellPosition(this->W(5 + 2 * m2), start_row_index + 4);    // occupies m2 cells
+                    pos.p50 = CellPosition(this->W(5 + 3 * m2), start_row_index + 4);     // occupies m2 cells
+                    pos.p550 = CellPosition(this->W(5 + 4 * m2), start_row_index + 4);    // occupies m2 cells
 
                     pos.y = CellPosition(this->W(0), start_row_index + 5);
                     pos.t1 = CellPosition(this->W(1), start_row_index + 5);
@@ -224,6 +226,8 @@ namespace nil {
                     pos.f1 = CellPosition(this->W(4), start_row_index + 5);
                     pos.f2 = CellPosition(this->W(5), start_row_index + 5);
                     pos.f3 = CellPosition(this->W(6), start_row_index + 5);
+                    pos.i1 = CellPosition(this->W(5), start_row_index + 5);
+                    pos.i2 = CellPosition(this->W(6), start_row_index + 5);
 
                     return pos;
                 }
@@ -289,7 +293,8 @@ namespace nil {
                     &assignment,
                 const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
                     instance_input,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
 
                 // Basically combines abs and abs > 1
 
@@ -333,7 +338,7 @@ namespace nil {
                 assignment.witness(splat(var_pos.gt1)) = gt_val;
                 assignment.witness(splat(var_pos.s1)) = sign ? -one : one;
 
-                 // if eq:  Does not matter what to put here
+                // if eq:  Does not matter what to put here
                 assignment.witness(splat(var_pos.inv1)) = eq ? zero : d_val.inversed();
 
                 // Additional limb due to potential overflow of diff
@@ -359,7 +364,8 @@ namespace nil {
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos, typename BlueprintFieldType::value_type& abs) {
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions &var_pos,
+                typename BlueprintFieldType::value_type &abs) {
 
                 // Basically a div_by_pos gadget, where x is hardcoded to be one.
 
@@ -368,8 +374,7 @@ namespace nil {
 
                 auto x_val = typename BlueprintFieldType::value_type(delta) * delta;
 
-                DivMod<BlueprintFieldType> tmp_div =
-                    FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, abs);
+                DivMod<BlueprintFieldType> tmp_div = FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, abs);
                 auto z_val = tmp_div.quotient;
 
                 assignment.witness(splat(var_pos.abs)) = abs;
@@ -406,7 +411,8 @@ namespace nil {
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
 
                 // Basically a comparison of the input x > 0.7 and preparing the values for a division in hte next row
 
@@ -451,7 +457,7 @@ namespace nil {
                 assignment.witness(splat(var_pos.gt2)) = gt_val;
                 assignment.witness(splat(var_pos.s2)) = sign ? -one : one;
 
-                 // if eq:  Does not matter what to put here
+                // if eq:  Does not matter what to put here
                 assignment.witness(splat(var_pos.inv2)) = eq ? zero : d_val.inversed();
 
                 // Additional limb due to potential overflow of diff
@@ -501,19 +507,21 @@ namespace nil {
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
 
                 // Basically a div_by_positive gadget, and setting an output based on previous flags
 
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
-                 auto m = component.get_m();
+                auto m = component.get_m();
+                auto zero = BlueprintFieldType::value_type::zero();
+                auto one = BlueprintFieldType::value_type::one();
 
                 auto x_val = assignment.witness(splat(var_pos.num));
                 auto y_val = assignment.witness(splat(var_pos.denom));
 
-                DivMod<BlueprintFieldType> tmp_div =
-                    FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, y_val);
+                DivMod<BlueprintFieldType> tmp_div = FixedPointHelper<BlueprintFieldType>::round_div_mod(x_val, y_val);
                 auto z_val = tmp_div.quotient;
 
                 assignment.witness(splat(var_pos.num1)) = x_val;
@@ -540,13 +548,14 @@ namespace nil {
                     assignment.witness(var_pos.h0.column() + i, var_pos.h0.row()) = a0_val[i];
                 }
 
-                 // We pad to have the same lookup gate as for row0
-                assignment.witness(splat(var_pos.pad2)) = BlueprintFieldType::value_type::zero();
+                // We pad to have the same lookup gate as for row0
+                assignment.witness(splat(var_pos.pad2)) = zero;
 
                 // Finally, output depending on gt2
                 auto gt = assignment.witness(splat(var_pos.gt2));
+                BLUEPRINT_RELEASE_ASSERT(gt == one || gt == zero);
                 auto x = assignment.witness(splat(var_pos.x1));
-                assignment.witness(splat(var_pos.y2)) = gt == BlueprintFieldType::value_type::one() ? z_val : x;
+                assignment.witness(splat(var_pos.y2)) = gt == one ? z_val : x;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -554,7 +563,8 @@ namespace nil {
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                     &assignment,
-                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions& var_pos) {
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
 
                 // Basically a taylor polynomial
 
@@ -572,17 +582,16 @@ namespace nil {
                 DivMod<BlueprintFieldType> res_x5 =
                     FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x2.quotient * res_x3.quotient, delta);
 
-                DivMod<BlueprintFieldType> res_x33 =
-                    FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x3.quotient * static_cast<int64_t>(delta / 3.), delta);
-                DivMod<BlueprintFieldType> res_x55 =
-                    FixedPointHelper<BlueprintFieldType>::round_div_mod(res_x5.quotient * static_cast<int64_t>(delta / 5.), delta);
+                DivMod<BlueprintFieldType> res_x33 = FixedPointHelper<BlueprintFieldType>::round_div_mod(
+                    res_x3.quotient * static_cast<int64_t>(delta / 3.), delta);
+                DivMod<BlueprintFieldType> res_x55 = FixedPointHelper<BlueprintFieldType>::round_div_mod(
+                    res_x5.quotient * static_cast<int64_t>(delta / 5.), delta);
 
                 assignment.witness(splat(var_pos.p2)) = res_x2.quotient;
                 assignment.witness(splat(var_pos.p3)) = res_x3.quotient;
                 assignment.witness(splat(var_pos.p33)) = res_x33.quotient;
                 assignment.witness(splat(var_pos.p5)) = res_x5.quotient;
                 assignment.witness(splat(var_pos.p55)) = res_x55.quotient;
-
 
                 if (component.get_m2() == 1) {
                     assignment.witness(splat(var_pos.p20)) = res_x2.remainder;
@@ -621,7 +630,69 @@ namespace nil {
                         assignment.witness(var_pos.p550.column() + i, var_pos.p550.row()) = q550_val[i];
                     }
                 }
+            }
 
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            void generate_assignments_row5(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    &assignment,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
+
+                // Combine taylor with the corrections from the previous rows
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto m2 = component.get_m2();
+                auto zero = BlueprintFieldType::value_type::zero();
+                auto one = BlueprintFieldType::value_type::one();
+
+                auto x_val = assignment.witness(splat(var_pos.y2));
+                auto x33_val = assignment.witness(splat(var_pos.p33));
+                auto x55_val = assignment.witness(splat(var_pos.p55));
+                auto shift_val = assignment.witness(splat(var_pos.gt2));
+                auto invert_val = assignment.witness(splat(var_pos.gt1));
+                auto sign_val = assignment.witness(splat(var_pos.sx));
+
+                assignment.witness(splat(var_pos.t1)) = x_val;
+                assignment.witness(splat(var_pos.t3)) = x33_val;
+                assignment.witness(splat(var_pos.t5)) = x55_val;
+                assignment.witness(splat(var_pos.f1)) = shift_val;
+                assignment.witness(splat(var_pos.f2)) = invert_val;
+                assignment.witness(splat(var_pos.f3)) = sign_val;
+
+                BLUEPRINT_RELEASE_ASSERT(shift_val == one || shift_val == zero);
+                BLUEPRINT_RELEASE_ASSERT(invert_val == one || invert_val == zero);
+                BLUEPRINT_RELEASE_ASSERT(sign_val == one || sign_val == -one);
+
+                uint64_t pi_2 = 0;
+                uint64_t pi_6 = 0;
+                if (m2 == 1) {
+                    pi_2 = 102944;
+                    pi_6 = 34315;
+                } else if (m2 == 2) {
+                    pi_2 = 6746518852;
+                    pi_6 = 2248839617;
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
+
+                auto poly_val = x_val - x33_val + x55_val;
+                if (shift_val == one) {
+                    poly_val += pi_6;
+                }
+                assignment.witness(splat(var_pos.i1)) = poly_val;
+
+                if (invert_val == one) {
+                    poly_val = pi_2 - poly_val;
+                }
+                assignment.witness(splat(var_pos.i2)) = poly_val;
+
+                if (sign_val == -one) {
+                    poly_val = -poly_val;
+                }
+                assignment.witness(splat(var_pos.y)) = poly_val;
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -640,8 +711,7 @@ namespace nil {
                 generate_assignments_row2(component, assignment, var_pos);
                 generate_assignments_row3(component, assignment, var_pos);
                 generate_assignments_row4(component, assignment, var_pos);
-
-                // TODO
+                generate_assignments_row5(component, assignment, var_pos);
 
                 return typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);
