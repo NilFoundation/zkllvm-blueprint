@@ -924,6 +924,37 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_gate4(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                auto delta = component.get_delta();
+                auto m2 = component.get_m2();
+
+                // TODO
+
+                return bp.add_gate({});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            std::size_t generate_gate5(
+                const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
+                const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var_positions
+                    &var_pos) {
+
+                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
+
+                // TODO
+
+                return bp.add_gate({});
+            }
+
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
             void generate_copy_constraints(
                 const plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
@@ -959,7 +990,25 @@ namespace nil {
                 bp.add_copy_constraint({x1, x3});
                 bp.add_copy_constraint({gt2, gt3});
 
-                // TODO
+                // row5
+                var y2 = var(splat(var_pos.y2), false);
+                var p33 = var(splat(var_pos.p33), false);
+                var p55 = var(splat(var_pos.p55), false);
+                var shift = var(splat(var_pos.gt2), false);
+                var invert = var(splat(var_pos.gt1), false);
+                var sign = var(splat(var_pos.sx), false);
+                var t1 = var(splat(var_pos.t1), false);
+                var t3 = var(splat(var_pos.t3), false);
+                var t5 = var(splat(var_pos.t5), false);
+                var f1 = var(splat(var_pos.f1), false);
+                var f2 = var(splat(var_pos.f2), false);
+                var f3 = var(splat(var_pos.f3), false);
+                bp.add_copy_constraint({y2, t1});
+                bp.add_copy_constraint({p33, t3});
+                bp.add_copy_constraint({p55, t5});
+                bp.add_copy_constraint({shift, f1});
+                bp.add_copy_constraint({invert, f2});
+                bp.add_copy_constraint({sign, f3});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -988,7 +1037,11 @@ namespace nil {
                 selector_index = generate_gate3(component, bp, var_pos);
                 assignment.enable_selector(selector_index, start_row_index + 3);
 
-                // TODO
+                selector_index = generate_gate4(component, bp, var_pos);
+                assignment.enable_selector(selector_index, start_row_index + 4);
+
+                selector_index = generate_gate5(component, bp, var_pos);
+                assignment.enable_selector(selector_index, start_row_index + 5);
 
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
