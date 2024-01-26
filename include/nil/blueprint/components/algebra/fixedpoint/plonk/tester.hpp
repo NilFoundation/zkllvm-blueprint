@@ -25,7 +25,7 @@
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/div_by_positive.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/dot_rescale_1_gate.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/dot_rescale_2_gates.hpp"
-#include "nil/blueprint/components/algebra/fixedpoint/plonk/log.hpp"
+#include "nil/blueprint/components/algebra/fixedpoint/plonk/log_ranged.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/sqrt.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/sqrt_floor.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/tanh.hpp"
@@ -189,7 +189,7 @@ namespace nil {
                             component_rows = macro_rows_amount(fix_gather_acc);
                             break;
                         case FixedPointComponents::LOG:
-                            component_rows = macro_rows_amount(fix_log, m1, m2);
+                            component_rows = macro_rows_amount(fix_log_ranged, m1, m2);
                             break;
                         case FixedPointComponents::MAX:
                             component_rows = macro_rows_amount(fix_max);
@@ -720,7 +720,7 @@ namespace nil {
                             break;
                         }
                         case FixedPointComponents::LOG: {
-                            macro_assigner_1_input(fix_log, 0, m1, m2);
+                            macro_assigner_1_input(fix_log_ranged, 0, m1, m2);
                             break;
                         }
                         case FixedPointComponents::MAX: {
@@ -920,7 +920,7 @@ namespace nil {
                             break;
                         }
                         case FixedPointComponents::LOG: {
-                            macro_circuit_1_input(fix_log, 0, m1, m2);
+                            macro_circuit_1_input(fix_log_ranged, 0, m1, m2);
                             break;
                         }
                         case FixedPointComponents::MAX: {

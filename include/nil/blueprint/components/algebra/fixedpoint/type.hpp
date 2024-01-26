@@ -153,6 +153,9 @@ namespace nil {
                 FixedPoint sinh() const;
                 FixedPoint cosh() const;
                 FixedPoint tanh() const;
+                FixedPoint asinh() const;
+                FixedPoint acosh() const;
+                FixedPoint atanh() const;
 
                 double to_double() const;
                 value_type get_value() const {
@@ -330,12 +333,27 @@ namespace nil {
                 big_float out;
                 eval_sqrt(out.backend(), val_float.backend());
 
+                auto int_val = out.convert_to<nil::crypto3::multiprecision::cpp_int>();
+                value_type result = value_type(int_val);
+                value_type one = value_type::one();
+
+                // result is not always accurate, so we need to adjust it. First floor rounding.
+                while (inp - result * result > P_HALF) {
+                    result -= one;
+                }
+                while (inp - (result + one) * (result + one) <= P_HALF) {
+                    result += one;
+                }
                 if (!floor) {
-                    out += 0.5;
+                    // might need to add one for proper rounding
+                    value_type floor_diff = inp - result * result;                   // always "positive"
+                    value_type ceil_diff = (result + one) * (result + one) - inp;    // always "positive"
+                    if (floor_diff - ceil_diff < P_HALF) {
+                        result += one;
+                    }
                 }
 
-                auto int_val = out.convert_to<nil::crypto3::multiprecision::cpp_int>();
-                return value_type(int_val);
+                return result;
             }
 
             // res.quotient = Round(val / div)
@@ -1096,8 +1114,7 @@ namespace nil {
 
                 auto exp2 = (fix - FixedPoint(1, SCALE)).exp();
                 while (exp2.get_value() >= value) {
-                    // TACEO_TODO probably endless loop for input "- FixedType(value_type(FixedType::DELTA - 50), FixedType::SCALE)" for 16.32 vesta
-                    fix.value -= 1;
+                    fix.value -= offset;
                     exp2 = (fix - FixedPoint(1, SCALE)).exp();
                 }
 
@@ -1177,6 +1194,100 @@ namespace nil {
                 auto exp_m = exp - one;
 
                 return exp_m / exp_p;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::asinh() const {
+                using value_type = typename BlueprintFieldType::value_type;
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+                value_type value = this->value;
+                if (M2 == 1) {
+                    value *= 1ULL << 16;
+                }
+                value_type value_abs = value;
+                bool sign = FixedPointHelper<BlueprintFieldType>::abs(value_abs);
+                const value_type delta = value_type(1ULL << 32);
+
+                value_type h;
+                if constexpr (M1 == 1 && M2 == 2) {
+                    h = value_type(((uint64_t)(1ULL << (16 * (M1 + 2)))) / 2 - (1ULL << 17));
+                } else if constexpr (M1 == 1 && M2 == 1) {
+                    h = value_type(((uint64_t)(1ULL << (16 * (M1 + 2)))) / 2 - 1);
+                } else {
+                    h = value_type(((uint64_t)(-1)) / 2 - 1);
+                }
+
+                value_type d = h - value_abs;
+                bool sign_ = FixedPointHelper<BlueprintFieldType>::abs(d);
+                BLUEPRINT_RELEASE_ASSERT(
+                    !sign_ &&
+                    "input for asinh/acosh is too large. abs(input) must be smaller than (FixedPoint::max / 2) "
+                    "- 1 except for 16.32 where it must be (FixedPoint::max / 2) - 2^17");
+
+                value_type sqrt = FixedPointHelper<BlueprintFieldType>::sqrt(value_abs * value_abs + delta * delta);
+                value_type res_tmp = FixedPoint<BlueprintFieldType, M1, 2>(value + sqrt, 32).log().get_value();
+                if constexpr (M2 == 1) {
+                    auto divmod = helper::round_div_mod(res_tmp, 1ULL << 16);
+                    res_tmp = divmod.quotient;
+                }
+                return FixedPoint(res_tmp, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::acosh() const {
+                using value_type = typename BlueprintFieldType::value_type;
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+                value_type value = this->value;
+                if (M2 == 1) {
+                    value *= 1ULL << 16;
+                }
+                value_type value_abs = value;
+                bool sign = FixedPointHelper<BlueprintFieldType>::abs(value_abs);
+                const value_type delta = value_type(1ULL << 32);
+
+                value_type h;
+                if constexpr (M1 == 1 && M2 == 2) {
+                    h = value_type(((uint64_t)(1ULL << (16 * (M1 + 2)))) / 2 - (1ULL << 17));
+                } else if constexpr (M1 == 1 && M2 == 1) {
+                    h = value_type(((uint64_t)(1ULL << (16 * (M1 + 2)))) / 2 - 1);
+                } else {
+                    h = value_type(((uint64_t)(-1)) / 2 - 1);
+                }
+
+                value_type d = h - value_abs;
+                bool sign_ = FixedPointHelper<BlueprintFieldType>::abs(d);
+                BLUEPRINT_RELEASE_ASSERT(
+                    !sign_ &&
+                    "input for asinh/acosh is too large. abs(input) must be smaller than (FixedPoint::max / 2) "
+                    "- 1 except for 16.32 where it must be (FixedPoint::max / 2) - 2^17");
+
+                value_type sqrt = FixedPointHelper<BlueprintFieldType>::sqrt(value_abs * value_abs - delta * delta);
+
+                value_type res_tmp = FixedPoint<BlueprintFieldType, M1, 2>(value + sqrt, 32).log().get_value();
+                if constexpr (M2 == 1) {
+                    auto divmod = helper::round_div_mod(res_tmp, 1ULL << 16);
+                    res_tmp = divmod.quotient;
+                }
+                return FixedPoint(res_tmp, SCALE);
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::atanh() const {
+                using value_type = typename BlueprintFieldType::value_type;
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+                value_type value_abs = this->value;
+                bool sign = FixedPointHelper<BlueprintFieldType>::abs(value_abs);
+                const value_type delta = value_type(FixedPoint::DELTA);
+                const value_type h = (M1 == 1 && M2 == 2) ? value_type(FixedPoint::DELTA - (1ULL << 17)) :
+                                                            value_type(FixedPoint::DELTA - 2);
+                value_type d = h - value_abs;
+                bool sign_ = FixedPointHelper<BlueprintFieldType>::abs(d);
+                BLUEPRINT_RELEASE_ASSERT(!sign_ && "atanh(x) is not defined for |x| > 1");
+                auto tmp_div =
+                    FixedPointHelper<BlueprintFieldType>::round_div_mod((delta + value) * delta, delta - value);
+                auto log_res = FixedPoint(tmp_div.quotient, SCALE).log().get_value();
+                auto tmp_div2 = FixedPointHelper<BlueprintFieldType>::round_div_mod(log_res * delta, 2 * delta);
+                return FixedPoint(tmp_div2.quotient, SCALE);
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
