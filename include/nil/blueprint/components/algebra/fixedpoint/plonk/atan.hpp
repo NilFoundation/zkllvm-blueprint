@@ -746,8 +746,8 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m = component.get_m();
 
-                auto a = nil::crypto3::math::expression(var(var_pos.a0.column(), 0, false));
-                auto b = nil::crypto3::math::expression(var(var_pos.b0.column(), 0, false));
+                auto a = nil::crypto3::math::expression(var(var_pos.a0.column(), 0));
+                auto b = nil::crypto3::math::expression(var(var_pos.b0.column(), 0));
                 for (auto i = 1; i < m; i++) {
                     a += var(var_pos.a0.column() + i, 0) * (1ULL << (16 * i));
                     b += var(var_pos.b0.column() + i, 0) * (1ULL << (16 * i));
@@ -757,12 +757,12 @@ namespace nil {
                 tmp *= 1ULL << 16;
                 b += var(var_pos.b0.column() + m, 0) * tmp;
 
-                auto x = var(var_pos.x.column(), 0, false);
-                auto sx = var(var_pos.sx.column(), 0, false);
-                auto gt1 = var(var_pos.gt1.column(), 0, false);
-                auto s1 = var(var_pos.s1.column(), 0, false);
-                auto eq1 = var(var_pos.eq1.column(), 0, false);
-                auto inv1 = var(var_pos.inv1.column(), 0, false);
+                auto x = var(var_pos.x.column(), 0);
+                auto sx = var(var_pos.sx.column(), 0);
+                auto gt1 = var(var_pos.gt1.column(), 0);
+                auto s1 = var(var_pos.s1.column(), 0);
+                auto eq1 = var(var_pos.eq1.column(), 0);
+                auto inv1 = var(var_pos.inv1.column(), 0);
 
                 auto inv_of_2 = typename BlueprintFieldType::value_type(2).inversed();
 
@@ -793,22 +793,21 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m = component.get_m();
 
-                auto c = nil::crypto3::math::expression(var(var_pos.c0.column(), 0, false));
-                auto d = nil::crypto3::math::expression(var(var_pos.d0.column(), 0, false));
-                auto abs_val =
-                    nil::crypto3::math::expression(var(var_pos.a0.column(), -1, false));    // abs from prev row
+                auto c = nil::crypto3::math::expression(var(var_pos.c0.column(), 0));
+                auto d = nil::crypto3::math::expression(var(var_pos.d0.column(), 0));
+                auto abs_val = nil::crypto3::math::expression(var(var_pos.a0.column(), -1));    // abs from prev row
                 for (auto i = 1; i < m; i++) {
                     c += var(var_pos.c0.column() + i, 0) * (1ULL << (16 * i));
                     d += var(var_pos.d0.column() + i, 0) * (1ULL << (16 * i));
                     abs_val += var(var_pos.a0.column() + i, -1) * (1ULL << (16 * i));
                 }
 
-                auto y1 = var(var_pos.y1.column(), 0, false);
-                auto abs = var(var_pos.abs.column(), 0, false);
-                auto ainv = var(var_pos.ainv.column(), 0, false);
-                auto c1 = var(var_pos.c1.column(), 0, false);
-                // auto pad1 = var(var_pos.pad1.column(), 0, false); // Enforced by lookup table
-                auto gt = var(var_pos.gt1.column(), -1, false);
+                auto y1 = var(var_pos.y1.column(), 0);
+                auto abs = var(var_pos.abs.column(), 0);
+                auto ainv = var(var_pos.ainv.column(), 0);
+                auto c1 = var(var_pos.c1.column(), 0);
+                // auto pad1 = var(var_pos.pad1.column(), 0); // Enforced by lookup table
+                auto gt = var(var_pos.gt1.column(), -1);
 
                 auto x_val = typename BlueprintFieldType::value_type(delta) * delta;
 
