@@ -833,8 +833,8 @@ namespace nil {
                 auto m2 = component.get_m2();
                 auto m = component.get_m();
 
-                auto e = nil::crypto3::math::expression(var(var_pos.e0.column(), 0, false));
-                auto f = nil::crypto3::math::expression(var(var_pos.f0.column(), 0, false));
+                auto e = nil::crypto3::math::expression(var(var_pos.e0.column(), 0));
+                auto f = nil::crypto3::math::expression(var(var_pos.f0.column(), 0));
                 for (auto i = 1; i < m2; i++) {
                     f += var(var_pos.f0.column() + i, 0) * (1ULL << (16 * i));
                 }
@@ -860,14 +860,14 @@ namespace nil {
                     BLUEPRINT_RELEASE_ASSERT(false);
                 }
 
-                auto x1 = var(var_pos.x1.column(), 0, false);
-                auto gt2 = var(var_pos.gt2.column(), 0, false);
-                auto s2 = var(var_pos.s2.column(), 0, false);
-                auto eq2 = var(var_pos.eq2.column(), 0, false);
-                auto inv2 = var(var_pos.inv2.column(), 0, false);
-                auto num = var(var_pos.num.column(), 0, false);
-                auto denom = var(var_pos.denom.column(), 0, false);
-                auto z1 = var(var_pos.z1.column(), 0, false);
+                auto x1 = var(var_pos.x1.column(), 0);
+                auto gt2 = var(var_pos.gt2.column(), 0);
+                auto s2 = var(var_pos.s2.column(), 0);
+                auto eq2 = var(var_pos.eq2.column(), 0);
+                auto inv2 = var(var_pos.inv2.column(), 0);
+                auto num = var(var_pos.num.column(), 0);
+                auto denom = var(var_pos.denom.column(), 0);
+                auto z1 = var(var_pos.z1.column(), 0);
 
                 auto inv_of_2 = typename BlueprintFieldType::value_type(2).inversed();
 
@@ -899,20 +899,20 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m = component.get_m();
 
-                auto g = nil::crypto3::math::expression(var(var_pos.g0.column(), 0, false));
-                auto h = nil::crypto3::math::expression(var(var_pos.h0.column(), 0, false));
+                auto g = nil::crypto3::math::expression(var(var_pos.g0.column(), 0));
+                auto h = nil::crypto3::math::expression(var(var_pos.h0.column(), 0));
                 for (auto i = 1; i < m; i++) {
                     g += var(var_pos.g0.column() + i, 0) * (1ULL << (16 * i));
                     h += var(var_pos.h0.column() + i, 0) * (1ULL << (16 * i));
                 }
 
-                auto y2 = var(var_pos.y2.column(), 0, false);
-                auto num = var(var_pos.num1.column(), 0, false);
-                auto denom = var(var_pos.denom1.column(), 0, false);
-                auto z2 = var(var_pos.z2.column(), 0, false);
-                auto c2 = var(var_pos.c2.column(), 0, false);
-                auto gt3 = var(var_pos.gt3.column(), 0, false);
-                auto x3 = var(var_pos.x3.column(), 0, false);
+                auto y2 = var(var_pos.y2.column(), 0);
+                auto num = var(var_pos.num1.column(), 0);
+                auto denom = var(var_pos.denom1.column(), 0);
+                auto z2 = var(var_pos.z2.column(), 0);
+                auto c2 = var(var_pos.c2.column(), 0);
+                auto gt3 = var(var_pos.gt3.column(), 0);
+                auto x3 = var(var_pos.x3.column(), 0);
 
                 auto constraint_1 = 2 * (num - denom * z2 - g) + denom - c2;
                 auto constraint_2 = (c2 - 1) * c2;
@@ -934,11 +934,11 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m2 = component.get_m2();
 
-                auto x2q = nil::crypto3::math::expression(var(var_pos.p20.column(), 0, false));
-                auto x3q = nil::crypto3::math::expression(var(var_pos.p30.column(), 0, false));
-                auto x33q = nil::crypto3::math::expression(var(var_pos.p330.column(), 0, false));
-                auto x5q = nil::crypto3::math::expression(var(var_pos.p50.column(), 0, false));
-                auto x55q = nil::crypto3::math::expression(var(var_pos.p550.column(), 0, false));
+                auto x2q = nil::crypto3::math::expression(var(var_pos.p20.column(), 0));
+                auto x3q = nil::crypto3::math::expression(var(var_pos.p30.column(), 0));
+                auto x33q = nil::crypto3::math::expression(var(var_pos.p330.column(), 0));
+                auto x5q = nil::crypto3::math::expression(var(var_pos.p50.column(), 0));
+                auto x55q = nil::crypto3::math::expression(var(var_pos.p550.column(), 0));
                 for (auto i = 1; i < m2; i++) {
                     x2q += var(var_pos.p20.column() + i, 0) * (1ULL << (16 * i));
                     x3q += var(var_pos.p30.column() + i, 0) * (1ULL << (16 * i));
@@ -947,12 +947,12 @@ namespace nil {
                     x55q += var(var_pos.p550.column() + i, 0) * (1ULL << (16 * i));
                 }
 
-                auto x = var(var_pos.y2.column(), -1, false);
-                auto x2 = var(var_pos.p2.column(), 0, false);
-                auto x3 = var(var_pos.p3.column(), 0, false);
-                auto x33 = var(var_pos.p33.column(), 0, false);
-                auto x5 = var(var_pos.p5.column(), 0, false);
-                auto x55 = var(var_pos.p55.column(), 0, false);
+                auto x = var(var_pos.y2.column(), -1);
+                auto x2 = var(var_pos.p2.column(), 0);
+                auto x3 = var(var_pos.p3.column(), 0);
+                auto x33 = var(var_pos.p33.column(), 0);
+                auto x5 = var(var_pos.p5.column(), 0);
+                auto x55 = var(var_pos.p55.column(), 0);
 
                 auto div_3 = static_cast<uint64_t>(delta / 3.);
                 auto div_5 = static_cast<uint64_t>(delta / 5.);
@@ -989,15 +989,15 @@ namespace nil {
                     BLUEPRINT_RELEASE_ASSERT(false);
                 }
 
-                auto x = var(var_pos.t1.column(), 0, false);
-                auto x3 = var(var_pos.t3.column(), 0, false);
-                auto x5 = var(var_pos.t5.column(), 0, false);
-                auto shift = var(var_pos.f1.column(), 0, false);
-                auto invert = var(var_pos.f2.column(), 0, false);
-                auto sign = var(var_pos.f3.column(), 0, false);
-                auto y = var(var_pos.y.column(), 0, false);
-                auto tmp1 = var(var_pos.i1.column(), 0, false);
-                auto tmp2 = var(var_pos.i2.column(), 0, false);
+                auto x = var(var_pos.t1.column(), 0);
+                auto x3 = var(var_pos.t3.column(), 0);
+                auto x5 = var(var_pos.t5.column(), 0);
+                auto shift = var(var_pos.f1.column(), 0);
+                auto invert = var(var_pos.f2.column(), 0);
+                auto sign = var(var_pos.f3.column(), 0);
+                auto y = var(var_pos.y.column(), 0);
+                auto tmp1 = var(var_pos.i1.column(), 0);
+                auto tmp2 = var(var_pos.i2.column(), 0);
 
                 auto poly = x - x3 + x5;
                 auto constraint_1 = poly + shift * pi_6 - tmp1;
