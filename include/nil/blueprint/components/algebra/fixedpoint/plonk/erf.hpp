@@ -193,10 +193,10 @@ namespace nil {
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, m1, m2);
 
                 struct input_type {
-                    var input = var(0, 0, false);
+                    var x = var(0, 0, false);
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
-                        return {input};
+                        return {x};
                     }
                 };
 
@@ -335,7 +335,7 @@ namespace nil {
                     target_delta = value_type(component.get_delta());
                 }
 
-                auto x_input_val = var_value(assignment, instance_input.input);
+                auto x_input_val = var_value(assignment, instance_input.x);
                 assignment.witness(splat(var_pos.x)) = x_input_val;
                 std::vector<uint16_t> x0_val;
 
@@ -694,7 +694,7 @@ namespace nil {
                 using var = typename plonk_fixedpoint_erf<BlueprintFieldType, ArithmetizationParams>::var;
 
                 var x = var(splat(var_pos.x), false);
-                bp.add_copy_constraint({instance_input.input, x});
+                bp.add_copy_constraint({instance_input.x, x});
             }
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
