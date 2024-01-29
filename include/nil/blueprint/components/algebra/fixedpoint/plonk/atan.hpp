@@ -84,6 +84,12 @@ namespace nil {
                     }
                 }
 
+                static std::size_t get_witness_columns(uint8_t m1, uint8_t m2) {
+                    auto value = M(m1) == 1 ? 12 : 13;
+                    value = M(m2) == 2 ? 15 : value;
+                    return value;
+                }
+
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
 
                 using var = typename component_type::var;
@@ -106,8 +112,7 @@ namespace nil {
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
-                    auto value = M(m1) == 1 ? 12 : 13;
-                    value = M(m2) == 2 ? 15 : value;
+                    auto value = get_witness_columns(m1, m2);
                     manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(value)), false);
                     return manifest;

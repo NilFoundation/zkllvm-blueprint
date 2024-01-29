@@ -143,6 +143,8 @@ namespace nil {
                 FixedPoint sin() const;
                 FixedPoint cos() const;
                 FixedPoint tan() const;
+                FixedPoint asin() const;
+                FixedPoint acos() const;
                 FixedPoint atan() const;
                 FixedPoint erf() const;
                 FixedPoint rescale() const;
@@ -1174,6 +1176,35 @@ namespace nil {
                 auto exp_m = exp - one;
 
                 return exp_m / exp_p;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::asin() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+
+                auto sqrt_in = *this * *this;
+                sqrt_in.value = DELTA - sqrt_in.value;
+                constexpr bool floor = M2 == 2;    // To save one row in trace
+                auto sqrt_out = sqrt_in.sqrt(floor);
+                auto div = *this / sqrt_out;
+                return div.atan();
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::acos() const {
+                auto asin = this->asin();
+
+                uint64_t pi_2 = 0;
+                if constexpr (M2 == 1) {
+                    pi_2 = 102944;
+                } else if constexpr (M2 == 2) {
+                    pi_2 = 6746518852;
+                } else {
+                    BLUEPRINT_RELEASE_ASSERT(false);
+                }
+
+                asin.value = pi_2 - asin.value;
+                return asin;
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>

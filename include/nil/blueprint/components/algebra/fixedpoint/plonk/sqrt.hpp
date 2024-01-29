@@ -63,6 +63,11 @@ namespace nil {
                     return 1ULL << (16 * m2);
                 }
 
+                static std::size_t get_witness_columns(std::size_t witness_amount, uint8_t m1, uint8_t m2) {
+                    return get_rows_amount(witness_amount, 0, M(m1), M(m2)) == 1 ? 4 + 4 * (m2 + m1) :
+                                                                                   2 + 2 * (m2 + m1);
+                }
+
                 using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
 
                 using var = typename component_type::var;
