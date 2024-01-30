@@ -431,7 +431,7 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(start_row_index);
                 auto m = component.get_m();
 
-                const std::map<std::string, std::size_t> &lookup_tables_indices = bp.get_reserved_indices();
+                const auto &lookup_tables_indices = bp.get_reserved_indices();
 
                 using var = typename plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::var;
                 using constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
