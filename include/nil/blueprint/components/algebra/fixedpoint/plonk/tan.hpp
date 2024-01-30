@@ -184,7 +184,12 @@ namespace nil {
                         scaler = value_type(1ULL << 16);
                     }
                     std::vector<std::uint32_t> witness_list;
-                    auto witness_columns = rem_component::get_witness_columns(this->witness_amount(), m1, 2);
+                    std::size_t witness_columns;
+                    if (m1 == 1) {
+                        witness_columns = rem_component::get_witness_columns(this->witness_amount(), m1, 1);
+                    } else {
+                        witness_columns = rem_component::get_witness_columns(this->witness_amount(), m1, 2);
+                    }
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
                     for (auto i = 0; i < witness_columns; i++) {
