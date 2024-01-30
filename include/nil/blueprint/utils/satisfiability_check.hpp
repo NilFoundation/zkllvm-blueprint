@@ -42,6 +42,65 @@ namespace nil {
 
         template<typename BlueprintFieldType,
                  typename ArithmetizationParams>
+        bool compare(
+            const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                      ArithmetizationParams>> &bp,
+            const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
+                                                                      ArithmetizationParams>> &bp_ref) {
+            const auto &gates = bp.gates();
+            const auto &gates_ref = bp_ref.gates();
+            const std::size_t gates_size = gates.size();
+            const std::size_t gates_ref_size = gates_ref.size();
+            if (gates_size != gates_ref_size) {
+                std::cout << "wrong gates size: " << gates_size << " != " << gates_ref_size << "\n";
+                return false;
+            }
+            std::cout << "gates size: " << gates_size << "\n";
+
+            const auto &copy_constraints = bp.copy_constraints();
+            const auto &copy_constraints_ref = bp_ref.copy_constraints();
+            const std::size_t copy_constraints_size = copy_constraints.size();
+            const std::size_t copy_constraints_ref_size = copy_constraints_ref.size();
+            if (copy_constraints_size != copy_constraints_ref_size) {
+                std::cout << "wrong copy_constraints size: " << copy_constraints_size << " != " << copy_constraints_ref_size << "\n";
+                return false;
+            }
+            std::cout << "copy_constraints size: " << copy_constraints_size << "\n";
+
+            const auto &lookup_gates = bp.lookup_gates();
+
+            for (std::size_t i = 0; i < gates_size; i++) {
+                if (gates[i].constraints.size() != gates_ref[i].constraints.size()) {
+                    std::cout << "wrong constraints size on gate " << i << ": " << gates[i].constraints.size() << " != " << gates_ref[i].constraints.size() << "\n";
+                    return false;
+                }
+                for (std::size_t j = 0; j < gates[i].constraints.size(); j++) {
+                    if (gates[i].constraints[j] != gates_ref[i].constraints[j]) {
+                        std::cout << "Constraint " << j << " from gate " << i << " wrong:\n";
+                        for (const auto &constraint : gates[i].constraints) {
+                            std::cout << constraint << std::endl;
+                        }
+                        std::cout << "====================================\n";
+                        for (const auto &constraint : gates_ref[i].constraints) {
+                            std::cout << constraint << std::endl;
+                        }
+                        return false;
+                    }
+                }
+            }
+
+            for (std::size_t i = 0; i < copy_constraints_size; i++) {
+                if (copy_constraints[i] != copy_constraints_ref[i]) {
+                    std::cout << "Copy constraint " << i << " wrong:\n";
+                    std::cout << copy_constraints[i].first << ", " << copy_constraints[i].second << " != "
+                        << copy_constraints_ref[i].first << ", " << copy_constraints_ref[i].second << "\n";
+                    return false;
+                }
+            }
+            return true;
+        }
+        template<typename BlueprintFieldType,
+                 typename ArithmetizationParams>
         bool is_satisfied(
             const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
                                                                       ArithmetizationParams>> &bp,
@@ -93,7 +152,6 @@ namespace nil {
                     assignments.crypto3::zk::snark::
                         template plonk_assignment_table<BlueprintFieldType, ArithmetizationParams>::selector(
                             gates[i].selector_index);
-
                 for (const auto& selector_row : selector_rows) {
                     if (selector_row < selector.size() && !selector[selector_row].is_zero()) {
                         for (std::size_t j = 0; j < gates[i].constraints.size(); j++) {
