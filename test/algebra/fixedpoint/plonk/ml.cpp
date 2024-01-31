@@ -20,6 +20,7 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/type.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/gather_acc.hpp>
+#include <nil/blueprint/components/algebra/fixedpoint/plonk/cmp_set.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/argmax.hpp>
 #include <nil/blueprint/components/algebra/fixedpoint/plonk/argmin.hpp>
 
@@ -102,6 +103,75 @@ void test_fixedpoint_gather_acc_inner(FixedType acc,
                                       index_b);
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {acc.get_value(), data.get_value(), index_a};
+    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        component_instance, public_input, result_check, instance_input);
+}
+
+template<typename FixedType>
+void test_fixedpoint_cmp_set_inner(FixedType d_eq,
+                                   FixedType d_neq,
+                                   typename FixedType::value_type index_a,
+                                   typename FixedType::value_type index_b) {
+    using BlueprintFieldType = typename FixedType::field_type;
+    constexpr std::size_t WitnessColumns = 6;
+    constexpr std::size_t PublicInputColumns = 1;
+    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t SelectorColumns = 1;
+    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns,
+                                                                                   ConstantColumns, SelectorColumns>;
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    using hash_type = nil::crypto3::hashes::keccak_1600<256>;
+    constexpr std::size_t Lambda = 40;
+    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
+
+    using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+
+    using component_type =
+        blueprint::components::fix_cmp_set<ArithmetizationType, BlueprintFieldType,
+                                           nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input),
+                                                          var(0, 1, false, var::column_type::public_input),
+                                                          var(0, 2, false, var::column_type::public_input)};
+
+    double expected_res_f = (index_a == index_b) ? d_eq.to_double() : d_neq.to_double();
+    auto expected_res = (index_a == index_b) ? d_eq : d_neq;
+
+    auto result_check = [&expected_res, &expected_res_f, d_eq, d_neq, index_a,
+                         index_b](AssignmentType &assignment, typename component_type::result_type &real_res) {
+        auto real_res_ = FixedType(var_value(assignment, real_res.output), FixedType::SCALE);
+        double real_res_f = real_res_.to_double();
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "fixed_point cmp_set test: "
+                  << "\n";
+        std::cout << "d_eq_f : " << d_eq.to_double() << "\n";
+        std::cout << "d_eq   : " << d_eq.get_value().data << "\n";
+        std::cout << "d_neq_f: " << d_neq.to_double() << "\n";
+        std::cout << "d_neq  : " << d_neq.get_value().data << "\n";
+        std::cout << "index_a: " << index_a << "\n";
+        std::cout << "index_b: " << index_b << "\n";
+        std::cout << "expected: " << expected_res_f << "\n";
+        std::cout << "real    : " << real_res_f << "\n\n";
+#endif
+        if (!doubleEquals(expected_res_f, real_res_f, EPSILON) || expected_res != real_res_) {
+            std::cout << "expected        : " << expected_res.get_value().data << "\n";
+            std::cout << "real            : " << real_res_.get_value().data << "\n\n";
+            std::cout << "expected (float): " << expected_res_f << "\n";
+            std::cout << "real (float)    : " << real_res_f << "\n\n";
+            abort();
+        }
+    };
+
+    std::vector<std::uint32_t> witness_list;
+    witness_list.reserve(WitnessColumns);
+    for (auto i = 0; i < WitnessColumns; i++) {
+        witness_list.push_back(i);
+    }
+    // Is done by the manifest in a real circuit
+    component_type component_instance(witness_list, std::array<std::uint32_t, 1>({0}), std::array<std::uint32_t, 0>(),
+                                      index_b);
+
+    std::vector<typename BlueprintFieldType::value_type> public_input = {d_eq.get_value(), d_neq.get_value(), index_a};
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
         component_instance, public_input, result_check, instance_input);
 }
@@ -299,6 +369,15 @@ void test_fixedpoint_argmin_inner(FixedType x, FixedType y, typename FixedType::
 }
 
 template<typename FixedType>
+void test_fixedpoint_cmp_set(FixedType x,
+                             FixedType y,
+                             typename FixedType::value_type index_a,
+                             typename FixedType::value_type index_b) {
+    test_fixedpoint_cmp_set_inner<FixedType>(x, y, index_a, index_a);    // result should be x
+    test_fixedpoint_cmp_set_inner<FixedType>(x, y, index_a, index_b);    // result should be y
+}
+
+template<typename FixedType>
 void test_fixedpoint_gather_acc(FixedType x,
                                 FixedType y,
                                 typename FixedType::value_type index_a,
@@ -385,6 +464,7 @@ void test_components_on_random_data(RngType &rng) {
     test_fixedpoint_gather_acc<FixedType>(x, y, index_a, index_b);
     test_fixedpoint_argmax<FixedType>(x, y, index_a, index_b);
     test_fixedpoint_argmin<FixedType>(x, y, index_a, index_b);
+    test_fixedpoint_cmp_set<FixedType>(x, y, index_a, index_b);
 }
 
 template<typename FixedType>
@@ -398,6 +478,7 @@ void test_components(int i, int j) {
     test_fixedpoint_gather_acc<FixedType>(x, y, index_a, index_b);
     test_fixedpoint_argmax<FixedType>(x, y, index_a, index_b);
     test_fixedpoint_argmin<FixedType>(x, y, index_a, index_b);
+    test_fixedpoint_cmp_set<FixedType>(x, y, index_a, index_b);
 }
 
 template<typename FixedType, std::size_t RandomTestsAmount>
