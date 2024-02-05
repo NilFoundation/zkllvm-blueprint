@@ -27,6 +27,8 @@
 
 using namespace nil;
 using nil::blueprint::components::FixedPoint16_16;
+using nil::blueprint::components::FixedPoint16_32;
+using nil::blueprint::components::FixedPoint32_16;
 using nil::blueprint::components::FixedPoint32_32;
 
 static constexpr double EPSILON = 0.001;
@@ -307,6 +309,10 @@ void test_components(int i) {
 
 template<typename FixedType, std::size_t RandomTestsAmount>
 void field_operations_test() {
+    if (FixedType::M_2 == 2) {
+        test_fixedpoint_sqrt<FixedType>(FixedType(487342407766168868ULL, 32));
+    }
+
     for (int i = 0; i < 5; i++) {
         test_components<FixedType>(i);
     }
@@ -324,18 +330,24 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_advanced_operations_test_vesta) {
     using field_type = typename crypto3::algebra::curves::vesta::base_field_type;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint16_32<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint32_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_advanced_operations_test_pallas) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint16_32<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint32_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_advanced_operations_test_bls12) {
     using field_type = typename crypto3::algebra::fields::bls12_fr<381>;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint16_32<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint32_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
 }
 
