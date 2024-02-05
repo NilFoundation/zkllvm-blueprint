@@ -621,7 +621,7 @@ namespace nil {
                     new_set.insert(*it);
                 }
                 std::uint32_t step = range->step;
-                for (auto it = new_start + (step - new_start % step) % step; int(it) < range->finish; it += step) {
+                for (auto it = new_start + (step - new_start % step) % step; std::int32_t(it) < range->finish; it += step) {
                     new_set.insert(it);
                 }
                 if (new_set.empty()) {

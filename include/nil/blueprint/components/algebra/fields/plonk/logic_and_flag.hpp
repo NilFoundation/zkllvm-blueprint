@@ -253,8 +253,8 @@ namespace nil {
                 std::array<std::pair<std::size_t, std::size_t>, 4> wl;
 
                 int _idx;
-                for (std::uint32_t i = 0; i < component.rows_amount; i++) {
-                    for (std::uint32_t j = 0; j < witness_amount; j++) {
+                for (std::size_t i = 0; i < component.rows_amount; i++) {
+                    for (std::size_t j = 0; j < witness_amount; j++) {
                         _idx = i * witness_amount + j;
                         if (_idx < 4) {
                             wl[_idx] = std::make_pair(j, i + offset);
