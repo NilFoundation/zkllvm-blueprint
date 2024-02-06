@@ -1096,6 +1096,7 @@ namespace nil {
 
                 auto exp2 = (fix - FixedPoint(1, SCALE)).exp();
                 while (exp2.get_value() >= value) {
+                    // TACEO_TODO probably endless loop for input "- FixedType(value_type(FixedType::DELTA - 50), FixedType::SCALE)" for 16.32 vesta
                     fix.value -= 1;
                     exp2 = (fix - FixedPoint(1, SCALE)).exp();
                 }
