@@ -82,13 +82,13 @@ namespace nil {
                 const std::size_t end_row = start_row_index + rows_amount;
 
                 nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> output_assignment(
-                    assignment.witnesses_amount(), assignment.constants_amount(),
-                    assignment.public_inputs_amount(), assignment.selectors_amount()
+                    assignment.witnesses_amount(), assignment.public_inputs_amount(),
+                    assignment.constants_amount(), assignment.selectors_amount()
                 );
 
                 // We do '+1' in all the assignments to separate the unassigned cells (0 by default)
                 // from the ones which actually got checked.
-                for (std::size_t witness_column = 0; witness_column < row_size; witness_column++) {
+                for (std::size_t witness_column = 0; witness_column < assignment.witnesses_amount(); witness_column++) {
                     std::size_t last_row =
                         std::min<std::size_t>(end_row, assignment.witness_column_size(witness_column));
                     for (std::size_t row = start_row_index; row < last_row; row++) {
@@ -114,15 +114,16 @@ namespace nil {
                     const auto output_value =
                         zones.find_set(copy_var_address<BlueprintFieldType>(
                                        row_size, start_row_index, rows_amount, variable)) + 1;
-                    switch (variable.type) {
+                    const auto &variable_ref = variable.get();
+                    switch (variable_ref.type) {
                         case var::column_type::constant:
-                            output_assignment.constant(variable.index, variable.rotation) = output_value;
+                            output_assignment.constant(variable_ref.index, variable_ref.rotation) = output_value;
                             break;
                         case var::column_type::public_input:
-                            output_assignment.public_input(variable.index, variable.rotation) = output_value;
+                            output_assignment.public_input(variable_ref.index, variable_ref.rotation) = output_value;
                             break;
                         case var::column_type::witness:
-                            output_assignment.witness(variable.index, variable.rotation) = output_value;
+                            output_assignment.witness(variable_ref.index, variable_ref.rotation) = output_value;
                             break;
                         case var::column_type::selector:
                             BOOST_ASSERT_MSG(false, "Selector variables should not be input variables.");

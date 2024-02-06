@@ -75,29 +75,29 @@ void test_decomposition(std::vector<typename BlueprintFieldType::value_type> pub
 
     auto result_check = [&expected_res](AssignmentType &assignment,
         typename component_type::result_type &real_res) {
-            for (std::size_t i = 0; i < real_res.output.size(); i++){
-                std::cout << var_value(assignment, real_res.output[i]).data << std::endl;
-            }
-            for (std::size_t i = 0; i < expected_res.size(); i++){
-                std::cout << expected_res[i].data << std::endl;
-            }
+            // for (std::size_t i = 0; i < real_res.output.size(); i++){
+            //     std::cout << var_value(assignment, real_res.output[i]).data << std::endl;
+            // }
+            // for (std::size_t i = 0; i < expected_res.size(); i++){
+            //     std::cout << expected_res[i].data << std::endl;
+            // }
             for (std::size_t i = 0; i < real_res.output.size(); i++){
                 assert(expected_res[i] == var_value(assignment, real_res.output[i]));
             }
     };
-    auto result_check_to_fail = [&expected_res](AssignmentType &assignment,
-        typename component_type::result_type &real_res) { };
+    auto result_check_to_fail = [](AssignmentType &assignment,
+        typename component_type::result_type &real_res) {};
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8},{},{});
 
     if (expected_to_pass) {
-        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input,
-        nil::crypto3::detail::connectedness_check_type::WEAK);
+        nil::blueprint::connectedness_check_type::type::WEAK);
     } else {
-        crypto3::test_component_to_fail<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+        crypto3::test_component_to_fail<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check_to_fail, instance_input,
-        nil::crypto3::detail::connectedness_check_type::WEAK);
+        nil::blueprint::connectedness_check_type::type::WEAK);
     }
 }
 

@@ -203,7 +203,6 @@ namespace nil {
                     integral_type(var_value(assignment, instance_input.data[1]).data)};
                 std::array<std::array<std::array<integral_type, 3>, 4>, 2> range_chunks;
                 std::array<std::array<integral_type, 4>, 2> output_chunks;
-                std::size_t shift = 0;
 
                 for (std::size_t data_idx = 0; data_idx < 2; data_idx++) {
                     for (std::size_t chunk_idx = 0; chunk_idx < 4; chunk_idx++) {
@@ -275,15 +274,18 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            std::size_t generate_gates(
+            std::array<std::size_t, 2> generate_gates(
                 const plonk_native_decomposition<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_native_decomposition<BlueprintFieldType>::input_type
-                    &instance_input) {
+                    &instance_input,
+                const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices) {
 
                 using var = typename plonk_native_decomposition<BlueprintFieldType>::var;
+                using constraint = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
 
                 const typename BlueprintFieldType::integral_type one = 1;
                 std::array<std::size_t, 2> selectors;
