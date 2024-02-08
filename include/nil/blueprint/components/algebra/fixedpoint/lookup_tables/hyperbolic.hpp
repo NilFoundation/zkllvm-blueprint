@@ -34,7 +34,6 @@ namespace nil {
                 static constexpr const char *FULL_COSH_A = "fixedpoint_hyperb_16_table/cosh_a";
                 static constexpr const char *FULL_COSH_B = "fixedpoint_hyperb_16_table/cosh_b";
 
-                // TACEO_TODO this hardcoded, indices might be wrong, are they though?..
                 fixedpoint_hyperb_16_table() : lookup_table_definition(TABLE_NAME) {
                     this->subtables[SINH_A] = {{0, 1}, 0, fixedpoint_tables::SinXLen - 1};
                     this->subtables[SINH_B] = {{0, 2}, 0, fixedpoint_tables::SinXLen - 1};
@@ -86,7 +85,6 @@ namespace nil {
                 static constexpr const char *FULL_COSH_A = "fixedpoint_hyperb_32_table/cosh_a";
                 static constexpr const char *FULL_COSH_B = "fixedpoint_hyperb_32_table/cosh_b";
 
-                // TACEO_TODO this hardcoded, indices might be wrong, are they though?..
                 fixedpoint_hyperb_32_table() : lookup_table_definition(TABLE_NAME) {
                     this->subtables[SINH_A] = {{0, 1}, 0, fixedpoint_tables::SinXLen - 1};
                     this->subtables[SINH_B] = {{0, 2}, 0, fixedpoint_tables::SinXLen - 1};

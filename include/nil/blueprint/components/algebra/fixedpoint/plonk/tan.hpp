@@ -472,7 +472,6 @@ namespace nil {
                     assignment.witness(var_pos.x0.column() + i, var_pos.x0.row()) = x0_val[i];
                 }
 
-                // TODO optimize
                 auto sin_a_table = m2 == 1 ? FixedPointTables<BlueprintFieldType>::get_sin_a_16() :
                                              FixedPointTables<BlueprintFieldType>::get_sin_a_32();
                 auto sin_b_table = m2 == 1 ? FixedPointTables<BlueprintFieldType>::get_sin_b_16() :

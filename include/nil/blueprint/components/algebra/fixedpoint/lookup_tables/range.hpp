@@ -24,7 +24,6 @@ namespace nil {
                 static constexpr const char *FULL_SUBTABLE_NAME = "full";
                 static constexpr const char *FULL_TABLE_NAME = "fixedpoint_range_table/full";
 
-                // TACEO_TODO this hardcoded 0 is probably wrong
                 fixedpoint_range_table() : lookup_table_definition(TABLE_NAME) {
                     this->subtables[FULL_SUBTABLE_NAME] = {{0}, 0, fixedpoint_tables::RangeLen - 1};
                 }

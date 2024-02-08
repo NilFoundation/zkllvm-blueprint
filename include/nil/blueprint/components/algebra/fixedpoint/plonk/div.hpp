@@ -12,8 +12,7 @@ namespace nil {
 
             /**
              * Component representing a division operation with inputs x and y and output z, where
-             * z = x / y. The sign of z and is equal to the sign of x (TACEO_TODO this is wrong if y is negative is
-             * it?).
+             * z = x / y.
              *
              * The user needs to ensure that the deltas of x and y match (the scale must be the same). The delta of z is
              * equal to the deltas of y and z.
