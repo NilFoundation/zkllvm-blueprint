@@ -17,8 +17,6 @@ namespace nil {
              *
              * The delta of y is the same as the delta of x.
              *
-             * TACEO_TODO: Describe the limitations (a < x < b, where a and b are ~ +- 100 ?)
-             *
              * Input:  x ... field element
              * Output: y ... e^x (field element)
              */

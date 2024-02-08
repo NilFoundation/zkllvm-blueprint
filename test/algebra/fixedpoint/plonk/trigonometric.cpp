@@ -30,19 +30,20 @@
 
 using namespace nil;
 using nil::blueprint::components::FixedPoint16_16;
+using nil::blueprint::components::FixedPoint16_32;
+using nil::blueprint::components::FixedPoint32_16;
 using nil::blueprint::components::FixedPoint32_32;
 
 static constexpr double EPSILON = 0.01;
 static constexpr double EPSILON_TAN = 0.1;    // 0.01 also works for input values around +- 10 * pi (probably way more)
 
-#define PRINT_FIXED_POINT_TEST(what)                                            \
-    std::cout << "fixed_point " << what << " test:\n";                          \
-    std::cout << "input           : " << input.get_value().data << "\n";        \
-    std::cout << "input (float)   : " << input.to_double() << "\n";             \
-    std::cout << "expected        : " << expected_res.get_value().data << "\n"; \
-    std::cout << "real            : " << real_res_.get_value().data << "\n";    \
-    std::cout << "expected (float): " << expected_res_f << "\n";                \
-    std::cout << "real (float)    : " << real_res_f << "\n\n";
+#define PRINT_FIXED_POINT_TEST(what)                                                                             \
+    std::cout << std::fixed << int(16 * FixedType::M_1) << "." << int(16 * FixedType::M_2) << " " << what << ":" \
+              << " diff=" << std::setw(11) << std::setprecision(8) << abs(expected_res_f - real_res_f)           \
+              << ", expected (C++)=" << std::setw(11) << std::setprecision(8) << expected_res_f                  \
+              << ", expected (type.hpp)=" << std::setw(11) << std::setprecision(8) << expected_res.to_double()   \
+              << ", real=" << std::setw(11) << std::setprecision(8) << real_res_f << ", input=" << std::setw(11) \
+              << std::setprecision(8) << input.to_double() << " (" << input.get_value().data << ")" << std::endl;
 
 bool doubleEquals(double a, double b, double epsilon) {
     // Essentially equal from
@@ -188,7 +189,7 @@ void test_fixedpoint_cos(FixedType input) {
 template<typename FixedType>
 void test_fixedpoint_tan(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
-    constexpr std::size_t WitnessColumns = FixedType::M_2 == 2 && FixedType::M_1 == 2 ? 11 : 10;
+    constexpr std::size_t WitnessColumns = FixedType::M_1 == 2 ? 11 : 10;
     constexpr std::size_t PublicInputColumns = 1;
 #ifdef TEST_WITHOUT_LOOKUP_TABLES
     constexpr std::size_t ConstantColumns = 1;
@@ -371,7 +372,13 @@ void test_fixedpoint_asin(FixedType input) {
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        crypto3::detail::connectedness_check_type::STRONG,
+        FixedType::M_1,
+        FixedType::M_2);
 }
 
 template<typename FixedType>
@@ -432,7 +439,13 @@ void test_fixedpoint_acos(FixedType input) {
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {input.get_value()};
     nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        component_instance,
+        public_input,
+        result_check,
+        instance_input,
+        crypto3::detail::connectedness_check_type::STRONG,
+        FixedType::M_1,
+        FixedType::M_2);
 }
 
 template<typename FieldType, typename RngType>
@@ -501,9 +514,9 @@ void test_fixedpoint_tan_intermediate(double i) {
         double diff_high = pi_half + forbidden_plus_minus - i_mod_pi;
         double diff_low = i_mod_pi - pi_half + forbidden_plus_minus;
         if (diff_high < diff_low) {
-            i_corrected = i + diff_high;
+            i_corrected = i + diff_high + 0.1;
         } else {
-            i_corrected = i - diff_low;
+            i_corrected = i - diff_low - 0.1;
         }
         i_mod_pi = fmod(i_corrected, pi);
         if (i_mod_pi < 0.) {
@@ -574,18 +587,24 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_trigonometric_test_vesta) {
     using field_type = typename crypto3::algebra::curves::vesta::base_field_type;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint16_32<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint32_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_trigonometric_test_pallas) {
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint16_32<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint32_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_trigonometric_test_bls12) {
     using field_type = typename crypto3::algebra::fields::bls12_fr<381>;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint16_32<field_type>, random_tests_amount>();
+    field_operations_test<FixedPoint32_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
 }
 

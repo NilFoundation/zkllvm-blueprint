@@ -42,10 +42,6 @@ namespace nil {
                     return m;
                 }
 
-                static std::size_t gates_amount_internal(uint8_t m1, uint8_t m2) {
-                    asin_component::gates_amount_internal(m1, m2);
-                }
-
                 asin_component instantiate_asin(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
                     auto witness_columns = asin_component::get_witness_columns(this->witness_amount(), m1, m2);

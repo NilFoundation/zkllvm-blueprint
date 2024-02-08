@@ -88,7 +88,8 @@ namespace nil {
                     // |tan|  two_pi  |
 
                     if (m2 == 1) {
-                        // trace layout witness (10 col(s), 3 + rem_rows row(s))
+                        // trace layout witness (10 or 11 col(s), 3 + rem_rows row(s))
+                        //                      (10 if m1=1, 11 if m1=2 col(s))
                         //                      (2 if m1=1, 4 if m1=2 row(s))
                         //
                         // rem does not exist, or has two rows (m1 must be 2 for rem to exist)
@@ -197,7 +198,13 @@ namespace nil {
                     }
                     std::vector<std::uint32_t> constant_list = {this->C(0)};
                     // if m1=1: a rem_component is constructed but never used.
-                    return rem_component(witness_list, constant_list, std::array<std::uint32_t, 0>(), m1, 2, scaler);
+                    if (m1 == 1) {
+                        return rem_component(witness_list, constant_list, std::array<std::uint32_t, 0>(), m1, 1,
+                                             scaler);
+                    } else {
+                        return rem_component(witness_list, constant_list, std::array<std::uint32_t, 0>(), m1, 2,
+                                             scaler);
+                    }
                 }
 
             public:
@@ -222,7 +229,7 @@ namespace nil {
                 }
 
                 static std::size_t get_witness_columns(uint8_t m1, uint8_t m2) {
-                    if (m1 == 2 && m2 == 2) {
+                    if (m1 == 2) {
                         return 11;
                     }
                     return 10;

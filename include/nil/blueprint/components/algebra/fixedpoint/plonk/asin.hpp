@@ -57,21 +57,6 @@ namespace nil {
                     return m;
                 }
 
-                static std::size_t gates_amount_internal(uint8_t m1, uint8_t m2) {
-                    auto gate_amount = atan_component::gates_amount + div_by_pos_component::gates_amount;
-                    if (m2 == 1) {
-                        gate_amount += sqrt_component::gates_amount;
-                    } else {
-                        gate_amount += sqrt_floor_component::gates_amount;
-                    }
-
-#ifdef TEST_WITHOUT_LOOKUP_TABLES
-                    return gate_amount + 1;
-#else
-                    return gate_amount + 2;
-#endif
-                }
-
                 sqrt_component instantiate_sqrt(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
                     auto witness_columns = sqrt_component::get_witness_columns(this->witness_amount(), m1, m2);
@@ -222,7 +207,7 @@ namespace nil {
                     }
 
                     std::uint32_t gates_amount() const override {
-                        return fix_asin::gates_amount_internal(this->m1, this->m2);
+                        return fix_asin::gates_amount;
                     }
                 };
 
@@ -267,7 +252,11 @@ namespace nil {
                     }
                     return rows;
                 }
-
+#ifdef TEST_WITHOUT_LOOKUP_TABLES
+                constexpr static const std::size_t gates_amount = 1;
+#else
+                constexpr static const std::size_t gates_amount = 2;
+#endif    // TEST_WITHOUT_LOOKUP_TABLES
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
 
                 struct input_type {
