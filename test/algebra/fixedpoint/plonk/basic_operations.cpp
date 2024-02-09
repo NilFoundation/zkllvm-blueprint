@@ -1102,6 +1102,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_basic_test_bls12) {
     using field_type = typename crypto3::algebra::fields::bls12_fr<381>;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
-// }
+}
 
 BOOST_AUTO_TEST_SUITE_END()
