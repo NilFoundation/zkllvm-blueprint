@@ -28,14 +28,6 @@ namespace nil {
              *
              */
 
-            // TACEO_TODO: Plan is:
-            // uint8_t and int8_t: 8-bit lookups!
-            // We split everything into u16 as usual, except for x[m2] (i.e., the output) which we split into 2 u8s.
-            // This results in 1 extra column.
-            //
-            // to_bool (separate gadget):
-            // !is_zero()
-
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class fix_to_int;
 
@@ -239,6 +231,11 @@ namespace nil {
                 std::map<std::string, std::size_t> component_lookup_tables() {
                     std::map<std::string, std::size_t> lookup_tables;
                     lookup_tables[range_table::FULL_TABLE_NAME] = 0;    // REQUIRED_TABLE
+
+                    if (out_type == OutputType::U8 ||
+                        out_type == OutputType::I8) {
+                        lookup_tables[range_table::P256_TABLE_NAME] = 0;    // REQUIRED_TABLE
+                    }
                     return lookup_tables;
                 }
 #endif
@@ -286,13 +283,6 @@ namespace nil {
                         instance_input,
                     const std::uint32_t start_row_index) {
 
-                if (component.out_type ==
-                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U8 ||
-                    component.out_type ==
-                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8) {
-                    BLUEPRINT_RELEASE_ASSERT(false && "Not yet implemented");
-                }
-
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
                 const auto one = BlueprintFieldType::value_type::one();
                 auto m1 = component.get_m1();
@@ -317,7 +307,10 @@ namespace nil {
                 // Take the output depending on the output type
                 switch (component.out_type) {
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U8:
-                    case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8:
+                    case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8: {
+                        y_val = x0_val[m2] & 0xff;
+                        break;
+                    }
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U16:
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I16: {
                         y_val = x0_val[m2];
@@ -345,8 +338,23 @@ namespace nil {
                 assignment.witness(splat(var_pos.s)) = s_val;
                 assignment.witness(splat(var_pos.y)) = y_val;
 
-                for (auto i = 0; i < m; i++) {
-                    assignment.witness(var_pos.x0.column() + i, var_pos.x0.row()) = x0_val[i];
+                if (component.out_type ==
+                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U8 ||
+                    component.out_type ==
+                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8) {
+                    for (auto i = 0; i < m2; i++) {
+                        assignment.witness(var_pos.x0.column() + i, var_pos.x0.row()) = x0_val[i];
+                    }
+                    assignment.witness(var_pos.x0.column() + m2, var_pos.x0.row()) = x0_val[m2] & 0xFF;
+                    assignment.witness(var_pos.x0.column() + m2 + 1, var_pos.x0.row()) = x0_val[m2] >> 8;
+
+                    for (auto i = m2 + 1; i < m; i++) {
+                        assignment.witness(var_pos.x0.column() + i + 1, var_pos.x0.row()) = x0_val[i];
+                    }
+                } else {
+                    for (auto i = 0; i < m; i++) {
+                        assignment.witness(var_pos.x0.column() + i, var_pos.x0.row()) = x0_val[i];
+                    }
                 }
 
                 return typename plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::result_type(
@@ -377,8 +385,20 @@ namespace nil {
                 }
 
                 auto x_pre = nil::crypto3::math::expression(var(var_pos.x0.column() + m2, var_pos.x0.row()));
-                for (auto i = 1; i < m1; i++) {
-                    x_pre += var(var_pos.x0.column() + m2 + i, var_pos.x0.row()) * (1ULL << (16 * i));
+                if (component.out_type ==
+                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U8 ||
+                    component.out_type ==
+                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8) {
+                    x_pre += var(var_pos.x0.column() + m2 + 1, var_pos.x0.row()) * (1ULL << 8);
+
+                    for (auto i = 1; i < m1; i++) {
+                        x_pre += var(var_pos.x0.column() + m2 + i, var_pos.x0.row()) * (1ULL << (16 * i));
+                    }
+
+                } else {
+                    for (auto i = 1; i < m1; i++) {
+                        x_pre += var(var_pos.x0.column() + m2 + i, var_pos.x0.row()) * (1ULL << (16 * i));
+                    }
                 }
 
                 nil::crypto3::math::expression<var> composed;
@@ -430,6 +450,7 @@ namespace nil {
                 const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(start_row_index);
                 auto m = component.get_m();
+                auto m2 = component.get_m2();
 
                 const auto &lookup_tables_indices = bp.get_reserved_indices();
 
@@ -439,18 +460,61 @@ namespace nil {
                     typename plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::range_table;
 
                 std::vector<constraint_type> constraints;
-                constraints.reserve(m);
 
                 auto table_id = lookup_tables_indices.at(range_table::FULL_TABLE_NAME);
 
-                for (auto i = 0; i < m; i++) {
-                    constraint_type constraint;
-                    constraint.table_id = table_id;
+                if (component.out_type ==
+                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U8 ||
+                    component.out_type ==
+                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8) {
+
+                    constraints.reserve(m + 1);
+                    auto table_8_id = lookup_tables_indices.at(range_table::P256_TABLE_NAME);
+
+                    for (auto i = 0; i < m2; i++) {
+                        constraint_type constraint;
+                        constraint.table_id = table_id;
+
+                        // We put row=0 here and enable the selector in the correct one
+                        auto di = var(var_pos.x0.column() + i, 0);
+                        constraint.lookup_input = {di};
+                        constraints.push_back(constraint);
+                    }
+
+                    constraint_type constraint1;
+                    constraint_type constraint2;
+                    constraint1.table_id = table_8_id;
+                    constraint2.table_id = table_8_id;
 
                     // We put row=0 here and enable the selector in the correct one
-                    auto di = var(var_pos.x0.column() + i, 0);
-                    constraint.lookup_input = {di};
-                    constraints.push_back(constraint);
+                    auto di1 = var(var_pos.x0.column() + m2, 0);
+                    auto di2 = var(var_pos.x0.column() + m2 + 1, 0);
+                    constraint1.lookup_input = {di1};
+                    constraint2.lookup_input = {di2};
+                    constraints.push_back(constraint1);
+                    constraints.push_back(constraint2);
+
+                    for (auto i = m2 + 1; i < m; i++) {
+                        constraint_type constraint;
+                        constraint.table_id = table_id;
+
+                        // We put row=0 here and enable the selector in the correct one
+                        auto di = var(var_pos.x0.column() + i, 0);
+                        constraint.lookup_input = {di};
+                        constraints.push_back(constraint);
+                    }
+                } else {
+                    constraints.reserve(m);
+
+                    for (auto i = 0; i < m; i++) {
+                        constraint_type constraint;
+                        constraint.table_id = table_id;
+
+                        // We put row=0 here and enable the selector in the correct one
+                        auto di = var(var_pos.x0.column() + i, 0);
+                        constraint.lookup_input = {di};
+                        constraints.push_back(constraint);
+                    }
                 }
 
                 return bp.add_lookup_gate(constraints);
@@ -483,13 +547,6 @@ namespace nil {
                 const typename plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
-
-                if (component.out_type ==
-                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U8 ||
-                    component.out_type ==
-                        plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8) {
-                    BLUEPRINT_RELEASE_ASSERT(false && "Not yet implemented");
-                }
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
                 assignment.enable_selector(selector_index, start_row_index);

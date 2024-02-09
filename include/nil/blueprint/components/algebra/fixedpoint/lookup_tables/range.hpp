@@ -24,8 +24,12 @@ namespace nil {
                 static constexpr const char *FULL_SUBTABLE_NAME = "full";
                 static constexpr const char *FULL_TABLE_NAME = "fixedpoint_range_table/full";
 
+                static constexpr const char *P256_SUBTABLE_NAME = "p256";
+                static constexpr const char *P256_TABLE_NAME = "fixedpoint_range_table/p256";
+
                 fixedpoint_range_table() : lookup_table_definition(TABLE_NAME) {
                     this->subtables[FULL_SUBTABLE_NAME] = {{0}, 0, fixedpoint_tables::RangeLen - 1};
+                    this->subtables[P256_SUBTABLE_NAME] = {{0}, 0, 255};
                 }
 
                 virtual void generate() {

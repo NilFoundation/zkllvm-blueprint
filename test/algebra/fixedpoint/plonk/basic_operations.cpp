@@ -279,8 +279,8 @@ void test_fixedpoint_to_int_inner(FixedType input) {
     using BlueprintFieldType = typename FixedType::field_type;
     constexpr std::size_t WitnessColumns = 4 + FixedType::M_1 + FixedType::M_2;
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 3;
-    constexpr std::size_t SelectorColumns = 3;
+    constexpr std::size_t ConstantColumns = 15;
+    constexpr std::size_t SelectorColumns = 15;
     using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns,
                                                                                    ConstantColumns, SelectorColumns>;
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -307,13 +307,13 @@ void test_fixedpoint_to_int_inner(FixedType input) {
                                                 typename BlueprintFieldType::value_type(expected_res);
         auto expected_res_i_ = expected_res_i < 0 ? -typename BlueprintFieldType::value_type(-expected_res_i) :
                                                     typename BlueprintFieldType::value_type(expected_res_i);
-        // #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "fixed_point to int test: "
                   << "\n";
         std::cout << "input   : " << input.get_value().data << "\n";
         std::cout << "expected: " << expected_res_i << "\n";
         std::cout << "real    : " << real_res_.data << "\n\n";
-        // #endif
+#endif
         if (expected_res_ != expected_res_i_ || expected_res_ != real_res_) {
             std::cout << "expected        : " << expected_res_.data << "\n";
             std::cout << "real            : " << real_res_.data << "\n";
@@ -367,12 +367,12 @@ void test_fixedpoint_to_int_random_tester(RngType &rng, FixedType post_comma) {
 
 template<typename FixedType, typename RngType>
 void test_fixedpoint_to_int_random(RngType &rng, FixedType post_comma) {
-    // test_fixedpoint_to_int_random_tester<FixedType, uint8_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, uint8_t>(rng, post_comma);
     test_fixedpoint_to_int_random_tester<FixedType, uint16_t>(rng, post_comma);
     test_fixedpoint_to_int_random_tester<FixedType, uint32_t>(rng, post_comma);
     test_fixedpoint_to_int_random_tester<FixedType, uint64_t>(rng, post_comma);
 
-    // test_fixedpoint_to_int_random_tester<FixedType, int8_t>(rng, post_comma);
+    test_fixedpoint_to_int_random_tester<FixedType, int8_t>(rng, post_comma);
     test_fixedpoint_to_int_random_tester<FixedType, int16_t>(rng, post_comma);
     test_fixedpoint_to_int_random_tester<FixedType, int32_t>(rng, post_comma);
     test_fixedpoint_to_int_random_tester<FixedType, int64_t>(rng, post_comma);
@@ -380,12 +380,12 @@ void test_fixedpoint_to_int_random(RngType &rng, FixedType post_comma) {
 
 template<typename FixedType>
 void test_fixedpoint_to_int(FixedType input) {
-    // test_fixedpoint_to_int_inner<FixedType, uint8_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, uint8_t>(input);
     test_fixedpoint_to_int_inner<FixedType, uint16_t>(input);
     test_fixedpoint_to_int_inner<FixedType, uint32_t>(input);
     test_fixedpoint_to_int_inner<FixedType, uint64_t>(input);
 
-    // test_fixedpoint_to_int_inner<FixedType, int8_t>(input);
+    test_fixedpoint_to_int_inner<FixedType, int8_t>(input);
     test_fixedpoint_to_int_inner<FixedType, int16_t>(input);
     test_fixedpoint_to_int_inner<FixedType, int32_t>(input);
     test_fixedpoint_to_int_inner<FixedType, int64_t>(input);
@@ -1021,6 +1021,8 @@ void test_components_on_random_data(RngType &rng) {
 
     typename FixedType::value_type z = generate_random_pre_comma<typename FixedType::value_type>(FixedType::M_1, rng);
 
+    FixedType post(generate_random_pre_comma<typename FixedType::value_type>(FixedType::M_2, rng), FixedType::SCALE);
+
     test_add<FixedType>(x, y);
     test_sub<FixedType>(x, y);
     test_fixedpoint_rescale<FixedType>(FixedType(x.get_value() * FixedType::DELTA, FixedType::SCALE * 2));
@@ -1031,6 +1033,7 @@ void test_components_on_random_data(RngType &rng) {
     test_fixedpoint_floor<FixedType>(x);
     test_fixedpoint_ceil<FixedType>(x);
     test_int_to_fixedpoint<FixedType>(z);
+    test_fixedpoint_to_int_random<FixedType>(rng, post);
     if (y.get_value() != 0) {
         test_fixedpoint_div<FixedType>(x, y);
         test_fixedpoint_mod<FixedType>(x, y);
@@ -1055,13 +1058,14 @@ void test_components(int i, int j) {
     test_fixedpoint_floor<FixedType>(x);
     test_fixedpoint_ceil<FixedType>(x);
     test_int_to_fixedpoint<FixedType>((int64_t)i);
+    test_fixedpoint_to_int<FixedType>(x);
     if (y.get_value() != 0) {
         test_fixedpoint_div<FixedType>(x, y);
         test_fixedpoint_mod<FixedType>(x, y);
         if (y.geq_0()) {
             test_fixedpoint_div_by_pos<FixedType>(x, y);
         }
-    }
+    // }
 }
 
 template<typename FixedType, std::size_t RandomTestsAmount>
@@ -1098,6 +1102,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_fixedpoint_basic_test_bls12) {
     using field_type = typename crypto3::algebra::fields::bls12_fr<381>;
     field_operations_test<FixedPoint16_16<field_type>, random_tests_amount>();
     field_operations_test<FixedPoint32_32<field_type>, random_tests_amount>();
-}
+// }
 
 BOOST_AUTO_TEST_SUITE_END()

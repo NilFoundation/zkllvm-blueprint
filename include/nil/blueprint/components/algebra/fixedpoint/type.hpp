@@ -157,6 +157,9 @@ namespace nil {
                 FixedPoint acosh() const;
                 FixedPoint atanh() const;
 
+                template<typename Integer>
+                Integer to_int() const;
+
                 double to_double() const;
                 value_type get_value() const {
                     return value;
@@ -1194,6 +1197,19 @@ namespace nil {
                 auto exp_m = exp - one;
 
                 return exp_m / exp_p;
+            }
+
+            template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
+            template<typename Integer>
+            Integer FixedPoint<BlueprintFieldType, M1, M2>::to_int() const {
+                BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
+                uint64_t pre, post;
+                bool sign = helper::split(value, scale, pre, post);
+                if (sign) {
+                    return Integer(-pre);
+                } else {
+                    return Integer(pre);
+                }
             }
 
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
