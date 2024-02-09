@@ -265,7 +265,7 @@ namespace nil {
                                                        uint8_t m1, uint8_t m2) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type(m1, m2));
                     if (m1 == 2) {
-                        manifest.merge_with(
+                        manifest = manifest.merge_with(
                             rem_component::get_gate_manifest(witness_amount, lookup_column_amount, 2, 2));
                     }
                     return manifest;
@@ -276,7 +276,7 @@ namespace nil {
                         std::shared_ptr<manifest_param>(new manifest_single_value_param(get_witness_columns(m1, m2))),
                         true);
                     if (m1 == 2) {
-                        manifest.merge_with(rem_component::get_manifest(2, 2));
+                        manifest = manifest.merge_with(rem_component::get_manifest(2, 2));
                     }
                     return manifest;
                 }

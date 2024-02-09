@@ -214,15 +214,15 @@ namespace nil {
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                        uint8_t m1, uint8_t m2) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type(m1, m2));
-                    manifest.merge_with(
+                    manifest = manifest.merge_with(
                         atan_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
-                    manifest.merge_with(
+                    manifest = manifest.merge_with(
                         div_by_pos_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
                     if (m2 == 1) {
-                        manifest.merge_with(
+                        manifest = manifest.merge_with(
                             sqrt_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
                     } else {
-                        manifest.merge_with(
+                        manifest = manifest.merge_with(
                             sqrt_floor_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
                     }
                     return manifest;
@@ -230,13 +230,13 @@ namespace nil {
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     manifest_type manifest =
-                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(4 + m2)), true);
-                    manifest.merge_with(atan_component::get_manifest(m1, m2));
-                    manifest.merge_with(div_by_pos_component::get_manifest(m1, m2));
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(4 + m2)), true)
+                            .merge_with(atan_component::get_manifest(m1, m2))
+                            .merge_with(div_by_pos_component::get_manifest(m1, m2));
                     if (m2 == 1) {
-                        manifest.merge_with(sqrt_component::get_manifest(m1, m2));
+                        manifest = manifest.merge_with(sqrt_component::get_manifest(m1, m2));
                     } else {
-                        manifest.merge_with(sqrt_floor_component::get_manifest(m1, m2));
+                        manifest = manifest.merge_with(sqrt_floor_component::get_manifest(m1, m2));
                     }
                     return manifest;
                 }

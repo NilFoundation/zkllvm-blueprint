@@ -172,7 +172,7 @@ namespace nil {
                                                        uint8_t m1, uint8_t m2 = 0) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
                     if (m1 == 2) {
-                        manifest.merge_with(
+                        manifest = manifest.merge_with(
                             rem_component::get_gate_manifest(witness_amount, lookup_column_amount, 2, 2));
                     }
                     return manifest;
