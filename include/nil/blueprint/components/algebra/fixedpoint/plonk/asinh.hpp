@@ -66,14 +66,14 @@ namespace nil {
 
                 hyperbol_log_component instantiate_log(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
-                    auto witness_columns = hyperbol_log_component::get_witness_columns(this->witness_amount(), m1, 2);
+                    auto witness_columns = hyperbol_log_component::get_witness_columns(this->witness_amount(), m1);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
                     for (auto i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return hyperbol_log_component(witness_list, std::array<std::uint32_t, 0>(),
-                                                  std::array<std::uint32_t, 0>(), m1, 2, m2);
+                                                  std::array<std::uint32_t, 0>(), m1, m2);
                 }
 
             public:
@@ -112,12 +112,12 @@ namespace nil {
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
                     return hyperbol_sqrt_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2)
                         .merge_with(
-                            hyperbol_log_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
+                            hyperbol_log_component::get_gate_manifest(witness_amount, lookup_column_amount, m1));
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     return hyperbol_sqrt_component::get_manifest(m1, m2).merge_with(
-                        hyperbol_log_component::get_manifest(m1, m2));
+                        hyperbol_log_component::get_manifest(m1));
                 }
 
                 static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
@@ -125,7 +125,7 @@ namespace nil {
                     auto asinh_sqrt_rows =
                         hyperbol_sqrt_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
                     auto log_rows =
-                        hyperbol_log_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
+                        hyperbol_log_component::get_rows_amount(witness_amount, lookup_column_amount, m1);
                     return asinh_sqrt_rows + log_rows;
                 }
 

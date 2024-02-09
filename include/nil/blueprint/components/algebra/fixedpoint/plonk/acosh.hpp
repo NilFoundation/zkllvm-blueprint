@@ -3,6 +3,7 @@
 
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/hyperbol_sqrt.hpp"
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/hyperbol_log.hpp"
+#include <cstdint>
 
 namespace nil {
     namespace blueprint {
@@ -39,7 +40,7 @@ namespace nil {
                     BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
             private:
-                hyperbol_sqrt_component asinh_sqrt;
+                hyperbol_sqrt_component acosh_sqrt;
                 hyperbol_log_component log;
                 uint8_t m1;
                 uint8_t m2;
@@ -51,7 +52,7 @@ namespace nil {
                     return m;
                 }
 
-                hyperbol_sqrt_component instantiate_asinh_sqrt(uint8_t m1, uint8_t m2) const {
+                hyperbol_sqrt_component instantiate_sqrt(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
                     auto witness_columns = hyperbol_sqrt_component::get_witness_columns(0, m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
@@ -66,14 +67,14 @@ namespace nil {
 
                 hyperbol_log_component instantiate_log(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
-                    auto witness_columns = hyperbol_log_component::get_witness_columns(this->witness_amount(), m1, 2);
+                    auto witness_columns = hyperbol_log_component::get_witness_columns(this->witness_amount(), m1);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
                     for (auto i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return hyperbol_log_component(witness_list, std::array<std::uint32_t, 0>(),
-                                                  std::array<std::uint32_t, 0>(), m1, 2, m2);
+                                                  std::array<std::uint32_t, 0>(), m1, m2);
                 }
 
             public:
@@ -113,7 +114,7 @@ namespace nil {
                 }
 
                 const hyperbol_sqrt_component &get_hyperbol_sqrt_component() const {
-                    return asinh_sqrt;
+                    return acosh_sqrt;
                 }
 
                 const hyperbol_log_component &get_hyperbol_log_component() const {
@@ -131,21 +132,21 @@ namespace nil {
                                                        uint8_t m1 = 0, uint8_t m2 = 0) {
                     return hyperbol_sqrt_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2)
                         .merge_with(
-                            hyperbol_log_component::get_gate_manifest(witness_amount, lookup_column_amount, m1, m2));
+                            hyperbol_log_component::get_gate_manifest(witness_amount, lookup_column_amount, m1));
                 }
 
                 static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
                     return hyperbol_sqrt_component::get_manifest(m1, m2).merge_with(
-                        hyperbol_log_component::get_manifest(m1, m2));
+                        hyperbol_log_component::get_manifest(m1));
                 }
 
                 static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
                                                    uint8_t m1, uint8_t m2) {
-                    auto asinh_sqrt_rows =
+                    auto acosh_sqrt_rows =
                         hyperbol_sqrt_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
                     auto log_rows =
-                        hyperbol_log_component::get_rows_amount(witness_amount, lookup_column_amount, m1, m2);
-                    return asinh_sqrt_rows + log_rows;
+                        hyperbol_log_component::get_rows_amount(witness_amount, lookup_column_amount, m1);
+                    return acosh_sqrt_rows + log_rows;
                 }
 
                 constexpr static const std::size_t gates_amount = 0;
@@ -161,14 +162,14 @@ namespace nil {
                 };
 
                 struct var_positions {
-                    int64_t asinh_sqrt_row, log_row;
+                    int64_t acosh_sqrt_row, log_row;
                     CellPosition two_const;
                 };
 
                 var_positions get_var_pos(const int64_t start_row_index) const {
                     var_positions pos;
-                    pos.asinh_sqrt_row = start_row_index;
-                    pos.log_row = pos.asinh_sqrt_row + asinh_sqrt.rows_amount;
+                    pos.acosh_sqrt_row = start_row_index;
+                    pos.log_row = pos.acosh_sqrt_row + acosh_sqrt.rows_amount;
                     return pos;
                 }
 
@@ -197,7 +198,7 @@ namespace nil {
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
                 std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables() {
                     std::vector<std::shared_ptr<lookup_table_definition>> result;
-                    for (auto elem : asinh_sqrt.component_custom_lookup_tables()) {
+                    for (auto elem : acosh_sqrt.component_custom_lookup_tables()) {
                         result.push_back(elem);
                     }
                     for (auto elem : log.component_custom_lookup_tables()) {
@@ -207,7 +208,7 @@ namespace nil {
                 }
 
                 std::map<std::string, std::size_t> component_lookup_tables() {
-                    std::map<std::string, std::size_t> result = asinh_sqrt.component_lookup_tables();
+                    std::map<std::string, std::size_t> result = acosh_sqrt.component_lookup_tables();
                     result.merge(log.component_lookup_tables());
                     return result;
                 }
@@ -218,7 +219,7 @@ namespace nil {
                 fix_acosh(WitnessContainerType witness, ConstantContainerType constant,
                           PublicInputContainerType public_input, uint8_t m1, uint8_t m2) :
                     component_type(witness, constant, public_input, get_manifest(m1, m2)),
-                    asinh_sqrt(instantiate_asinh_sqrt(m1, m2)), log(instantiate_log(m1, m2)), m1(m1), m2(m2) {};
+                    acosh_sqrt(instantiate_sqrt(m1, m2)), log(instantiate_log(m1, m2)), m1(m1), m2(m2) {};
 
                 fix_acosh(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                           std::initializer_list<typename component_type::constant_container_type::value_type> constants,
@@ -226,7 +227,7 @@ namespace nil {
                               public_inputs,
                           uint8_t m1, uint8_t m2) :
                     component_type(witnesses, constants, public_inputs, get_manifest(m1, m2)),
-                    asinh_sqrt(instantiate_asinh_sqrt(m1, m2)), log(instantiate_log(m1, m2)), m1(m1), m2(m2) {};
+                    acosh_sqrt(instantiate_sqrt(m1, m2)), log(instantiate_log(m1, m2)), m1(m1), m2(m2) {};
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
@@ -248,19 +249,19 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 using var = typename plonk_fixedpoint_acosh<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto asinh_sqrt_comp = component.get_hyperbol_sqrt_component();
+                auto acosh_sqrt_comp = component.get_hyperbol_sqrt_component();
                 auto log_comp = component.get_hyperbol_log_component();
 
                 typename plonk_fixedpoint_acosh<
-                    BlueprintFieldType, ArithmetizationParams>::hyperbol_sqrt_component::input_type asinh_sqrt_input;
-                asinh_sqrt_input.x = instance_input.x;
+                    BlueprintFieldType, ArithmetizationParams>::hyperbol_sqrt_component::input_type acosh_sqrt_input;
+                acosh_sqrt_input.x = instance_input.x;
 
-                auto asinh_sqrt_res =
-                    generate_assignments(asinh_sqrt_comp, assignment, asinh_sqrt_input, var_pos.asinh_sqrt_row);
+                auto acosh_sqrt_res =
+                    generate_assignments(acosh_sqrt_comp, assignment, acosh_sqrt_input, var_pos.acosh_sqrt_row);
 
                 typename plonk_fixedpoint_acosh<BlueprintFieldType,
                                                 ArithmetizationParams>::hyperbol_log_component::input_type log_input;
-                log_input.x = asinh_sqrt_res.output;
+                log_input.x = acosh_sqrt_res.output;
 
                 generate_assignments(log_comp, assignment, log_input, var_pos.log_row);
 
@@ -280,21 +281,21 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
                 using var = typename plonk_fixedpoint_acosh<BlueprintFieldType, ArithmetizationParams>::var;
-                auto asinh_sqrt_comp = component.get_hyperbol_sqrt_component();
+                auto acosh_sqrt_comp = component.get_hyperbol_sqrt_component();
                 auto log_comp = component.get_hyperbol_log_component();
 
                 typename plonk_fixedpoint_acosh<
-                    BlueprintFieldType, ArithmetizationParams>::hyperbol_sqrt_component::input_type asinh_sqrt_input;
-                asinh_sqrt_input.x = instance_input.x;
+                    BlueprintFieldType, ArithmetizationParams>::hyperbol_sqrt_component::input_type acosh_sqrt_input;
+                acosh_sqrt_input.x = instance_input.x;
 
-                generate_circuit(asinh_sqrt_comp, bp, assignment, asinh_sqrt_input, var_pos.asinh_sqrt_row);
+                generate_circuit(acosh_sqrt_comp, bp, assignment, acosh_sqrt_input, var_pos.acosh_sqrt_row);
 
                 typename plonk_fixedpoint_acosh<BlueprintFieldType,
                                                 ArithmetizationParams>::hyperbol_sqrt_component::result_type
-                    asinh_sqrt_res(asinh_sqrt_comp, static_cast<std::size_t>(var_pos.asinh_sqrt_row));
+                    acosh_sqrt_res(acosh_sqrt_comp, static_cast<std::size_t>(var_pos.acosh_sqrt_row));
                 typename plonk_fixedpoint_acosh<BlueprintFieldType,
                                                 ArithmetizationParams>::hyperbol_log_component::input_type log_input;
-                log_input.x = asinh_sqrt_res.output;
+                log_input.x = acosh_sqrt_res.output;
 
                 generate_circuit(log_comp, bp, assignment, log_input, var_pos.log_row);
 

@@ -2,6 +2,7 @@
 #define CRYPTO3_BLUEPRINT_PLONK_FIXEDPOINT_HYPBERBOL_LOG_HPP
 
 #include "nil/blueprint/components/algebra/fixedpoint/plonk/exp.hpp"
+#include <cstdint>
 
 namespace nil {
     namespace blueprint {
@@ -37,7 +38,6 @@ namespace nil {
             private:
                 exp_component exp;
                 uint8_t m1;
-                uint8_t m2;
                 uint8_t m2_real;    // m2 is always 2, m2_real will rescale the result by 2^16 if it is 1.
 
                 static uint8_t M(uint8_t m) {
@@ -47,21 +47,21 @@ namespace nil {
                     return m;
                 }
 
-                exp_component instantiate_exp(uint8_t m1, uint8_t m2) const {
+                exp_component instantiate_exp(uint8_t m1) const {
                     std::vector<std::uint32_t> witness_list;
-                    auto witness_columns = exp_component::get_witness_columns(m2);
+                    auto witness_columns = exp_component::get_witness_columns(2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
                     for (auto i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return exp_component(witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(),
-                                         m2);
+                                         2);
                 }
 
             public:
                 uint8_t get_m() const {
-                    return m1 + m2;
+                    return m1 + 2;
                 }
 
                 uint8_t get_m1() const {
@@ -69,7 +69,7 @@ namespace nil {
                 }
 
                 uint8_t get_m2() const {
-                    return m2;
+                    return 2;
                 }
 
                 uint8_t get_m2_real() const {
@@ -95,9 +95,9 @@ namespace nil {
                     }
                 }
 
-                static std::size_t get_witness_columns(std::size_t witness_amount, uint8_t m1, uint8_t m2) {
-                    auto exp_cols = exp_component::get_witness_columns(m2);
-                    auto log_cols = 7 + 2 * (m2 + m1);
+                static std::size_t get_witness_columns(std::size_t witness_amount, uint8_t m1) {
+                    std::size_t exp_cols = exp_component::get_witness_columns(2);
+                    std::size_t log_cols = 7 + 2 * (2 + m1);
                     return exp_cols > log_cols ? exp_cols : log_cols;
                 }
 
@@ -121,30 +121,30 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount,
-                                                       uint8_t m1 = 0, uint8_t m2 = 0) {
+                                                       uint8_t m1 = 0) {
                     gate_manifest manifest =
                         gate_manifest(gate_manifest_type())
                             .merge_with(exp_component::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
                 }
 
-                static manifest_type get_manifest(uint8_t m1, uint8_t m2) {
+                static manifest_type get_manifest(uint8_t m1) {
                     manifest_type manifest =
                         manifest_type(
-                            std::shared_ptr<manifest_param>(new manifest_single_value_param(7 + 2 * (m2 + m1))), false)
-                            .merge_with(exp_component::get_manifest(m2));
+                            std::shared_ptr<manifest_param>(new manifest_single_value_param(7 + 2 * (2 + m1))), false)
+                            .merge_with(exp_component::get_manifest(2));
                     return manifest;
                 }
 
                 static std::size_t get_log_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
-                                                       uint8_t m1, uint8_t m2) {
+                                                       uint8_t m1) {
                     return 1;
                 }
 
                 static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
-                                                   uint8_t m1, uint8_t m2) {
+                                                   uint8_t m1) {
                     auto exp_rows = exp_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    auto log_rows = get_log_rows_amount(witness_amount, lookup_column_amount, m1, m2);
+                    auto log_rows = get_log_rows_amount(witness_amount, lookup_column_amount, m1);
                     return 2 * exp_rows + log_rows;
                 }
 
@@ -155,8 +155,8 @@ namespace nil {
                 constexpr static const std::size_t gates_amount = 2;
 #endif    // TEST_WITHOUT_LOOKUP_TABLES
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
-                const std::size_t log_rows_amount = get_log_rows_amount(this->witness_amount(), 0, get_m1(), get_m2());
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, get_m1());
+                const std::size_t log_rows_amount = get_log_rows_amount(this->witness_amount(), 0, get_m1());
 
                 struct input_type {
                     var x = var(0, 0, false);
@@ -240,18 +240,18 @@ namespace nil {
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 fix_hyperbol_log(WitnessContainerType witness, ConstantContainerType constant,
-                                 PublicInputContainerType public_input, uint8_t m1, uint8_t m2, uint8_t m2_real) :
-                    component_type(witness, constant, public_input, get_manifest(m1, m2)),
-                    exp(instantiate_exp(m1, m2)), m1(m1), m2(m2), m2_real(m2_real) {};
+                                 PublicInputContainerType public_input, uint8_t m1, uint8_t m2_real) :
+                    component_type(witness, constant, public_input, get_manifest(m1)),
+                    exp(instantiate_exp(m1)), m1(m1), m2_real(m2_real) {};
 
                 fix_hyperbol_log(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                     std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
-                    uint8_t m1, uint8_t m2, uint8_t m2_real) :
-                    component_type(witnesses, constants, public_inputs, get_manifest(m1, m2)),
-                    exp(instantiate_exp(m1, m2)), m1(m1), m2(m2), m2_real(m2_real) {};
+                    uint8_t m1, uint8_t m2_real) :
+                    component_type(witnesses, constants, public_inputs, get_manifest(m1)),
+                    exp(instantiate_exp(m1)), m1(m1), m2_real(m2_real) {};
             };
 
             template<typename BlueprintFieldType, typename ArithmetizationParams>
