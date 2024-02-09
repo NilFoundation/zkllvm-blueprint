@@ -208,6 +208,7 @@ SET(FIXEDPOINT_TESTS_FILES
     "algebra/fixedpoint/plonk/hyperbolic"
     "algebra/fixedpoint/plonk/erf"
     "algebra/fields/plonk/bitwise"
+    "algebra/fields/plonk/dot_2_gates"
 )
 
 SET(ALGEBRA_TESTS_FILES
