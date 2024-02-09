@@ -1065,7 +1065,7 @@ void test_components(int i, int j) {
         if (y.geq_0()) {
             test_fixedpoint_div_by_pos<FixedType>(x, y);
         }
-    // }
+    }
 }
 
 template<typename FixedType, std::size_t RandomTestsAmount>
