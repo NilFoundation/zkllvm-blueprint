@@ -188,7 +188,7 @@ namespace nil {
                 }
 
                 std::map<std::string, std::size_t> component_lookup_tables() {
-                    std::map<std::string, std::size_t> result = asinh_div.component_lookup_tables();
+                    std::map<std::string, std::size_t> result = asinh_sqrt.component_lookup_tables();
                     result.merge(log.component_lookup_tables());
                     return result;
                 }
