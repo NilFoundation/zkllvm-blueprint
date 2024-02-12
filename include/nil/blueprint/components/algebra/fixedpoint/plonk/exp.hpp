@@ -271,7 +271,7 @@ namespace nil {
                                              FixedPointTables<BlueprintFieldType>::get_exp_b_32();
 
                 auto output_a = exp_a_table[0];
-                if (input_a >= 0 && input_a < exp_a_table.size()) {
+                if (input_a >= 0 && static_cast<std::size_t>(input_a) < exp_a_table.size()) {
                     output_a = exp_a_table[input_a];
                     assignment.witness(splat(var_pos.x_pre)) = input_a;
                 } else {
@@ -335,7 +335,7 @@ namespace nil {
                 auto y_post0 = var(splat(var_pos.y_post0));
 
                 auto constraint_1 = delta * (x_pre - table_half) - x;
-                auto constraint_2 = nil::crypto3::math::expression(y_pre * y_post0);
+                auto constraint_2 = nil::crypto3::math::expression<var>(y_pre * y_post0);
 
                 if (m2 == 2) {
                     auto x_post1 = var(var_pos.x_post0.column() + 1, var_pos.x_post0.row());    // tab_c_in

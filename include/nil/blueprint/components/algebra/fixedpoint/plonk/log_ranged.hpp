@@ -48,7 +48,7 @@ namespace nil {
                     auto witness_columns = exp_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return exp_component(witness_list, std::array<std::uint32_t, 2>({this->C(0), this->C(1)}),
@@ -364,8 +364,8 @@ namespace nil {
                 const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
+                auto a0 = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression<var>(var(splat(var_pos.b0)));
                 for (auto i = 1; i < m; i++) {
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
                     b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));

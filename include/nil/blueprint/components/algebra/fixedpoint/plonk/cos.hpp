@@ -105,7 +105,6 @@ namespace nil {
             private:
                 rem_component instantiate_rem() const {
                     auto m1 = this->m1;
-                    auto m2 = this->m2;
                     value_type scaler = 1;
                     if (is_32_16()) {
                         scaler = value_type(1ULL << 16);
@@ -114,7 +113,7 @@ namespace nil {
                     auto witness_columns = rem_component::get_witness_columns(this->witness_amount(), m1, 2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     std::vector<std::uint32_t> constant_list = {this->C(0)};
@@ -331,9 +330,7 @@ namespace nil {
 
                 auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
-                auto m = component.get_m();
 
-                auto one = value_type::one();
                 auto zero = value_type::zero();
                 auto delta = value_type(component.get_delta());
 
@@ -443,11 +440,10 @@ namespace nil {
                 using var = typename plonk_fixedpoint_cos<BlueprintFieldType, ArithmetizationParams>::var;
                 auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
-                auto m = component.get_m();
 
                 auto delta = typename BlueprintFieldType::value_type(component.get_delta());
                 auto x = var(splat(var_pos.x));
-                auto x0 = nil::crypto3::math::expression(var(splat(var_pos.x0)));
+                auto x0 = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
 
                 // decomposition of x
                 for (size_t i = 1; i < m2 + 1; i++) {
@@ -464,7 +460,7 @@ namespace nil {
                 auto cos1 = var(splat(var_pos.cos1));                              // 1 .. b
                 auto sin2 = var(var_pos.sin0.column() + 2, var_pos.sin0.row());    // 2 .. c
                 auto cos2 = delta;                                                 // 2 .. c
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
                 for (size_t i = 1; i < m2 * m2; i++) {
                     q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                 }

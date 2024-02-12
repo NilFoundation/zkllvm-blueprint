@@ -358,7 +358,7 @@ namespace nil {
 
                 auto m = component.get_m();
 
-                auto d0 = nil::crypto3::math::expression(var(splat(var_pos.d0)));
+                auto d0 = nil::crypto3::math::expression<var>(var(splat(var_pos.d0)));
                 for (auto i = 1; i < m; i++) {
                     d0 += var(var_pos.d0.column() + i, var_pos.d0.row()) * (1ULL << (16 * i));
                 }
@@ -385,7 +385,7 @@ namespace nil {
 
                 auto inv2 = typename BlueprintFieldType::value_type(2).inversed();
 
-                auto constraint_5 = nil::crypto3::math::expression(flag);
+                auto constraint_5 = nil::crypto3::math::expression<var>(flag);
                 // Which component to we have
                 if (component.select_last_index) {
                     // We have to evaluate x > y

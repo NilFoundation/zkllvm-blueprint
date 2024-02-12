@@ -211,7 +211,6 @@ namespace nil {
                 const auto one = BlueprintFieldType::value_type::one();
                 auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
-                auto m = m1 + m2;
                 auto delta = component.get_delta();
                 auto mask = (1ULL << 16) - 1;
 
@@ -275,12 +274,12 @@ namespace nil {
                 auto m = component.get_m();
                 auto m2 = component.get_m2();
 
-                auto x_post = nil::crypto3::math::expression(var(splat(var_pos.x0)));
+                auto x_post = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
                 for (auto i = 1; i < m2; i++) {
                     x_post += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * i));
                 }
 
-                auto x_pre = nil::crypto3::math::expression(var(var_pos.x0.column() + m2, var_pos.x0.row()));
+                auto x_pre = nil::crypto3::math::expression<var>(var(var_pos.x0.column() + m2, var_pos.x0.row()));
                 x_pre *= 1ULL << (16 * m2);
                 for (auto i = m2 + 1; i < m; i++) {
                     x_pre += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * i));

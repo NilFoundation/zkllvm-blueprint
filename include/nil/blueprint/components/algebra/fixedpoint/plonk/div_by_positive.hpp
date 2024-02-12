@@ -297,8 +297,8 @@ namespace nil {
                 auto m = component.get_m();
                 auto delta = component.get_delta();
 
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
-                auto a = nil::crypto3::math::expression(var(splat(var_pos.a0)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
+                auto a = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
                 for (auto i = 1; i < m; i++) {
                     q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                     a += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));

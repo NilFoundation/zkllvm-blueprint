@@ -263,7 +263,7 @@ namespace nil {
                 // Output: z = max(x, y)
                 // is equivalent to: z = 2^-1 * (s * (x - y) + x + y)
 
-                auto d = nil::crypto3::math::expression(var(splat(var_pos.d0)));
+                auto d = nil::crypto3::math::expression<var>(var(splat(var_pos.d0)));
                 for (auto i = 1; i < m; i++) {
                     d += var(var_pos.d0.column() + i, var_pos.d0.row()) * (1ULL << (16 * i));
                 }

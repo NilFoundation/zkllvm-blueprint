@@ -314,8 +314,6 @@ namespace nil {
 
                 // Basically combines abs and abs > 1
 
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-
                 const auto one = BlueprintFieldType::value_type::one();
                 const auto zero = BlueprintFieldType::value_type::zero();
                 auto m = component.get_m();
@@ -436,8 +434,6 @@ namespace nil {
 
                 // Basically a comparison of the input x > 0.7 and preparing the values for a division in hte next row
 
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-
                 auto m = component.get_m();
                 auto m2 = component.get_m2();
                 auto delta = component.get_delta();
@@ -535,8 +531,6 @@ namespace nil {
 
                 // Basically a div_by_positive gadget, and setting an output based on previous flags
 
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
-
                 auto m = component.get_m();
                 auto zero = BlueprintFieldType::value_type::zero();
                 auto one = BlueprintFieldType::value_type::one();
@@ -589,8 +583,6 @@ namespace nil {
                     &var_pos) {
 
                 // Basically a taylor polynomial
-
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
                 auto delta = component.get_delta();
                 auto m2 = component.get_m2();
@@ -663,8 +655,6 @@ namespace nil {
                     &var_pos) {
 
                 // Combine taylor with the corrections from the previous rows
-
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
                 auto m2 = component.get_m2();
                 auto zero = BlueprintFieldType::value_type::zero();
@@ -751,8 +741,8 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m = component.get_m();
 
-                auto a = nil::crypto3::math::expression(var(var_pos.a0.column(), 0));
-                auto b = nil::crypto3::math::expression(var(var_pos.b0.column(), 0));
+                auto a = nil::crypto3::math::expression<var>(var(var_pos.a0.column(), 0));
+                auto b = nil::crypto3::math::expression<var>(var(var_pos.b0.column(), 0));
                 for (auto i = 1; i < m; i++) {
                     a += var(var_pos.a0.column() + i, 0) * (1ULL << (16 * i));
                     b += var(var_pos.b0.column() + i, 0) * (1ULL << (16 * i));
@@ -798,9 +788,9 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m = component.get_m();
 
-                auto c = nil::crypto3::math::expression(var(var_pos.c0.column(), 0));
-                auto d = nil::crypto3::math::expression(var(var_pos.d0.column(), 0));
-                auto abs_val = nil::crypto3::math::expression(var(var_pos.a0.column(), -1));    // abs from prev row
+                auto c = nil::crypto3::math::expression<var>(var(var_pos.c0.column(), 0));
+                auto d = nil::crypto3::math::expression<var>(var(var_pos.d0.column(), 0));
+                auto abs_val = nil::crypto3::math::expression<var>(var(var_pos.a0.column(), -1));    // abs from prev row
                 for (auto i = 1; i < m; i++) {
                     c += var(var_pos.c0.column() + i, 0) * (1ULL << (16 * i));
                     d += var(var_pos.d0.column() + i, 0) * (1ULL << (16 * i));
@@ -838,8 +828,8 @@ namespace nil {
                 auto m2 = component.get_m2();
                 auto m = component.get_m();
 
-                auto e = nil::crypto3::math::expression(var(var_pos.e0.column(), 0));
-                auto f = nil::crypto3::math::expression(var(var_pos.f0.column(), 0));
+                auto e = nil::crypto3::math::expression<var>(var(var_pos.e0.column(), 0));
+                auto f = nil::crypto3::math::expression<var>(var(var_pos.f0.column(), 0));
                 for (auto i = 1; i < m2; i++) {
                     f += var(var_pos.f0.column() + i, 0) * (1ULL << (16 * i));
                 }
@@ -901,11 +891,10 @@ namespace nil {
 
                 using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
-                auto delta = component.get_delta();
                 auto m = component.get_m();
 
-                auto g = nil::crypto3::math::expression(var(var_pos.g0.column(), 0));
-                auto h = nil::crypto3::math::expression(var(var_pos.h0.column(), 0));
+                auto g = nil::crypto3::math::expression<var>(var(var_pos.g0.column(), 0));
+                auto h = nil::crypto3::math::expression<var>(var(var_pos.h0.column(), 0));
                 for (auto i = 1; i < m; i++) {
                     g += var(var_pos.g0.column() + i, 0) * (1ULL << (16 * i));
                     h += var(var_pos.h0.column() + i, 0) * (1ULL << (16 * i));
@@ -939,11 +928,11 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m2 = component.get_m2();
 
-                auto x2q = nil::crypto3::math::expression(var(var_pos.p20.column(), 0));
-                auto x3q = nil::crypto3::math::expression(var(var_pos.p30.column(), 0));
-                auto x33q = nil::crypto3::math::expression(var(var_pos.p330.column(), 0));
-                auto x5q = nil::crypto3::math::expression(var(var_pos.p50.column(), 0));
-                auto x55q = nil::crypto3::math::expression(var(var_pos.p550.column(), 0));
+                auto x2q = nil::crypto3::math::expression<var>(var(var_pos.p20.column(), 0));
+                auto x3q = nil::crypto3::math::expression<var>(var(var_pos.p30.column(), 0));
+                auto x33q = nil::crypto3::math::expression<var>(var(var_pos.p330.column(), 0));
+                auto x5q = nil::crypto3::math::expression<var>(var(var_pos.p50.column(), 0));
+                auto x55q = nil::crypto3::math::expression<var>(var(var_pos.p550.column(), 0));
                 for (auto i = 1; i < m2; i++) {
                     x2q += var(var_pos.p20.column() + i, 0) * (1ULL << (16 * i));
                     x3q += var(var_pos.p30.column() + i, 0) * (1ULL << (16 * i));
@@ -1188,8 +1177,6 @@ namespace nil {
                 const typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
-
-                using var = typename plonk_fixedpoint_atan<BlueprintFieldType, ArithmetizationParams>::var;
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 

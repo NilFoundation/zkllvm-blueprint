@@ -257,7 +257,6 @@ namespace nil {
                     const std::uint32_t start_row_index) {
                 using value_type = typename BlueprintFieldType::value_type;
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                const auto m = component.get_m();
                 const auto m1 = component.get_m1();
                 const auto m2 = component.get_m2();
                 const auto m2_internal = 2;
@@ -326,10 +325,10 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(!sign);
 
                 // is ok because decomp is at least of size 4 and the biggest we have is 32.32
-                BLUEPRINT_RELEASE_ASSERT(y0_val.size() >= m_internal);
-                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= m_internal);
-                BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= m_internal);
-                BLUEPRINT_RELEASE_ASSERT(c0_val.size() >= m_internal);
+                BLUEPRINT_RELEASE_ASSERT(y0_val.size() >= static_cast<std::size_t>(m_internal));
+                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= static_cast<std::size_t>(m_internal));
+                BLUEPRINT_RELEASE_ASSERT(b0_val.size() >= static_cast<std::size_t>(m_internal));
+                BLUEPRINT_RELEASE_ASSERT(c0_val.size() >= static_cast<std::size_t>(m_internal));
 
                 for (auto i = 0; i < m_internal; i++) {
                     assignment.witness(var_pos.y0.column() + i, var_pos.y0.row()) = y0_val[i];
@@ -356,7 +355,6 @@ namespace nil {
                     &instance_input) {
 
                 using var = typename fixplonk_fixedpoint_hyperbol_sqrt<BlueprintFieldType, ArithmetizationParams>::var;
-                const auto m = component.get_m();
                 const auto m1 = component.get_m1();
                 const auto m2 = component.get_m2();
                 const auto m2_internal = 2;
@@ -367,12 +365,12 @@ namespace nil {
                 const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto y0 = nil::crypto3::math::expression(var(splat(var_pos.y0)));
-                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
-                auto c0 = nil::crypto3::math::expression(var(splat(var_pos.c0)));
-                auto d0 = nil::crypto3::math::expression(var(splat(var_pos.d0)));
-                auto x0 = nil::crypto3::math::expression(var(splat(var_pos.x0)));
+                auto y0 = nil::crypto3::math::expression<var>(var(splat(var_pos.y0)));
+                auto a0 = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression<var>(var(splat(var_pos.b0)));
+                auto c0 = nil::crypto3::math::expression<var>(var(splat(var_pos.c0)));
+                auto d0 = nil::crypto3::math::expression<var>(var(splat(var_pos.d0)));
+                auto x0 = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
                 for (auto i = 1; i < m_internal; i++) {
                     y0 += var(var_pos.y0.column() + i, var_pos.y0.row()) * (1ULL << (16 * i));
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));

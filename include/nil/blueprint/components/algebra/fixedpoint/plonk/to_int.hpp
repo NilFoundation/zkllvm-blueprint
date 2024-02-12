@@ -232,8 +232,7 @@ namespace nil {
                     std::map<std::string, std::size_t> lookup_tables;
                     lookup_tables[range_table::FULL_TABLE_NAME] = 0;    // REQUIRED_TABLE
 
-                    if (out_type == OutputType::U8 ||
-                        out_type == OutputType::I8) {
+                    if (out_type == OutputType::U8 || out_type == OutputType::I8) {
                         lookup_tables[range_table::P256_TABLE_NAME] = 0;    // REQUIRED_TABLE
                     }
                     return lookup_tables;
@@ -299,7 +298,7 @@ namespace nil {
                 std::vector<uint16_t> x0_val;
                 bool sign = FixedPointHelper<BlueprintFieldType>::decompose(x_val, x0_val);
                 // is ok because x0_val is at least of size 4 and the biggest we have is 32.32
-                BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= m);
+                BLUEPRINT_RELEASE_ASSERT(x0_val.size() >= static_cast<std::size_t>(m));
 
                 auto s_val = sign ? -one : one;
                 typename BlueprintFieldType::value_type y_val;
@@ -323,8 +322,6 @@ namespace nil {
                         y_val = x0_val[m2] + x0_val[m2 + 1] * (1ULL << 16);
                         break;
                     }
-                    default:
-                        BLUEPRINT_RELEASE_ASSERT(false);
                 }
 
                 if (sign) {
@@ -379,7 +376,7 @@ namespace nil {
                 auto m2 = component.get_m2();
                 auto delta = component.get_delta();
 
-                auto x_post = nil::crypto3::math::expression(var(splat(var_pos.x0)));
+                auto x_post = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
                 for (auto i = 1; i < m2; i++) {
                     x_post += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * i));
                 }
@@ -409,7 +406,7 @@ namespace nil {
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I8:
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U16:
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::I16: {
-                        composed = nil::crypto3::math::expression(var(var_pos.x0.column() + m2, var_pos.x0.row()));
+                        composed = nil::crypto3::math::expression<var>(var(var_pos.x0.column() + m2, var_pos.x0.row()));
                         break;
                     }
                     case plonk_fixedpoint_to_int<BlueprintFieldType, ArithmetizationParams>::OutputType::U32:
@@ -419,8 +416,6 @@ namespace nil {
                         composed = x_pre;
                         break;
                     }
-                    default:
-                        BLUEPRINT_RELEASE_ASSERT(false);
                 }
 
                 auto x = var(splat(var_pos.x));

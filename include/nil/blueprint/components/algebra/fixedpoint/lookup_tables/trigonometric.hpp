@@ -41,7 +41,7 @@ namespace nil {
                     this->subtables[COS_B] = {{0, 4}, 0, fixedpoint_tables::SinXLen - 1};
                 }
 
-                virtual void generate() {
+                virtual void generate() override {
                     BLUEPRINT_RELEASE_ASSERT(fixedpoint_tables::RangeLen == fixedpoint_tables::SinXLen);
                     auto input = fixedpoint_tables::get_range_table();
                     auto sin_a = fixedpoint_tables::get_sin_a_16();
@@ -51,11 +51,11 @@ namespace nil {
                     this->_table = {input, sin_a, sin_b, cos_a, cos_b};
                 }
 
-                virtual std::size_t get_columns_number() {
+                virtual std::size_t get_columns_number() override {
                     return 5;
                 }
 
-                virtual std::size_t get_rows_number() {
+                virtual std::size_t get_rows_number() override {
                     return fixedpoint_tables::SinXLen;
                 }
             };
@@ -93,7 +93,7 @@ namespace nil {
                     this->subtables[COS_B] = {{0, 5}, 0, fixedpoint_tables::SinXLen - 1};
                 }
 
-                virtual void generate() {
+                virtual void generate() override {
                     BLUEPRINT_RELEASE_ASSERT(fixedpoint_tables::RangeLen == fixedpoint_tables::SinXLen);
                     auto input = fixedpoint_tables::get_range_table();
                     auto sin_a = fixedpoint_tables::get_sin_a_32();
@@ -104,11 +104,11 @@ namespace nil {
                     this->_table = {input, sin_a, sin_b, sin_c, cos_a, cos_b};
                 }
 
-                virtual std::size_t get_columns_number() {
+                virtual std::size_t get_columns_number() override {
                     return 6;
                 }
 
-                virtual std::size_t get_rows_number() {
+                virtual std::size_t get_rows_number() override {
                     return fixedpoint_tables::SinXLen;
                 }
             };

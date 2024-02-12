@@ -37,7 +37,7 @@ namespace nil {
                     this->subtables[A_SUBTABLE_NAME] = {{0, 1}, 0, fixedpoint_tables::ExpALen - 1};
                 }
 
-                virtual void generate() {
+                virtual void generate() override {
                     BLUEPRINT_RELEASE_ASSERT(fixedpoint_tables::RangeLen == fixedpoint_tables::ExpBLen);
                     auto input = fixedpoint_tables::get_range_table();
                     auto output_a = fixedpoint_tables::get_exp_a_16();
@@ -45,11 +45,11 @@ namespace nil {
                     this->_table = {input, output_a, output_b};
                 }
 
-                virtual std::size_t get_columns_number() {
+                virtual std::size_t get_columns_number() override {
                     return 3;
                 }
 
-                virtual std::size_t get_rows_number() {
+                virtual std::size_t get_rows_number() override {
                     return fixedpoint_tables::ExpBLen;
                 }
             };
@@ -80,7 +80,7 @@ namespace nil {
                     this->subtables[A_SUBTABLE_NAME] = {{0, 1}, 0, fixedpoint_tables::ExpALen - 1};
                 }
 
-                virtual void generate() {
+                virtual void generate() override {
                     BLUEPRINT_RELEASE_ASSERT(fixedpoint_tables::RangeLen == fixedpoint_tables::ExpBLen);
                     auto input = fixedpoint_tables::get_range_table();
                     auto output_a = fixedpoint_tables::get_exp_a_32();
@@ -88,11 +88,11 @@ namespace nil {
                     this->_table = {input, output_a, output_b};
                 }
 
-                virtual std::size_t get_columns_number() {
+                virtual std::size_t get_columns_number() override {
                     return 3;
                 }
 
-                virtual std::size_t get_rows_number() {
+                virtual std::size_t get_rows_number() override {
                     return fixedpoint_tables::ExpBLen;
                 }
             };

@@ -245,7 +245,7 @@ namespace nil {
                 FixedPointTables<BlueprintFieldType>::fill_range_table() {
                 std::vector<value_type> range;
                 range.reserve(RangeLen);
-                for (auto i = 0; i < RangeLen; ++i) {
+                for (uint32_t i = 0; i < RangeLen; ++i) {
                     range.push_back(value_type(i));
                 }
                 return range;
@@ -257,7 +257,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> exp_a;
                 exp_a.reserve(ExpALen);
-                for (auto i = 0; i < ExpALen; ++i) {
+                for (int64_t i = 0; i < static_cast<int64_t>(ExpALen); ++i) {
                     big_float val_in = i - (int32_t)ExpALen / 2;
                     big_float val;
                     nil::crypto3::multiprecision::default_ops::eval_exp(val.backend(), val_in.backend());
@@ -275,7 +275,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> exp_b;
                 exp_b.reserve(ExpBLen);
-                for (auto i = 0; i < ExpBLen; ++i) {
+                for (uint32_t i = 0; i < ExpBLen; ++i) {
                     double val = std::exp((double)i / ExpBLen);
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
@@ -291,7 +291,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> sin_a;
                 sin_a.reserve(SinXLen);
-                for (auto i = 0; i < SinXLen; ++i) {
+                for (uint32_t i = 0; i < SinXLen; ++i) {
                     double val = std::sin(static_cast<double>(i) / (1ULL << SinXScale * 0));
                     val *= (1ULL << (16 * m2));
                     auto int_val = int64_t(val);
@@ -307,7 +307,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> sin_b;
                 sin_b.reserve(SinXLen);
-                for (auto i = 0; i < SinXLen; ++i) {
+                for (uint32_t i = 0; i < SinXLen; ++i) {
                     double val = std::sin(static_cast<double>(i) / (1ULL << SinXScale * 1));
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
@@ -323,7 +323,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 2);
                 std::vector<value_type> sin_c;
                 sin_c.reserve(SinXLen);
-                for (auto i = 0; i < SinXLen; ++i) {
+                for (uint32_t i = 0; i < SinXLen; ++i) {
                     double val = std::sin(static_cast<double>(i) / (1ULL << SinXScale * 2));
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
@@ -339,7 +339,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> sinh_a;
                 sinh_a.reserve(SinXLen);
-                for (auto i = 0; i < SinXLen; ++i) {
+                for (uint32_t i = 0; i < SinXLen; ++i) {
                     double val = std::sinh(static_cast<double>(i) / (1ULL << SinXScale * 0));
                     val *= (1ULL << (16 * m2));
                     auto int_val = int64_t(val);
@@ -355,7 +355,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> sinh_b;
                 sinh_b.reserve(SinXLen);
-                for (auto i = 0; i < SinXLen; ++i) {
+                for (uint32_t i = 0; i < SinXLen; ++i) {
                     double val = std::sinh(static_cast<double>(i) / (1ULL << SinXScale * 1));
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
@@ -371,7 +371,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 2);
                 std::vector<value_type> sinh_c;
                 sinh_c.reserve(SinXLen);
-                for (auto i = 0; i < SinXLen; ++i) {
+                for (uint32_t i = 0; i < SinXLen; ++i) {
                     double val = std::sinh(static_cast<double>(i) / (1ULL << SinXScale * 2));
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
@@ -387,7 +387,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> cos_a;
                 cos_a.reserve(CosXLen);
-                for (auto i = 0; i < CosXLen; ++i) {
+                for (uint32_t i = 0; i < CosXLen; ++i) {
                     double val = std::cos(static_cast<double>(i) / (1ULL << CosXScale * 0));
                     val *= (1ULL << (16 * m2));
                     auto int_val = int64_t(val);
@@ -403,7 +403,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> cos_b;
                 cos_b.reserve(CosXLen);
-                for (auto i = 0; i < CosXLen; ++i) {
+                for (uint32_t i = 0; i < CosXLen; ++i) {
                     double val = std::cos(static_cast<double>(i) / (1ULL << CosXScale * 1));
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);
@@ -419,7 +419,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> cosh_a;
                 cosh_a.reserve(CosXLen);
-                for (auto i = 0; i < CosXLen; ++i) {
+                for (uint32_t i = 0; i < CosXLen; ++i) {
                     double val = std::cosh(static_cast<double>(i) / (1ULL << CosXScale * 0));
                     val *= (1ULL << (16 * m2));
                     auto int_val = int64_t(val);
@@ -435,7 +435,7 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(m2 == 1 || m2 == 2);
                 std::vector<value_type> cosh_b;
                 cosh_b.reserve(CosXLen);
-                for (auto i = 0; i < CosXLen; ++i) {
+                for (uint32_t i = 0; i < CosXLen; ++i) {
                     double val = std::cosh(static_cast<double>(i) / (1ULL << CosXScale * 1));
                     val *= (1ULL << (16 * m2));
                     auto int_val = uint64_t(val);

@@ -253,7 +253,7 @@ namespace nil {
                 using var = typename plonk_fixedpoint_rescale<BlueprintFieldType, ArithmetizationParams>::var;
                 auto delta = component.get_delta();
 
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
                 for (auto i = 1; i < component.get_m2(); i++) {
                     q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));    // qi for i in [0, m2)
                 }

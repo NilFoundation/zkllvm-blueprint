@@ -396,8 +396,8 @@ namespace nil {
 
                 auto m = component.get_m();
 
-                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
+                auto a0 = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression<var>(var(splat(var_pos.b0)));
                 for (auto i = 1; i < m; i++) {
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
                     b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));

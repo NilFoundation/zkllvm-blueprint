@@ -62,7 +62,7 @@ namespace nil {
                     auto witness_columns = sqrt_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return sqrt_component(witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(),
@@ -74,7 +74,7 @@ namespace nil {
                     auto witness_columns = sqrt_floor_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return sqrt_floor_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -86,7 +86,7 @@ namespace nil {
                     auto witness_columns = atan_component::get_witness_columns(m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return atan_component(witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(),
@@ -98,7 +98,7 @@ namespace nil {
                     auto witness_columns = div_by_pos_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return div_by_pos_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -446,7 +446,7 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto m2 = component.get_m2();
 
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
                 for (auto i = 1; i < m2; i++) {
                     q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                 }

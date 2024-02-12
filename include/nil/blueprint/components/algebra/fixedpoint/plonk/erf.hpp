@@ -212,9 +212,6 @@ namespace nil {
 
                 var_positions get_var_pos(const int64_t start_row_index) const {
 
-                    auto m = this->get_m();
-                    auto m1 = this->get_m1();
-                    auto m2 = this->get_m2();
                     var_positions pos;
 
                     // trace layout (15 col(s), 3 row(s))
@@ -471,36 +468,34 @@ namespace nil {
 
                 std::vector<crypto3::zk::snark::plonk_constraint<BlueprintFieldType>> constraints;
 
-                const auto m = component.get_m();
-                const auto m1 = component.get_m1();
                 const auto m2 = component.get_m2();
                 const auto delta = typename BlueprintFieldType::value_type(component.get_internal_delta());
 
                 // this below is an empty expression, didn't know how to declare that
-                auto x_inp = nil::crypto3::math::expression(var(splat(var_pos.x0)) - var(splat(var_pos.x0)));
+                auto x_inp = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)) - var(splat(var_pos.x0)));
                 if (2 == m2) {
-                    x_inp = nil::crypto3::math::expression(var(splat(var_pos.x0)));
+                    x_inp = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
                 }
 
-                auto x_abs = nil::crypto3::math::expression(var(splat(var_pos.x0)));
-                auto d = nil::crypto3::math::expression(var(splat(var_pos.d0)));
-                auto x = nil::crypto3::math::expression(var(splat(var_pos.x)));
-                auto s_x = nil::crypto3::math::expression(var(splat(var_pos.s_x)));
-                auto s_d = nil::crypto3::math::expression(var(splat(var_pos.s_d)));
-                auto xp2 = nil::crypto3::math::expression(var(splat(var_pos.xp2)));
-                auto xp3 = nil::crypto3::math::expression(var(splat(var_pos.xp3)));
-                auto gp2 = nil::crypto3::math::expression(var(splat(var_pos.gp2)));
-                auto g = nil::crypto3::math::expression(var(splat(var_pos.g)));
+                auto x_abs = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
+                auto d = nil::crypto3::math::expression<var>(var(splat(var_pos.d0)));
+                auto x = nil::crypto3::math::expression<var>(var(splat(var_pos.x)));
+                auto s_x = nil::crypto3::math::expression<var>(var(splat(var_pos.s_x)));
+                auto s_d = nil::crypto3::math::expression<var>(var(splat(var_pos.s_d)));
+                auto xp2 = nil::crypto3::math::expression<var>(var(splat(var_pos.xp2)));
+                auto xp3 = nil::crypto3::math::expression<var>(var(splat(var_pos.xp3)));
+                auto gp2 = nil::crypto3::math::expression<var>(var(splat(var_pos.gp2)));
+                auto g = nil::crypto3::math::expression<var>(var(splat(var_pos.g)));
                 for (auto i = 1; i < 4; i++) {
                     x_abs += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * i));
                     x_inp += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * (i + m2 - 2)));
                     d += var(var_pos.d0.column() + i, var_pos.d0.row()) * (1ULL << (16 * i));
                 }
 
-                auto r0 = nil::crypto3::math::expression(var(splat(var_pos.r0)));
-                auto r1 = nil::crypto3::math::expression(var(splat(var_pos.r1)));
-                auto r2 = nil::crypto3::math::expression(var(splat(var_pos.r2)));
-                auto r4 = nil::crypto3::math::expression(var(splat(var_pos.r4)));
+                auto r0 = nil::crypto3::math::expression<var>(var(splat(var_pos.r0)));
+                auto r1 = nil::crypto3::math::expression<var>(var(splat(var_pos.r1)));
+                auto r2 = nil::crypto3::math::expression<var>(var(splat(var_pos.r2)));
+                auto r4 = nil::crypto3::math::expression<var>(var(splat(var_pos.r4)));
                 for (auto i = 1; i < 2; i++) {
                     r0 += var(var_pos.r0.column() + i, var_pos.r0.row()) * (1ULL << (16 * i));
                     r1 += var(var_pos.r1.column() + i, var_pos.r1.row()) * (1ULL << (16 * i));
@@ -566,29 +561,26 @@ namespace nil {
 
                 std::vector<crypto3::zk::snark::plonk_constraint<BlueprintFieldType>> constraints;
 
-                const auto m = component.get_m();
-                const auto m1 = component.get_m1();
-                const auto m2 = component.get_m2();
                 const auto delta = typename BlueprintFieldType::value_type(component.get_internal_delta());
                 const auto target_delta = typename BlueprintFieldType::value_type(component.get_delta());
 
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
-                auto b = nil::crypto3::math::expression(var(splat(var_pos.b0)));
-                auto s_x = nil::crypto3::math::expression(var(splat(var_pos.s_x)));
-                auto s_d = nil::crypto3::math::expression(var(splat(var_pos.s_d)));
-                auto y = nil::crypto3::math::expression(var(splat(var_pos.y)));
-                auto c = nil::crypto3::math::expression(var(splat(var_pos.c)));
-                auto gp2 = nil::crypto3::math::expression(var(splat(var_pos.gp2)));
-                auto gp4 = nil::crypto3::math::expression(var(splat(var_pos.gp4)));
-                auto gp8 = nil::crypto3::math::expression(var(splat(var_pos.gp8)));
-                auto gp16 = nil::crypto3::math::expression(var(splat(var_pos.gp16)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
+                auto b = nil::crypto3::math::expression<var>(var(splat(var_pos.b0)));
+                auto s_x = nil::crypto3::math::expression<var>(var(splat(var_pos.s_x)));
+                auto s_d = nil::crypto3::math::expression<var>(var(splat(var_pos.s_d)));
+                auto y = nil::crypto3::math::expression<var>(var(splat(var_pos.y)));
+                auto c = nil::crypto3::math::expression<var>(var(splat(var_pos.c)));
+                auto gp2 = nil::crypto3::math::expression<var>(var(splat(var_pos.gp2)));
+                auto gp4 = nil::crypto3::math::expression<var>(var(splat(var_pos.gp4)));
+                auto gp8 = nil::crypto3::math::expression<var>(var(splat(var_pos.gp8)));
+                auto gp16 = nil::crypto3::math::expression<var>(var(splat(var_pos.gp16)));
                 for (auto i = 1; i < 4; i++) {
                     q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                     b += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));
                 }
-                auto r5 = nil::crypto3::math::expression(var(splat(var_pos.r5)));
-                auto r6 = nil::crypto3::math::expression(var(splat(var_pos.r6)));
-                auto r7 = nil::crypto3::math::expression(var(splat(var_pos.r7)));
+                auto r5 = nil::crypto3::math::expression<var>(var(splat(var_pos.r5)));
+                auto r6 = nil::crypto3::math::expression<var>(var(splat(var_pos.r6)));
+                auto r7 = nil::crypto3::math::expression<var>(var(splat(var_pos.r7)));
                 for (auto i = 1; i < 2; i++) {
                     r5 += var(var_pos.r5.column() + i, var_pos.r5.row()) * (1ULL << (16 * i));
                     r6 += var(var_pos.r6.column() + i, var_pos.r6.row()) * (1ULL << (16 * i));

@@ -319,15 +319,15 @@ namespace nil {
                 auto delta = component.get_delta();
                 auto h = component.get_h();
 
-                auto q0 = nil::crypto3::math::expression(var(splat(var_pos.q0)));
-                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
+                auto q0 = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
+                auto a0 = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
                 for (auto i = 1; i < (m2 + 1); i++) {
                     q0 += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
                 }
 
-                auto x0 = nil::crypto3::math::expression(var(splat(var_pos.x0)));
-                auto d0 = nil::crypto3::math::expression(var(splat(var_pos.d0)));
+                auto x0 = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
+                auto d0 = nil::crypto3::math::expression<var>(var(splat(var_pos.d0)));
                 for (auto i = 1; i < m2; i++) {
                     x0 += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * i));
                     d0 += var(var_pos.d0.column() + i, var_pos.d0.row()) * (1ULL << (16 * i));
@@ -444,7 +444,6 @@ namespace nil {
 
 // Allows disabling the lookup tables for faster testing
 #ifndef TEST_WITHOUT_LOOKUP_TABLES
-                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
                 std::size_t lookup_selector_index = generate_lookup_gates(component, bp, assignment, instance_input);
                 assignment.enable_selector(lookup_selector_index, start_row_index + component.rows_amount - 1);
 #endif

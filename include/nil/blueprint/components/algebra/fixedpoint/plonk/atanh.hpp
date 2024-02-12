@@ -62,7 +62,7 @@ namespace nil {
                     auto witness_columns = atanh_div_by_pos_component::get_witness_columns(0, m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return atanh_div_by_pos_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -74,7 +74,7 @@ namespace nil {
                     auto witness_columns = log_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return log_component(witness_list, std::array<std::uint32_t, 2>({this->C(0), this->C(1)}),
@@ -86,7 +86,7 @@ namespace nil {
                     auto witness_columns = div_by_pos_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return div_by_pos_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -302,7 +302,7 @@ namespace nil {
                 div_input.x = log_res.output;
                 div_input.y = var(splat(var_pos.two_const), false, var::column_type::constant);
 
-                auto div_res = generate_assignments(div_comp, assignment, div_input, var_pos.div_row);
+                generate_assignments(div_comp, assignment, div_input, var_pos.div_row);
 
                 return typename plonk_fixedpoint_atanh<BlueprintFieldType, ArithmetizationParams>::result_type(
                     component, start_row_index);

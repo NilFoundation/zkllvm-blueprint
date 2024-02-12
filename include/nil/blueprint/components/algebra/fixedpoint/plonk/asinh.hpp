@@ -56,7 +56,7 @@ namespace nil {
                     auto witness_columns = hyperbol_sqrt_component::get_witness_columns(0, m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return hyperbol_sqrt_component(witness_list, std::array<std::uint32_t, 1>({this->C(0)}),
@@ -69,7 +69,7 @@ namespace nil {
                     auto witness_columns = hyperbol_log_component::get_witness_columns(this->witness_amount(), m1);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return hyperbol_log_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -226,8 +226,6 @@ namespace nil {
                     const std::uint32_t start_row_index) {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                using value_type = typename BlueprintFieldType::value_type;
-                using var = typename plonk_fixedpoint_asinh<BlueprintFieldType, ArithmetizationParams>::var;
 
                 auto asinh_sqrt_comp = component.get_hyperbol_sqrt_component();
                 auto log_comp = component.get_hyperbol_log_component();
@@ -260,7 +258,6 @@ namespace nil {
                 const std::size_t start_row_index) {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                using var = typename plonk_fixedpoint_asinh<BlueprintFieldType, ArithmetizationParams>::var;
                 auto asinh_sqrt_comp = component.get_hyperbol_sqrt_component();
                 auto log_comp = component.get_hyperbol_log_component();
 

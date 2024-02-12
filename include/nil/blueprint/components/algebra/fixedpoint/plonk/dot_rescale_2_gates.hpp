@@ -59,7 +59,7 @@ namespace nil {
                     auto witness_columns = rescale_component::get_witness_columns(m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return rescale_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -292,7 +292,7 @@ namespace nil {
                 auto sum = zero;
 
                 for (auto row = 0; row < var_pos.dot_rows_amount; row++) {
-                    for (auto i = 0; i < dots_per_row; i++) {
+                    for (uint32_t i = 0; i < dots_per_row; i++) {
                         auto dot = dots_per_row * row + i;
                         auto x_val = dot < dots ? var_value(assignment, instance_input.x[dot]) : zero;
                         auto y_val = dot < dots ? var_value(assignment, instance_input.y[dot]) : zero;
@@ -336,7 +336,7 @@ namespace nil {
                 // sum = sum_i x_i * y_i
 
                 nil::crypto3::math::expression<var> dot;
-                for (auto i = 0; i < component.get_dots_per_row(); i++) {
+                for (uint32_t i = 0; i < component.get_dots_per_row(); i++) {
                     auto x_pos = component.dot_position(row, i, true);
                     auto y_pos = component.dot_position(row, i, false);
                     dot += var(component.W(x_pos.second), x_pos.first) * var(component.W(y_pos.second), y_pos.first);
@@ -364,7 +364,7 @@ namespace nil {
                 // sum = prev_sum + sum_i x_i * y_i
 
                 nil::crypto3::math::expression<var> dot;
-                for (auto i = 0; i < component.get_dots_per_row(); i++) {
+                for (uint32_t i = 0; i < component.get_dots_per_row(); i++) {
                     auto x_pos = component.dot_position(row, i, true);
                     auto y_pos = component.dot_position(row, i, false);
                     dot += var(component.W(x_pos.second), x_pos.first) * var(component.W(y_pos.second), y_pos.first);
@@ -396,7 +396,7 @@ namespace nil {
                 auto dots = component.get_dots();
                 auto dots_per_row = component.get_dots_per_row();
 
-                for (auto i = 0; i < dots; i++) {
+                for (uint32_t i = 0; i < dots; i++) {
                     var x_i = get_copy_var(component, start_row_index, i, true);
                     var y_i = get_copy_var(component, start_row_index, i, false);
                     bp.add_copy_constraint({instance_input.x[i], x_i});
@@ -429,7 +429,6 @@ namespace nil {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
-                std::size_t rows = component.rows_amount;
                 std::size_t first_selector = generate_first_gate(component, bp, assignment, instance_input);
                 assignment.enable_selector(first_selector, start_row_index);
 

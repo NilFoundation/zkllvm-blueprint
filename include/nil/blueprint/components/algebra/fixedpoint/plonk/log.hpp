@@ -50,7 +50,7 @@ namespace nil {
                     auto witness_columns = exp_component::get_witness_columns(m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return exp_component(witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(),
@@ -90,8 +90,8 @@ namespace nil {
                 }
 
                 static std::size_t get_witness_columns(std::size_t witness_amount, uint8_t m1, uint8_t m2) {
-                    auto exp_cols = exp_component::get_witness_columns(m2);
-                    auto log_cols = get_log_rows_amount(witness_amount, 0, m1, m2) == 2 ?
+                    std::size_t exp_cols = exp_component::get_witness_columns(m2);
+                    std::size_t log_cols = get_log_rows_amount(witness_amount, 0, m1, m2) == 2 ?
                                         std::max(5, 2 * (M(m1) + M(m2))) :
                                         5 + 2 * (m2 + m1);
                     return exp_cols > log_cols ? exp_cols : log_cols;
@@ -393,8 +393,8 @@ namespace nil {
                 const int64_t start_row_index = 1 - static_cast<int64_t>(component.rows_amount);
                 const auto var_pos = component.get_var_pos(start_row_index);
 
-                auto a0 = nil::crypto3::math::expression(var(splat(var_pos.a0)));
-                auto b0 = nil::crypto3::math::expression(var(splat(var_pos.b0)));
+                auto a0 = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
+                auto b0 = nil::crypto3::math::expression<var>(var(splat(var_pos.b0)));
                 for (auto i = 1; i < m; i++) {
                     a0 += var(var_pos.a0.column() + i, var_pos.a0.row()) * (1ULL << (16 * i));
                     b0 += var(var_pos.b0.column() + i, var_pos.b0.row()) * (1ULL << (16 * i));

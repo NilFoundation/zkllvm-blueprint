@@ -58,7 +58,7 @@ namespace nil {
                         witness_list.push_back(this->W(i));
                     }
                     // we include neq, geq, leq after gt and before s,inv,y0... in the trace
-                    for (auto i = 5; i < witness_columns; i++) {
+                    for (std::size_t i = 5; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i + 3));
                     }
                     return cmp_component(witness_list, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 0>(),

@@ -330,10 +330,8 @@ namespace nil {
                 component.initialize_assignment(assignment, start_row_index);
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                using var = typename plonk_fixedpoint_sinh<BlueprintFieldType, ArithmetizationParams>::var;
                 using value_type = typename BlueprintFieldType::value_type;
 
-                auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
                 auto m = component.get_m();
 
@@ -358,7 +356,6 @@ namespace nil {
                 {
                     auto x_abs = x_val;
                     FixedPointHelper<BlueprintFieldType>::abs(x_abs);
-                    auto max_val = component.fixedpoint_max();
                     const auto h_val = component.get_h();
                     std::vector<uint16_t> d0_val;
                     bool sign = FixedPointHelper<BlueprintFieldType>::decompose(h_val - x_abs, d0_val);
@@ -452,7 +449,6 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(start_row_index);
 
                 using var = typename plonk_fixedpoint_sinh<BlueprintFieldType, ArithmetizationParams>::var;
-                auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
                 auto m = component.get_m();
 
@@ -462,8 +458,8 @@ namespace nil {
                 auto x = var(splat(var_pos.x));
                 auto s_x = var(splat(var_pos.s_x));
                 auto s_d = var(splat(var_pos.s_d));
-                auto x0 = nil::crypto3::math::expression(var(splat(var_pos.x0)));
-                auto d = nil::crypto3::math::expression(var(splat(var_pos.d0)));
+                auto x0 = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
+                auto d = nil::crypto3::math::expression<var>(var(splat(var_pos.d0)));
 
                 // decomposition of x
                 for (size_t i = 1; i < m; i++) {
@@ -486,7 +482,7 @@ namespace nil {
                 auto cosh1 = var(splat(var_pos.cosh1));                               // 1 .. b
                 auto sinh2 = var(var_pos.sinh0.column() + 2, var_pos.sinh0.row());    // 2 .. c
                 auto cosh2 = delta;                                                   // 2 .. c
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
                 for (size_t i = 1; i < m2 * m2; i++) {
                     q += var(var_pos.q0.column() + i, var_pos.q0.row()) * (1ULL << (16 * i));
                 }
@@ -633,7 +629,6 @@ namespace nil {
                 const typename plonk_fixedpoint_sinh<BlueprintFieldType, ArithmetizationParams>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
-                const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 

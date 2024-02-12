@@ -269,7 +269,7 @@ namespace nil {
 
                 auto m = component.get_m();
 
-                auto x0 = nil::crypto3::math::expression(var(splat(var_pos.x0)));
+                auto x0 = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
                 for (auto i = 1; i < m; i++) {
                     x0 += var(var_pos.x0.column() + i, var_pos.x0.row()) * (1ULL << (16 * i));
                 }

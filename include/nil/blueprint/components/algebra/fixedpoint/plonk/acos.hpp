@@ -47,7 +47,7 @@ namespace nil {
                     auto witness_columns = asin_component::get_witness_columns(this->witness_amount(), m1, m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return asin_component(witness_list, std::vector({this->C(0), this->C(1)}),

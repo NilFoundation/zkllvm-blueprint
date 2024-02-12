@@ -46,11 +46,11 @@ namespace nil {
 
                 div_by_pos_component instantiate_div_by_pos(uint8_t m1, uint8_t m2) const {
                     std::vector<std::uint32_t> witness_list;
-                    auto witness_columns =
-                        get_rows_amount(this->witness_amount(), 0, m1, m2) == 1 ? 4 + 2 * (m1 + m2) : 2 * (m1 + m2);
+                    auto witness_columns = static_cast<std::size_t>(
+                        get_rows_amount(this->witness_amount(), 0, m1, m2) == 1 ? 4 + 2 * (m1 + m2) : 2 * (m1 + m2));
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return div_by_pos_component(witness_list, std::array<std::uint32_t, 0>(),
@@ -78,9 +78,8 @@ namespace nil {
                     return div_by_pos.get_delta();
                 }
 
-                static std::size_t get_witness_columns(std::size_t witness_amount,
-                                                                 std::size_t lookup_column_amount, uint8_t m1,
-                                                                 uint8_t m2) {
+                static std::size_t get_witness_columns(std::size_t witness_amount, std::size_t lookup_column_amount,
+                                                       uint8_t m1, uint8_t m2) {
                     return get_rows_amount(witness_amount, lookup_column_amount, m1, m2) == 1 ? 5 + 3 * (m1 + m2) :
                                                                                                 5 + (m1 + m2);
                 }
@@ -275,9 +274,9 @@ namespace nil {
                 auto m = component.get_m();
                 auto delta = component.get_delta();
 
-                auto y_abs = nil::crypto3::math::expression(var(splat(var_pos.y0)));
-                auto q = nil::crypto3::math::expression(var(splat(var_pos.q0)));
-                auto a = nil::crypto3::math::expression(var(splat(var_pos.a0)));
+                auto y_abs = nil::crypto3::math::expression<var>(var(splat(var_pos.y0)));
+                auto q = nil::crypto3::math::expression<var>(var(splat(var_pos.q0)));
+                auto a = nil::crypto3::math::expression<var>(var(splat(var_pos.a0)));
 
                 for (auto i = 1; i < m; i++) {
                     y_abs += var(var_pos.y0.column() + i, var_pos.y0.row()) * (1ULL << (16 * i));

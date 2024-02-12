@@ -60,7 +60,7 @@ namespace nil {
 
             BLUEPRINT_RELEASE_ASSERT(name != "");
             auto index = name.find("/");
-            BLUEPRINT_RELEASE_ASSERT(index != -1);
+            BLUEPRINT_RELEASE_ASSERT(index != static_cast<std::size_t>(-1));
             auto tab_name = name.substr(0, index);
             auto sub_name = name.substr(index + 1);
 
@@ -123,9 +123,6 @@ namespace nil {
             circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
             const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
                 &assignment) {
-
-            using value_type = typename BlueprintFieldType::value_type;
-            using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
             // The tables
             auto &lookup_tables = bp.get_reserved_tables();

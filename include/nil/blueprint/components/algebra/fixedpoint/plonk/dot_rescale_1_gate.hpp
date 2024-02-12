@@ -58,7 +58,7 @@ namespace nil {
                     auto witness_columns = rescale_component::get_witness_columns(m2);
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     return rescale_component(witness_list, std::array<std::uint32_t, 0>(),

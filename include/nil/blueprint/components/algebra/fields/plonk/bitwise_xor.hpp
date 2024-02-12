@@ -268,7 +268,6 @@ namespace nil {
                 const std::uint32_t start_row_index) {
 
                 const auto var_pos = component.get_var_pos(static_cast<int64_t>(start_row_index));
-                using var = typename plonk_bitwise_xor<BlueprintFieldType, ArithmetizationParams>::var;
                 using value_type = typename BlueprintFieldType::value_type;
 
                 auto m = component.get_m();
@@ -359,9 +358,9 @@ namespace nil {
                 // s_z == (1 - s_x * s_y) * (s_x + s_y) == bitwise XOR operation on 1-bit values
                 auto s_z = (1 - s_x * s_y) * (s_x + s_y);
                 auto n = var(splat(var_pos.n), true, var::column_type::constant);
-                auto x0 = nil::crypto3::math::expression(var(splat(var_pos.x0)));
-                auto y0 = nil::crypto3::math::expression(var(splat(var_pos.y0)));
-                auto z0 = nil::crypto3::math::expression(var(splat(var_pos.z0)));
+                auto x0 = nil::crypto3::math::expression<var>(var(splat(var_pos.x0)));
+                auto y0 = nil::crypto3::math::expression<var>(var(splat(var_pos.y0)));
+                auto z0 = nil::crypto3::math::expression<var>(var(splat(var_pos.z0)));
 
                 // decomposition of x, y, z
                 for (size_t i = 1; i < m; i++) {

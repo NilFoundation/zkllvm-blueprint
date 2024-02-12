@@ -271,8 +271,8 @@ namespace nil {
                 output.clear();
 
                 auto tmp = field_to_backend(tmp_);
-                for (auto i = 0; i < tmp.size(); i++) {
-                    for (auto j = 0; j < 4; j++) {
+                for (size_t i = 0; i < tmp.size(); i++) {
+                    for (size_t j = 0; j < 4; j++) {
                         output.push_back(tmp.limbs()[i] & 0xFFFF);
                         tmp.limbs()[i] >>= 16;
                     }
@@ -304,7 +304,7 @@ namespace nil {
                         BLUEPRINT_RELEASE_ASSERT((tmp.limbs()[1] >> scale) == 0);
                     }
                 }
-                for (auto i = 2; i < tmp.size(); i++) {
+                for (std::size_t i = 2; i < tmp.size(); i++) {
                     BLUEPRINT_RELEASE_ASSERT(tmp.limbs()[i] == 0);
                 }
 
@@ -604,7 +604,7 @@ namespace nil {
             template<typename BlueprintFieldType, uint8_t M1, uint8_t M2>
             FixedPoint<BlueprintFieldType, M1, M2> FixedPoint<BlueprintFieldType, M1, M2>::abs() const {
                 auto a_abs = value;
-                bool sign_a = helper::abs(a_abs);
+                helper::abs(a_abs);
                 return FixedPoint(a_abs, scale);
             }
 
@@ -670,7 +670,7 @@ namespace nil {
                 int32_t table_half = FixedPointTables<BlueprintFieldType>::ExpALen / 2;
 
                 // Clip result if necessary
-                if (pre > table_half) {
+                if (pre > static_cast<uint64_t>(table_half)) {
                     if (sign) {
                         return FixedPoint(0, SCALE);
                     }
@@ -686,12 +686,12 @@ namespace nil {
                     uint32_t input_b = post >> 16;
                     uint32_t input_c = post & ((1ULL << 16) - 1);
 
-                    BLUEPRINT_RELEASE_ASSERT(input_a >= 0 && input_a < exp_a.size());
-                    BLUEPRINT_RELEASE_ASSERT(input_b >= 0 && input_b < exp_b.size());
-                    BLUEPRINT_RELEASE_ASSERT(input_c >= 0 && input_c < exp_b.size());
+                    BLUEPRINT_RELEASE_ASSERT(input_a >= 0 && static_cast<std::size_t>(input_a) < exp_a.size());
+                    BLUEPRINT_RELEASE_ASSERT(input_b >= 0 && static_cast<std::size_t>(input_b) < exp_b.size());
+                    BLUEPRINT_RELEASE_ASSERT(input_c >= 0 && static_cast<std::size_t>(input_c) < exp_b.size());
                     res = exp_a[input_a] * exp_b[input_b];
                 } else {
-                    BLUEPRINT_RELEASE_ASSERT(input_a >= 0 && input_a < exp_a.size());
+                    BLUEPRINT_RELEASE_ASSERT(input_a >= 0 && static_cast<std::size_t>(input_a) < exp_a.size());
                     BLUEPRINT_RELEASE_ASSERT(post >= 0 && post < exp_b.size());
                     res = exp_a[input_a] * exp_b[post];
                 }
@@ -1221,7 +1221,7 @@ namespace nil {
                     value *= 1ULL << 16;
                 }
                 value_type value_abs = value;
-                bool sign = FixedPointHelper<BlueprintFieldType>::abs(value_abs);
+                FixedPointHelper<BlueprintFieldType>::abs(value_abs);
                 const value_type delta = value_type(1ULL << 32);
 
                 value_type h;
@@ -1258,7 +1258,7 @@ namespace nil {
                     value *= 1ULL << 16;
                 }
                 value_type value_abs = value;
-                bool sign = FixedPointHelper<BlueprintFieldType>::abs(value_abs);
+                FixedPointHelper<BlueprintFieldType>::abs(value_abs);
                 const value_type delta = value_type(1ULL << 32);
 
                 value_type h;
@@ -1292,7 +1292,7 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 BLUEPRINT_RELEASE_ASSERT(scale == SCALE);
                 value_type value_abs = this->value;
-                bool sign = FixedPointHelper<BlueprintFieldType>::abs(value_abs);
+                FixedPointHelper<BlueprintFieldType>::abs(value_abs);
                 const value_type delta = value_type(FixedPoint::DELTA);
                 const value_type h = (M1 == 1 && M2 == 2) ? value_type(FixedPoint::DELTA - (1ULL << 17)) :
                                                             value_type(FixedPoint::DELTA - 2);

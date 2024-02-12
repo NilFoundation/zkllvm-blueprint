@@ -179,7 +179,6 @@ namespace nil {
             private:
                 rem_component instantiate_rem() const {
                     auto m1 = this->m1;
-                    auto m2 = this->m2;
                     value_type scaler = 1;
                     if (is_32_16()) {
                         scaler = value_type(1ULL << 16);
@@ -193,7 +192,7 @@ namespace nil {
                     }
                     BLUEPRINT_RELEASE_ASSERT(this->witness_amount() >= witness_columns);
                     witness_list.reserve(witness_columns);
-                    for (auto i = 0; i < witness_columns; i++) {
+                    for (std::size_t i = 0; i < witness_columns; i++) {
                         witness_list.push_back(this->W(i));
                     }
                     std::vector<std::uint32_t> constant_list = {this->C(0)};
@@ -430,7 +429,6 @@ namespace nil {
 
                 auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
-                auto m = component.get_m();
 
                 auto one = value_type::one();
                 auto zero = value_type::zero();
@@ -555,10 +553,10 @@ namespace nil {
                 std::vector<uint16_t> y0_val;
                 auto y0_size = m2 == 2 ? 5 : 3;
                 bool sign_ = FixedPointHelper<BlueprintFieldType>::decompose(tan_input_cos, y0_val);
-                while (y0_val.size() < y0_size) {
+                while (y0_val.size() < static_cast<std::size_t>(y0_size)) {
                     y0_val.push_back(0);
                 }
-                BLUEPRINT_RELEASE_ASSERT(y0_val.size() >= y0_size);
+                BLUEPRINT_RELEASE_ASSERT(y0_val.size() >= static_cast<std::size_t>(y0_size));
                 assignment.witness(splat(var_pos.s_y)) = sign_ ? -one : one;
                 for (auto i = 0; i < y0_size; i++) {
                     assignment.witness(var_pos.y0.column() + i, var_pos.y0.row()) = y0_val[i];
@@ -580,8 +578,8 @@ namespace nil {
                 BLUEPRINT_RELEASE_ASSERT(!sign);
                 sign = FixedPointHelper<BlueprintFieldType>::decompose(tan_input_cos_abs - tmp.remainder - 1, a0_val);
                 BLUEPRINT_RELEASE_ASSERT(!sign);
-                BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= q0_size);
-                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= a0_size);
+                BLUEPRINT_RELEASE_ASSERT(q0_val.size() >= static_cast<std::size_t>(q0_size));
+                BLUEPRINT_RELEASE_ASSERT(a0_val.size() >= static_cast<std::size_t>(a0_size));
 
                 auto y_ = FixedPointHelper<BlueprintFieldType>::field_to_backend(tan_input_cos_abs);
                 assignment.witness(splat(var_pos.c)) = value_type(y_.limbs()[0] & 1);
@@ -612,14 +610,13 @@ namespace nil {
                 using var = typename plonk_fixedpoint_tan<BlueprintFieldType, ArithmetizationParams>::var;
                 auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
-                auto m = component.get_m();
 
                 std::vector<crypto3::zk::snark::plonk_constraint<BlueprintFieldType>> constraints;
 
                 auto delta = typename BlueprintFieldType::value_type(component.get_delta());
                 auto x = var(var_pos.x.column(), first_row);
                 auto s_x = var(var_pos.s_x.column(), first_row);
-                auto x0 = nil::crypto3::math::expression(var(var_pos.x0.column(), first_row));
+                auto x0 = nil::crypto3::math::expression<var>(var(var_pos.x0.column(), first_row));
 
                 // decomposition of x
                 for (size_t i = 1; i < m2 + 1; i++) {
@@ -664,11 +661,10 @@ namespace nil {
                 // division happens in first gate for m2 == 1 and in second gate for m2 == 2
                 if (m2 == 1) {
                     auto tan = var(var_pos.tan.column(), second_row);
-                    auto y_abs = nil::crypto3::math::expression(var(var_pos.y0.column(), second_row));
-                    auto q = nil::crypto3::math::expression(var(var_pos.q0.column(), second_row));
-                    auto a = nil::crypto3::math::expression(var(var_pos.a0.column(), second_row));
+                    auto y_abs = nil::crypto3::math::expression<var>(var(var_pos.y0.column(), second_row));
+                    auto q = nil::crypto3::math::expression<var>(var(var_pos.q0.column(), second_row));
+                    auto a = nil::crypto3::math::expression<var>(var(var_pos.a0.column(), second_row));
                     auto a_size = 2;
-                    auto q_size = a_size;
                     for (auto i = 1; i < a_size; i++) {
                         y_abs += var(var_pos.y0.column() + i, second_row) * (1ULL << (16 * i));
                         q += var(var_pos.q0.column() + i, second_row) * (1ULL << (16 * i));
@@ -701,7 +697,6 @@ namespace nil {
                 const auto var_pos = component.get_var_pos(0);
                 using var = typename plonk_fixedpoint_tan<BlueprintFieldType, ArithmetizationParams>::var;
                 using value_type = typename BlueprintFieldType::value_type;
-                auto m1 = component.get_m1();
                 auto m2 = component.get_m2();
 
                 BLUEPRINT_RELEASE_ASSERT(m2 == 2);
@@ -711,11 +706,10 @@ namespace nil {
                 auto sin = var(var_pos.sin.column(), first_row);
                 auto cos = var(var_pos.cos.column(), first_row);
                 auto tan = var(var_pos.tan.column(), second_row);
-                auto y_abs = nil::crypto3::math::expression(var(var_pos.y0.column(), second_row));
-                auto q = nil::crypto3::math::expression(var(var_pos.q0.column(), second_row));
-                auto a = nil::crypto3::math::expression(var(var_pos.a0.column(), first_row));
+                auto y_abs = nil::crypto3::math::expression<var>(var(var_pos.y0.column(), second_row));
+                auto q = nil::crypto3::math::expression<var>(var(var_pos.q0.column(), second_row));
+                auto a = nil::crypto3::math::expression<var>(var(var_pos.a0.column(), first_row));
                 auto a_size = 4;
-                auto q_size = a_size;
                 for (auto i = 1; i < a_size; i++) {
                     y_abs += var(var_pos.y0.column() + i, second_row) * (1ULL << (16 * i));
                     q += var(var_pos.q0.column() + i, second_row) * (1ULL << (16 * i));
