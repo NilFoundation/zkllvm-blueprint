@@ -50,16 +50,15 @@ namespace nil {
             // Input: x[12], x != 0
             // Output: y[12]: x*y = 1 as elements of F_p^12
 
-            template<typename ArithmetizationType, typename BlueprintFieldType>
+            template<typename ArithmetizationType>
             class fp12_inversion;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class fp12_inversion<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                           BlueprintFieldType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
+            template<typename BlueprintFieldType>
+            class fp12_inversion<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
@@ -96,8 +95,8 @@ namespace nil {
                 struct input_type {
                     std::array<var,12> x;
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> res = {};
                         for(auto & e : x) { res.push_back(e); }
                         return res;
                     }
@@ -141,18 +140,16 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_fp12_inversion =
-                fp12_inversion<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                fp12_inversion<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_fp12_inversion<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_fp12_inversion<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fp12_inversion<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
@@ -177,20 +174,20 @@ namespace nil {
                     assignment.witness(component.W((12 + i) % WA),start_row_index + (12 + i)/WA) = Y.data[i/6].data[(i % 6)/2].data[i % 2];
                 }
 
-                return typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_fp12_inversion<BlueprintFieldType>::result_type(
                     component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::size_t generate_gates(
-                const plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_fp12_inversion<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fp12_inversion<BlueprintFieldType>::input_type
                     &instance_input) {
 
-                using var = typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_fp12_inversion<BlueprintFieldType>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
                 using fp12_constraint = detail::abstract_fp12_element<constraint_type>;
@@ -213,31 +210,29 @@ namespace nil {
                 return bp.add_gate(Cs);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_fp12_inversion<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_fp12_inversion<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::var;
-
-                const std::size_t WA = component.witness_amount();
+                using var = typename plonk_fp12_inversion<BlueprintFieldType>::var;
 
                 for(std::size_t i = 0; i < 12; i++) {
                     bp.add_copy_constraint({var(component.W(i), start_row_index, false), instance_input.x[i]});
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_fp12_inversion<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_fp12_inversion<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_fp12_inversion<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
@@ -246,7 +241,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_fp12_inversion<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_fp12_inversion<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
 

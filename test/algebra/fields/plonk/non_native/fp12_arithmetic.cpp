@@ -56,9 +56,9 @@ void test_fp12_multiplication(std::vector<typename FieldType::value_type> public
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<FieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
@@ -66,7 +66,7 @@ void test_fp12_multiplication(std::vector<typename FieldType::value_type> public
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::fp12_multiplication<ArithmetizationType, FieldType>;
+    using component_type = blueprint::components::fp12_multiplication<ArithmetizationType>;
 
     typename component_type::input_type instance_input;
     typename std::array<value_type,12> A, B;
@@ -118,7 +118,9 @@ void test_fp12_multiplication(std::vector<typename FieldType::value_type> public
                                       std::array<std::uint32_t, 0>{} // public inputs
                                      );
 
-    nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+    nil::crypto3::test_component<component_type, FieldType, hash_type, Lambda> (
+        component_instance, desc, public_input, result_check, instance_input,
+        nil::blueprint::connectedness_check_type::type::STRONG);
 }
 
 template <typename FieldType, std::size_t WitnessColumns>
@@ -127,9 +129,9 @@ void test_fp12_inversion(std::vector<typename FieldType::value_type> public_inpu
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<FieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
@@ -137,7 +139,7 @@ void test_fp12_inversion(std::vector<typename FieldType::value_type> public_inpu
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::fp12_inversion<ArithmetizationType, FieldType>;
+    using component_type = blueprint::components::fp12_inversion<ArithmetizationType>;
 
     typename component_type::input_type instance_input;
     typename std::array<value_type,12> X;
@@ -189,11 +191,13 @@ void test_fp12_inversion(std::vector<typename FieldType::value_type> public_inpu
                                      );
 
     if (expected_to_pass) {
-        nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
-           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+        nil::crypto3::test_component<component_type, FieldType, hash_type, Lambda> (
+            component_instance, desc,public_input, result_check, instance_input,
+            nil::blueprint::connectedness_check_type::type::STRONG);
     } else {
-        nil::crypto3::test_component_to_fail<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
-           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+        nil::crypto3::test_component_to_fail<component_type, FieldType, hash_type, Lambda> (
+            component_instance, desc, public_input, result_check, instance_input,
+            nil::blueprint::connectedness_check_type::type::STRONG);
     }
 }
 
@@ -203,9 +207,9 @@ void test_fp12_small_power(std::vector<typename FieldType::value_type> public_in
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<FieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
@@ -213,7 +217,7 @@ void test_fp12_small_power(std::vector<typename FieldType::value_type> public_in
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::fp12_small_power<ArithmetizationType, FieldType, Power>;
+    using component_type = blueprint::components::fp12_small_power<ArithmetizationType, Power>;
 
     typename component_type::input_type instance_input;
     typename std::array<value_type,12> X;
@@ -262,8 +266,9 @@ void test_fp12_small_power(std::vector<typename FieldType::value_type> public_in
                                       std::array<std::uint32_t, 0>{} // public inputs
                                      );
 
-    nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
-           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+    nil::crypto3::test_component<component_type, FieldType, hash_type, Lambda> (
+           component_instance, desc, public_input, result_check, instance_input,
+           nil::blueprint::connectedness_check_type::type::STRONG);
 }
 
 template <typename FieldType, std::size_t WitnessColumns, small_p_power Power>
@@ -272,9 +277,9 @@ void test_fp12_frobenius_map(std::vector<typename FieldType::value_type> public_
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<FieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
@@ -282,7 +287,7 @@ void test_fp12_frobenius_map(std::vector<typename FieldType::value_type> public_
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::fp12_frobenius_map<ArithmetizationType, FieldType, Power>;
+    using component_type = blueprint::components::fp12_frobenius_map<ArithmetizationType, Power>;
 
     typename component_type::input_type instance_input;
     typename std::array<value_type,12> X;
@@ -336,8 +341,9 @@ void test_fp12_frobenius_map(std::vector<typename FieldType::value_type> public_
                                       std::array<std::uint32_t, 0>{} // public inputs
                                      );
 
-    nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
-           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+    nil::crypto3::test_component<component_type, FieldType, hash_type, Lambda> (
+            component_instance, desc, public_input, result_check, instance_input,
+            nil::blueprint::connectedness_check_type::type::STRONG);
 }
 
 template <typename FieldType, std::size_t WitnessColumns>
@@ -346,9 +352,9 @@ void test_fp12_power_t(std::vector<typename FieldType::value_type> public_input)
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? 4 : 5;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<FieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
@@ -356,7 +362,7 @@ void test_fp12_power_t(std::vector<typename FieldType::value_type> public_input)
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::fp12_power_t<ArithmetizationType, FieldType>;
+    using component_type = blueprint::components::fp12_power_t<ArithmetizationType>;
 
     typename component_type::input_type instance_input;
     typename std::array<value_type,12> X;
@@ -405,8 +411,9 @@ void test_fp12_power_t(std::vector<typename FieldType::value_type> public_input)
                                       std::array<std::uint32_t, 0>{} // public inputs
                                      );
 
-    nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
-           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG);
+    nil::crypto3::test_component<component_type, FieldType, hash_type, Lambda> (
+           component_instance, desc, public_input, result_check, instance_input,
+           nil::blueprint::connectedness_check_type::type::STRONG);
 }
 
 static const std::size_t random_tests_amount = 10;

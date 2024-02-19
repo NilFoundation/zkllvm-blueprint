@@ -29,6 +29,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_BLS12_G2_POINT_ADDITION_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_BLS12_G2_POINT_ADDITION_HPP
 
+#include <functional>
+
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
@@ -58,16 +60,15 @@ namespace nil {
             // +--+--+--+--+--+--+---+---+--+--+--+--+
             //
 
-            template<typename ArithmetizationType, typename BlueprintFieldType>
+            template<typename ArithmetizationType>
             class bls12_g2_point_addition;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class bls12_g2_point_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                           BlueprintFieldType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
+            template<typename BlueprintFieldType>
+            class bls12_g2_point_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
@@ -104,8 +105,8 @@ namespace nil {
                 struct input_type {
                     std::array<var,4> P, Q;
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> res = {};
                         for(auto & e : P) { res.push_back(e); }
                         for(auto & e : Q) { res.push_back(e); }
                         return res;
@@ -150,22 +151,19 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_bls12_g2_point_addition =
                 bls12_g2_point_addition<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_bls12_g2_point_addition<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_bls12_g2_point_addition<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_bls12_g2_point_addition<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
-
-                using value_type = typename BlueprintFieldType::value_type;
 
                 const std::size_t WA = component.witness_amount();
 
@@ -222,22 +220,22 @@ namespace nil {
                     assignment.witness(component.W((22 + i) % WA),start_row_index + (WA < 24)) = yR.data[i];
                 }
 
-                return typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_bls12_g2_point_addition<BlueprintFieldType>::result_type(
                     component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::size_t generate_gates(
-                const plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_bls12_g2_point_addition<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_bls12_g2_point_addition<BlueprintFieldType>::input_type
                     &instance_input) {
 
                 const std::size_t WA = component.witness_amount();
 
-                using var = typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_bls12_g2_point_addition<BlueprintFieldType>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
                 // Fp2 field over constraints:
@@ -325,31 +323,29 @@ namespace nil {
                 return bp.add_gate(Cs);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_bls12_g2_point_addition<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_bls12_g2_point_addition<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::var;
-
-                const std::size_t WA = component.witness_amount();
+                using var = typename plonk_bls12_g2_point_addition<BlueprintFieldType>::var;
 
                 for(std::size_t i = 0; i < 4; i++) {
                     bp.add_copy_constraint({var(component.W(i), start_row_index, false), instance_input.P[i]});
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_bls12_g2_point_addition<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_bls12_g2_point_addition<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_bls12_g2_point_addition<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
@@ -358,7 +354,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_bls12_g2_point_addition<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_bls12_g2_point_addition<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
 
