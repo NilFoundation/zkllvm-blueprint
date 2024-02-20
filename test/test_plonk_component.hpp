@@ -264,13 +264,13 @@ namespace nil {
             }
 
             if constexpr (nil::blueprint::use_lookups<component_type>()) {
-                // Components with lookups may use constant columns.
-                // But now all constants are placed in the first column.
-                // So we reserve the first column for non-lookup constants.
-                // Rather universal for testing
-                // We may start from zero if component doesn't use ordinary constants.
+                // Use all of the unused constant columns for lookups
                 std::vector<size_t> lookup_columns_indices;
-                for( std::size_t i = 1; i < assignment.constants_amount(); i++ )  lookup_columns_indices.push_back(i);
+                for(std::size_t i = 0; i < desc.constant_columns; i++) {
+                    if(assignment.constants()[i].size() == 0) {
+                        lookup_columns_indices.push_back(i);
+                    }
+                }
 
                 std::size_t cur_selector_id = 0;
                 for(const auto &gate: bp.gates()){
