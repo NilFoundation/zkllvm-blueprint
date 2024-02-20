@@ -71,10 +71,9 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
     constexpr std::size_t SelectorColumns = 30;
-    using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
-        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
@@ -117,9 +116,9 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
     component_type component_instance = component_type(witnesses, std::array<std::uint32_t, 1>{0}, std::array<std::uint32_t, 1>{0},
                                                             num_blocks, num_bits, range_check_input, limit_permutation_column);
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input,
-        nil::crypto3::detail::connectedness_check_type::STRONG, num_blocks, num_bits, range_check_input, limit_permutation_column);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input,
+        nil::blueprint::connectedness_check_type::type::STRONG, num_blocks, num_bits, range_check_input, limit_permutation_column);
 }
 
 // works
@@ -192,7 +191,7 @@ void test_keccak_random(std::size_t message_size = 1, bool random_mask_zero = tr
 //     for (int i = 0; i < message.size(); ++i) {
 //         std::cout << "message: " << message[i].data << std::endl;
 //     }
-    
+
 //     auto expected_result = padding_function<BlueprintFieldType>(message, num_bits);
 
 //     test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>

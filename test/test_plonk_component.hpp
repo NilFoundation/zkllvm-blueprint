@@ -350,7 +350,7 @@ namespace nil {
 
 // How to define it from crypto3 cmake?
 //#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
-#ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
+#ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED2
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType>;
             using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
                 Hash, Hash, 2

@@ -49,8 +49,8 @@
 
 #include "../../test_plonk_component.hpp"
 
-const int r[5][5] = {{0, 36, 3, 41, 18}, 
-                    {1, 44, 10, 45, 2}, 
+const int r[5][5] = {{0, 36, 3, 41, 18},
+                    {1, 44, 10, 45, 2},
                     {62, 6, 43, 15, 61},
                     {28, 55, 25, 21, 56},
                     {27, 20, 39, 8, 14}};
@@ -162,16 +162,13 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
     constexpr std::size_t SelectorColumns = 30;
-    using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
-        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using value_type = typename BlueprintFieldType::value_type;
-    using integral_type = typename BlueprintFieldType::integral_type;
     using component_type = nil::blueprint::components::keccak_round<ArithmetizationType>;
     using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -212,19 +209,18 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
         witnesses[i] = i;
     }
     component_type component_instance =
-        component_type(witnesses, std::array<std::uint32_t, 1>{0}, std::array<std::uint32_t, 1>{0}, 
+        component_type(witnesses, std::array<std::uint32_t, 1>{0}, std::array<std::uint32_t, 1>{0},
                         xor_with_mes, last_round_call, last_perm_col);
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        boost::get<component_type>(component_instance), public_input, result_check, instance_input,
-                                nil::crypto3::detail::connectedness_check_type::STRONG,
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        boost::get<component_type>(component_instance), desc, public_input, result_check, instance_input,
+                                nil::blueprint::connectedness_check_type::type::STRONG,
                                 xor_with_mes, last_round_call, last_perm_col);
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount>
 void test_keccak_round_not_random() {
     using value_type = typename BlueprintFieldType::value_type;
-    using integral_type = typename BlueprintFieldType::integral_type;
     std::array<value_type, 17> padded_message_chunk = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
     //call 1
@@ -249,9 +245,9 @@ void test_keccak_round_not_random() {
     inner_state = expected_result;
     RC = to_sparse<BlueprintFieldType>(value_type(0x800000000000808a));
     expected_result = {9236970796698600460, 4092250545529553158, 626057523912327425, 2306538108895626371, 1173341635645358336,
-                        1293304092434976, 1266393375296193026, 4612686711565066480, 3572814934320349200, 6918386853474468034, 
-                        181437471070544, 17451689225912448, 14123431978033217603, 9612137362626578, 14131171423402623105, 
-                        109225863298950544, 4469910934709993472, 291608492588557700, 4143342752895270928, 722898250671538564, 
+                        1293304092434976, 1266393375296193026, 4612686711565066480, 3572814934320349200, 6918386853474468034,
+                        181437471070544, 17451689225912448, 14123431978033217603, 9612137362626578, 14131171423402623105,
+                        109225863298950544, 4469910934709993472, 291608492588557700, 4143342752895270928, 722898250671538564,
                         9260980282462904729, 14339470011802853602, 37581858268459548, 4683770000893804961, 432358761588732518};
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
@@ -303,18 +299,18 @@ void test_keccak_round_not_random() {
 
     // call 12
     inner_state = {8317352591327817587, 3347101423491892088, 13812284588227636790, 6672945709382097013, 14828349229463845968,
-                17723229868831098326, 17401130588186959855, 16478565068789518457, 6492452647977334912, 11881899180789479218, 
-                16234817029224417455, 15219752985751753243, 7353976000907867650, 14188031598247865105, 15212311666827251122, 
-                11629652489896499652, 9435989968869629838, 3918343313233240239, 7628695717460153542, 12309003921403265649, 
+                17723229868831098326, 17401130588186959855, 16478565068789518457, 6492452647977334912, 11881899180789479218,
+                16234817029224417455, 15219752985751753243, 7353976000907867650, 14188031598247865105, 15212311666827251122,
+                11629652489896499652, 9435989968869629838, 3918343313233240239, 7628695717460153542, 12309003921403265649,
                 345338872853187944, 12040357248728011954, 3576113714317971609, 6768822272106030756, 5816751084285246094};
     for (int i = 0; i < 25; ++i) {
         inner_state[i] = to_sparse<BlueprintFieldType>(inner_state[i]);
     }
     RC = to_sparse<BlueprintFieldType>(value_type(0x8000000a));
-    expected_result = {4650443609753860646, 9514407034135748299, 1325603491995511509, 5593257647634540243, 4316689694591141959, 
-                        7056436588513633967, 3922974518795920519, 9361284003398536963, 12348570714043139801, 9410505497913992340, 
-                        3614675582850630850, 6265106893083717952, 15812212848177019826, 5971330993120196744, 10998285978683370913, 
-                        11166777828240479175, 7385351289822635840, 13873470266315090419, 6746683412968993695, 16204117485081817578, 
+    expected_result = {4650443609753860646, 9514407034135748299, 1325603491995511509, 5593257647634540243, 4316689694591141959,
+                        7056436588513633967, 3922974518795920519, 9361284003398536963, 12348570714043139801, 9410505497913992340,
+                        3614675582850630850, 6265106893083717952, 15812212848177019826, 5971330993120196744, 10998285978683370913,
+                        11166777828240479175, 7385351289822635840, 13873470266315090419, 6746683412968993695, 16204117485081817578,
                         8627448812002334210, 5809981248579074143, 17919282347891220598, 3921880343594863541, 4864618403575458388};
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
@@ -324,18 +320,18 @@ void test_keccak_round_not_random() {
 
     // call 24
     inner_state = {1021834983209491063, 271587765569717919, 4776059245685303294, 6929972956618907976, 15632760037079799599,
-                    335373011243745427, 4458191160998101431, 1054086133152375554, 2747216341432570284, 16716089959809353091, 
-                    18427037088977732910, 8502882582543089190, 15262916258997799331, 1649067881221390653, 16305756012321036251, 
-                    6396788823285448910, 16280709970257755463, 968684198036765735, 17453107891981340679, 14208300252181521039, 
+                    335373011243745427, 4458191160998101431, 1054086133152375554, 2747216341432570284, 16716089959809353091,
+                    18427037088977732910, 8502882582543089190, 15262916258997799331, 1649067881221390653, 16305756012321036251,
+                    6396788823285448910, 16280709970257755463, 968684198036765735, 17453107891981340679, 14208300252181521039,
                     8344225276973693085, 15466940913106191879, 9691424745450112199, 11326521537916162858, 14617465633943149704};
     for (int i = 0; i < 25; ++i) {
         inner_state[i] = to_sparse<BlueprintFieldType>(inner_state[i]);
     }
     RC = to_sparse<BlueprintFieldType>(value_type(0x8000000080008008));
     expected_result = {17376452488221285863, 9571781953733019530, 15391093639620504046, 13624874521033984333, 10027350355371872343,
-                        18417369716475457492, 10448040663659726788, 10113917136857017974, 12479658147685402012, 3500241080921619556, 
-                        16959053435453822517, 12224711289652453635, 9342009439668884831, 4879704952849025062, 140226327413610143, 
-                        424854978622500449, 7259519967065370866, 7004910057750291985, 13293599522548616907, 10105770293752443592, 
+                        18417369716475457492, 10448040663659726788, 10113917136857017974, 12479658147685402012, 3500241080921619556,
+                        16959053435453822517, 12224711289652453635, 9342009439668884831, 4879704952849025062, 140226327413610143,
+                        424854978622500449, 7259519967065370866, 7004910057750291985, 13293599522548616907, 10105770293752443592,
                         10668034807192757780, 1747952066141424100, 1654286879329379778, 8500057116360352059, 16929593379567477321};
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
@@ -369,7 +365,7 @@ void test_keccak_round_random() {
     }
     auto random_value = integral_type(dis(gen)) & mask;
     RC = to_sparse<BlueprintFieldType>(value_type(random_value));
-    
+
     auto expected_result = sparse_round_function<BlueprintFieldType, xor_with_mes, last_round_call>(inner_state, padded_message_chunk, RC);
 
     test_keccak_round_inner<BlueprintFieldType, WitnessesAmount, xor_with_mes, last_round_call, last_perm_col>
@@ -380,9 +376,9 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_not_random<field_type, 9>(); 
-    // test_keccak_round_not_random<field_type, 15>(); 
-                                                // xor_with_mes, last_round_call   
+    // test_keccak_round_not_random<field_type, 9>();
+    // test_keccak_round_not_random<field_type, 15>();
+                                                // xor_with_mes, last_round_call
     // test_keccak_round_random<field_type, 9, false, false>();
     // test_keccak_round_random<field_type, 9, true, false>();
     // test_keccak_round_random<field_type, 9, true, true>();

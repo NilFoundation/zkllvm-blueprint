@@ -51,7 +51,6 @@
 
 template<typename BlueprintFieldType>
 std::size_t number_bits(typename BlueprintFieldType::value_type value) {
-    using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
 
     integral_type integral_value = integral_type(value.data);
@@ -101,11 +100,10 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
     constexpr std::size_t SelectorColumns = 12;
-    using ArithmetizationParams =
-        nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessesAmount, PublicInputColumns, ConstantColumns,
-                                                              SelectorColumns>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType =
-        nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+        nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
@@ -144,9 +142,9 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
                                                        std::array<std::uint32_t, 1> {0}, num_blocks, num_bits,
                                                        range_check_input, limit_permutation_column);
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input,
-        nil::crypto3::detail::connectedness_check_type::STRONG, num_blocks, num_bits, range_check_input, limit_permutation_column);
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input,
+        nil::blueprint::connectedness_check_type::type::STRONG, num_blocks, num_bits, range_check_input, limit_permutation_column);
 }
 
 // works
