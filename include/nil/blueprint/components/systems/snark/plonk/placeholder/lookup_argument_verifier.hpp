@@ -44,10 +44,10 @@ namespace nil {
             template<typename ArithmetizationType>
             class lookup_verifier;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             class lookup_verifier<
-                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 1> {
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
                 constexpr static const std::uint32_t ConstantsAmount = 1;
 
@@ -90,11 +90,11 @@ namespace nil {
                 }
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, ConstantsAmount, 1>;
+                using component_type = plonk_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using manifest_type = nil::blueprint::plonk_component_manifest;
 
-                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>
                     ArithmetizationType;
                 using gate_component = detail::gate_component<ArithmetizationType>;
                 using f1_loop = detail::f1_loop<ArithmetizationType>;
@@ -126,6 +126,7 @@ namespace nil {
                                          lookup_table_lookup_options_sizes, lookup_table_columns_numbers);
 
                 constexpr static std::size_t gates_amount = 3;
+                const std::string component_name = "lookup argument verifier component";
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -238,11 +239,11 @@ namespace nil {
                                 std::vector<std::size_t> &lookup_table_columns_numbers_) :
                     component_type(witness, {}, {}, get_manifest()),
                     lookup_gates_size(lookup_gates_size_),
-                    lookup_gate_constraints_sizes(lookup_gate_constraints_sizes_),
-                    lookup_gate_constraints_lookup_input_sizes(lookup_gate_constraints_lookup_input_sizes_),
                     lookup_tables_size(lookup_tables_size_),
                     lookup_table_lookup_options_sizes(lookup_table_lookup_options_sizes_),
-                    lookup_table_columns_numbers(lookup_table_columns_numbers_) {};
+                    lookup_table_columns_numbers(lookup_table_columns_numbers_),
+                    lookup_gate_constraints_sizes(lookup_gate_constraints_sizes_),
+                    lookup_gate_constraints_lookup_input_sizes(lookup_gate_constraints_lookup_input_sizes_) {}
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
@@ -255,12 +256,11 @@ namespace nil {
                                 std::vector<std::size_t> &lookup_table_columns_numbers_) :
                     component_type(witness, constant, public_input, get_manifest()),
                     lookup_gates_size(lookup_gates_size_),
-                    lookup_gate_constraints_sizes(lookup_gate_constraints_sizes_),
-                    lookup_gate_constraints_lookup_input_sizes(lookup_gate_constraints_lookup_input_sizes_),
                     lookup_tables_size(lookup_tables_size_),
                     lookup_table_lookup_options_sizes(lookup_table_lookup_options_sizes_),
-                    lookup_table_columns_numbers(lookup_table_columns_numbers_) {};
-                ;
+                    lookup_table_columns_numbers(lookup_table_columns_numbers_),
+                    lookup_gate_constraints_sizes(lookup_gate_constraints_sizes_),
+                    lookup_gate_constraints_lookup_input_sizes(lookup_gate_constraints_lookup_input_sizes_) {}
 
                 lookup_verifier(
                     std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
@@ -273,24 +273,24 @@ namespace nil {
                     std::vector<std::size_t> &lookup_table_columns_numbers_) :
                     component_type(witnesses, constants, public_inputs, get_manifest()),
                     lookup_gates_size(lookup_gates_size_),
-                    lookup_gate_constraints_sizes(lookup_gate_constraints_sizes_),
-                    lookup_gate_constraints_lookup_input_sizes(lookup_gate_constraints_lookup_input_sizes_),
                     lookup_tables_size(lookup_tables_size_),
                     lookup_table_lookup_options_sizes(lookup_table_lookup_options_sizes_),
-                    lookup_table_columns_numbers(lookup_table_columns_numbers_) {};
+                    lookup_table_columns_numbers(lookup_table_columns_numbers_),
+                    lookup_gate_constraints_sizes(lookup_gate_constraints_sizes_),
+                    lookup_gate_constraints_lookup_input_sizes(lookup_gate_constraints_lookup_input_sizes_) {}
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_lookup_verifier =
-                lookup_verifier<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
+                lookup_verifier<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_lookup_verifier<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_lookup_verifier<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
 
@@ -300,21 +300,21 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_lookup_verifier<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_lookup_verifier<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_lookup_verifier<BlueprintFieldType>::input_type
                     instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
                 std::size_t witness_amount = component.witness_amount();
 
-                using var = typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_lookup_verifier<BlueprintFieldType>::var;
 
-                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>
                     ArithmetizationType;
 
                 using f1_loop = detail::f1_loop<ArithmetizationType>;
@@ -329,9 +329,6 @@ namespace nil {
                 }
 
                 typename BlueprintFieldType::value_type one = BlueprintFieldType::value_type::one();
-                typename BlueprintFieldType::value_type theta = var_value(assignment, instance_input.theta);
-                typename BlueprintFieldType::value_type beta = var_value(assignment, instance_input.beta);
-                typename BlueprintFieldType::value_type gamma = var_value(assignment, instance_input.gamma);
                 typename BlueprintFieldType::value_type q_last = var_value(assignment, instance_input.q_last[0]);
                 typename BlueprintFieldType::value_type q_last_shifted =
                     var_value(assignment, instance_input.q_last[1]);
@@ -366,7 +363,7 @@ namespace nil {
                 std::vector<var> lookup_values;
                 std::vector<var> shifted_lookup_values;
 
-                std::size_t start_pos = 0, shifted_start_pos = 0, offset = 0;
+                std::size_t start_pos = 0, offset = 0;
                 std::size_t num_tables = instance_input.lookup_table_selectors.size();
                 assert(num_tables == component.lookup_tables_size);
                 for (std::size_t i = 0; i < num_tables; i++) {
@@ -510,7 +507,6 @@ namespace nil {
                 typename mul::input_type mul_input = {g_loop_result.output, g_loop_result_2.output};
                 typename mul::result_type mul_result = generate_assignments(mul_instance, assignment, mul_input, row);
                 row += mul_instance.rows_amount;
-                var g_var = mul_result.output;
 
                 typename BlueprintFieldType::value_type F2 = mask_value * (V_L_shifted * h - V_L * g);
 
@@ -564,20 +560,20 @@ namespace nil {
                 }
                 row += r;
 
-                return typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_lookup_verifier<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_lookup_verifier<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_lookup_verifier<BlueprintFieldType>::input_type
                     instance_input) {
 
-                using var = typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_lookup_verifier<BlueprintFieldType>::var;
                 std::size_t witness_amount = component.witness_amount();
 
                 std::vector<std::size_t> selectors;
@@ -625,21 +621,21 @@ namespace nil {
                 return selectors;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_lookup_verifier<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_lookup_verifier<BlueprintFieldType>::input_type
                     instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
                 std::size_t witness_amount = component.witness_amount();
 
-                using var = typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::var;
-                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                using var = typename plonk_lookup_verifier<BlueprintFieldType>::var;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>
                     ArithmetizationType;
 
                 using f1_loop = detail::f1_loop<ArithmetizationType>;
@@ -705,13 +701,13 @@ namespace nil {
                 bp.add_copy_constraint({var(component.W(4 % witness_amount), row + 4 / witness_amount, false), g_var});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_lookup_verifier<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_lookup_verifier<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_lookup_verifier<BlueprintFieldType>::input_type
                     instance_input,
                 const std::uint32_t start_row_index) {
 
@@ -720,9 +716,9 @@ namespace nil {
                 std::size_t row = start_row_index;
                 std::size_t witness_amount = component.witness_amount();
 
-                using var = typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_lookup_verifier<BlueprintFieldType>::var;
 
-                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>
                     ArithmetizationType;
 
                 using f1_loop = detail::f1_loop<ArithmetizationType>;
@@ -744,7 +740,7 @@ namespace nil {
                 std::vector<var> lookup_values;
                 std::vector<var> shifted_lookup_values;
 
-                std::size_t start_pos = 0, shifted_start_pos = 0, offset = 0;
+                std::size_t start_pos = 0, offset = 0;
                 std::size_t num_tables = instance_input.lookup_table_selectors.size();
                 assert(num_tables == component.lookup_tables_size);
                 for (std::size_t i = 0; i < num_tables; i++) {
@@ -852,8 +848,8 @@ namespace nil {
                     f1_loop(witnesses, std::array<std::uint32_t, 0>(), std::array<std::uint32_t, 1>(), s0.size());
                 typename f1_loop::input_type h_loop_input = {instance_input.beta, instance_input.gamma, s0, s1};
 
-                typename f1_loop::result_type h_loop_result =
-                    generate_circuit(h_loop, bp, assignment, h_loop_input, row);
+                // h_loop_result
+                generate_circuit(h_loop, bp, assignment, h_loop_input, row);
 
                 row += h_loop.rows_amount;
 
@@ -883,7 +879,6 @@ namespace nil {
                 typename mul::input_type mul_input = {g_loop_result.output, g_loop_result_2.output};
                 typename mul::result_type mul_result = generate_circuit(mul_instance, bp, assignment, mul_input, row);
                 row += mul_instance.rows_amount;
-                var g_var = mul_result.output;
 
                 s0.erase(s0.begin());
                 assert(s0.size() == s2.size());
@@ -913,7 +908,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_lookup_verifier<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_lookup_verifier<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
 

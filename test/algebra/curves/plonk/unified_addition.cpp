@@ -57,9 +57,9 @@ void test_unified_addition(std::vector<typename CurveType::base_field_type::valu
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using hash_type = crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
@@ -87,8 +87,8 @@ void test_unified_addition(std::vector<typename CurveType::base_field_type::valu
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},{},{});
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+    crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input);
 }
 
 template<typename CurveType>
@@ -97,7 +97,6 @@ void test_unified_addition_with_zeroes() {
     boost::random::mt19937 seed_seq;
     generate_random_point.seed(seed_seq);
 
-    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_algebraic = {0, 1};
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type zero_circuits  = {0, 0};
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = generate_random_point();
     typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type Q = -P;

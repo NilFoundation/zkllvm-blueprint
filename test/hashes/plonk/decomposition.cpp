@@ -54,13 +54,19 @@ void test_decomposition(std::vector<typename BlueprintFieldType::value_type> pub
     using hash_type = crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using component_type = blueprint::components::decomposition<ArithmetizationType, BlueprintFieldType>;
+
+    //check computation
+    auto output = component_type::calculate({public_input[0], public_input[1]});
+    for (std::size_t i = 0; i < output.size(); i++){
+        assert(expected_res[i] == output[i]);
+    }
 
     std::array<var, 2> input_state_var = {var(0, 0, false, var::column_type::public_input),
                                           var(0, 1, false, var::column_type::public_input)};
@@ -79,11 +85,13 @@ void test_decomposition(std::vector<typename BlueprintFieldType::value_type> pub
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8},{},{});
 
     if (expected_to_pass) {
-        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+        crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input);
+        crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input);
     } else {
-        crypto3::test_component_to_fail<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check_to_fail, instance_input);
+        crypto3::test_component_to_fail<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check_to_fail, instance_input);
     }
 }
 
@@ -105,14 +113,14 @@ std::vector<typename FieldType::value_type> calculate_decomposition(std::vector<
 
                 std::array<typename FieldType::integral_type, 8> output;
 
-                output[0] = range_chunks[1] * (1 << 16) + range_chunks[0];
-                output[1] = range_chunks[3] * (1 << 16) + range_chunks[2];
-                output[2] = range_chunks[5] * (1 << 16) + range_chunks[4];
-                output[3] = range_chunks[7] * (1 << 16) + range_chunks[6];
-                output[4] = range_chunks[9] * (1 << 16) + range_chunks[8];
-                output[5] = range_chunks[11] * (1 << 16) + range_chunks[10];
-                output[6] = range_chunks[13] * (1 << 16) + range_chunks[12];
-                output[7] = range_chunks[15] * (1 << 16) + range_chunks[14];
+                output[0] = range_chunks[7] * (1 << 16) + range_chunks[6];
+                output[1] = range_chunks[5] * (1 << 16) + range_chunks[4];
+                output[2] = range_chunks[3] * (1 << 16) + range_chunks[2];
+                output[3] = range_chunks[1] * (1 << 16) + range_chunks[0];
+                output[4] = range_chunks[15] * (1 << 16) + range_chunks[14];
+                output[5] = range_chunks[13] * (1 << 16) + range_chunks[12];
+                output[6] = range_chunks[11] * (1 << 16) + range_chunks[10];
+                output[7] = range_chunks[9] * (1 << 16) + range_chunks[8];
 
                 std::vector<typename FieldType::value_type> output_value;
 

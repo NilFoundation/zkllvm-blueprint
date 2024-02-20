@@ -52,9 +52,9 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams = crypto3::zk::snark::
-        plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -73,7 +73,7 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     std::size_t ctr = 0;
     var theta = var(0, ctr++, false, var::column_type::public_input);
     std::vector<var> constraints;
-    for (int i = 0; i <= m; i++) {
+    for (std::uint32_t i = 0; i <= m; i++) {
         constraints.push_back(var(0, ctr++, false, var::column_type::public_input));
     }
     var selector = var(0, ctr++, false, var::column_type::public_input);
@@ -85,12 +85,13 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
         assert(var_value(assignment, real_res.output) == expected_res);
     };
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance,
+        desc,
         public_input,
         result_check,
         instance_input,
-        nil::crypto3::detail::connectedness_check_type::STRONG,
+        nil::blueprint::connectedness_check_type::type::STRONG,
         m);
 }
 
@@ -170,7 +171,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_gate_component_test4) {
         0x1f36ae1c91b093f88ab05c97230c85bdd79c4d791ac2b0e8bf5c7889bb80aafd_cppui255,  // c4
         0x27b1ece6c803fcf6de3fd9aa5207378466f574a6e9b30e188b1158962fec34cf_cppui255,  // c5
         0x31acc41a65db47a663c27d691157e2f9dcf92de98d482f347c6fa0a78e67d988_cppui255,  // c6
-        0x2f971ec81c0309f69e82434a3c6596a509f586fa36712e7fd965ab31ce83b8c2_cppui255,  // c7 
+        0x2f971ec81c0309f69e82434a3c6596a509f586fa36712e7fd965ab31ce83b8c2_cppui255,  // c7
         0xcb0e17a777c9ade431b8751afd8057cdd15f74a6795dedd6c1f56bdcdfcff41_cppui255};  // q
 
     typename BlueprintFieldType::value_type expected_res =

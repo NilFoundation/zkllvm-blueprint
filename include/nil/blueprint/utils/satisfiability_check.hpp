@@ -40,29 +40,56 @@
 namespace nil {
     namespace blueprint {
 
-        template<typename BlueprintFieldType,
-                 typename ArithmetizationParams>
-        bool is_satisfied(const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                              ArithmetizationParams>> &bp,
-                          const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                        ArithmetizationParams>> &assignments){
+        template<typename BlueprintFieldType>
+        bool is_satisfied(
+            const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+            const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignments) {
+            std::set<uint32_t> used_gates;
+            for (std::uint32_t i = 0; i < bp.gates().size(); i++) {
+                used_gates.insert(i);
+            }
 
-            const std::vector<crypto3::zk::snark::plonk_gate<BlueprintFieldType, crypto3::zk::snark::plonk_constraint<BlueprintFieldType>>> &gates =
-                        bp.gates();
+            std::set<uint32_t> used_lookup_gates;
+            for (std::uint32_t i = 0; i < bp.lookup_gates().size(); i++) {
+                used_lookup_gates.insert(i);
+            }
 
-            const std::vector<crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType>> &copy_constraints =
-                        bp.copy_constraints();
+            std::set<uint32_t> used_copy_constraints;
+            for (std::uint32_t i = 0; i < bp.copy_constraints().size(); i++) {
+                used_copy_constraints.insert(i);
+            }
 
-            const std::vector<crypto3::zk::snark::plonk_lookup_gate<BlueprintFieldType, crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>>> &lookup_gates =
-                        bp.lookup_gates();
+            std::set<uint32_t> selector_rows;
+            for (std::uint32_t i = 0; i < assignments.allocated_rows(); i++) {
+                selector_rows.insert(i);
+            }
 
-            for (std::size_t i = 0; i < gates.size(); i++) {
+            return is_satisfied(bp, assignments, used_gates, used_lookup_gates, used_copy_constraints, selector_rows);
+        }
+
+        template<typename BlueprintFieldType>
+        bool is_satisfied(
+            const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+            const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignments,
+            const std::set<std::uint32_t> &used_gates,
+            const std::set<std::uint32_t> &used_lookup_gates,
+            const std::set<std::uint32_t> &used_copy_constraints,
+            const std::set<std::uint32_t> &selector_rows){
+
+            const auto &gates = bp.gates();
+
+            const auto &copy_constraints = bp.copy_constraints();
+
+            const auto &lookup_gates = bp.lookup_gates();
+
+            for (const auto& i : used_gates) {
                 crypto3::zk::snark::plonk_column<BlueprintFieldType> selector =
-                    assignments.crypto3::zk::snark::template plonk_assignment_table<
-                        BlueprintFieldType, ArithmetizationParams>::selector(gates[i].selector_index);
+                    assignments.crypto3::zk::snark::
+                        template plonk_assignment_table<BlueprintFieldType>::selector(
+                            gates[i].selector_index);
 
-                for (std::size_t selector_row = 0; selector_row < selector.size(); selector_row++) {
-                    if (!selector[selector_row].is_zero()) {
+                for (const auto& selector_row : selector_rows) {
+                    if (selector_row < selector.size() && !selector[selector_row].is_zero()) {
                         for (std::size_t j = 0; j < gates[i].constraints.size(); j++) {
 
                             typename BlueprintFieldType::value_type constraint_result =
@@ -83,27 +110,30 @@ namespace nil {
                 }
             }
 
-            for (std::size_t i = 0; i < lookup_gates.size(); i++) {
+            for (const auto& i : used_lookup_gates) {
                 crypto3::zk::snark::plonk_column<BlueprintFieldType> selector =
-                    assignments.crypto3::zk::snark::template plonk_assignment_table<
-                        BlueprintFieldType, ArithmetizationParams>::selector(lookup_gates[i].tag_index);
+                    assignments.crypto3::zk::snark::
+                        template plonk_assignment_table<BlueprintFieldType>::selector(
+                            lookup_gates[i].tag_index);
 
-                for (std::size_t selector_row = 0; selector_row < selector.size(); selector_row++) {
-                    if (!selector[selector_row].is_zero()) {
+                for (const auto& selector_row : selector_rows) {
+                    if (selector_row < selector.size() && !selector[selector_row].is_zero()) {
                         for (std::size_t j = 0; j < lookup_gates[i].constraints.size(); j++) {
                             std::vector<typename BlueprintFieldType::value_type> input_values;
                             input_values.reserve(lookup_gates[i].constraints[j].lookup_input.size());
                             for (std::size_t k = 0; k < lookup_gates[i].constraints[j].lookup_input.size(); k++) {
-                                input_values.emplace_back(
-                                    lookup_gates[i].constraints[j].lookup_input[k].evaluate(selector_row, assignments));
+                                input_values.emplace_back(lookup_gates[i].constraints[j].lookup_input[k].evaluate(
+                                    selector_row, assignments));
                             }
                             const auto table_name =
                                 bp.get_reserved_indices_right().at(lookup_gates[i].constraints[j].table_id);
                             try {
                                 std::string main_table_name = table_name.substr(0, table_name.find("/"));
-                                std::string subtable_name = table_name.substr(table_name.find("/") + 1, table_name.size()-1);
+                                std::string subtable_name =
+                                    table_name.substr(table_name.find("/") + 1, table_name.size() - 1);
                                 const auto &table = bp.get_reserved_tables().at(main_table_name)->get_table();
-                                const auto &subtable = bp.get_reserved_tables().at(main_table_name)->subtables.at(subtable_name);
+                                const auto &subtable =
+                                    bp.get_reserved_tables().at(main_table_name)->subtables.at(subtable_name);
 
                                 std::size_t columns_number = subtable.column_indices.size();
 
@@ -126,12 +156,13 @@ namespace nil {
                                 }
                                 if (!found) {
                                     std::cout << "Input values:";
-                                    for(std::size_t k = 0; k < input_values.size(); k++){
+                                    for (std::size_t k = 0; k < input_values.size(); k++) {
                                         std::cout << input_values[k] << " ";
                                     }
                                     std::cout << std::endl;
-                                    std::cout << "Constraint " << j << " from lookup gate " << i << " from table " << table_name << " on row " << selector_row
-                                            << " is not satisfied." << std::endl;
+                                    std::cout << "Constraint " << j << " from lookup gate " << i << " from table "
+                                              << table_name << " on row " << selector_row << " is not satisfied."
+                                              << std::endl;
                                     std::cout << "Offending Lookup Gate: " << std::endl;
                                     for (const auto &constraint : lookup_gates[i].constraints) {
                                         std::cout << "Table id: " << constraint.table_id << std::endl;
@@ -150,12 +181,12 @@ namespace nil {
                 }
             }
 
-            for (std::size_t i = 0; i < copy_constraints.size(); i++) {
+            for (const auto& i : used_copy_constraints) {
                 if (var_value(assignments, copy_constraints[i].first) !=
-                    var_value(assignments, copy_constraints[i].second)){
+                    var_value(assignments, copy_constraints[i].second)) {
                     std::cout << "Copy constraint number " << i << " is not satisfied."
-                              << " First variable: " <<  copy_constraints[i].first
-                              << " second variable: "  << copy_constraints[i].second << std::endl;
+                              << " First variable: " << copy_constraints[i].first
+                              << " second variable: " << copy_constraints[i].second << std::endl;
                     return false;
                 }
             }

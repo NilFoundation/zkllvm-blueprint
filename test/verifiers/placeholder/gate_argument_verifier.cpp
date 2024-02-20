@@ -53,17 +53,15 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams = crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns,
-                                                                                   ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::basic_constraints_verifier<ArithmetizationType>;
 
     std::size_t m = signature.size();
-
-    std::vector<std::size_t>::iterator min_degree = std::min_element(signature.begin(), signature.end());
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
     for (std::uint32_t i = 0; i < WitnessColumns; i++) {
@@ -76,8 +74,8 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     std::vector<var> selectors;
     std::size_t ctr = 0;
     var theta = var(0, ctr++, false, var::column_type::public_input);
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < signature[i]; j++) {
+    for (std::uint32_t i = 0; i < m; i++) {
+        for (std::uint32_t j = 0; j < signature[i]; j++) {
             constraints.push_back(var(0, ctr++, false, var::column_type::public_input));
         }
         selectors.push_back(var(0, ctr++, false, var::column_type::public_input));
@@ -90,13 +88,13 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
         // std::cout << "expected F: " << expected_res.data << std::endl;
     };
     if (signature.size() == 1 && signature[0] == 1) {
-        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-            component_instance, public_input, result_check, instance_input,
-            nil::crypto3::detail::connectedness_check_type::NONE, signature);
+        crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+            component_instance, desc, public_input, result_check, instance_input,
+            nil::blueprint::connectedness_check_type::type::NONE, signature);
     } else {
-        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-            component_instance, public_input, result_check, instance_input,
-            nil::crypto3::detail::connectedness_check_type::STRONG, signature);
+        crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+            component_instance, desc, public_input, result_check, instance_input,
+            nil::blueprint::connectedness_check_type::type::STRONG, signature);
     }
 }
 

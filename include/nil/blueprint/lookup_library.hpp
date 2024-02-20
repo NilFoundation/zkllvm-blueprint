@@ -33,7 +33,7 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/lookup_table_definition.hpp>
 #include <nil/blueprint/components/hashes/sha2/plonk/detail/split_functions.hpp>
-#include <nil/blueprint/components/hashes/sha2/plonk/detail/sha_table_generators.hpp>
+#include <nil/blueprint/detail/lookup_table_loaders.hpp>
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/assert.hpp>
 
@@ -137,13 +137,11 @@ namespace nil {
                 };
 
                 virtual void generate() {
-                    std::string blueprint_path = BLUEPRINT_PATH;
-                    this->_table = components::detail::load_sha_table<BlueprintFieldType>(
-                        {blueprint_path + "/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_4.txt"});
-                    if (this->_table.size() == 0 || this->_table[0].size() == 0) {
-                        std::cerr << "Failed to load table 8_split_4.txt!"
-                                        " Please check the paths and generate the table."
-                                    << std::endl;
+                    bool status = components::detail::load_lookup_table_from_bin<BlueprintFieldType>(
+                        "8_split_4",
+                        this->_table);
+                    if (!status) {
+                        std::cerr << "Failed to load table 8_split_4 from binary!" << std::endl;
                         BLUEPRINT_RELEASE_ASSERT(0);
                     }
                 }
@@ -186,13 +184,11 @@ namespace nil {
                     this->subtables["full"] = {{0,1}, 0, 43903};
                 };
                 virtual void generate() {
-                    std::string blueprint_path = BLUEPRINT_PATH;
-                    this->_table = components::detail::load_sha_table<BlueprintFieldType>(
-                        {blueprint_path + "/include/nil/blueprint/components/hashes/sha2/plonk/detail/8_split_7.txt"});
-                    if (this->_table.size() == 0 || this->_table[0].size() == 0) {
-                        std::cerr << "Failed to load table 8_split_7.txt!"
-                                     " Please check the paths and generate the table."
-                                  << std::endl;
+                    bool status = components::detail::load_lookup_table_from_bin<BlueprintFieldType>(
+                        "8_split_7",
+                        this->_table);
+                    if (!status) {
+                        std::cerr << "Failed to load table 8_split_7 from binary!" << std::endl;
                         BLUEPRINT_RELEASE_ASSERT(0);
                     }
                 }
@@ -204,14 +200,14 @@ namespace nil {
             class maj_function_table: public lookup_table_definition{
             public:
                 maj_function_table(): lookup_table_definition("sha256_maj"){
-                    this->subtables["full"] = {{0,1}, 0, 65534};
-                    this->subtables["first_column"] = {{0}, 0, 65534};
+                    this->subtables["full"] = {{0,1}, 0, 65535};
+                    this->subtables["first_column"] = {{0}, 0, 65535};
                 };
                 virtual void generate(){
                     this->_table.resize(2);
                     std::vector<std::size_t> value_sizes = {8};
                     for (typename BlueprintFieldType::integral_type i = 0;
-                        i < typename BlueprintFieldType::integral_type(65535);
+                        i < typename BlueprintFieldType::integral_type(65536);
                         i++
                     ) {
                         std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
@@ -222,20 +218,20 @@ namespace nil {
                 }
 
                 virtual std::size_t get_columns_number(){return 2;}
-                virtual std::size_t get_rows_number(){return 65535;}
+                virtual std::size_t get_rows_number(){return 65536;}
             };
 
             class ch_function_table: public lookup_table_definition{
             public:
                 ch_function_table(): lookup_table_definition("sha256_ch"){
-                    this->subtables["full"] = {{0,1}, 0, 5765040};
-                    this->subtables["first_column"] = {{0}, 0, 5765040};
+                    this->subtables["full"] = {{0,1}, 0, 5764800};
+                    this->subtables["first_column"] = {{0}, 0, 5764800};
                 };
                 virtual void generate(){
                     this->_table.resize(2);
                     std::vector<std::size_t> value_sizes = {8};
                     for (typename BlueprintFieldType::integral_type i = 0;
-                        i < typename BlueprintFieldType::integral_type(5765041);
+                        i < typename BlueprintFieldType::integral_type(5764801);
                         i++
                     ) {
                         std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
@@ -246,7 +242,7 @@ namespace nil {
                 }
 
                 virtual std::size_t get_columns_number(){return 2;}
-                virtual std::size_t get_rows_number(){return 5765041;}
+                virtual std::size_t get_rows_number(){return 5764801;}
             };
 
             class sparse_values_base8_table : public lookup_table_definition{

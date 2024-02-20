@@ -52,9 +52,9 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams = crypto3::zk::snark::
-        plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -74,10 +74,10 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     var beta = var(0, ctr++, false, var::column_type::public_input);
     var gamma = var(0, ctr++, false, var::column_type::public_input);
     std::vector<var> si, ti;
-    for (int i = 0; i < m; i++) {
+    for (std::uint32_t i = 0; i < m; i++) {
         si.push_back(var(0, ctr++, false, var::column_type::public_input));
     }
-    for (int i = 0; i < m; i++) {
+    for (std::uint32_t i = 0; i < m; i++) {
         ti.push_back(var(0, ctr++, false, var::column_type::public_input));
     }
 
@@ -88,12 +88,13 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
         assert(var_value(assignment, real_res.output) == expected_res);
     };
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance,
+        desc,
         public_input,
         result_check,
         instance_input,
-        nil::crypto3::detail::connectedness_check_type::STRONG,
+        nil::blueprint::connectedness_check_type::type::STRONG,
         m);
 }
 

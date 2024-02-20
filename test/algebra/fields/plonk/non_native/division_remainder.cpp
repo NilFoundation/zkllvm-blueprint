@@ -55,11 +55,10 @@ auto test_division_remainder(typename BlueprintFieldType::value_type x,
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 10;
-    using ArithmetizationParams = nil::crypto3::zk::snark::plonk_arithmetization_params<
-        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>;
-    using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
+    using AssignmentType = nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 	using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -99,32 +98,33 @@ auto test_division_remainder(typename BlueprintFieldType::value_type x,
 
     if (!CustomAssignments) {
         if (expected_to_pass) {
-            nil::crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-                component_instance, public_input, result_check, instance_input,
-                nil::crypto3::detail::connectedness_check_type::STRONG, R, CheckInputs);
+            nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+                component_instance, desc, public_input, result_check, instance_input,
+                nil::blueprint::connectedness_check_type::type::STRONG, R, CheckInputs);
+            nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+                component_instance, desc, public_input, result_check, instance_input,
+                nil::blueprint::connectedness_check_type::type::STRONG, R, CheckInputs);
         } else {
-            nil::crypto3::test_component_to_fail<component_type, BlueprintFieldType, ArithmetizationParams,
+            nil::crypto3::test_component_to_fail<component_type, BlueprintFieldType,
                                                  hash_type, Lambda>(
-                                                    component_instance, public_input, result_check, instance_input,
-                                                    nil::crypto3::detail::connectedness_check_type::STRONG,
+                                                    component_instance, desc, public_input, result_check, instance_input,
+                                                    nil::blueprint::connectedness_check_type::type::STRONG,
                                                     R, CheckInputs);
         }
     } else {
         auto custom_assignment = nil::crypto3::generate_patched_assignments<
-             BlueprintFieldType, ArithmetizationParams, component_type>(patches);
+             BlueprintFieldType, component_type>(patches);
 
         nil::crypto3::test_component_to_fail_custom_assignments<component_type, BlueprintFieldType,
-                ArithmetizationParams, hash_type, Lambda>(
-                        component_instance, public_input, result_check,
+                hash_type, Lambda>(
+                        component_instance, desc, public_input, result_check,
                         custom_assignment, instance_input,
-                        nil::crypto3::detail::connectedness_check_type::STRONG, R, CheckInputs);
+                        nil::blueprint::connectedness_check_type::type::STRONG, R, CheckInputs);
     }
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::uint32_t R, bool CheckInputs>
 void test_division_remainder_specific_inputs() {
-    using value_type = typename BlueprintFieldType::value_type;
-
     test_division_remainder<BlueprintFieldType, WitnessesAmount, R, CheckInputs>(42, 12);
     test_division_remainder<BlueprintFieldType, WitnessesAmount, R, CheckInputs>(120, 0);
 
@@ -259,7 +259,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_non_native_division_remainder_oops_y_minus_
     patches[std::make_pair(0, 3)] = 0;
     patches[std::make_pair(0, 4)] = 0;
 
-    using field_type_2 = nil::crypto3::algebra::curves::vesta::scalar_field_type;
     test_division_remainder<field_type, 15, 64, true>(x, y, patches);
 }
 
@@ -274,7 +273,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_non_native_division_remainder_oops_divide_b
     patches[std::make_pair(0, 3)] = 0;
     patches[std::make_pair(0, 4)] = -8;
 
-    using field_type_2 = nil::crypto3::algebra::curves::vesta::scalar_field_type;
     test_division_remainder<field_type, 15, 64, true>(x, y, patches);
 }
 

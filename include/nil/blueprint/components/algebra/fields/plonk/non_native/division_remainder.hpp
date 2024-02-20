@@ -55,10 +55,9 @@ namespace nil {
                 outputting q and r.
                 If check_inputs = true, this checks that x and y satisfy x, y < 2^{bits_amount}.
             */
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class division_remainder<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>> :
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
+            template<typename BlueprintFieldType>
+            class division_remainder<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> :
+                public plonk_component<BlueprintFieldType> {
 
                 using value_type = typename BlueprintFieldType::value_type;
 
@@ -78,13 +77,12 @@ namespace nil {
                 }
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
 
                 using range_check_component_type =
-                    range_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                            ArithmetizationParams>>;
+                    range_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
                 using manifest_type = nil::blueprint::plonk_component_manifest;
 
                 class gate_manifest_type : public component_gate_manifest {
@@ -133,6 +131,9 @@ namespace nil {
                                                              bool check_inputs) {
                     return rows_amount_internal(witness_amount, bits_amount, check_inputs);
                 }
+                constexpr static std::size_t get_empty_rows_amount() {
+                    return 1;
+                }
 
                 /*
                    It's CRITICAL that these two variables remain on top
@@ -148,7 +149,9 @@ namespace nil {
 
                 const bool needs_bonus_row = needs_bonus_row_internal(this->witness_amount());
                 const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), bits_amount, check_inputs);
+                const std::size_t empty_rows_amount = get_empty_rows_amount();
                 constexpr static const std::size_t gates_amount = 1;
+                const std::string component_name = "native integer division remainder";
 
                 enum var_address {
                     X, Y, Q, R_, Y_MINUS_R
@@ -186,6 +189,11 @@ namespace nil {
                         remainder = var(component.W(r_address.second), r_address.first);
                     }
 
+                    result_type(const division_remainder &component, std::size_t start_row_index, bool skip) {
+                        quotient = var(component.W(0), start_row_index);
+                        remainder = var(component.W(1), start_row_index);
+                    }
+
                     std::vector<var> all_vars() const {
                         return {quotient, remainder};
                     }
@@ -215,32 +223,39 @@ namespace nil {
                         range_checks(range_check_amount, range_check_component_type(witnesses, constants,
                                                                                     public_inputs, bits_amount_))
                 {};
+
+                static std::array<typename BlueprintFieldType::value_type, 2> calculate(
+                    std::array<typename BlueprintFieldType::value_type, 2> input) {
+                    using value_type = typename BlueprintFieldType::value_type;
+                    using integral_type = typename BlueprintFieldType::integral_type;
+
+                    integral_type x_integral = integral_type(input[0].data),
+                                y_integral = integral_type(input[1].data);
+                    integral_type q_integral = y_integral != 0 ? x_integral / y_integral : 0,
+                                r_integral = y_integral != 0 ? x_integral % y_integral : 0;
+                    return {value_type(q_integral), value_type(r_integral)};
+                }
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_division_remainder =
-                division_remainder<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                               ArithmetizationParams>>;
+                division_remainder<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::size_t generate_gates(
-                const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
+                const plonk_division_remainder<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_division_remainder<BlueprintFieldType>::input_type
                     &instance_input) {
 
-                using component_type = plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_division_remainder<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using var_address = typename component_type::var_address;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-                using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
-                using value_type = typename BlueprintFieldType::value_type;
 
                 var x = component.get_var_for_gate(var_address::X),
                     y = component.get_var_for_gate(var_address::Y),
@@ -257,24 +272,21 @@ namespace nil {
                 return bp.add_gate(constraints);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
+                const plonk_division_remainder<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_division_remainder<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_division_remainder<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using var_address = typename component_type::var_address;
-                std::uint32_t row = start_row_index;
 
                 std::pair<std::size_t, std::size_t>
                     x_address = component.get_var_address(var_address::X, start_row_index),
@@ -284,31 +296,28 @@ namespace nil {
                 bp.add_copy_constraint({instance_input.y, var(component.W(y_address.second), y_address.first, false)});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename plonk_division_remainder<BlueprintFieldType>::result_type
             generate_circuit(
-                const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
+                const plonk_division_remainder<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_division_remainder<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
 
-                using component_type = plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_division_remainder<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using var_address = typename component_type::var_address;
 
                 std::pair<std::size_t, std::size_t>
                     x_address = component.get_var_address(var_address::X, start_row_index),
                     y_address = component.get_var_address(var_address::Y, start_row_index),
-                    r_address = component.get_var_address(var_address::R_, start_row_index),
                     q_address = component.get_var_address(var_address::Q, start_row_index),
                     y_minus_r_address = component.get_var_address(var_address::Y_MINUS_R, start_row_index);
 
@@ -342,21 +351,20 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename plonk_division_remainder<BlueprintFieldType>::result_type
             generate_assignments(
-                const plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>
+                const plonk_division_remainder<BlueprintFieldType>
                     &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_division_remainder<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index;
 
-                using component_type = plonk_division_remainder<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_division_remainder<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using var = typename component_type::var;
@@ -406,6 +414,30 @@ namespace nil {
                 BOOST_ASSERT(row == start_row_index + component.rows_amount);
 
                 return typename component_type::result_type(component, start_row_index);
+            }
+
+            template<typename BlueprintFieldType>
+            typename plonk_division_remainder<BlueprintFieldType>::result_type
+            generate_empty_assignments(
+                const plonk_division_remainder<BlueprintFieldType>
+                    &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                    &assignment,
+                const typename plonk_division_remainder<BlueprintFieldType>::input_type
+                    &instance_input,
+                const std::uint32_t start_row_index) {
+
+                using component_type = plonk_division_remainder<BlueprintFieldType>;
+                using value_type = typename BlueprintFieldType::value_type;
+
+                value_type x = var_value(assignment, instance_input.x),
+                           y = var_value(assignment, instance_input.y);
+                auto res = component_type::calculate({x, y});
+
+                assignment.witness(component.W(0), start_row_index) = res[0];
+                assignment.witness(component.W(1), start_row_index) = res[1];
+
+                return typename component_type::result_type(component, start_row_index, true);
             }
         }    // namespace components
     }        // namespace blueprint

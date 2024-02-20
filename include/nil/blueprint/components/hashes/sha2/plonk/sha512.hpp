@@ -43,14 +43,14 @@ namespace nil {
             template<typename ArithmetizationType>
             class sha512;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class sha512<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>:
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
+            template<typename BlueprintFieldType>
+            class sha512<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>:
+                public plonk_component<BlueprintFieldType> {
 
-                using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using sha512_process_component = sha512_process<ArithmetizationType>;
                 using var = typename component_type::var;
@@ -89,6 +89,7 @@ namespace nil {
 
                 constexpr static const std::size_t gates_amount = 5;
                 constexpr static const std::size_t rows_amount_creating_input_words_component = 15;
+                const std::string component_name = "sha512 hash";
 //
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
 
@@ -150,21 +151,20 @@ namespace nil {
                         component_type(witnesses, constants, public_inputs, get_manifest()){};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            using plonk_sha512 = sha512<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                    ArithmetizationParams>>;
+            template<typename BlueprintFieldType>
+            using plonk_sha512 = sha512<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename plonk_sha512<BlueprintFieldType>::result_type
                 generate_circuit(
-                    const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    const plonk_sha512<BlueprintFieldType> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &assignment,
-                    const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                    const typename plonk_sha512<BlueprintFieldType>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
 
-                    using component_type = plonk_sha512<BlueprintFieldType, ArithmetizationParams>;
+                    using component_type = plonk_sha512<BlueprintFieldType>;
                     using sha512_process_component = typename component_type::sha512_process_component;
                     using var = typename component_type::var;
 
@@ -222,18 +222,18 @@ namespace nil {
                     generate_circuit(sha512_process_instance, bp, assignment, sha_params, j);
 
                     generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
-                    return typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::result_type(component, start_row_index);
+                    return typename plonk_sha512<BlueprintFieldType>::result_type(component, start_row_index);
                 }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename plonk_sha512<BlueprintFieldType>::result_type
                 generate_assignments(
-                    const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                    const plonk_sha512<BlueprintFieldType> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                    const typename plonk_sha512<BlueprintFieldType>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
 
-                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
                     using var = typename sha512<ArithmetizationType>::var;
 
                     std::size_t row = start_row_index;
@@ -307,14 +307,8 @@ namespace nil {
                     typename BlueprintFieldType::integral_type mask18 = ((integral_one<<18) - 1);
                     typename BlueprintFieldType::integral_type mask17 = ((integral_one<<17) - 1);
                     typename BlueprintFieldType::integral_type mask16 = ((integral_one<<16) - 1);
-                    typename BlueprintFieldType::integral_type mask15 = ((integral_one<<15) - 1);
                     typename BlueprintFieldType::integral_type mask14 = ((integral_one<<14) - 1);
                     typename BlueprintFieldType::integral_type mask13 = ((integral_one<<13) - 1);
-                    typename BlueprintFieldType::integral_type mask12 = ((integral_one<<12) - 1);
-                    typename BlueprintFieldType::integral_type mask11 = ((integral_one<<11) - 1);
-                    typename BlueprintFieldType::integral_type mask10 = ((integral_one<<10) - 1);
-                    typename BlueprintFieldType::integral_type mask9 = ((integral_one<<9) - 1);
-                    typename BlueprintFieldType::integral_type mask8 = ((integral_one<<8) - 1);
 
                     auto row_witness = row + 1;
 
@@ -688,7 +682,7 @@ namespace nil {
                         var(component.C(0), start_row_index + 6, false, var::column_type::constant),
                         var(component.C(0), start_row_index + 7, false, var::column_type::constant)};
 
-                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
                     typename sha512_process<ArithmetizationType>::input_type sha512_process_input = {constants_var, input_words_vars_1};
 
                     sha512_process<ArithmetizationType> sha512_process_instance(
@@ -738,18 +732,18 @@ namespace nil {
 
                     sha_output = generate_assignments(sha512_process_instance, assignment, sha512_process_input, row);
                     row += sha512_process_instance.rows_amount;
-                    return typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::result_type(component, start_row_index);
+                    return typename plonk_sha512<BlueprintFieldType>::result_type(component, start_row_index);
                 }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::array<std::size_t, 5> generate_gates(
-                    const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type
+                    const plonk_sha512<BlueprintFieldType> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                    const typename plonk_sha512<BlueprintFieldType>::input_type
                         &instance_input) {
 
-                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
                     using var = typename sha512<ArithmetizationType>::var;
 
                     typename BlueprintFieldType::integral_type one = 1;
@@ -924,15 +918,15 @@ namespace nil {
                     return {selector_1, selector_2, selector_3, selector_4, selector_5};
                 }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                    const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                    const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                    const plonk_sha512<BlueprintFieldType> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                    const typename plonk_sha512<BlueprintFieldType>::input_type &instance_input,
                     const std::uint32_t start_row_index) {
 
-                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
                     using var = typename sha512<ArithmetizationType>::var;
 
                     std::size_t row = start_row_index;
@@ -954,13 +948,13 @@ namespace nil {
 
                 }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const plonk_sha512<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_sha512<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_sha512<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_sha512<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
 
@@ -983,20 +977,18 @@ namespace nil {
             template<typename ComponentType>
             class result_type_converter;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class input_type_converter<plonk_sha512<BlueprintFieldType, ArithmetizationParams>> {
+            template<typename BlueprintFieldType>
+            class input_type_converter<plonk_sha512<BlueprintFieldType>> {
 
-                using component_type = plonk_sha512<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_sha512<BlueprintFieldType>;
                 using input_type = typename component_type::input_type;
                 using var = typename nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
             public:
                 static input_type convert(
                     const input_type &input,
-                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                           ArithmetizationParams>>
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &assignment,
-                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                           ArithmetizationParams>>
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &tmp_assignment) {
 
                     input_type new_input;
@@ -1032,14 +1024,14 @@ namespace nil {
                 static var deconvert_var(const input_type &input,
                                          var variable) {
                     BOOST_ASSERT(variable.type == var::column_type::public_input);
-                    if (variable.rotation < input.R.x.size()) {
+                    if (std::size_t(variable.rotation) < input.R.x.size()) {
                         return input.R.x[variable.rotation];
-                    } else if (variable.rotation < input.R.x.size() + input.R.y.size()) {
+                    } else if (std::size_t(variable.rotation) < input.R.x.size() + input.R.y.size()) {
                         return input.R.y[variable.rotation - input.R.x.size()];
-                    } else if (variable.rotation < input.R.x.size() + input.R.y.size() + input.A.x.size()) {
+                    } else if (std::size_t(variable.rotation) < input.R.x.size() + input.R.y.size() + input.A.x.size()) {
                         return input.A.x[variable.rotation - input.R.x.size() - input.R.y.size()];
-                    } else if (variable.rotation < input.R.x.size() + input.R.y.size() +
-                                                   input.A.x.size() + input.A.y.size()) {
+                    } else if (std::size_t(variable.rotation) < input.R.x.size() + input.R.y.size() +
+                                                                input.A.x.size() + input.A.y.size()) {
                         return input.A.y[variable.rotation - input.R.x.size() - input.R.y.size() - input.A.x.size()];
                     } else {
                         return input.M[variable.rotation - input.R.x.size() - input.R.y.size()
@@ -1048,13 +1040,13 @@ namespace nil {
                 }
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class result_type_converter<plonk_sha512<BlueprintFieldType, ArithmetizationParams>> {
+            template<typename BlueprintFieldType>
+            class result_type_converter<plonk_sha512<BlueprintFieldType>> {
 
-                using component_type = plonk_sha512<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_sha512<BlueprintFieldType>;
                 using result_type = typename component_type::result_type;
                 using input_type = typename component_type::input_type;
-                using stretcher_type = component_stretcher<BlueprintFieldType, ArithmetizationParams, component_type>;
+                using stretcher_type = component_stretcher<BlueprintFieldType, component_type>;
             public:
                 static result_type convert(const stretcher_type &component, const result_type old_result,
                                            const input_type &instance_input, std::size_t start_row_index) {

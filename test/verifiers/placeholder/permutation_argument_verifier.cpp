@@ -52,9 +52,9 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams = crypto3::zk::snark::
-        plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -66,13 +66,13 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
     std::vector<var> f, Se, Ssigma;
     var L0, V, V_zeta, q_last, q_pad;
     std::array<var, 2> thetas;
-    for (int i = 0; i < m; i++) {
+    for (std::uint32_t i = 0; i < m; i++) {
         f.push_back(var(0, i, false, var::column_type::public_input));
     }
-    for (int i = 0; i < m; i++) {
+    for (std::uint32_t i = 0; i < m; i++) {
         Se.push_back(var(0, m + i, false, var::column_type::public_input));
     }
-    for (int i = 0; i < m; i++) {
+    for (std::uint32_t i = 0; i < m; i++) {
         Ssigma.push_back(var(0, 2 * m + i, false, var::column_type::public_input));
     }
     L0 = var(0, 3 * m, false, var::column_type::public_input);
@@ -93,12 +93,13 @@ void test(std::vector<typename BlueprintFieldType::value_type> &public_input,
         }
     };
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
+    crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance,
+        desc,
         public_input,
         result_check,
         instance_input,
-        nil::crypto3::detail::connectedness_check_type::STRONG,
+        nil::blueprint::connectedness_check_type::type::STRONG,
         m);
 }
 

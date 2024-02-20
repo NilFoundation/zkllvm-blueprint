@@ -58,11 +58,11 @@ namespace nil {
             template<typename ArithmetizationType, typename FieldType, typename NonNativePolicyType>
             class multiplication;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+            template<typename BlueprintFieldType>
+            class multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                                  typename crypto3::algebra::fields::curve25519_base_field,
                                  basic_non_native_policy<BlueprintFieldType>>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
+                : public plonk_component<BlueprintFieldType> {
 
                 using operating_field_type = crypto3::algebra::fields::curve25519_base_field;
                 using non_native_policy_type = basic_non_native_policy<BlueprintFieldType>;
@@ -73,11 +73,10 @@ namespace nil {
                 }
             public:
                 using component_type =
-                    plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+                    plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
-                using range_type = range<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                     ArithmetizationParams>,
+                using range_type = range<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                                          typename crypto3::algebra::fields::curve25519_base_field,
                                          non_native_policy_type>;
                 using manifest_type = nil::blueprint::plonk_component_manifest;
@@ -109,11 +108,16 @@ namespace nil {
                                                              std::size_t lookup_column_amount) {
                     return rows_amount_internal(witness_amount, lookup_column_amount);
                 }
+                constexpr static std::size_t get_empty_rows_amount() {
+                    return 1;
+                }
 
                 constexpr static const std::size_t T = 257;
 
                 const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), 0);
+                const std::size_t empty_rows_amount = get_empty_rows_amount();
                 static constexpr const std::size_t gates_amount = 1;
+                const std::string component_name = "non-native field multiplication";
 
                 struct input_type {
                     typename non_native_policy_type::template field<operating_field_type>::non_native_var_type A;
@@ -132,6 +136,12 @@ namespace nil {
                                   var(component.W(4), start_row_index + component.rows_amount - 2, false),
                                   var(component.W(5), start_row_index + component.rows_amount - 2, false),
                                   var(component.W(6), start_row_index + component.rows_amount - 2, false)};
+                    }
+                    result_type(const multiplication &component, std::uint32_t start_row_index, bool skip) {
+                        output = {var(component.W(0), start_row_index, false),
+                                  var(component.W(1), start_row_index, false),
+                                  var(component.W(2), start_row_index, false),
+                                  var(component.W(3), start_row_index, false)};
                     }
 
                     std::vector<var> all_vars() const {
@@ -155,28 +165,112 @@ namespace nil {
                                std::initializer_list<typename component_type::public_input_container_type::value_type>
                                    public_inputs) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
+
+                static std::array<typename BlueprintFieldType::value_type, 4>
+                        calculate(std::array<typename BlueprintFieldType::value_type, 4> a,
+                                 std::array<typename BlueprintFieldType::value_type, 4> b) {
+                    using ed25519_field_type = crypto3::algebra::fields::curve25519_base_field;
+
+                    using native_value_type = typename BlueprintFieldType::value_type;
+                    using native_integral_type = typename BlueprintFieldType::integral_type;
+                    using foreign_value_type = typename ed25519_field_type::value_type;
+                    using foreign_integral_type = typename ed25519_field_type::integral_type;
+                    using foreign_extended_integral_type = typename ed25519_field_type::extended_integral_type;
+
+                    foreign_integral_type base = 1;
+                    native_integral_type pasta_base = 1;
+                    foreign_extended_integral_type extended_base = 1;
+                    foreign_value_type eddsa_a =
+                        foreign_integral_type(a[0].data) +
+                        foreign_integral_type(a[1].data) * (base << 66) +
+                        foreign_integral_type(a[2].data) * (base << 132) +
+                        foreign_integral_type(a[3].data) * (base << 198);
+                    foreign_value_type eddsa_b =
+                        foreign_integral_type(b[0].data) +
+                        foreign_integral_type(b[1].data) * (base << 66) +
+                        foreign_integral_type(b[2].data) * (base << 132) +
+                        foreign_integral_type(b[3].data) * (base << 198);
+                    foreign_value_type eddsa_r = eddsa_a * eddsa_b;
+                    foreign_integral_type integral_eddsa_r =
+                        foreign_integral_type(eddsa_r.data);
+                    foreign_extended_integral_type eddsa_p = ed25519_field_type::modulus;
+                    foreign_extended_integral_type integral_eddsa_q =
+                        (foreign_extended_integral_type(eddsa_a.data) *
+                            foreign_extended_integral_type(eddsa_b.data) -
+                        foreign_extended_integral_type(eddsa_r.data)) /
+                        eddsa_p;
+                    foreign_extended_integral_type pow = extended_base << 257;
+                    foreign_extended_integral_type minus_eddsa_p = pow - eddsa_p;
+
+                    std::array<native_value_type, 4> r;
+                    std::array<native_value_type, 4> q;
+                    std::array<native_value_type, 4> p;
+                    native_integral_type mask = (pasta_base << 66) - 1;
+                    r[0] = (integral_eddsa_r) & (mask);
+                    q[0] = (integral_eddsa_q) & (mask);
+                    p[0] = (minus_eddsa_p) & (mask);
+                    p[1] = (minus_eddsa_p >> 66) & (mask);
+                    p[2] = (minus_eddsa_p >> 132) & (mask);
+                    p[3] = (minus_eddsa_p >> 198) & (mask);
+                    for (std::size_t i = 1; i < 4; i++) {
+                        r[i] = (integral_eddsa_r >> (66 * i)) & (mask);
+                        q[i] = (integral_eddsa_q >> (66 * i)) & (mask);
+                    }
+                    std::array<native_value_type, 4> t;
+                    t[0] = a[0] * b[0] + p[0] * q[0];
+                    t[1] = a[1] * b[0] + a[0] * b[1] + p[0] * q[1] + p[1] * q[0];
+                    t[2] = a[2] * b[0] + a[0] * b[2] + a[1] * b[1] + p[2] * q[0] + q[2] * p[0] + p[1] * q[1];
+                    t[3] = a[3] * b[0] + b[3] * a[0] + a[1] * b[2] + b[1] * a[2] + p[3] * q[0] + q[3] * p[0] + p[1] * q[2] +
+                        q[1] * p[2];
+
+                    native_value_type u0 =
+                        t[0] - r[0] + t[1] * (pasta_base << 66) - r[1] * (pasta_base << 66);
+
+                    native_integral_type u0_integral =
+                        native_integral_type(u0.data) >> 132;
+                    std::array<native_value_type, 4> u0_chunks;
+
+                    u0_chunks[0] = u0_integral & ((1 << 22) - 1);
+                    u0_chunks[1] = (u0_integral >> 22) & ((1 << 22) - 1);
+                    u0_chunks[2] = (u0_integral >> 44) & ((1 << 22) - 1);
+                    u0_chunks[3] = (u0_integral >> 66) & ((1 << 4) - 1);
+
+                    native_value_type u1 = t[2] - r[2] + t[3] * (pasta_base << 66) -
+                                                                r[3] * (pasta_base << 66) +
+                                                                native_value_type(u0_integral);
+
+                    native_integral_type u1_integral =
+                        native_integral_type(u1.data) >> 125;
+                    std::array<native_value_type, 4> u1_chunks;
+                    u1_chunks[0] = u1_integral & ((1 << 22) - 1);
+                    u1_chunks[1] = (u1_integral >> 22) & ((1 << 22) - 1);
+                    u1_chunks[2] = (u1_integral >> 44) & ((1 << 22) - 1);
+                    u1_chunks[3] = (u1_integral >> 66) & ((1 << 8) - 1);
+
+                    return {r[0], r[1], r[2], r[3]};
+                }
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_ed25519_multiplication =
-                multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
+                multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                                typename crypto3::algebra::fields::curve25519_base_field,
                                basic_non_native_policy<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename plonk_ed25519_multiplication<BlueprintFieldType>::result_type
                 generate_assignments(
-                    const plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    const plonk_ed25519_multiplication<BlueprintFieldType> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &assignment,
-                    const typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type
+                    const typename plonk_ed25519_multiplication<BlueprintFieldType>::input_type
                         &instance_input,
                     const std::uint32_t start_row_index) {
 
                 using ed25519_field_type = crypto3::algebra::fields::curve25519_base_field;
 
-                using var = typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
-                using component_type = plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>;
+                using var = typename plonk_ed25519_multiplication<BlueprintFieldType>::var;
+                using component_type = plonk_ed25519_multiplication<BlueprintFieldType>;
                 using range_type = typename component_type::range_type;
 
                 using native_value_type = typename BlueprintFieldType::value_type;
@@ -294,9 +388,6 @@ namespace nil {
                 assignment.witness(component.W(6), row + 6) = u1_chunks[2];
                 assignment.witness(component.W(7), row + 6) = u1_chunks[3];
 
-                using ArithmetizationType =
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-
                 range_type range_component_instance({component.W(0), component.W(1), component.W(2), component.W(3),
                                                      component.W(4), component.W(5), component.W(6), component.W(7),
                                                      component.W(8)},
@@ -317,22 +408,55 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            std::size_t generate_gates(
-                const plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                    &assignment,
-                const typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type
-                    &instance_input) {
+            template<typename BlueprintFieldType>
+            typename plonk_ed25519_multiplication<BlueprintFieldType>::result_type
+                generate_empty_assignments(
+                    const plonk_ed25519_multiplication<BlueprintFieldType> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                        &assignment,
+                    const typename plonk_ed25519_multiplication<BlueprintFieldType>::input_type
+                        &instance_input,
+                    const std::uint32_t start_row_index) {
 
-                using ed25519_field_type = crypto3::algebra::fields::curve25519_base_field;
-                using var = typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
+                using component_type = plonk_ed25519_multiplication<BlueprintFieldType>;
 
                 using native_value_type = typename BlueprintFieldType::value_type;
                 using native_integral_type = typename BlueprintFieldType::integral_type;
-                using foreign_value_type = typename ed25519_field_type::value_type;
-                using foreign_integral_type = typename ed25519_field_type::integral_type;
+
+                std::array<native_value_type, 4> a = {
+                    native_integral_type(var_value(assignment, instance_input.A[0]).data),
+                    native_integral_type(var_value(assignment, instance_input.A[1]).data),
+                    native_integral_type(var_value(assignment, instance_input.A[2]).data),
+                    native_integral_type(var_value(assignment, instance_input.A[3]).data)};
+                std::array<native_value_type, 4> b = {
+                    native_integral_type(var_value(assignment, instance_input.B[0]).data),
+                    native_integral_type(var_value(assignment, instance_input.B[1]).data),
+                    native_integral_type(var_value(assignment, instance_input.B[2]).data),
+                    native_integral_type(var_value(assignment, instance_input.B[3]).data)};
+
+                auto r = component_type::calculate(a, b);
+                assignment.witness(component.W(0), start_row_index) = r[0];
+                assignment.witness(component.W(1), start_row_index) = r[1];
+                assignment.witness(component.W(2), start_row_index) = r[2];
+                assignment.witness(component.W(3), start_row_index) = r[3];
+
+                return typename component_type::result_type(component, start_row_index, true);
+            }
+
+            template<typename BlueprintFieldType>
+            std::size_t generate_gates(
+                const plonk_ed25519_multiplication<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                    &assignment,
+                const typename plonk_ed25519_multiplication<BlueprintFieldType>::input_type
+                    &instance_input) {
+
+                using ed25519_field_type = crypto3::algebra::fields::curve25519_base_field;
+                using var = typename plonk_ed25519_multiplication<BlueprintFieldType>::var;
+
+                using native_value_type = typename BlueprintFieldType::value_type;
+                using native_integral_type = typename BlueprintFieldType::integral_type;
                 using foreign_extended_integral_type = typename ed25519_field_type::extended_integral_type;
 
                 native_integral_type base = 1;
@@ -390,17 +514,17 @@ namespace nil {
                 return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_ed25519_multiplication<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_ed25519_multiplication<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_ed25519_multiplication<BlueprintFieldType>::var;
 
                 std::size_t row = start_row_index;
 
@@ -414,18 +538,18 @@ namespace nil {
                 bp.add_copy_constraint({var(component.W(7), row + 4, false), instance_input.B[3]});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename plonk_ed25519_multiplication<BlueprintFieldType>::result_type
                 generate_circuit(
-                    const plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                    const plonk_ed25519_multiplication<BlueprintFieldType> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &assignment,
-                    const typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::input_type
+                    const typename plonk_ed25519_multiplication<BlueprintFieldType>::input_type
                         &instance_input,
                     const std::size_t start_row_index) {
 
-                using component_type = plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_ed25519_multiplication<BlueprintFieldType>;
                 using range_type = typename component_type::range_type;
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
@@ -434,9 +558,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, j);
 
-                using ArithmetizationType =
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-                using var = typename plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_ed25519_multiplication<BlueprintFieldType>::var;
 
                 range_type range_component_instance({component.W(0), component.W(1), component.W(2), component.W(3),
                                                      component.W(4), component.W(5), component.W(6), component.W(7),
@@ -464,20 +586,18 @@ namespace nil {
             template<typename ComponentType>
             class result_type_converter;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class input_type_converter<plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>> {
+            template<typename BlueprintFieldType>
+            class input_type_converter<plonk_ed25519_multiplication<BlueprintFieldType>> {
 
-                using component_type = plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_ed25519_multiplication<BlueprintFieldType>;
                 using input_type = typename component_type::input_type;
                 using var = typename nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
             public:
                 static input_type convert(
                     const input_type &input,
-                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                           ArithmetizationParams>>
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &assignment,
-                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                           ArithmetizationParams>>
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &tmp_assignment) {
 
                     input_type new_input;
@@ -497,7 +617,7 @@ namespace nil {
                 static var deconvert_var(const input_type &input,
                                          var variable) {
                     BOOST_ASSERT(variable.type == var::column_type::public_input);
-                    if (variable.rotation < input.A.size()) {
+                    if (std::size_t(variable.rotation) < input.A.size()) {
                         return input.A[variable.rotation];
                     } else {
                         return input.B[variable.rotation - input.A.size()];
@@ -505,13 +625,13 @@ namespace nil {
                 }
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class result_type_converter<plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>> {
+            template<typename BlueprintFieldType>
+            class result_type_converter<plonk_ed25519_multiplication<BlueprintFieldType>> {
 
-                using component_type = plonk_ed25519_multiplication<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_ed25519_multiplication<BlueprintFieldType>;
                 using input_type = typename component_type::input_type;
                 using result_type = typename component_type::result_type;
-                using stretcher_type = component_stretcher<BlueprintFieldType, ArithmetizationParams, component_type>;
+                using stretcher_type = component_stretcher<BlueprintFieldType, component_type>;
             public:
                 static result_type convert(const stretcher_type &component, const result_type old_result,
                                            const input_type &instance_input, std::size_t start_row_index) {

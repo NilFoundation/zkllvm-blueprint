@@ -31,6 +31,7 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_SHA2_SPLIT_FUNCTIONS_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_SHA2_SPLIT_FUNCTIONS_HPP
 
+#include <stdexcept>
 #include <vector>
 #include <array>
 #include <map>
@@ -82,7 +83,6 @@ namespace nil {
                     reversed_sparse_and_split(const typename BlueprintFieldType::integral_type sparse_value,
                                               const std::vector<std::size_t> &sizes, std::size_t base) {
                     using integral_type = typename BlueprintFieldType::integral_type;
-                    using value_type = typename BlueprintFieldType::value_type;
                     std::size_t size = sizes.size();
                     std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> res = {
                         std::vector<integral_type>(size),
@@ -93,13 +93,12 @@ namespace nil {
                     for (int i = sizes.size() - 1; i > -1; i--) {
                         k = k + sizes[i];
                     }
-                    integral_type tmp = sparse_value;
+                    integral_type tmp = sparse_value, r;
                     for (int i = sizes.size() - 1; i > -1; i--) {
                         res[0][i] = 0;
                         res[1][i] = 0;
                         for (int j = sizes[i] - 1; j > -1; j--) {
                             const integral_type k_pow = cached_pow<BlueprintFieldType>(base, k);
-                            integral_type r;
                             divide_qr(tmp, k_pow, r, tmp);
                             res[0][i] = res[0][i] * 2 + (r&1);
                             res[1][i] = res[1][i] * sparse_base + r;
@@ -112,9 +111,8 @@ namespace nil {
                 template <typename BlueprintFieldType>
                 std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
                     reversed_sparse_and_split_maj(const typename BlueprintFieldType::integral_type sparse_value,
-                                              const std::vector<std::size_t> &sizes, std::size_t base) {
+                                                  const std::vector<std::size_t> &sizes, std::size_t base) {
                     using integral_type = typename BlueprintFieldType::integral_type;
-                    using value_type = typename BlueprintFieldType::value_type;
 
                     std::size_t size = sizes.size();
                     std::array<std::vector<integral_type>, 2> res = {
@@ -126,13 +124,12 @@ namespace nil {
                         k = k + sizes[i];
                     }
                     const std::array<std::size_t, 4> r_values = {0,0,1,1};
-                    integral_type tmp = sparse_value;
+                    integral_type tmp = sparse_value, r;
                     for (int i = sizes.size() - 1; i > -1; i--) {
                         res[0][i] = 0;
                         res[1][i] = 0;
                         for (int j = sizes[i] - 1; j > -1; j--) {
                             const integral_type k_pow = cached_pow<BlueprintFieldType>(base, k);
-                            integral_type r;
                             divide_qr(tmp, k_pow, r, tmp);
                             res[0][i] = res[0][i] * 2 + r_values[std::size_t(r)];
                             res[1][i] = res[1][i] * sparse_base + r;
@@ -145,9 +142,8 @@ namespace nil {
                 template <typename BlueprintFieldType>
                 std::array<std::vector<typename BlueprintFieldType::integral_type>, 2>
                     reversed_sparse_and_split_ch(const typename BlueprintFieldType::integral_type sparse_value,
-                                              const std::vector<std::size_t> &sizes, std::size_t base) {
+                                                 const std::vector<std::size_t> &sizes, std::size_t base) {
                     using integral_type = typename BlueprintFieldType::integral_type;
-                    using value_type = typename BlueprintFieldType::value_type;
 
                     std::size_t size = sizes.size();
                     std::array<std::vector<integral_type>, 2> res = {
@@ -158,14 +154,13 @@ namespace nil {
                     for (int i = sizes.size() - 1; i > -1; i--) {
                         k = k + sizes[i];
                     }
-                    std::array<std::size_t, 7> r_values = {0, 0,0,1,0,1,1};
-                    integral_type tmp = sparse_value;
+                    std::array<std::size_t, 7> r_values = {0, 0, 0, 1, 0, 1, 1};
+                    integral_type tmp = sparse_value, r;
                     for (int i = sizes.size() - 1; i > -1; i--) {
                         res[0][i] = 0;
                         res[1][i] = 0;
                         for (int j = sizes[i] - 1; j > -1; j--) {
                             const integral_type k_pow = cached_pow<BlueprintFieldType>(base, k);
-                            integral_type r;
                             divide_qr(tmp, k_pow, r, tmp);
                             res[0][i] = res[0][i] * 2 + r_values[std::size_t(r)];
                             res[1][i] = res[1][i] * sparse_base + r;

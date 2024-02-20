@@ -53,9 +53,9 @@ void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_inp
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -70,23 +70,29 @@ void test_sha256(std::vector<typename BlueprintFieldType::value_type> public_inp
     typename component_type::input_type instance_input = {input_state_var};
     auto result_check = [expected_res](AssignmentType &assignment,
         typename component_type::result_type &real_res) {
-            std::cout << std::hex << "real_res: " << var_value(assignment, real_res.output[0]).data << " " << var_value(assignment, real_res.output[1]).data << std::endl;
             assert(var_value(assignment, real_res.output[0]) == expected_res[0] && var_value(assignment, real_res.output[1]) == expected_res[1]);
     };
+
+    // check computation
+    auto output = component_type::calculate({public_input[0], public_input[1], public_input[2], public_input[3]});
+    for (std::size_t i = 0; i < 2; i++) {
+        assert(expected_res[i] == output[i]);
+    }
 
     if constexpr (Stretched) {
         using stretched_component_type = blueprint::components::component_stretcher<
             BlueprintFieldType,
-            ArithmetizationParams,
             component_type>;
 
         stretched_component_type stretched_instance(component_instance, WitnessColumns / 2, WitnessColumns);
 
-        crypto3::test_component<stretched_component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-            stretched_instance, public_input, result_check, instance_input);
+        crypto3::test_component<stretched_component_type, BlueprintFieldType, hash_type, Lambda>(
+            stretched_instance, desc, public_input, result_check, instance_input);
     } else {
-        crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-            component_instance, public_input, result_check, instance_input);
+        crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+            component_instance, desc, public_input, result_check, instance_input);
+        crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+            component_instance, desc, public_input, result_check, instance_input);
     }
 }
 
