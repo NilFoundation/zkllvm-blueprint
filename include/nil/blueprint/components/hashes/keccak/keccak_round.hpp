@@ -49,12 +49,11 @@ namespace nil {
             template<typename ArithmetizationType>
             class keccak_round;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                                 ArithmetizationParams>> :
-                public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
+            template<typename BlueprintFieldType>
+            class keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> :
+                public plonk_component<BlueprintFieldType> {
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using lookup_table_definition = typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
@@ -112,8 +111,8 @@ namespace nil {
                     // }
                     return buff;
                 }
-                static std::size_t calculate_last_round_call_row(std::size_t witness_amount, 
-                                                                bool xor_with_mes, 
+                static std::size_t calculate_last_round_call_row(std::size_t witness_amount,
+                                                                bool xor_with_mes,
                                                                 bool last_round_call,
                                                                 std::size_t limit_permutation_column) {
                     if (!last_round_call) {
@@ -190,7 +189,7 @@ namespace nil {
                             return row < other.row || (row == other.row && column < other.column);
                         }
                     };
-                    
+
                     // In constraints we use such notation: constr[0] - result,
                     // constr[1]... - arguments for lookup, linear elements for regular constraints in correct order.
                     coordinates first_coordinate;
@@ -307,8 +306,8 @@ namespace nil {
                     std::array<var, 25> inner_state;
                     std::array<var, 17> padded_message_chunk;
                     var round_constant;
-                    
-                    std::vector<std::reference_wrapper<var>> all_vars() const {
+
+                    std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> result;
                         result.insert(result.end(), inner_state.begin(), inner_state.end());
                         result.insert(result.end(), padded_message_chunk.begin(), padded_message_chunk.end());
@@ -388,7 +387,7 @@ namespace nil {
                     return result;
                 }
 
-                static configuration configure_inner(std::size_t witness_amount, std::size_t limit_permutation_column, 
+                static configuration configure_inner(std::size_t witness_amount, std::size_t limit_permutation_column,
                                             std::size_t row, std::size_t column, std::size_t num_args,
                                             std::size_t num_chunks, std::size_t num_cells, std::size_t buff = 0) {
 
@@ -396,7 +395,7 @@ namespace nil {
 
                     std::size_t last_row = row,
                                 last_column = column;
-                                
+
                     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
 
                     if (num_args + column > limit_permutation_column) {
@@ -409,7 +408,7 @@ namespace nil {
                                                             (last_column++) % witness_amount});
                         }
                     }
-                    
+
                     std::pair<std::size_t, std::size_t> cell_copy_from;
                     std::size_t final_row = (column + num_cells - 1) / witness_amount + row;
                     if (final_row == copy_to[0].first) {
@@ -417,7 +416,7 @@ namespace nil {
                     } else {
                         cell_copy_from = {final_row, 0};
                     }
-                    
+
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
                     if (num_args + column > limit_permutation_column) {
                         for (int i = column; i < witness_amount; ++i) {
@@ -445,7 +444,7 @@ namespace nil {
                         }
                     }
                     std::size_t cell_index = 0;
-                    
+
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
                     constraints.push_back({cells[cell_index++]});
                     for (int i = 0; i < num_args; ++i) {
@@ -478,7 +477,7 @@ namespace nil {
                     // sum = arg1 + arg2 + ... + argn
                     // sum = sum_chunk0 + sum_chunk1 * 2^chunk_size + ... + sum_chunkk * 2^(k*chunk_size)
                     // norm_sum = norm_sum_chunk0 + norm_sum_chunk1 * 2^chunk_size + ... + norm_sum_chunkk * 2^(k*chunk_size)
-                    
+
                     std::size_t num_chunks = calculate_num_chunks(lookup_rows, num_args + 1);
                     std::size_t num_cells = calculate_num_cells(lookup_rows, num_args + 1);
                     std::size_t buff = calculate_buff(witness_amount, lookup_rows, num_args + 1);
@@ -516,7 +515,7 @@ namespace nil {
                                 last_column = column;
                     std::size_t num_chunks = 8;
                     std::size_t num_cells = 24;
-                
+
                     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
                     std::pair<std::size_t, std::size_t> cell_copy_from;
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
@@ -530,7 +529,7 @@ namespace nil {
                         cell_copy_from = {last_row + (last_column / witness_amount),
                                                         (last_column++) % witness_amount};
                     }
-                    
+
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
                     if (2 + column > limit_permutation_column) {
                         for (int i = column; i < witness_amount; ++i) {
@@ -548,21 +547,21 @@ namespace nil {
                         while (cur_column - column < num_cells) {
                             cells.push_back({cur_row + (cur_column / witness_amount), (cur_column++) % witness_amount});
                         }
-                    }                    
+                    }
                     std::size_t cell_index = 0;
                     auto rot_const = cells[cell_index++];
                     auto minus_rot_const = cells[cell_index++];
-                    
+
                     constraints.push_back({copy_to[0]});
                     constraints[0].push_back(cells[cell_index++]);
                     constraints[0].push_back(cells[cell_index++]);
-                    
+
                     constraints.push_back({cell_copy_from});
                     constraints[1].push_back(constraints[0][2]);
                     constraints[1].push_back(constraints[0][1]);
-                    
+
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups(2, std::vector<std::pair<std::size_t, std::size_t>>());
-                        
+
                     constraints.push_back({cells[cell_index++]});
                     constraints[2].push_back(constraints[0][1]);
                     constraints.push_back({constraints[2][0]});
@@ -571,7 +570,7 @@ namespace nil {
                         lookups[0].push_back(constraints[3].back());
                         lookups[1].push_back(constraints[3].back());
                     }
-                    
+
                     constraints.push_back({cells[cell_index++]});
                     constraints[4].push_back(constraints[0][2]);
                     constraints.push_back({constraints[4][0]});
@@ -586,11 +585,11 @@ namespace nil {
                     constraints[1].push_back(constraints[6][0]);
                     constraints[2].push_back(constraints[6][0]);
                     constraints[4].push_back(constraints[6][1]);
-                    
+
                     last_column = cells.back().second + 1 + calculate_buff(witness_amount, num_chunks);
                     last_row = cells.back().first + (last_column / witness_amount);
                     last_column %= witness_amount;
-                    
+
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
 
@@ -681,7 +680,7 @@ namespace nil {
                     return result;
                 }
 
-                static std::map<std::pair<std::size_t, std::size_t>, 
+                static std::map<std::pair<std::size_t, std::size_t>,
                         std::vector<std::size_t>> configure_map(std::size_t witness_amount,
                                                                 bool xor_with_mes,
                                                                 bool last_round_call,
@@ -831,7 +830,7 @@ namespace nil {
                         //     }
                         //     std::cout << std::endl;
                         // }
-                    
+
                         std::vector<std::pair<std::size_t, std::size_t>> pairs;
                         for (auto constr : cur_config.constraints) {
                             std::size_t min = constr[0].row;
@@ -858,7 +857,7 @@ namespace nil {
                         }
                         result.push_back(cur_result);
                     }
-                    
+
                     return result;
                 }
 
@@ -890,7 +889,7 @@ namespace nil {
                                 cur_config = configure_chi(witness_amount, limit_permutation_column, 0, config.first.second);
                                 break;
                         }
-                        
+
                         std::vector<std::pair<std::size_t, std::size_t>> pairs;
                         for (auto constr : cur_config.lookups) {
                             std::size_t min = constr[0].row;
@@ -953,9 +952,9 @@ namespace nil {
                     return res;
                 }
 
-                static std::size_t get_rows_amount(std::size_t witness_amount, 
+                static std::size_t get_rows_amount(std::size_t witness_amount,
                                                     std::size_t lookup_column_amount,
-                                                    bool xor_with_mes, 
+                                                    bool xor_with_mes,
                                                     bool last_round_call,
                                                     std::size_t limit_permutation_column) {
                     std::size_t xor2_cells = calculate_num_cells(lookup_rows, 3);
@@ -1035,26 +1034,23 @@ namespace nil {
                  };
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using keccak_round_component =
-                keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                               ArithmetizationParams>>;
+                keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
+                const keccak_round_component<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename keccak_round_component<BlueprintFieldType>::input_type
                     &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
-                    
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
+
+                using component_type = keccak_round_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
@@ -1084,12 +1080,12 @@ namespace nil {
                     std::vector<lookup_constraint_type> cur_lookup_constraints;
                     std::string cur_lookup_table_name;
                     switch (gm.first.first) {
-                        case 2: 
+                        case 2:
                         {
                             cur_constraints.push_back(constraint_type(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1)));
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1105,7 +1101,7 @@ namespace nil {
                                                                                                             * (integral_type(1) << (k * component.normalize3_chunk_size));
                             }
                             cur_constraints.push_back(constraint_1);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1129,10 +1125,10 @@ namespace nil {
                         case 3:
                         {
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                                + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                                + var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                                + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                                + var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1)
                                                                 - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1));
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1146,9 +1142,9 @@ namespace nil {
                             for (int k = 0; k < component.normalize4_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column, cur_config_vec[i].constraints[j][k + 1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                                                                             * (integral_type(1) << (k * component.normalize4_chunk_size));
-                            } 
+                            }
                             cur_constraints.push_back(constraint_1);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1172,12 +1168,12 @@ namespace nil {
                         case 5:
                         {
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    + var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    + var(cur_config_vec[i].constraints[j][4].column, cur_config_vec[i].constraints[j][4].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    + var(cur_config_vec[i].constraints[j][5].column, cur_config_vec[i].constraints[j][5].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                    + var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                    + var(cur_config_vec[i].constraints[j][4].column, cur_config_vec[i].constraints[j][4].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                    + var(cur_config_vec[i].constraints[j][5].column, cur_config_vec[i].constraints[j][5].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1));
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1191,9 +1187,9 @@ namespace nil {
                             for (int k = 0; k < component.normalize6_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column, cur_config_vec[i].constraints[j][k + 1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                                                                             * (integral_type(1) << (k * component.normalize6_chunk_size));
-                            } 
+                            }
                             cur_constraints.push_back(constraint_1);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1219,10 +1215,10 @@ namespace nil {
                             std::size_t true_first_row = cur_config_vec[i].first_coordinate.row;
 
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                    * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                    * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1));
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1233,10 +1229,10 @@ namespace nil {
                             j %= cur_len;
 
                             cur_constraints.push_back(var(cur_config_vec[i].constraints[1][1].column, cur_config_vec[i].constraints[1][1].row - cur_config_vec[i].first_coordinate.row - 1)
-                                                    * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1) 
-                                                    + var(cur_config_vec[i].constraints[1][2].column, cur_config_vec[i].constraints[1][2].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                    * var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1)
+                                                    + var(cur_config_vec[i].constraints[1][2].column, cur_config_vec[i].constraints[1][2].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[1][0].column, cur_config_vec[i].constraints[1][0].row - cur_config_vec[i].first_coordinate.row - 1));
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1246,11 +1242,11 @@ namespace nil {
                             i += j / cur_len;
                             j %= cur_len;
 
-                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
+                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     + var(component.C(0), true_first_row + 1 - cur_config_vec[i].first_coordinate.row - 1, true, var::column_type::constant)
                                                     - component.big_rot_const);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1266,7 +1262,7 @@ namespace nil {
                                                                                                                 * (integral_type(1) << (k * component.rotate_chunk_size));
                             }
                             cur_constraints.push_back(constraint_1);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1276,11 +1272,11 @@ namespace nil {
                             i += j / cur_len;
                             j %= cur_len;
 
-                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
+                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     + var(component.C(0), true_first_row + 2 - cur_config_vec[i].first_coordinate.row - 1, true, var::column_type::constant)
                                                     - component.big_rot_const);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1306,7 +1302,7 @@ namespace nil {
                             i += j / cur_len;
                             j %= cur_len;
 
-                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1) 
+                            cur_constraints.push_back(var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     * var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - (integral_type(1) << 192));
 
@@ -1319,10 +1315,10 @@ namespace nil {
                         {
                             cur_constraints.push_back(component.sparse_3
                                                     - var(cur_config_vec[i].constraints[j][1].column, cur_config_vec[i].constraints[j][1].row - cur_config_vec[i].first_coordinate.row - 1) * 2
-                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1) 
+                                                    + var(cur_config_vec[i].constraints[j][2].column, cur_config_vec[i].constraints[j][2].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][3].column, cur_config_vec[i].constraints[j][3].row - cur_config_vec[i].first_coordinate.row - 1)
                                                     - var(cur_config_vec[i].constraints[j][0].column, cur_config_vec[i].constraints[j][0].row - cur_config_vec[i].first_coordinate.row - 1));
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1336,9 +1332,9 @@ namespace nil {
                             for (int k = 0; k < component.chi_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column, cur_config_vec[i].constraints[j][k + 1].row - cur_config_vec[i].first_coordinate.row - 1)
                                                                                                             * (integral_type(1) << (k * component.chi_chunk_size));
-                            } 
+                            }
                             cur_constraints.push_back(constraint_1);
-                            
+
                             j++;
                             cur_len = cur_config_vec[i].constraints.size();
                             if (j >= cur_len) {
@@ -1378,7 +1374,7 @@ namespace nil {
                         for (int j = 0; j < cur_lookup_config_vec[i].lookups.size(); ++j) {
                             lookup_constraint_type lookup_constraint = {lookup_tables_indices.at(cur_lookup_table_name),
                                                                         {var(component.W(cur_lookup_config_vec[i].lookups[j][0].column), static_cast<int32_t>(cur_lookup_config_vec[i].lookups[j][0].row)
-                                                                                                                                - static_cast<int32_t>(cur_lookup_config_vec[i].first_coordinate.row) - 1), 
+                                                                                                                                - static_cast<int32_t>(cur_lookup_config_vec[i].first_coordinate.row) - 1),
                                                                         var(component.W(cur_lookup_config_vec[i].lookups[j][1].column), static_cast<int32_t>(cur_lookup_config_vec[i].lookups[j][1].row)
                                                                                                                                 - static_cast<int32_t>(cur_lookup_config_vec[i].first_coordinate.row) - 1)}};
                             cur_lookup_constraints.push_back(lookup_constraint);
@@ -1404,7 +1400,7 @@ namespace nil {
                 //         }
                 //     }
                 //     switch (gm.first.first) {
-                //         case 2: 
+                //         case 2:
                 //         {
                 //             cur_lookup_table_name = "keccak_normalize3_table/full";
                 //             break;
@@ -1431,7 +1427,7 @@ namespace nil {
                 //         for (int j = 0; j < cur_config_vec[i].lookups.size(); ++j) {
                 //             lookup_constraint_type lookup_constraint = {lookup_tables_indices.at(cur_lookup_table_name),
                 //                                                         {var(component.W(cur_config_vec[i].lookups[j][0].column), static_cast<int32_t>(cur_config_vec[i].lookups[j][0].row)
-                //                                                                                                                 - static_cast<int32_t>(cur_config_vec[i].first_coordinate.row) - 1), 
+                //                                                                                                                 - static_cast<int32_t>(cur_config_vec[i].first_coordinate.row) - 1),
                 //                                                         var(component.W(cur_config_vec[i].lookups[j][1].column), static_cast<int32_t>(cur_config_vec[i].lookups[j][1].row)
                 //                                                                                                                 - static_cast<int32_t>(cur_config_vec[i].first_coordinate.row) - 1)}};
                 //             cur_constraints.push_back(lookup_constraint);
@@ -1444,21 +1440,19 @@ namespace nil {
                 return selector_indexes;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
+                const keccak_round_component<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename keccak_round_component<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = keccak_round_component<BlueprintFieldType>;
                 using var = typename component_type::var;
 
                 std::size_t config_index = 0;
@@ -1478,7 +1472,7 @@ namespace nil {
                     if (component.last_round_call) {
                         bp.add_copy_constraint({instance_input.inner_state[config_index], var(component.W(config[config_index].copy_to[0].column), static_cast<int>(config[config_index].copy_to[0].row + start_row_index), false)});
                         bp.add_copy_constraint({instance_input.padded_message_chunk[config_index], var(component.W(config[config_index].copy_to[1].column), static_cast<int>(config[config_index].copy_to[1].row + start_row_index), false)});
-                        bp.add_copy_constraint({var(component.C(0), component.last_round_call_row + start_row_index, false, var::column_type::constant), 
+                        bp.add_copy_constraint({var(component.C(0), component.last_round_call_row + start_row_index, false, var::column_type::constant),
                                                 var(component.W(config[config_index].copy_to[2].column), static_cast<int>(config[config_index].copy_to[2].row + start_row_index), false)});
                         num_copy_constr += 3;
                     }
@@ -1486,7 +1480,7 @@ namespace nil {
 
                     // theta
                     for (int i = 0; i < 17; ++i) {
-                        bp.add_copy_constraint({{component.W(config[prev_index + i].copy_from.column), static_cast<int>(config[prev_index + i].copy_from.row + start_row_index), false}, 
+                        bp.add_copy_constraint({{component.W(config[prev_index + i].copy_from.column), static_cast<int>(config[prev_index + i].copy_from.row + start_row_index), false},
                                                 {component.W(config[config_index + i % 5].copy_to[i / 5].column), static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index), false}});
                         num_copy_constr += 1;
                     }
@@ -1571,21 +1565,19 @@ namespace nil {
                                         {component.W(config[config_index].copy_to[1].column), static_cast<int>(config[config_index].copy_to[1].row + start_row_index), false}});
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
+                const keccak_round_component<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename keccak_round_component<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = keccak_round_component<BlueprintFieldType>;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::size_t row = start_row_index;
@@ -1613,25 +1605,23 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename keccak_round_component<BlueprintFieldType>::result_type
             generate_circuit(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
+                const keccak_round_component<BlueprintFieldType>
                     &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                    ArithmetizationParams>>
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename keccak_round_component<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
-                
+                using component_type = keccak_round_component<BlueprintFieldType>;
+
                 generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
-                
+
                 auto selector_indexes = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
                 std::size_t ind = 0;
 
@@ -1674,19 +1664,18 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::result_type
+            template<typename BlueprintFieldType>
+            typename keccak_round_component<BlueprintFieldType>::result_type
             generate_assignments(
-                const keccak_round_component<BlueprintFieldType, ArithmetizationParams>
+                const keccak_round_component<BlueprintFieldType>
                     &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                                                                       ArithmetizationParams>>
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename keccak_round_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename keccak_round_component<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_round_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = keccak_round_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using var = typename component_type::var;
@@ -2028,7 +2017,7 @@ namespace nil {
                         power <<= chunk_size;
                     }
                     A_4 = value_type(integral_normalized_sum);
-                    
+
                     auto cur_config = component.full_configuration[config_index];
                     assignment.witness(component.W(cur_config.copy_to[0].column), cur_config.copy_to[0].row + strow) = A_3[0];
                     assignment.witness(component.W(cur_config.copy_to[1].column), cur_config.copy_to[1].row + strow) = round_constant;

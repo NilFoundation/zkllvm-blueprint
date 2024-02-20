@@ -43,11 +43,11 @@ namespace nil {
             template<typename ArithmetizationType>
             class keccak_padding;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
+            template<typename BlueprintFieldType>
+            class keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
 
             public:
@@ -67,7 +67,7 @@ namespace nil {
                     }
                 };
 
-                struct configuration {                    
+                struct configuration {
                     // In constraints we use such notation: constr[0] - result,
                     // constr[1]... - arguments for lookup, linear elements for regular constraints in correct order.
                     coordinates first_coordinate;
@@ -146,7 +146,7 @@ namespace nil {
                                                        std::size_t lookup_column_amount,
                                                        std::size_t num_blocks,
                                                        std::size_t num_bits,
-                                                       bool range_check_input, 
+                                                       bool range_check_input,
                                                        std::size_t limit_permutation_column = 7) {
                     gate_manifest manifest =
                         gate_manifest(gate_manifest_type(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column));
@@ -193,7 +193,7 @@ namespace nil {
                     // message[num_blocks - 1] all message[i] are 64-bit for i > 0 message[0] is <= 64-bit
                     std::vector<var> message;
 
-                    std::vector<std::reference_wrapper<var>> all_vars() const {
+                    std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> res;
                         res.reserve(message.size());
                         res.insert(res.end(), message.begin(), message.end());
@@ -263,20 +263,20 @@ namespace nil {
                     return 1;
                 }
 
-                static configuration configure_inner_no_padding(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits, 
+                static configuration configure_inner_no_padding(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits,
                                                     bool range_check_input, std::size_t limit_permutation_column, std::size_t row, std::size_t column,
                                                     std::size_t num_cells, std::size_t buff) {
-                    
+
                     if (column > 0) {
                         row += 1;
                         column = 0;
                     }
-                    
+
                     std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
 
                     std::size_t last_row = row,
                                 last_column = column;
-                                
+
                     // chunk
                     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
                     if (column > limit_permutation_column) {
@@ -301,7 +301,7 @@ namespace nil {
                     last_column %= witness_amount;
 
                     auto cur_config = configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, {}, {});
-                    
+
                     // std::cout << "config: " << "\n";
                     // std::cout << cur_config.first_coordinate.row << " " << cur_config.first_coordinate.column << " " << cur_config.last_coordinate.row << " " << cur_config.last_coordinate.column << std::endl;
                     // std::cout << cur_config.copy_from.row << " " << cur_config.copy_from.column << std::endl;
@@ -317,15 +317,15 @@ namespace nil {
 
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, {}, {});
                 }
-                static configuration configure_inner_with_padding(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits, 
+                static configuration configure_inner_with_padding(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits,
                                                     bool range_check_input, std::size_t row, std::size_t column,
                                                     std::size_t num_cells, std::size_t buff) {
-                    
+
                     std::pair<std::size_t, std::size_t> first_coordinate = {row, column};
 
                     std::size_t last_row = row,
                                 last_column = column;
-                                
+
                     // relay, chunk, sum; second
                     std::vector<std::pair<std::size_t, std::size_t>> copy_to;
                     std::pair<std::size_t, std::size_t> cell_copy_from;
@@ -342,8 +342,8 @@ namespace nil {
                         cell_copy_from = {last_row + (last_column / witness_amount),
                                             (last_column++) % witness_amount};
                     }
-                    
-                    
+
+
                     std::vector<std::pair<std::size_t, std::size_t>> cells;
                     if (column > 3) {
                         for (int i = column; i < witness_amount; ++i) {
@@ -363,7 +363,7 @@ namespace nil {
                         }
                     }
                     std::size_t cell_index = 0;
-                    
+
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> constraints;
                     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> lookups(1 + range_check_input);
                     // chunk, first, second
@@ -398,7 +398,7 @@ namespace nil {
                     last_column %= witness_amount;
 
                     auto cur_config = configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
-                    
+
                     // std::cout << "config: " << "\n";
                     // std::cout << cur_config.first_coordinate.row << " " << cur_config.first_coordinate.column << " " << cur_config.last_coordinate.row << " " << cur_config.last_coordinate.column << std::endl;
                     // std::cout << cur_config.copy_from.row << " " << cur_config.copy_from.column << std::endl;
@@ -414,7 +414,7 @@ namespace nil {
 
                     return configuration(first_coordinate, {last_row, last_column}, copy_to, constraints, lookups, cell_copy_from);
                 }
-                static configuration configure_inner(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits, 
+                static configuration configure_inner(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits,
                                                     bool range_check_input, std::size_t limit_permutation_column,
                                                     std::size_t row, std::size_t column,
                                                     std::size_t num_cells, std::size_t buff) {
@@ -436,7 +436,7 @@ namespace nil {
                     }
                     return configuration(first_coordinate, {row + 1, 0}, {}, constraints, {}, cell_copy_from);
                 }
-                                                    
+
                 static std::vector<configuration> configure_all(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits,
                                                                 bool range_check_input, std::size_t limit_permutation_column) {
 
@@ -494,12 +494,12 @@ namespace nil {
                                                                                     std::size_t num_bits,
                                                                                     bool range_check_input,
                                                                                     std::size_t limit_permutation_column) {
-                                                
+
                     auto shift = calculate_shift(num_blocks, num_bits);
                     if (shift == 0 && !range_check_input) {
                         return {};
                     }
-                    
+
                     auto config = configure_all(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
                     std::size_t row = 0,
                                 column = 0;
@@ -532,7 +532,7 @@ namespace nil {
                 static std::vector<std::vector<configuration>> configure_gates(std::size_t witness_amount,
                                                                             std::size_t num_blocks,
                                                                             std::size_t num_bits,
-                                                                            bool range_check_input, 
+                                                                            bool range_check_input,
                                                                             std::size_t limit_permutation_column) {
                     if (calculate_shift(num_blocks, num_bits) == 0 && !range_check_input) {
                         return {};
@@ -544,9 +544,9 @@ namespace nil {
                     std::size_t buff = calculate_buff(witness_amount, range_check_input);
 
                     for (auto config: gates_configuration_map) {
-                        configuration cur_config = configure_inner(witness_amount, num_blocks, num_bits, 
-                                                                    range_check_input, limit_permutation_column, 
-                                                                    0, config.first, num_cells, buff);                    
+                        configuration cur_config = configure_inner(witness_amount, num_blocks, num_bits,
+                                                                    range_check_input, limit_permutation_column,
+                                                                    0, config.first, num_cells, buff);
                         std::vector<std::pair<std::size_t, std::size_t>> pairs;
                         for (auto constr : cur_config.constraints) {
                             std::size_t min = constr[0].row;
@@ -573,7 +573,7 @@ namespace nil {
                         }
                         result.push_back(cur_result);
                     }
-                    
+
                     // for (std::size_t i = 0; i < result.size(); ++i) {
                     //     std::cout << "config " << i << ":\n";
                     //     for (auto cur_config : result[i]) {
@@ -612,7 +612,7 @@ namespace nil {
                 static std::size_t get_gates_amount(std::size_t witness_amount,
                                                     std::size_t num_blocks,
                                                     std::size_t num_bits,
-                                                    bool range_check_input, 
+                                                    bool range_check_input,
                                                     std::size_t limit_permutation_column = 7) {
                     auto map = configure_map(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
                     return map.size() * 2 + range_check_input + 2;
@@ -621,7 +621,7 @@ namespace nil {
                                                    std::size_t lookup_column_amount,
                                                    std::size_t num_blocks,
                                                    std::size_t num_bits,
-                                                   bool range_check_input, 
+                                                   bool range_check_input,
                                                    std::size_t limit_permutation_column) {
                     auto confs = configure_all(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
                     auto res = confs.back().last_coordinate.row + 1 * (confs.back().last_coordinate.column != 0);
@@ -660,21 +660,21 @@ namespace nil {
                     typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using padding_component =
-                keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>;
+                keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const padding_component<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const padding_component<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename padding_component<BlueprintFieldType>::input_type
                     &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = padding_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
@@ -693,7 +693,7 @@ namespace nil {
                 std::vector<constraint_type> cur_constraints;
                 std::vector<lookup_constraint_type> cur_lookup_constraints;
                 // range_check shift num_blocks * 64 - num_bits;
-                cur_constraints.push_back(var(component.W(0), -1) 
+                cur_constraints.push_back(var(component.W(0), -1)
                                         + var(component.C(0), 1, true, var::column_type::constant)
                                         - 64 * var(component.C(0), 0, true, var::column_type::constant));
                 cur_constraints.push_back(var(component.W(0), -1));
@@ -801,16 +801,16 @@ namespace nil {
                 return selector_indexes;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const padding_component<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const padding_component<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = padding_component<BlueprintFieldType>;
                 using var = typename component_type::var;
 
                 std::size_t strow = start_row_index;
@@ -851,16 +851,16 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename padding_component<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const padding_component<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename padding_component<BlueprintFieldType>::result_type generate_circuit(
+                const padding_component<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = padding_component<BlueprintFieldType>;
                 using var = typename component_type::var;
 
                 auto selector_indexes = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
@@ -901,17 +901,17 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename padding_component<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const padding_component<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename padding_component<BlueprintFieldType>::result_type generate_assignments(
+                const padding_component<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t strow = start_row_index;
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = padding_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
@@ -930,7 +930,7 @@ namespace nil {
                 for (int j = 1; j < 9; ++j) {
                     assignment.witness(component.W(j), strow) = value_type(shift_range_check[j - 1]);
                 }
-                
+
                 if (component.shift != 0) {
                     integral_type relay_chunk = integral_type(var_value(assignment, instance_input.message[0]).data);
                     for (std::size_t index = 1; index < component.num_blocks + 1; ++index) {
@@ -985,7 +985,7 @@ namespace nil {
                 } else {
                     for (std::size_t index = 0; index < component.full_configuration.size(); ++index) {
                         auto cur_config = component.full_configuration[index];
-                        
+
                         if (component.range_check_input) {
                             integral_type chunk_to_check = integral_type(var_value(assignment, instance_input.message[index]).data);
                             integral_type mask_range_check = (integral_type(1) << 8) - 1;
@@ -1009,16 +1009,16 @@ namespace nil {
                 return typename component_type::result_type(component, start_row_index);
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const padding_component<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const padding_component<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename padding_component<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = padding_component<BlueprintFieldType>;
 
                 assignment.constant(component.C(0), start_row_index) = 0;
                 assignment.constant(component.C(0), start_row_index + 1) = component.num_blocks;
