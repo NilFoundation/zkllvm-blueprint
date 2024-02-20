@@ -236,8 +236,8 @@ namespace nil {
                 // blueprint::detail::export_connectedness_zones(
                 //      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
 
-                // BOOST_ASSERT_MSG(is_connected,
-                //    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                BOOST_ASSERT_MSG(is_connected,
+                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
 
             desc.usable_rows_amount = assignment.rows_amount();
