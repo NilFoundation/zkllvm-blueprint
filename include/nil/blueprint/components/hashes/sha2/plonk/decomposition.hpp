@@ -3,6 +3,7 @@
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022 Alisa Cherniaeva <a.cherniaeva@nil.foundation>
 // Copyright (c) 2022 Ekaterina Chukavina <kate@nil.foundation>
+// Copyright (c) 2023 Dmitrii Tabalin <d.tabalin@nil.foundation>
 //
 // MIT License
 //
@@ -80,7 +81,7 @@ namespace nil {
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    return 3;
+                    return 4;
                 }
                 constexpr static std::size_t get_empty_rows_amount() {
                     return 1;
@@ -88,7 +89,7 @@ namespace nil {
 
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
                 const std::size_t empty_rows_amount = get_empty_rows_amount();
-                constexpr static const std::size_t gates_amount = 1;
+                constexpr static const std::size_t gates_amount = 2;
 
                 struct input_type {
                     std::array<var, 2> data;
@@ -102,14 +103,14 @@ namespace nil {
                     std::array<var, 8> output;
 
                     result_type(const decomposition &component, std::uint32_t start_row_index) {
-                        output = {var(component.W(0), start_row_index + 1, false),
-                                  var(component.W(1), start_row_index + 1, false),
-                                  var(component.W(2), start_row_index + 1, false),
-                                  var(component.W(3), start_row_index + 1, false),
-                                  var(component.W(4), start_row_index + 1, false),
+                        output = {var(component.W(6), start_row_index + 1, false),
                                   var(component.W(5), start_row_index + 1, false),
-                                  var(component.W(6), start_row_index + 1, false),
-                                  var(component.W(7), start_row_index + 1, false)};
+                                  var(component.W(4), start_row_index + 1, false),
+                                  var(component.W(3), start_row_index + 1, false),
+                                  var(component.W(6), start_row_index + 3, false),
+                                  var(component.W(5), start_row_index + 3, false),
+                                  var(component.W(4), start_row_index + 3, false),
+                                  var(component.W(3), start_row_index + 3, false)};
                     }
 
                     result_type(const decomposition &component, std::uint32_t start_row_index, bool skip) {
@@ -172,6 +173,13 @@ namespace nil {
                     }
                     return output;
                 }
+
+                std::map<std::string, std::size_t> component_lookup_tables() const {
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables["sha256_sparse_base4/first_column"] = 0; // REQUIRED_TABLE
+
+                    return lookup_tables;
+                }
             };
 
             template<typename BlueprintFieldType>
@@ -188,34 +196,54 @@ namespace nil {
                     const typename plonk_native_decomposition<BlueprintFieldType>::input_type
                         instance_input,
                     const std::uint32_t start_row_index) {
+                using integral_type = typename BlueprintFieldType::integral_type;
 
-                std::size_t row = start_row_index;
-                std::array<typename BlueprintFieldType::integral_type, 2> data = {
-                    typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.data[0]).data),
-                    typename BlueprintFieldType::integral_type(var_value(assignment, instance_input.data[1]).data)};
-                std::array<typename BlueprintFieldType::integral_type, 16> range_chunks;
-                std::size_t shift = 0;
+                std::array<integral_type, 2> data = {
+                    integral_type(var_value(assignment, instance_input.data[0]).data),
+                    integral_type(var_value(assignment, instance_input.data[1]).data)};
+                std::array<std::array<std::array<integral_type, 3>, 4>, 2> range_chunks;
+                std::array<std::array<integral_type, 4>, 2> output_chunks;
 
-                for (std::size_t i = 0; i < 8; i++) {
-                    range_chunks[i] = (data[0] >> shift) & ((65536) - 1);
-                    assignment.witness(component.W(i), row) = range_chunks[i];
-                    range_chunks[i + 8] = (data[1] >> shift) & ((65536) - 1);
-                    assignment.witness(component.W(i), row + 2) = range_chunks[i + 8];
-                    shift += 16;
+                for (std::size_t data_idx = 0; data_idx < 2; data_idx++) {
+                    for (std::size_t chunk_idx = 0; chunk_idx < 4; chunk_idx++) {
+                        output_chunks[data_idx][chunk_idx] = (data[data_idx] >> (chunk_idx * 32)) & 0xFFFFFFFF;
+                        // subchunks are 14, 14, and 4 bits long respectively
+                        range_chunks[data_idx][chunk_idx][0] =
+                            (output_chunks[data_idx][chunk_idx] & 0b11111111111111000000000000000000) >> 18;
+                        range_chunks[data_idx][chunk_idx][1] =
+                            (output_chunks[data_idx][chunk_idx] & 0b00000000000000111111111111110000) >> 4;
+                        range_chunks[data_idx][chunk_idx][2] =
+                            (output_chunks[data_idx][chunk_idx] & 0b00000000000000000000000000001111);
+                        BOOST_ASSERT(
+                            output_chunks[data_idx][chunk_idx] ==
+                            range_chunks[data_idx][chunk_idx][0] * (1 << 18) +
+                            range_chunks[data_idx][chunk_idx][1] * (1 << 4) +
+                            range_chunks[data_idx][chunk_idx][2]);
+                    }
                 }
-
-                assignment.witness(component.W(8), row) = data[0];
-                assignment.witness(component.W(8), row + 2) = data[1];
-
-                assignment.witness(component.W(3), row + 1) = range_chunks[1] * (65536) + range_chunks[0];
-                assignment.witness(component.W(2), row + 1) = range_chunks[3] * (65536) + range_chunks[2];
-                assignment.witness(component.W(1), row + 1) = range_chunks[5] * (65536) + range_chunks[4];
-                assignment.witness(component.W(0), row + 1) = range_chunks[7] * (65536) + range_chunks[6];
-
-                assignment.witness(component.W(7), row + 1) = range_chunks[9] * (65536) + range_chunks[8];
-                assignment.witness(component.W(6), row + 1) = range_chunks[11] * (65536) + range_chunks[10];
-                assignment.witness(component.W(5), row + 1) = range_chunks[13] * (65536) + range_chunks[12];
-                assignment.witness(component.W(4), row + 1) = range_chunks[15] * (65536) + range_chunks[14];
+                for (std::size_t data_idx = 0; data_idx < 2; data_idx++) {
+                    const std::size_t first_row = start_row_index + 2 * data_idx,
+                                      second_row = start_row_index + 2 * data_idx + 1;
+                    // placing subchunks for first three chunks
+                    for (std::size_t chunk_idx = 0; chunk_idx < 3; chunk_idx++) {
+                        for (std::size_t subchunk_idx = 0; subchunk_idx < 3; subchunk_idx++) {
+                            assignment.witness(component.W(3 * chunk_idx + subchunk_idx), first_row) =
+                                range_chunks[data_idx][chunk_idx][subchunk_idx];
+                        }
+                    }
+                    // placing subchunk for the last chunk
+                    for (std::size_t subchunk_idx = 0; subchunk_idx < 3; subchunk_idx++) {
+                        assignment.witness(component.W(subchunk_idx), second_row) =
+                            range_chunks[data_idx][3][subchunk_idx];
+                    }
+                    // placing chunks
+                    for (std::size_t chunk_idx = 0; chunk_idx < 4; chunk_idx++) {
+                        assignment.witness(component.W(3 + chunk_idx), second_row) =
+                            output_chunks[data_idx][chunk_idx];
+                    }
+                    // placing the original data
+                    assignment.witness(component.W(7), second_row) = data[data_idx];
+                }
 
                 return typename plonk_native_decomposition<BlueprintFieldType>::result_type(
                     component, start_row_index);
@@ -246,43 +274,71 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            std::size_t generate_gates(
+            std::array<std::size_t, 2> generate_gates(
                 const plonk_native_decomposition<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_native_decomposition<BlueprintFieldType>::input_type
-                    &instance_input) {
+                    &instance_input,
+                const typename lookup_library<BlueprintFieldType>::left_reserved_type &lookup_tables_indices) {
 
                 using var = typename plonk_native_decomposition<BlueprintFieldType>::var;
+                using constraint = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                using lookup_constraint = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
 
-                auto constraint_1 =
-                    var(component.W(8), -1) - (var(component.W(3), 0) + var(component.W(2), 0) * 0x100000000_cppui255 +
-                                               var(component.W(1), 0) * 0x10000000000000000_cppui255 +
-                                               var(component.W(0), 0) * 0x1000000000000000000000000_cppui255);
-                auto constraint_2 =
-                    var(component.W(8), 1) - (var(component.W(7), 0) + var(component.W(6), 0) * 0x100000000_cppui255 +
-                                              var(component.W(5), 0) * 0x10000000000000000_cppui255 +
-                                              var(component.W(4), 0) * 0x1000000000000000000000000_cppui255);
-                auto constraint_3 = var(component.W(3), 0) -
-                                                      (var(component.W(0), -1) + var(component.W(1), -1) * (65536));
-                auto constraint_4 = var(component.W(2), 0) -
-                                                      (var(component.W(2), -1) + var(component.W(3), -1) * (65536));
-                auto constraint_5 = var(component.W(1), 0) -
-                                                      (var(component.W(4), -1) + var(component.W(5), -1) * (65536));
-                auto constraint_6 = var(component.W(0), 0) -
-                                                      (var(component.W(6), -1) + var(component.W(7), -1) * (65536));
-                auto constraint_7 = var(component.W(7), 0) -
-                                                      (var(component.W(0), +1) + var(component.W(1), +1) * (65536));
-                auto constraint_8 = var(component.W(6), 0) -
-                                                      (var(component.W(2), +1) + var(component.W(3), +1) * (65536));
-                auto constraint_9 = var(component.W(5), 0) -
-                                                      (var(component.W(4), +1) + var(component.W(5), +1) * (65536));
-                auto constraint_10 = var(component.W(4), 0) -
-                                                       (var(component.W(6), +1) + var(component.W(7), +1) * (65536));
-                return bp.add_gate(
-                            {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
-                             constraint_7, constraint_8, constraint_9, constraint_10});
+                const typename BlueprintFieldType::integral_type one = 1;
+                std::array<std::size_t, 2> selectors;
+
+                std::vector<lookup_constraint> subchunk_lookup_constraints(12);
+                // lookup constraints for the first three chunks
+                for (std::size_t chunk_idx = 0; chunk_idx < 3; chunk_idx++) {
+                    subchunk_lookup_constraints[3 * chunk_idx] =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(3 * chunk_idx), -1)}};
+                    subchunk_lookup_constraints[3 * chunk_idx + 1] =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {var(component.W(3 * chunk_idx + 1), -1)}};
+                    subchunk_lookup_constraints[3 * chunk_idx + 2] =
+                        {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                         {1024 * var(component.W(3 * chunk_idx + 2), -1)}};
+                }
+                // lookup constraints for the last chunk
+                subchunk_lookup_constraints[9] =
+                    {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                     {var(component.W(0), 0)}};
+                subchunk_lookup_constraints[10] =
+                    {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                     {var(component.W(1), 0)}};
+                subchunk_lookup_constraints[11] =
+                    {lookup_tables_indices.at("sha256_sparse_base4/first_column"),
+                     {1024 * var(component.W(2), 0)}};
+
+                selectors[0] = bp.add_lookup_gate(subchunk_lookup_constraints);
+
+                std::vector<constraint> chunk_constraints(5);
+                // chunk sum constraints for the first three chunks
+                for (std::size_t chunk_idx = 0; chunk_idx < 3; chunk_idx++) {
+                    chunk_constraints[chunk_idx] =
+                        var(component.W(3 * chunk_idx), -1) * (1 << 18) +
+                        var(component.W(3 * chunk_idx + 1), -1) * (1 << 4) +
+                        var(component.W(3 * chunk_idx + 2), -1) -
+                        var(component.W(3 + chunk_idx), 0);
+                }
+                // chunk sum constraints for the last chunk
+                chunk_constraints[3] =
+                    var(component.W(0), 0) * (1 << 18) +
+                    var(component.W(1), 0) * (1 << 4) +
+                    var(component.W(2), 0) -
+                    var(component.W(6), 0);
+                // chunk sum constraint for input
+                chunk_constraints[4] =
+                    var(component.W(3), 0) + var(component.W(4), 0) * (one << 32) +
+                    var(component.W(5), 0) * (one << 64) + var(component.W(6), 0) * (one << 96) -
+                    var(component.W(7), 0);
+                selectors[1] = bp.add_gate(chunk_constraints);
+
+                return selectors;
             }
 
             template<typename BlueprintFieldType>
@@ -296,11 +352,9 @@ namespace nil {
                 const std::size_t start_row_index) {
 
                 using var = typename plonk_native_decomposition<BlueprintFieldType>::var;
-                // CRITICAL: these copy constraints might not be sufficient, but are definitely required.
-                // I've added copy constraints for the inputs, but internal ones might be missing
-                // Proceed with care
-                bp.add_copy_constraint({instance_input.data[0], var(component.W(8), start_row_index, false)});
-                bp.add_copy_constraint({instance_input.data[1], var(component.W(8), start_row_index + 2, false)});
+
+                bp.add_copy_constraint({instance_input.data[0], var(component.W(7), start_row_index + 1, false)});
+                bp.add_copy_constraint({instance_input.data[1], var(component.W(7), start_row_index + 3, false)});
             }
 
             template<typename BlueprintFieldType>
@@ -314,10 +368,14 @@ namespace nil {
                         &instance_input,
                     const std::size_t start_row_index) {
 
-                std::size_t j = start_row_index + 1;
-                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
+                std::array<std::size_t, 2>  selector_indices =
+                    generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
 
-                assignment.enable_selector(selector_index, j);
+                assignment.enable_selector(selector_indices[0], start_row_index + 1);
+                assignment.enable_selector(selector_indices[0], start_row_index + 3);
+                assignment.enable_selector(selector_indices[1], start_row_index + 1);
+                assignment.enable_selector(selector_indices[1], start_row_index + 3);
+
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 return typename plonk_native_decomposition<BlueprintFieldType>::result_type(

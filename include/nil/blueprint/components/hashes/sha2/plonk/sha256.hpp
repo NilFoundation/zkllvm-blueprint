@@ -149,30 +149,6 @@ namespace nil {
                 using lookup_table_definition = typename
                     nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
 
-                std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
-                    std::vector<std::shared_ptr<lookup_table_definition>> result = {};
-
-                    auto sparse_values_base4 = std::shared_ptr<lookup_table_definition>(new typename sha256_process_type::sparse_values_base4_table());
-                    result.push_back(sparse_values_base4);
-
-                    auto sparse_values_base7 = std::shared_ptr<lookup_table_definition>(new typename sha256_process_type::sparse_values_base7_table());
-                    result.push_back(sparse_values_base7);
-
-                    auto maj = std::shared_ptr<lookup_table_definition>(new typename sha256_process_type::maj_function_table());
-                    result.push_back(maj);
-
-                    auto reverse_sparse_sigmas_base4 = std::shared_ptr<lookup_table_definition>(new typename sha256_process_type::reverse_sparse_sigmas_base4_table());
-                    result.push_back(reverse_sparse_sigmas_base4);
-
-                    auto reverse_sparse_sigmas_base7 = std::shared_ptr<lookup_table_definition>(new typename sha256_process_type::reverse_sparse_sigmas_base7_table());
-                    result.push_back(reverse_sparse_sigmas_base7);
-
-                    auto ch = std::shared_ptr<lookup_table_definition>(new typename sha256_process_type::ch_function_table());
-                    result.push_back(ch);
-
-                    return result;
-                }
-
                 std::map<std::string, std::size_t> component_lookup_tables(){
                     std::map<std::string, std::size_t> lookup_tables;
                     lookup_tables["sha256_sparse_base4/full"] = 0; // REQUIRED_TABLE

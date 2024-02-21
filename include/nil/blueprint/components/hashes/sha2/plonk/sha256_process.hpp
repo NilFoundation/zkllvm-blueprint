@@ -1213,9 +1213,13 @@ namespace nil {
                     &instance_input,
                 const std::size_t start_row_index) {
 
-                std::size_t row = start_row_index + 2;
                 using var = typename plonk_sha256_process<BlueprintFieldType>::var;
+                std::size_t row = start_row_index;
+                for (std::size_t i = 0; i < 8; ++i) {
+                    bp.add_copy_constraint({var(component.W(i), row, false), instance_input.input_state[i]});
+                }
 
+                row = start_row_index + 2;
                 for (std::size_t i = 1; i <= 15; ++i) {
                     bp.add_copy_constraint(
                         {var(component.W(0), row + (i - 1) * 5 + 0, false), instance_input.input_words[i]});
@@ -1389,7 +1393,7 @@ namespace nil {
                 typename BlueprintFieldType::value_type h = input_state[7];
 
                 std::array<typename BlueprintFieldType::integral_type, 8> sparse_values {};
-                for (std::size_t i = 0; i < 4; i++) {
+                for (std::size_t i = 0; i < 8; i++) {
                     assignment.witness(component.W(i), row) = input_state[i];
                     typename BlueprintFieldType::integral_type integral_input_state_sparse =
                         typename BlueprintFieldType::integral_type(input_state[i].data);
@@ -1404,32 +1408,12 @@ namespace nil {
                     }
 
                     std::vector<std::size_t> input_state_sparse_sizes = {32};
+                    const auto base = i < 4 ? plonk_sha256_process<BlueprintFieldType>::base4
+                                            : plonk_sha256_process<BlueprintFieldType>::base7;
                     std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> input_state_sparse_chunks =
                         detail::split_and_sparse<BlueprintFieldType>(
                             input_state_sparse, input_state_sparse_sizes,
-                            plonk_sha256_process<BlueprintFieldType>::base4);
-                    assignment.witness(component.W(i), row + 1) = input_state_sparse_chunks[1][0];
-                    sparse_values[i] = input_state_sparse_chunks[1][0];
-                }
-                for (std::size_t i = 4; i < 8; i++) {
-                    assignment.witness(component.W(i), row) = input_state[i];
-                    typename BlueprintFieldType::integral_type integral_input_state_sparse =
-                        typename BlueprintFieldType::integral_type(input_state[i].data);
-                    std::vector<bool> input_state_sparse(32);
-                    {
-                        nil::marshalling::status_type status;
-                        std::vector<bool> input_state_sparse_all =
-                            nil::marshalling::pack<nil::marshalling::option::big_endian>(integral_input_state_sparse,
-                                                                                         status);
-                        std::copy(input_state_sparse_all.end() - 32, input_state_sparse_all.end(),
-                                  input_state_sparse.begin());
-                    }
-
-                    std::vector<std::size_t> input_state_sparse_sizes = {32};
-                    std::array<std::vector<typename BlueprintFieldType::integral_type>, 2> input_state_sparse_chunks =
-                        detail::split_and_sparse<BlueprintFieldType>(
-                            input_state_sparse, input_state_sparse_sizes,
-                            plonk_sha256_process<BlueprintFieldType>::base7);
+                            base);
                     assignment.witness(component.W(i), row + 1) = input_state_sparse_chunks[1][0];
                     sparse_values[i] = input_state_sparse_chunks[1][0];
                 }
@@ -1804,57 +1788,6 @@ namespace nil {
                     assignment.witness(component.W(6), row + i) = ( ((1 << 14) - 1) & (integral_a2 >> 28) );
                     assignment.witness(component.W(7), row + i) = integral_a2;
                 }
-                /*std::vector<std::size_t> value_sizes = {14};
-                // lookup table for sparse values with base = 4
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(16384);
-                     i++) {
-                    std::vector<bool> value(14);
-                    for (std::size_t j = 0; j < 14; j++) {
-                        value[14 - j - 1] = multiprecision::bit_test(i, j);
-                    }
-                    std::array<std::vector<uint64_t>, 2> value_chunks =
-                        detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType>::base4);
-                    assignment.constant(0)[start_row_index + std::size_t(i)] = value_chunks[0][0];
-                    assignment.constant(1)[start_row_index + std::size_t(i)] = value_chunks[1][0];
-                }
-                // lookup table for sparse values with base = 7
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(16384);
-                     i++) {
-                    std::vector<bool> value(14);
-                    for (std::size_t j = 0; j < 14; j++) {
-                        value[14 - j - 1] = multiprecision::bit_test(i, j);
-                    }
-                    std::array<std::vector<uint64_t>, 2> value_chunks =
-                        detail::split_and_sparse<BlueprintFieldType>(value, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType>::base7);
-                    assignment.constant(2)[start_row_index + std::size_t(i)] = value_chunks[0][0];
-                    assignment.constant(3)[start_row_index + std::size_t(i)] = value_chunks[1][0];
-                }
-                // lookup table for maj function
-                value_sizes = {8};
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(65535);
-                     i++) {
-                    static std::array<std::vector<typename CurveType::scalar_field_type::integral_type>, 2>
-                        value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType>::base4);
-                    assignment.constant(4)[start_row_index + std::size_t(i)] = value[0][0];
-                    assignment.constant(5)[start_row_index + std::size_t(i)] = i;
-                }
-
-                // lookup table for ch function
-                for (typename CurveType::scalar_field_type::integral_type i = 0;
-                     i < typename CurveType::scalar_field_type::integral_type(5765041);
-                     i++) {
-                    static std::array<std::vector<typename CurveType::scalar_field_type::integral_type>, 2>
-                        value = detail::reversed_sparse_and_split<BlueprintFieldType>(i, value_sizes,
-                        plonk_sha256_process<BlueprintFieldType>::base7);
-                    assignment.constant(4)[start_row_index + std::size_t(i)] = value[0][0];
-                    assignment.constant(5)[start_row_index + std::size_t(i)] = i;
-                }*/
 
                 return typename plonk_sha256_process<BlueprintFieldType>::result_type(
                     component, start_row_index);
