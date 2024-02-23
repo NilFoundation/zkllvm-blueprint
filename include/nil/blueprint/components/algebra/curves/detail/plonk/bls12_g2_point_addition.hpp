@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 // @file Declaration of interfaces for point addition in the elliptic
-// curve group G2 = E'(F_p^2) : y^2 = x^3 + 4(1+u) with
-// F_p^2 = F_p[u]/(u^2 - (-1)).
+// curve group G2 = E'(F_p^2) : y^2 = x^3 + a with
+// F_p^2 = F_p[u]/(u^2 - (-1)) and a a non-cubic residue.
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_BLS12_G2_POINT_ADDITION_HPP
@@ -44,7 +44,7 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-            // E'(F_p^2) : y^2 = x^3 + 4(1+u) point addition gate.
+            // E'(F_p^2) : y^2 = x^3 + a point addition gate.
             // Expects point at infinity encoded by (0,0) in input and output
             // Input: (xP, yP) = P[4], (xQ, yQ) = Q[4]
             // Output: (xR, yR) = R[4], R = P + Q as element of E'(F_p^2)
@@ -104,11 +104,12 @@ namespace nil {
                 struct input_type {
                     std::array<var,4> P, Q;
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
-                        for(auto & e : P) { res.push_back(e); }
-                        for(auto & e : Q) { res.push_back(e); }
-                        return res;
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        // std::vector<var> res = {};
+                        // for(auto & e : P) { res.push_back(e); }
+                        // for(auto & e : Q) { res.push_back(e); }
+                        // return res;
+                        return {P[0], P[1], P[2], P[3], Q[0], Q[1], Q[2], Q[3]};
                     }
                 };
 
