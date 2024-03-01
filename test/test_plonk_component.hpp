@@ -197,7 +197,7 @@ namespace nil {
 
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
-            std::size_t start_row = dist(gen);
+            std::size_t start_row = 0;//dist(gen);
 
             if constexpr (PrivateInput) {
                 for (std::size_t i = 0; i < public_input.size(); i++) {
@@ -398,7 +398,7 @@ namespace nil {
 
 // How to define it from crypto3 cmake?
 //#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
-#ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
+#ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED2
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType>;
             using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
                 Hash, Hash, Lambda, 2
