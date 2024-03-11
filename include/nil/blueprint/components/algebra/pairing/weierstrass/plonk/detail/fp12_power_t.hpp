@@ -96,7 +96,7 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
                                                        std::size_t lookup_column_amount) {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
+                    gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
                     return manifest;
                 }
 
@@ -127,7 +127,7 @@ namespace nil {
                 };
 
                 struct result_type {
-		    std::array<var,12> output;
+                    std::array<var,12> output;
 
                     result_type(const fp12_power_t &component, std::uint32_t start_row_index) {
                         const std::size_t WA = component.witness_amount();
@@ -138,8 +138,8 @@ namespace nil {
                         }
                     }
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
+                    std::vector<std::reference_wrapper<var>> all_vars()  {
+                        std::vector<std::reference_wrapper<var>> res = {};
 
                         for(auto & e : output) { res.push_back(e); }
                         return res;
