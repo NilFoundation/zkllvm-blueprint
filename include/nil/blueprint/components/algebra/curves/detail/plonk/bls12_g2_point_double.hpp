@@ -198,7 +198,7 @@ namespace nil {
                                ZC = {var(component.W(4), 0, true),var(component.W(5), 0, true)},
                                xR = {var(component.W(6), 0, true),var(component.W(7), 0, true)},
                                yR = {var(component.W(8), 0, true),var(component.W(9), 0, true)};
-                fp2_constraint C1, C2, C3, C4, C5;
+                fp2_constraint C1, C2, C3, C4;
 
                 // the defining equations are
                 // xR = (3xP^2 / 2yP)^2 - 2xP
@@ -206,16 +206,16 @@ namespace nil {
                 // We transform them into constraints:
                 // (2yP)^2 (xR + 2xP) - (3xP^2)^2 = 0
                 // (2yP) (yR + yP) + (3xP^2)(xR - xP) = 0
-                // Additional constraint to assure that the double of (0,0) is (0,0):
-                // (ZC * yP - 1) * yP = 0
+                // Additional constraint to assure that the double of (0,0) is (0,0).
+                // If yP is 0, xR and yR are forced to be zero. For a non-zero yP
+                // yR cannot be zero either => ZC is the inverse of yP
                 // (ZC * yP - 1) * xR = 0
                 // (ZC * yP - 1) * yR = 0
 
                 C1 = (2*yP) * (2*yP) * (xR + 2*xP) - (3*xP*xP)*(3*xP*xP);
                 C2 = (2*yP) * (yR + yP) + (3*xP*xP)*(xR - xP);
-                C3 = (ZC*yP - one)*yP;
-                C4 = (ZC*yP - one)*xR;
-                C5 = (ZC*yP - one)*yR;
+                C3 = (ZC*yP - one)*xR;
+                C4 = (ZC*yP - one)*yR;
 
                 std::vector<constraint_type> Cs = {};
                 for(std::size_t i = 0; i < 2; i++) {
@@ -223,7 +223,6 @@ namespace nil {
                     Cs.push_back(C2[i]);
                     Cs.push_back(C3[i]);
                     Cs.push_back(C4[i]);
-                    Cs.push_back(C5[i]);
                 }
                 return bp.add_gate(Cs);
             }
