@@ -64,22 +64,19 @@ namespace nil {
             //
             using namespace detail;
 
-            template<typename ArithmetizationType, typename BlueprintFieldType>
+            template<typename ArithmetizationType>
             class bn_exponentiation;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class bn_exponentiation<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                           BlueprintFieldType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
+            template<typename BlueprintFieldType>
+            class bn_exponentiation<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
-                using fixed_power_type = fp12_fixed_power<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                using fixed_power_type = fp12_fixed_power<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -136,8 +133,8 @@ namespace nil {
                         }
                     }
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> res = {};
 
                         for(auto & e : output) { res.push_back(e); }
                         return res;
@@ -164,21 +161,19 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()), T(T_) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_bn_exponentiation =
-                bn_exponentiation<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                bn_exponentiation<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_bn_exponentiation<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_bn_exponentiation<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_bn_exponentiation<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
-                using component_type = plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_bn_exponentiation<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using value_type = typename BlueprintFieldType::value_type;
                 using fixed_power_type = typename component_type::fixed_power_type;
@@ -282,20 +277,20 @@ namespace nil {
                 fill_row(F.pow(4));                                 // 3R+46: f^4
                 D = D * F.pow(4); fill_row(D);                      // 3R+47: f^{p^3} c^{6t^2+1} b (f^{p+1})^9 a f^4
 
-                return typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_bn_exponentiation<BlueprintFieldType>::result_type(
                     component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_bn_exponentiation<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_bn_exponentiation<BlueprintFieldType>::input_type
                     &instance_input) {
 
-                using var = typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_bn_exponentiation<BlueprintFieldType>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using policy_type_fp12 = crypto3::algebra::fields::fp12_2over3over2<BlueprintFieldType>;
 
@@ -383,16 +378,16 @@ namespace nil {
                 return gate_list;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_bn_exponentiation<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_bn_exponentiation<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index, std::size_t R) { // R = number of rows in external sub-circuit
 
-                using var = typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_bn_exponentiation<BlueprintFieldType>::var;
 
                 // initial data in row 1
                 for(std::size_t i = 0; i < 12; i++) {
@@ -411,16 +406,16 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_bn_exponentiation<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_bn_exponentiation<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_bn_exponentiation<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using component_type = plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_bn_exponentiation<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using fixed_power_type = typename component_type::fixed_power_type;
 
@@ -485,7 +480,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index, R);
 
-                return typename plonk_bn_exponentiation<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_bn_exponentiation<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
         }    // namespace components

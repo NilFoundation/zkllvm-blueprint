@@ -57,16 +57,16 @@ void test_bls12_g2_doubling(std::vector<typename CurveType::base_field_type::val
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlurprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using hash_type = crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::bls12_g2_point_double<ArithmetizationType,BlueprintFieldType>;
+    using component_type = blueprint::components::bls12_g2_point_double<ArithmetizationType>;
 
     typename component_type::input_type instance_input = {
         var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
@@ -93,8 +93,8 @@ void test_bls12_g2_doubling(std::vector<typename CurveType::base_field_type::val
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9},{},{});
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+    crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input);
 }
 */
 
@@ -109,16 +109,16 @@ void test_bls12_g2_adding(std::vector<typename CurveType::base_field_type::value
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = blueprint::assignment<ArithmetizationType>;
     using hash_type = crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::bls12_g2_point_addition<ArithmetizationType,BlueprintFieldType>;
+    using component_type = blueprint::components::bls12_g2_point_addition<ArithmetizationType>;
 
     typename component_type::input_type instance_input = {
         var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input),
@@ -149,8 +149,8 @@ void test_bls12_g2_adding(std::vector<typename CurveType::base_field_type::value
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},{},{});
 
-    crypto3::test_component<component_type, BlueprintFieldType, ArithmetizationParams, hash_type, Lambda>(
-        component_instance, public_input, result_check, instance_input);
+    crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
+        component_instance, desc, public_input, result_check, instance_input);
 }
 
 constexpr static const std::size_t random_tests_amount = 10;

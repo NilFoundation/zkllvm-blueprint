@@ -60,9 +60,9 @@ void test_bn_exponentiation(std::vector<typename FieldType::value_type> public_i
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 8;
 
-    using ArithmetizationParams =
-        crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
-    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType, ArithmetizationParams>;
+    zk::snark::plonk_table_description<FieldType> desc(
+        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<FieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 40;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
@@ -70,7 +70,7 @@ void test_bn_exponentiation(std::vector<typename FieldType::value_type> public_i
     using value_type = typename FieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::bn_exponentiation<ArithmetizationType, FieldType>;
+    using component_type = blueprint::components::bn_exponentiation<ArithmetizationType>;
 
     typename component_type::input_type instance_input;
     typename std::array<value_type,12> X;
@@ -119,8 +119,8 @@ void test_bn_exponentiation(std::vector<typename FieldType::value_type> public_i
     };
 
     component_type component_instance({0,1,2,3,4,5,6,7,8,9,10,11}, {}, {}, t);
-    nil::crypto3::test_component<component_type, FieldType, ArithmetizationParams, hash_type, Lambda> (
-           component_instance, public_input, result_check, instance_input, nil::crypto3::detail::connectedness_check_type::STRONG, t);
+    nil::crypto3::test_component<component_type, FieldType, hash_type, Lambda> (
+           component_instance, desc, public_input, result_check, instance_input,nil::blueprint::connectedness_check_type::type::STRONG, t);
 }
 
 static const std::size_t random_tests_amount = 5;

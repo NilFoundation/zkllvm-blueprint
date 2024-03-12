@@ -60,26 +60,23 @@ namespace nil {
             // subcomponent and finally multiply by x^{(1-t)/3} to obtain the result.
             //
 
-            template<typename ArithmetizationType, typename BlueprintFieldType>
+            template<typename ArithmetizationType>
             class fp12_power_tm1sq3;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class fp12_power_tm1sq3<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                           BlueprintFieldType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0> {
+            template<typename BlueprintFieldType>
+            class fp12_power_tm1sq3<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
             static std::size_t gates_amount_internal(std::size_t witness_amount) {
                 return (witness_amount == 12) ? 5 : 6;
             }
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 0, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
-                using power_t_type = fp12_power_t<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                using power_t_type = fp12_power_t<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -140,8 +137,8 @@ namespace nil {
                         }
                     }
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> res = {};
 
                         for(auto & e : output) { res.push_back(e); }
                         return res;
@@ -167,18 +164,16 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_fp12_power_tm1sq3 =
-                fp12_power_tm1sq3<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                fp12_power_tm1sq3<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_fp12_power_tm1sq3<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
@@ -251,7 +246,7 @@ namespace nil {
                 Y = Y*X; fill_slot(Y); // X^{1 + 2m + 4^8(m + 4^8(m + 2 * 4^12 * 35))}
                 // now we need to raise this to power (1-t)
 
-                using component_type = plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_fp12_power_tm1sq3<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using power_t_type = typename component_type::power_t_type;
 
@@ -277,20 +272,20 @@ namespace nil {
                 slot = ((current_row - start_row_index)*WA)/12;
                 fill_slot(Z); fill_slot(Y); fill_slot(Y*Z); // x^{-t(1-t)/3}, x^{(1-t)/3}, x^{(1-t)*(1-t)/3}
 
-                return typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::result_type(
                     component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_fp12_power_tm1sq3<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::input_type
                     &instance_input) {
 
-                using var = typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
                 using fp12_constraint = detail::abstract_fp12_element<constraint_type,BlueprintFieldType>;
@@ -382,16 +377,16 @@ namespace nil {
                 return gate_list;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_fp12_power_tm1sq3<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using var = typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::var;
 
                 const std::size_t WA = component.witness_amount();
 
@@ -430,13 +425,13 @@ namespace nil {
 
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_fp12_power_tm1sq3<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 const std::size_t WA = component.witness_amount();
@@ -498,7 +493,7 @@ namespace nil {
                     }
                 }
 
-                using component_type = plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_fp12_power_tm1sq3<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using power_t_type = typename component_type::power_t_type;
 
@@ -522,7 +517,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_fp12_power_tm1sq3<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_fp12_power_tm1sq3<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
         }    // namespace components

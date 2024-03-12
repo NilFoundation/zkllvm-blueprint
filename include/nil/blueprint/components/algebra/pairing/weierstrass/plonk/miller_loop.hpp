@@ -103,22 +103,20 @@ namespace nil {
             using namespace detail;
             using detail::base;
 
-            template<typename ArithmetizationType, typename BlueprintFieldType>
+            template<typename ArithmetizationType>
             class miller_loop;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            class miller_loop<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                           BlueprintFieldType>
-                : public plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0> {
+            template<typename BlueprintFieldType>
+            class miller_loop<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                : public plonk_component<BlueprintFieldType> {
 
             public:
-                using component_type = plonk_component<BlueprintFieldType, ArithmetizationParams, 1, 0>;
+                using component_type = plonk_component<BlueprintFieldType>;
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
                 using point_addition_type = bls12_g2_point_addition<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -133,7 +131,7 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
                                                        std::size_t lookup_column_amount) {
-                    static gate_manifest manifest =
+                    gate_manifest manifest =
                         gate_manifest(gate_manifest_type(witness_amount))
                         .merge_with(point_addition_type::get_gate_manifest(witness_amount,lookup_column_amount));
                     return manifest;
@@ -183,8 +181,8 @@ namespace nil {
                         }
                     }
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> res = {};
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> res = {};
 
                         for(auto & e : output) { res.push_back(e); }
                         return res;
@@ -211,22 +209,20 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()), C_val(C_val_) {};
             };
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             using plonk_miller_loop =
-                miller_loop<
-                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>,
-                    BlueprintFieldType>;
+                miller_loop<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::result_type generate_assignments(
-                const plonk_miller_loop<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_miller_loop<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_miller_loop<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_miller_loop<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_miller_loop<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using value_type = typename BlueprintFieldType::value_type;
 
@@ -357,20 +353,20 @@ namespace nil {
                     assignment.witness(component.W(j+2), start_row_index + rel_row + 1) = T[j/2].data[j % 2];
                 }
 
-                return typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_miller_loop<BlueprintFieldType>::result_type(
                     component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const plonk_miller_loop<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_miller_loop<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::input_type
+                const typename plonk_miller_loop<BlueprintFieldType>::input_type
                     &instance_input) {
 
-                using var = typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::var;
+                using var = typename plonk_miller_loop<BlueprintFieldType>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
                 using fp2_constraint = detail::abstract_fp2_element<constraint_type>;
@@ -475,26 +471,26 @@ namespace nil {
                 return gate_list;
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const plonk_miller_loop<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+                const plonk_miller_loop<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_miller_loop<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
             }
 
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
-            typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::result_type generate_circuit(
-                const plonk_miller_loop<BlueprintFieldType, ArithmetizationParams> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>>
+            template<typename BlueprintFieldType>
+            typename plonk_miller_loop<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_miller_loop<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const typename plonk_miller_loop<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
-                using component_type = plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>;
+                using component_type = plonk_miller_loop<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using point_addition_type = typename component_type::point_addition_type;
 
@@ -563,14 +559,14 @@ namespace nil {
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
                 generate_assignments_constant(component, assignment, instance_input, start_row_index);
 
-                return typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::result_type(
+                return typename plonk_miller_loop<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
-            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const plonk_miller_loop<BlueprintFieldType, ArithmetizationParams> &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> &assignment,
-                const typename plonk_miller_loop<BlueprintFieldType, ArithmetizationParams>::input_type &instance_input,
+                const plonk_miller_loop<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_miller_loop<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 assignment.constant(component.C(0), start_row_index) = 0; // a zero to make copy-constraints with
