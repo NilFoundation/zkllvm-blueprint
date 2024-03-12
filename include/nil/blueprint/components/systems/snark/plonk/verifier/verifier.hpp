@@ -91,6 +91,8 @@ namespace nil {
                     std::vector<std::vector<var>> merkle_tree_positions;
                     std::vector<std::vector<var>> initial_proof_values;
                     std::vector<std::vector<var>> initial_proof_hashes;
+                    std::vector<std::vector<var>> round_proof_values;
+                    std::vector<std::vector<var>> round_proof_hashes;
                     var challenge;
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
@@ -110,6 +112,8 @@ namespace nil {
                         merkle_tree_positions = proof_input.merkle_tree_positions();
                         initial_proof_values = proof_input.initial_proof_values();
                         initial_proof_hashes = proof_input.initial_proof_hashes();
+                        round_proof_values = proof_input.round_proof_values();
+                        round_proof_hashes = proof_input.round_proof_hashes();
                     }
                 };
                 struct result_type {
@@ -137,8 +141,8 @@ namespace nil {
                     gate_manifest_type(std::size_t witness_amount){
                         std::cout << "Verifier gate_manifet_type constructor with witness = " << witness_amount << std::endl;
                         num_gates = poseidon_component_type::get_gate_manifest(witness_amount, 0).get_gates_amount();
+                        std::cout << "Swap component gates " << 1 << std::endl;
                         num_gates += 1; // Swap component
-                        std::cout << "Poseidon component gates" << num_gates << std::endl;
                     }
                     std::uint32_t gates_amount() const override {
                         std::cout << "Verifier gates_amount " << num_gates << std::endl;
@@ -200,7 +204,7 @@ namespace nil {
                         common_data, fri_params,
                         SrcParams::WitnessColumns + SrcParams::PublicInputColumns + SrcParams::ComponentConstantColumns
                     );
-                    rows_amount = 100000; // TODO: count rows carefully
+                    rows_amount = 500000; // TODO: count rows carefully
                     vk0 = common_data.vk.constraint_system_with_params_hash;
                     vk1 = common_data.vk.fixed_values_commitment;
                     fri_params_r = fri_params.r;
@@ -355,7 +359,7 @@ namespace nil {
                             poseidon_input.input_state[0] = poseidon_output.output_state[2];
                             row += poseidon_instance.rows_amount;
                         }
-                        std::cout << "Merkle leaf " << var_value(assignment, poseidon_output.output_state[2]) << std::endl;
+//                        std::cout << "Merkle leaf " << var_value(assignment, poseidon_output.output_state[2]) << std::endl;
                         var hash_var = poseidon_output.output_state[2];
 //                        std::cout << "First hash i = " << i << "; cur_hash = " << cur_hash << " = " << instance_input.initial_proof_hashes[i][cur_hash] << " = " << var_value(assignment, instance_input.initial_proof_hashes[i][cur_hash]) << std::endl;
                         for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size; k++){
@@ -375,7 +379,36 @@ namespace nil {
                         }
                     }
                     // Round proofs
+                    cur = 0;
+                    cur_hash = 0;
+                    var hash_var;
+                    var y0;
+                    var y1;
                     for( std::size_t j = 0; j < component.fri_params_r; j++){
+                        if(j != 0){
+                            poseidon_input = {zero_var, y0, y1};
+                            poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
+                            hash_var = poseidon_output.output_state[2];
+                            row += poseidon_instance.rows_amount;
+                            for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size - j; k++){
+                                assignment.witness(component.W(1), row) = var_value(assignment, instance_input.merkle_tree_positions[i][k]) == 0? var_value(assignment, instance_input.round_proof_hashes[i][cur_hash]): var_value(assignment, hash_var);
+                                assignment.witness(component.W(2), row) = var_value(assignment, instance_input.merkle_tree_positions[i][k]) == 0? var_value(assignment, hash_var) : var_value(assignment, instance_input.round_proof_hashes[i][cur_hash]);
+                                poseidon_input = {zero_var, var(component.W(1),row, false), var(component.W(2),row, false)};
+                                poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
+                                swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k], hash_var, instance_input.round_proof_hashes[i][cur_hash]});
+                                swapped_vars.push_back({var(component.W(1),row, false), var(component.W(2),row, false)});
+                                row += poseidon_instance.rows_amount;
+                                hash_var = poseidon_output.output_state[2];
+                                cur_hash++;
+                            }
+                        }
+                        else {
+                            // TODO remove it when 1st round will be ready
+                            cur_hash += component.fri_initial_merkle_proof_size;
+                        }
+                        y0 = instance_input.round_proof_values[i][cur*2];
+                        y1 = instance_input.round_proof_values[i][cur*2 + 1];
+                        cur++;
                     }
                 }
 
@@ -523,15 +556,36 @@ namespace nil {
                             bp.add_copy_constraint({poseidon_output.output_state[2], instance_input.commitments[j-1]});
                     }
                     // Compute y-s for first round
-                    // Round proofs
                     std::size_t round_merkle_proof_size = component.fri_initial_merkle_proof_size;
+                    // Round proofs
                     cur = 0;
+                    cur_hash = 0;
+                    var hash_var;
+                    var y0;
+                    var y1;
+
                     for( std::size_t j = 0; j < component.fri_params_r; j++){
                         if(j != 0){
+                            poseidon_input = {zero_var, y0, y1};
+                            poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);
+                            hash_var = poseidon_output.output_state[2];
+                            row += poseidon_instance.rows_amount;
+                            for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size - j; k++){
+                                poseidon_input = {zero_var, var(component.W(1),row, false), var(component.W(2),row, false)};
+                                poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);
+                                swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k], hash_var, instance_input.round_proof_hashes[i][cur_hash]});
+                                swapped_vars.push_back({var(component.W(1),row, false), var(component.W(2),row, false)});
+                                row += poseidon_instance.rows_amount;
+                                hash_var = poseidon_output.output_state[2];
+                                cur_hash++;
+                            }
+                            bp.add_copy_constraint({poseidon_output.output_state[2], instance_input.fri_roots[j]});
+                        } else {
+                            cur_hash += component.fri_initial_merkle_proof_size;
                         }
-                        cur += round_merkle_proof_size;
-                        // TODO adjust for step_list
-                        round_merkle_proof_size--;
+                        y0 = instance_input.round_proof_values[i][cur*2];
+                        y1 = instance_input.round_proof_values[i][cur*2 + 1];
+                        cur++;
                     }
                 }
 
@@ -541,7 +595,6 @@ namespace nil {
                     swap_input.arr.size()
                 );
                 std::cout << "Swap prepared size = " << swap_input.arr.size() << std::endl;
-                std::cout << "Check copy constraints" << std::endl;
                 typename swap_component_type::result_type swap_output = generate_circuit(swap_instance, bp, assignment, swap_input, row);
                 for( std::size_t i = 0; i < swap_input.arr.size(); i++){
                     bp.add_copy_constraint({swap_output.output[i].first, swapped_vars[i].second});
