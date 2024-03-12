@@ -147,6 +147,7 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/fri_cosets"
     "verifiers/placeholder/fri_lin_inter"
     "verifiers/placeholder/fri_array_swap"
+    "verifiers/flexible/pow_factor"
     )
 
 set(FIELDS_TESTS_FILES
