@@ -82,6 +82,7 @@ jobs:
             blueprint_mock_mocked_components_test
             blueprint_component_batch_test
             blueprint_verifiers_placeholder_expression_evaluation_component_test
+            blueprint_verifiers_placeholder_final_polynomial_check_test
           ]  # Tests to execute
         include: # Abused to enable proof generation for some tests; add more as needed
           - target: blueprint_algebra_fields_plonk_non_native_logic_ops_test
