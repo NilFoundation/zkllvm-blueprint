@@ -149,6 +149,7 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/fri_lin_inter"
     "verifiers/placeholder/fri_array_swap"
     "verifiers/placeholder/expression_evaluation_component"
+    "verifiers/placeholder/final_polynomial_check"
     )
 
 set(FIELDS_TESTS_FILES
