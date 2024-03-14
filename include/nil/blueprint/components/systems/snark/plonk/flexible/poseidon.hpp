@@ -73,7 +73,7 @@ namespace nil {
                 constexpr static const std::size_t rate = 2;
                 constexpr static const std::size_t constraints_amount = rounds_amount * state_size;
                 constexpr static const std::size_t cells_amount = (rounds_amount + 1) * state_size;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
 
                 class gate_manifest_type : public component_gate_manifest {
                 private:
@@ -95,8 +95,7 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(
-                    std::size_t witness_amount,
-                    std::size_t lookup_column_amount
+                    std::size_t witness_amount
                 ) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
                     return manifest;
@@ -111,8 +110,7 @@ namespace nil {
                 }
 
                 constexpr static std::size_t get_rows_amount(
-                    std::size_t witness_amount,
-                    std::size_t lookup_column_amount
+                    std::size_t witness_amount
                 ) {
                     std::size_t blocks = flexible_poseidon::rounds_amount + 1;
                     std::size_t row_capacity = witness_amount/flexible_poseidon::state_size;
@@ -190,7 +188,6 @@ namespace nil {
                 const std::uint32_t start_row_index
             ) {
                 using component_type = plonk_flexible_poseidon<BlueprintFieldType>;
-                using value_type = typename BlueprintFieldType::value_type;
 
                 constexpr static const std::uint32_t state_size = component_type::state_size;
 
@@ -244,7 +241,6 @@ namespace nil {
 
                 std::vector<std::size_t> selectors;
 
-                std::size_t j = 0;
                 std::size_t start_column = 0;
                 std::vector<std::vector<constraint_type>> constraints;
                 std::size_t gate_id = 0;

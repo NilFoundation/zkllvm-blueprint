@@ -64,23 +64,21 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(
                     std::size_t witness_amount,
-                    std::size_t lookup_column_amount,
                     std::size_t n
                 ) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
-                    static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_range_param(5, 300, 5)),
+                static manifest_type get_manifest(std::size_t n) {
+                    manifest_type manifest = manifest_type(
+                        std::shared_ptr<manifest_param>(new manifest_range_param(5, 5 * n + 1, 5)),
                         false
                     );
                     return manifest;
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              std::size_t n) {
                     std::size_t cells = 5 * n;
                     std::size_t one_row_cells = (witness_amount / 5)*5;
@@ -88,7 +86,7 @@ namespace nil {
                 }
 
                 constexpr static const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, n);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), n);
 
                 struct input_type {
 	                std::vector<std::tuple<var, var, var>> arr; // the array of pairs of elements
@@ -141,14 +139,14 @@ namespace nil {
 
                 template<typename ContainerType>
                 explicit flexible_swap(ContainerType witness, std::size_t _n) :
-                    component_type(witness, {}, {}, get_manifest()),
+                    component_type(witness, {}, {}, get_manifest(_n)),
                     n(_n) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 flexible_swap(WitnessContainerType witness, ConstantContainerType constant,
                          PublicInputContainerType public_input, std::size_t _n) :
-                    component_type(witness, constant, public_input, get_manifest()),
+                    component_type(witness, constant, public_input, get_manifest(_n)),
                     n(_n) {};
 
                 flexible_swap(
@@ -158,7 +156,7 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t _n) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()),
+                    component_type(witnesses, constants, public_inputs, get_manifest(_n)),
                     n(_n) {};
             };
 
@@ -185,7 +183,7 @@ namespace nil {
                 const std::size_t rows_amount = component.rows_amount;
 
                 std::size_t cur = 0;
-                for (std::size_t row = 0, pair_index = 0; row < rows_amount; row++) {
+                for (std::size_t row = 0; row < rows_amount; row++) {
                     for (std::size_t block = 0; block < witness_amount/5; block++, cur++) {
                         if (cur < n) {
                             value_type b = var_value(assignment, std::get<0>(instance_input.arr[cur]));
@@ -298,6 +296,40 @@ namespace nil {
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 return typename component_type::result_type(component, start_row_index);
+            }
+
+            template<typename BlueprintFieldType>
+            typename plonk_flexible_swap<BlueprintFieldType>::result_type
+                generate_empty_assignments(
+                    const plonk_flexible_swap<BlueprintFieldType> &component,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                        &assignment,
+                    const typename plonk_flexible_swap<BlueprintFieldType>::input_type
+                        instance_input,
+                    const std::uint32_t start_row_index) {
+
+                using value_type = typename BlueprintFieldType::value_type;
+
+                const std::size_t n = instance_input.arr.size();
+                BOOST_ASSERT(component.n == instance_input.arr.size());
+                const std::size_t witness_amount = component.witness_amount();
+                const std::size_t rows_amount = component.rows_amount;
+
+                std::size_t cur = 0;
+                for (std::size_t row = 0; row < rows_amount; row++) {
+                    for (std::size_t block = 0; block < witness_amount/5; block++, cur++) {
+                        if (cur < n) {
+                            value_type b = var_value(assignment, std::get<0>(instance_input.arr[cur]));
+                            value_type c = var_value(assignment, std::get<1>(instance_input.arr[cur]));
+                            value_type d = var_value(assignment, std::get<2>(instance_input.arr[cur]));
+                            assignment.witness(component.W(block*5 + 3), start_row_index + row) = b == 0 ? c: d;
+                            assignment.witness(component.W(block*5 + 4), start_row_index + row) = b == 0 ? d: c;
+                        }
+                    }
+                }
+
+                return typename plonk_flexible_swap<BlueprintFieldType>::result_type(
+                    component, start_row_index);
             }
         }    // namespace components
     }        // namespace blueprint

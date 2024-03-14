@@ -58,10 +58,10 @@ namespace nil {
 
                 constexpr static std::size_t rows() {
                     std::size_t row = 0;
-                    const std::size_t exp_rows_amount = exp_component::get_rows_amount(15, 0);
-                    const std::size_t mul_rows_amount = mul_component::get_rows_amount(3, 0);
-                    const std::size_t sub_rows_amount = sub_component::get_rows_amount(3, 0);
-                    const std::size_t add_rows_amount = add_component::get_rows_amount(3, 0);
+                    const std::size_t exp_rows_amount = exp_component::get_rows_amount(15);
+                    const std::size_t mul_rows_amount = mul_component::get_rows_amount(3);
+                    const std::size_t sub_rows_amount = sub_component::get_rows_amount(3);
+                    const std::size_t add_rows_amount = add_component::get_rows_amount(3);
 
                     row += 3; // leave empty cells for exp_component's constants
 
@@ -111,14 +111,13 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = \
                         gate_manifest(gate_manifest_type())
-                        .merge_with(mul_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(add_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(sub_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(exp_component::get_gate_manifest(witness_amount, lookup_column_amount));
+                        .merge_with(mul_component::get_gate_manifest(witness_amount))
+                        .merge_with(add_component::get_gate_manifest(witness_amount))
+                        .merge_with(sub_component::get_gate_manifest(witness_amount))
+                        .merge_with(exp_component::get_gate_manifest(witness_amount));
                     return manifest;
                 }
 
@@ -131,8 +130,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return rows();
                 }
 
@@ -152,7 +150,7 @@ namespace nil {
 
                     result_type(const sqrt &component, std::size_t component_start_row) {
                         output = var(component.W(0), component_start_row + 3 +
-                                     exp_component::get_rows_amount(15, 0));
+                                     exp_component::get_rows_amount(15));
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
