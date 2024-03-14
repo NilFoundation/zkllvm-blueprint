@@ -532,6 +532,11 @@ namespace nil {
                     (BlueprintFieldType::modulus - 1)/component.fri_domain_size
                 );
 
+                constant_pow_component_type constant_pow_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
+                    (BlueprintFieldType::modulus - 1)/component.fri_domain_size
+                );
+
                 challenges.eta = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
 
