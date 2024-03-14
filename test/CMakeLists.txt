@@ -150,6 +150,12 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/fri_array_swap"
     "verifiers/placeholder/expression_evaluation_component"
     "verifiers/placeholder/final_polynomial_check"
+    "verifiers/flexible/swap"
+    "verifiers/flexible/additions"
+    "verifiers/flexible/multiplications"
+    "verifiers/flexible/poseidon"
+    "verifiers/flexible/constant_pow"
+    "verifiers/placeholder/verifier"
     )
 
 set(FIELDS_TESTS_FILES
