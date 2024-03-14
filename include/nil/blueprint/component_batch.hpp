@@ -59,6 +59,24 @@ namespace nil {
                     return result;
                 }
             };
+
+            template<typename ComponentType, typename WitnessContainerType, typename ConstantContainerType,
+                     typename PublicInputContainerType, typename... ComponentParams>
+            ComponentType component_builder(
+                WitnessContainerType witnesses,
+                ConstantContainerType constants,
+                PublicInputContainerType public_inputs,
+                const std::tuple<ComponentParams...> &params) {
+
+                auto construct = [&witnesses, &constants, &public_inputs](auto... args) {
+                    return ComponentType(
+                        std::forward<WitnessContainerType>(witnesses), std::forward<ConstantContainerType>(constants),
+                        std::forward<PublicInputContainerType>(public_inputs),
+                        std::forward<decltype(args)>(args)...);
+                };
+
+                return std::apply(construct, params);
+            }
         }   // namespace detail
 
         using detail::comparison_for_inputs_results;
@@ -91,6 +109,16 @@ namespace nil {
             typedef typename boost::mpl::identity<void> type;
         };
 
+        template<typename ComponentType>
+        struct component_params_type_v {
+            typedef typename ComponentType::component_params_type type;
+        };
+
+        template<>
+        struct component_params_type_v<_batch> {
+            typedef typename boost::mpl::identity<void> type;
+        };
+
         template<typename BatchType, typename InputType, typename ResultType>
         struct has_add_input {
             static ResultType apply(BatchType& batch, const InputType& input) {
@@ -109,10 +137,9 @@ namespace nil {
 
         // Generic-ish enough batching solution for single-line components
         // Lookups currently unsupported
-        // This even supports component prarameterization
-        // Although the parameters must be the same for each of the components in the batch
-        // This is NOT enforced automatically, because I don't see a good way of implementing that
-        template<typename ArithmetizationType, typename BlueprintFieldType, typename ComponentType>
+        // Partially supports component prarameterization -- only if passed through template parameters
+        template<typename ArithmetizationType, typename BlueprintFieldType, typename ComponentType,
+                 typename... ComponentParams>
         class component_batch {
         public:
             using input_type = typename ComponentType::input_type;
@@ -121,6 +148,7 @@ namespace nil {
             using var = crypto3::zk::snark::plonk_variable<value_type>;
             using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
             using gate_type = crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
+            using component_params_type = typename std::tuple<ComponentParams...>;
             // input-output pairs for batched components
             std::map<input_type, result_type, comparison_for_inputs_results<BlueprintFieldType, input_type>>
                 inputs_results;
@@ -128,10 +156,22 @@ namespace nil {
             assignment<ArithmetizationType> &parent_assignment;
             // we cache this; use this to store intermediate results
             assignment<ArithmetizationType> internal_assignment;
+            // stroing the component parameters
+            std::tuple<ComponentParams...> params_tuple;
 
-            component_batch(assignment<ArithmetizationType> &_assignment)
+            std::function<ComponentType(
+                    std::vector<std::size_t>, std::vector<std::size_t>, std::vector<std::size_t>,
+                    const std::tuple<ComponentParams...>&)>
+                component_builder = detail::component_builder<
+                    ComponentType,
+                    std::vector<std::size_t>, std::vector<std::size_t>, std::vector<std::size_t>,
+                    ComponentParams...>;
+
+            component_batch(assignment<ArithmetizationType> &_assignment,
+                            component_params_type params)
                 : parent_assignment(_assignment),
-                  internal_assignment(_assignment.witnesses_amount(), 1, 0, 0)
+                  internal_assignment(_assignment.witnesses_amount(), 1, 0, 0),
+                  params_tuple(params)
             {}
 
             ~component_batch() = default;
@@ -142,8 +182,7 @@ namespace nil {
             }
 
             // call this in both generate_assignments and generate_circuit
-            template<typename... ComponentParams>
-            result_type add_input(const input_type &input, ComponentParams... params) {
+            result_type add_input(const input_type &input) {
                 // short-circuit if we are in generate_circuit and the input has already been through batching
                 if (inputs_results.find(input) != inputs_results.end()) {
                     return inputs_results.at(input);
@@ -157,8 +196,8 @@ namespace nil {
                     values.push_back(var_value(parent_assignment, var.get()));
                 }
                 // generate_empty_assignments is used to get the correctly filled result_type
-                const compiler_manifest assignment_manifest(parent_assignment.witnesses_amount(), 0, 0, 0);
-                const auto component_manifest = ComponentType::get_manifest();
+                const compiler_manifest assignment_manifest(parent_assignment.witnesses_amount(), false);
+                const auto component_manifest = std::apply(ComponentType::get_manifest, params_tuple);
                 const auto intersection = assignment_manifest.intersect(component_manifest);
                 BOOST_ASSERT_MSG(intersection.is_satisfiable(), "Component either has a constant or does not fit");
                 const std::size_t component_witness_amount = intersection.witness_amount->max_value_if_sat();
@@ -166,7 +205,8 @@ namespace nil {
                 const std::vector<std::size_t> constants = {}, public_inputs = {};
                 std::vector<std::size_t> witness_columns(component_witness_amount);
                 std::iota(witness_columns.begin(), witness_columns.end(), 0);
-                ComponentType component_instance(witness_columns, constants, public_inputs, params...);
+                ComponentType component_instance =
+                    std::apply(component_builder, std::make_tuple(witness_columns, constants, public_inputs, params_tuple));
                 // safety resize for the case where parent assignment got resized during the lifetime
                 internal_assignment.resize_witnesses(component_witness_amount);
                 // move the variables to internal_assignment's public_input column
@@ -188,19 +228,17 @@ namespace nil {
             // note that the copy constraint replacement is done by assignment in order to reduce the amount of
             // spinning through the constraints; we pass variable_map for this purpose
             // returns the first free row index
-            template<typename... ComponentParams>
             std::size_t finalize_batch(
                     circuit<ArithmetizationType> &bp,
                     std::unordered_map<var, var> &variable_map,
-                    const std::uint32_t start_row_index,
-                    ComponentParams... params) {
+                    const std::uint32_t start_row_index) {
 
                 if (inputs_results.empty()) {
                     return start_row_index;
                 }
                 // First figure out how much we can scale the component
-                const compiler_manifest assignment_manifest(parent_assignment.witnesses_amount(), 0, 0, true);
-                const auto component_manifest = ComponentType::get_manifest();
+                const compiler_manifest assignment_manifest(parent_assignment.witnesses_amount(), true);
+                const auto component_manifest = std::apply(ComponentType::get_manifest, params_tuple);
                 const auto intersection = assignment_manifest.intersect(component_manifest);
                 BOOST_ASSERT_MSG(intersection.is_satisfiable(), "Component does not fit");
                 const std::size_t component_witness_amount = intersection.witness_amount->max_value_if_sat();
@@ -208,7 +246,7 @@ namespace nil {
                             col_offset = 0;
                 const std::vector<std::size_t> constants = {}, public_inputs = {};
                 std::size_t gate_id = generate_batch_gate(
-                    bp, inputs_results.begin()->first, component_witness_amount, params...);
+                    bp, inputs_results.begin()->first, component_witness_amount);
                 for (auto &input_result : inputs_results) {
                     const input_type &input = input_result.first;
                     result_type &result = input_result.second;
@@ -217,7 +255,8 @@ namespace nil {
                     }
                     std::vector<std::size_t> witness_columns(component_witness_amount);
                     std::iota(witness_columns.begin(), witness_columns.end(), col_offset);
-                    ComponentType component_instance(witness_columns, constants, public_inputs, params...);
+                    ComponentType component_instance =
+                        std::apply(component_builder, std::make_tuple(witness_columns, constants, public_inputs, params_tuple));
                     auto actual_result = generate_assignments(component_instance, parent_assignment, input, row);
                     generate_copy_constraints(component_instance, bp, parent_assignment, input, row);
                     std::size_t vars_amount = result.all_vars().size();
@@ -239,7 +278,8 @@ namespace nil {
                     while (col_offset + component_witness_amount - 1 < parent_assignment.witnesses_amount()) {
                         std::vector<std::size_t> witness_columns(component_witness_amount);
                         std::iota(witness_columns.begin(), witness_columns.end(), col_offset);
-                        ComponentType component_instance(witness_columns, constants, public_inputs, params...);
+                        ComponentType component_instance =
+                            std::apply(component_builder, std::make_tuple(witness_columns, constants, public_inputs, params_tuple));
                         generate_assignments(component_instance, parent_assignment, inputs_results.begin()->first, row);
                         col_offset += component_witness_amount;
                     }
@@ -262,18 +302,17 @@ namespace nil {
                 return result;
             }
 
-            template<typename... ComponentParams>
             std::size_t generate_batch_gate(
                     circuit<ArithmetizationType> &bp,
                     const input_type &example_input,
-                    const std::size_t component_witness_amount,
-                    ComponentParams... params) {
+                    const std::size_t component_witness_amount) {
 
                 circuit<ArithmetizationType> tmp_bp;
                 std::vector<std::size_t> witness_columns(component_witness_amount);
                 const std::vector<std::size_t> constants = {}, public_inputs = {};
                 std::iota(witness_columns.begin(), witness_columns.end(), 0);
-                ComponentType component_instance(witness_columns, constants, public_inputs, params...);
+                ComponentType component_instance =
+                    std::apply(component_builder, std::make_tuple(witness_columns, constants, public_inputs, params_tuple));
                 generate_gates(component_instance, tmp_bp, parent_assignment, example_input);
                 const auto &gates = tmp_bp.gates();
                 BOOST_ASSERT(gates.size() == 1);
@@ -298,7 +337,15 @@ namespace nil {
 
             template<typename OtherBatchType>
             bool operator<(const OtherBatchType &other) const {
-                return std::type_index(typeid(*this)) < std::type_index(typeid(other));
+                if (std::type_index(typeid(*this)) != std::type_index(typeid(other))) {
+                    return std::type_index(typeid(*this)) < std::type_index(typeid(other));
+                } else {
+                    const auto &other_batch = reinterpret_cast<
+                        const component_batch<ArithmetizationType, BlueprintFieldType,
+                                              ComponentType, ComponentParams...>&>(other);
+                    // compare params_tuple
+                    return params_tuple < other_batch.params_tuple;
+                }
             }
         };
     }        // namespace blueprint

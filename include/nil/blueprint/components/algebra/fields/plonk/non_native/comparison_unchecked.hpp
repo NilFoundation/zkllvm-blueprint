@@ -76,7 +76,7 @@ namespace nil {
 
                 static std::size_t rows_amount_internal(std::size_t witness_amount, std::size_t bits_amount,
                                                         comparison_mode mode)  {
-                    return range_check_component_type::get_rows_amount(witness_amount, 0, bits_amount) +
+                    return range_check_component_type::get_rows_amount(witness_amount, bits_amount) +
                            1 + needs_bonus_row_internal(witness_amount, mode);
                 }
 
@@ -118,28 +118,25 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount,
                                                        std::size_t bits_amount,
                                                        comparison_mode mode) {
                     gate_manifest manifest =
                         gate_manifest(gate_manifest_type(witness_amount, mode))
                         .merge_with(
-                            range_check_component_type::get_gate_manifest(witness_amount, lookup_column_amount,
-                                                                          bits_amount));
+                            range_check_component_type::get_gate_manifest(witness_amount, bits_amount));
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
-                    static manifest_type manifest = manifest_type(
+                static manifest_type get_manifest(std::size_t bits_amount, comparison_mode mode) {
+                    manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(
                             new manifest_range_param(3, 5)),
                         false
-                    ).merge_with(range_check_component_type::get_manifest());
+                    ).merge_with(range_check_component_type::get_manifest(bits_amount));
                     return manifest;
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              std::size_t bits_amount,
                                                              comparison_mode mode) {
                     return rows_amount_internal(witness_amount, bits_amount, mode);
@@ -157,7 +154,7 @@ namespace nil {
 
                 const bool needs_bonus_row = needs_bonus_row_internal(this->witness_amount(), mode);
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, bits_amount, mode);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), bits_amount, mode);
                 constexpr static const std::size_t gates_amount = 1;
 
                 struct input_type {
@@ -181,7 +178,7 @@ namespace nil {
                     comparison_unchecked(WitnessContainerType witness, ConstantContainerType constant,
                                          PublicInputContainerType public_input,
                                          std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, constant, public_input, get_manifest()),
+                        component_type(witness, constant, public_input, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_),
                         range_check_subcomponent(witness, constant, public_input, bits_amount_) {
@@ -195,7 +192,7 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t bits_amount_, comparison_mode mode_) :
-                            component_type(witnesses, constants, public_inputs, get_manifest()),
+                            component_type(witnesses, constants, public_inputs, get_manifest(bits_amount_, mode_)),
                             bits_amount(bits_amount_),
                             mode(mode_),
                             range_check_subcomponent(witnesses, constants, public_inputs, bits_amount_) {

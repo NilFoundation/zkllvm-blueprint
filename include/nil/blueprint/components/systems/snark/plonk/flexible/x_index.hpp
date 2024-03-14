@@ -68,7 +68,6 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(
                     std::size_t witness_amount,
-                    std::size_t lookup_column_amount,
                     std::size_t n
                 ) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
@@ -84,7 +83,6 @@ namespace nil {
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              std::size_t n) {
                     std::size_t cells = 2 * n;
                     std::size_t one_row_cells = ((witness_amount-1) / 2)*2;
@@ -92,7 +90,7 @@ namespace nil {
                 }
 
                 constexpr static const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, n);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), n);
 
                 struct input_type {
                     var x;

@@ -70,7 +70,8 @@ namespace nil {
         template<typename ArithmetizationType>
         class circuit;
 
-        template<typename ArithmetizationType, typename BlueprintFieldType, typename ComponentType>
+        template<typename ArithmetizationType, typename BlueprintFieldType, typename ComponentType,
+                 typename... ComponentParams>
         class component_batch;
 
         template<typename BatchType, typename InputType, typename ResultType>
@@ -85,10 +86,14 @@ namespace nil {
         template<typename ComponentType>
         struct result_type_v;
 
+        template<typename ComponentType>
+        struct component_params_type_v;;
+
         struct _batch : boost::type_erasure::placeholder {};
         struct _component : boost::type_erasure::placeholder {};
         struct _input_type : boost::type_erasure::placeholder {};
         struct _result_type : boost::type_erasure::placeholder {};
+        struct _variadics : boost::type_erasure::placeholder {};
 
         template<typename BlueprintFieldType>
         class assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
@@ -116,9 +121,10 @@ namespace nil {
                     has_finalize_batch<_batch, ArithmetizationType, var>,
                     boost::type_erasure::same_type<boost::type_erasure::deduced<input_type_v<_batch>>, _input_type>,
                     boost::type_erasure::same_type<boost::type_erasure::deduced<result_type_v<_batch>>, _result_type>,
+                    boost::type_erasure::same_type<boost::type_erasure::deduced<component_params_type_v<_batch>>, _variadics>,
                     boost::type_erasure::less_than_comparable<_batch>,
                     boost::type_erasure::copy_constructible<_batch>,
-                    boost::type_erasure::constructible<_batch(assignment<ArithmetizationType>&)>,
+                    boost::type_erasure::constructible<_batch(assignment<ArithmetizationType>&, _variadics)>,
                     boost::type_erasure::destructible<_batch>,
                     boost::type_erasure::typeid_<_batch>,
                     boost::type_erasure::relaxed>,
@@ -149,10 +155,13 @@ namespace nil {
                           desc.constant_columns, desc.selector_columns) {
             }
 
-            template<typename ComponentType>
-            typename ComponentType::result_type add_input_to_batch(const typename ComponentType::input_type &input) {
-                using batching_type = component_batch<ArithmetizationType, BlueprintFieldType, ComponentType>;
-                batching_type batch(*this);
+            template<typename ComponentType, typename... ComponentParams>
+            typename ComponentType::result_type add_input_to_batch(
+                    const typename ComponentType::input_type &input,
+                    ComponentParams... params) {
+                using batching_type = component_batch<ArithmetizationType, BlueprintFieldType, ComponentType,
+                                                      ComponentParams...>;
+                batching_type batch(*this, std::tuple<ComponentParams...>(params...));
                 auto it = component_batches.find(batch);
                 if (it == component_batches.end()) {
                     auto result = batch.add_input(input);
@@ -160,7 +169,8 @@ namespace nil {
                     return result;
                 } else {
                     // safe because the ordering doesn't depend on the batch inputs
-                    return boost::type_erasure::any_cast<batching_type&>(const_cast<batcher_type&>(*it)).add_input(input);
+                    return boost::type_erasure::any_cast<batching_type&>(const_cast<batcher_type&>(*it))
+                            .add_input(input);
                 }
             }
 
@@ -387,10 +397,9 @@ namespace nil {
             }
 
             virtual value_type witness(std::uint32_t witness_index, std::uint32_t row_index) const {
-                BLUEPRINT_ASSERT(witness_index < this->_private_table._witnesses.size());
-                if (row_index >= this->_private_table._witnesses[witness_index].size()) {
-                    BLUEPRINT_ASSERT(row_index < this->_private_table._witnesses[witness_index].size());
-                }
+                BLUEPRINT_RELEASE_ASSERT(witness_index < this->_private_table._witnesses.size());
+                BLUEPRINT_RELEASE_ASSERT(row_index < this->_private_table._witnesses[witness_index].size());
+
                 return this->_private_table._witnesses[witness_index][row_index];
             }
 

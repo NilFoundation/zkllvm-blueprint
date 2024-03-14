@@ -82,21 +82,19 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(
                         std::size_t witness_amount,
-                        std::size_t lookup_column_amount,
                         std::size_t power,
                         std::size_t labmda) {
                     static gate_manifest manifest = gate_manifest_type();
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
+                static manifest_type get_manifest(std::size_t power, std::size_t labmda) {
                     static manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(3)), true);
                     return manifest;
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              std::size_t power,
                                                              std::size_t labmda) {
                     return final_polynomial_check::rows_amount;
@@ -133,7 +131,7 @@ namespace nil {
 
                 template<typename ContainerType>
                 final_polynomial_check(ContainerType witness, std::size_t power_, std::size_t lambda_) :
-                    component_type(witness, {}, {}, get_manifest()),
+                    component_type(witness, {}, {}, get_manifest(power_, lambda_)),
                     power(power_), lambda(lambda_)
                 {};
 
@@ -142,7 +140,7 @@ namespace nil {
                 final_polynomial_check(WitnessContainerType witness, ConstantContainerType constant,
                                        PublicInputContainerType public_input,
                                        std::size_t power_, std::size_t lambda_) :
-                    component_type(witness, constant, public_input, get_manifest()),
+                    component_type(witness, constant, public_input, get_manifest(power_, lambda_)),
                     power(power_), lambda(lambda_)
                 {};
 
@@ -154,7 +152,7 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t power_, std::size_t lambda_) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()),
+                    component_type(witnesses, constants, public_inputs, get_manifest(power_, lambda_)),
                     power(power_), lambda(lambda_)
                 {};
 

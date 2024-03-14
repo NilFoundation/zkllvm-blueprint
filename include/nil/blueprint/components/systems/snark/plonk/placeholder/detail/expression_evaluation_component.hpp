@@ -172,21 +172,19 @@ namespace nil {
 
                     static gate_manifest get_gate_manifest(
                             std::size_t witness_amount,
-                            std::size_t lookup_column_amount,
                             constraint_type &constraint) {
                         static gate_manifest manifest = gate_manifest_type();
                         // TODO: should we intersect with batched gates?
                         return manifest;
                     }
 
-                    static manifest_type get_manifest() {
+                    static manifest_type get_manifest(constraint_type &constraint) {
                         static manifest_type manifest =
                             manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(3)), true);
                         return manifest;
                     }
 
                     constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                                 std::size_t lookup_column_amount,
                                                                  constraint_type &constraint) {
                         return expression_evaluation_component::rows_amount;
                     }
@@ -216,14 +214,14 @@ namespace nil {
 
                     template<typename ContainerType>
                     expression_evaluation_component(ContainerType witness, constraint_type constraint_) :
-                        component_type(witness, {}, {}, get_manifest()), constraint(constraint_)
+                        component_type(witness, {}, {}, get_manifest(constraint_)), constraint(constraint_)
                     {};
 
                     template<typename WitnessContainerType, typename ConstantContainerType,
                              typename PublicInputContainerType>
                     expression_evaluation_component(WitnessContainerType witness, ConstantContainerType constant,
                                             PublicInputContainerType public_input, constraint_type constraint_) :
-                        component_type(witness, constant, public_input, get_manifest()), constraint(constraint_)
+                        component_type(witness, constant, public_input, get_manifest(constraint_)), constraint(constraint_)
                     {};
 
                     expression_evaluation_component(
@@ -234,7 +232,7 @@ namespace nil {
                         std::initializer_list<typename component_type::public_input_container_type::value_type>
                             public_inputs,
                         constraint_type constraint_) :
-                        component_type(witnesses, constants, public_inputs, get_manifest()), constraint(constraint_)
+                        component_type(witnesses, constants, public_inputs, get_manifest(constraint_)), constraint(constraint_)
                     {};
                 };
             }    // namespace detail

@@ -92,8 +92,6 @@ namespace nil {
 
                     std::uint32_t gates_amount() const override {
                         // related to pow
-                        std::size_t bits = integral_type_log2<BlueprintFieldType>(_pow);
-                        std::size_t cells = (bits+1)/2;
                         std::size_t one_row_cells = _witness_amount-2;
                         std::vector<std::size_t> four_chunks = integral_type_four_chunks<BlueprintFieldType>(_pow);
                         std::vector<typename BlueprintFieldType::integral_type> larger_chunks;
@@ -114,7 +112,6 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(
                     std::size_t witness_amount,
-                    std::size_t lookup_column_amount,
                     typename BlueprintFieldType::integral_type pow
                 ) {
                     // related to pow
@@ -131,7 +128,6 @@ namespace nil {
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              typename BlueprintFieldType::integral_type pow) {
 
                     std::size_t bits = integral_type_log2<BlueprintFieldType>(pow);
@@ -141,7 +137,7 @@ namespace nil {
                 }
 
                 //constexpr static const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, pow);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), pow);
 
                 struct input_type {
                     var x;
@@ -225,7 +221,7 @@ namespace nil {
 
                 std::size_t cur = 0;
                 value_type cur_val = 1;
-                for (std::size_t row = 0, pair_index = 0; row < rows_amount; row++) {
+                for (std::size_t row = 0; row < rows_amount; row++) {
                     assignment.witness(component.W(0), start_row_index+row) = x;
                     assignment.witness(component.W(1), start_row_index+row) = cur_val;
                     for (std::size_t cell = 2; cell < witness_amount; cell++ ) {
