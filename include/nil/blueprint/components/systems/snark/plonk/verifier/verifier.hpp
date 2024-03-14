@@ -46,6 +46,9 @@
 #include <nil/blueprint/components/systems/snark/plonk/verifier/proof_input_type.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/flexible/poseidon.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/flexible/swap.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/flexible/constant_pow.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/flexible/colinear_checks.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/flexible/x_index.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -53,12 +56,16 @@ namespace nil {
             template<typename BlueprintFieldType>
             class plonk_flexible_verifier: public plonk_component<BlueprintFieldType>{
             public:
+                using placeholder_info_type = nil::crypto3::zk::snark::placeholder_info;
                 using component_type =  plonk_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using var = typename component_type::var;
+
                 using poseidon_component_type = plonk_flexible_poseidon<BlueprintFieldType>;
                 using swap_component_type = plonk_flexible_swap<BlueprintFieldType>;
-                using placeholder_info_type = nil::crypto3::zk::snark::placeholder_info;
+                using colinear_checks_component_type = plonk_flexible_colinear_checks<BlueprintFieldType>;
+                using constant_pow_component_type = plonk_flexible_constant_pow<BlueprintFieldType>;
+                using x_index_component_type = plonk_flexible_x_index<BlueprintFieldType>;
 
                 std::size_t rows_amount;
                 std::size_t fri_params_r;
@@ -138,11 +145,19 @@ namespace nil {
                 class gate_manifest_type : public component_gate_manifest {
                     std::size_t num_gates;
                 public:
-                    gate_manifest_type(std::size_t witness_amount){
+                    gate_manifest_type(std::size_t witness_amount, std::size_t domain_size){
                         std::cout << "Verifier gate_manifet_type constructor with witness = " << witness_amount << std::endl;
                         num_gates = poseidon_component_type::get_gate_manifest(witness_amount, 0).get_gates_amount();
                         std::cout << "Swap component gates " << 1 << std::endl;
                         num_gates += 1; // Swap component
+                        std::size_t constant_pow_gates = constant_pow_component_type::get_gate_manifest(
+                            witness_amount, 0, (BlueprintFieldType::modulus - 1)/domain_size
+                        ).get_gates_amount();
+                        std::cout << "Constant component gates " << constant_pow_gates << std::endl;
+                        num_gates += constant_pow_gates;
+                        std::cout << "X-index gates " << 1 << std::endl;
+                        num_gates += 1;
+//                        std::cout << "Colinear checks component gate " << 1 << std::endl;
                     }
                     std::uint32_t gates_amount() const override {
                         std::cout << "Verifier gates_amount " << num_gates << std::endl;
@@ -159,7 +174,7 @@ namespace nil {
                     const typename SrcParams::common_data_type &common_data,
                     const typename SrcParams::fri_params_type &fri_params
                 ) {
-                    gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
+                    gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount, fri_params.D[0]->size()));
                     return manifest;
                 }
 
@@ -234,9 +249,20 @@ namespace nil {
                 using component_type = plonk_flexible_verifier<BlueprintFieldType>;
                 using poseidon_component_type = typename component_type::poseidon_component_type;
                 using swap_component_type = typename component_type::swap_component_type;
+                using constant_pow_component_type = typename component_type::constant_pow_component_type;
+                using x_index_component_type = typename component_type::x_index_component_type;
+                using colinear_checks_component_type = typename component_type::colinear_checks_component_type;
                 using var = typename component_type::var;
 
+                std::size_t poseidon_rows = 0;
+                std::size_t constant_pow_rows = 0;
+                std::size_t swap_rows = 0;
+
                 typename component_type::challenges challenges;
+                constant_pow_component_type constant_pow_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
+                    (BlueprintFieldType::modulus - 1)/component.fri_domain_size
+                );
 
                 std::size_t row = start_row_index;
                 std::cout << "Generate assignments" << std::endl;
@@ -263,32 +289,38 @@ namespace nil {
                 challenges.eta = poseidon_output.output_state[2];
                 auto variable_value_var = instance_input.commitments[0];
                 row += poseidon_instance.rows_amount;
+                poseidon_rows += poseidon_instance.rows_amount;
 
                 poseidon_input = {challenges.eta, variable_value_var, zero_var};
                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                 challenges.perm_beta = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
+                poseidon_rows += poseidon_instance.rows_amount;
 
                 poseidon_input = {challenges.perm_beta, zero_var, zero_var};
                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                 challenges.perm_gamma = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
+                poseidon_rows += poseidon_instance.rows_amount;
 
                 // TODO: if use_lookups
                 poseidon_input = {challenges.perm_gamma, instance_input.commitments[1], zero_var};
                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                 challenges.gate_theta = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
+                poseidon_rows += poseidon_instance.rows_amount;
 
                 for(std::size_t i = 0; i < 8; i++){
                     poseidon_input = {poseidon_output.output_state[2], zero_var, zero_var};
                     poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                     challenges.alphas[i] = poseidon_output.output_state[2];
                     row += poseidon_instance.rows_amount;
+                    poseidon_rows += poseidon_instance.rows_amount;
                 }
 
                 poseidon_input = {poseidon_output.output_state[2], instance_input.commitments[2], zero_var};
                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
+                poseidon_rows += poseidon_instance.rows_amount;
                 challenges.xi = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
                 BOOST_ASSERT(var_value(assignment, challenges.xi) == var_value(assignment, instance_input.challenge));
@@ -296,12 +328,14 @@ namespace nil {
                 poseidon_input = {poseidon_output.output_state[2], vk1_var, instance_input.commitments[0]};
                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                 row += poseidon_instance.rows_amount;
+                poseidon_rows += poseidon_instance.rows_amount;
 
                 poseidon_input = {poseidon_output.output_state[2], instance_input.commitments[1], instance_input.commitments[2]};
                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                 challenges.lpc_theta = poseidon_output.output_state[2];
                 std::cout << "lpc_theta = " << var_value(assignment, challenges.lpc_theta) << std::endl;
                 row += poseidon_instance.rows_amount;
+                poseidon_rows += poseidon_instance.rows_amount;
 
                 // TODO: if use_lookups state[1] should be equal to sorted polynomial commitment
                 // poseidon_input = {poseidon_output.output_state[2], zero_var, zero_var};
@@ -314,6 +348,7 @@ namespace nil {
                     challenges.fri_alphas.push_back(poseidon_output.output_state[2]);
                     std::cout << "alpha_challenge = " << var_value(assignment, challenges.fri_alphas[i]) << std::endl;
                     row += poseidon_instance.rows_amount;
+                    poseidon_rows += poseidon_instance.rows_amount;
                 }
 
                 for( std::size_t i = 0; i < component.fri_params_lambda; i+=1){
@@ -322,10 +357,36 @@ namespace nil {
                     challenges.fri_xs.push_back(poseidon_output.output_state[2]);
                     std::cout << "x_challenge = " << var_value(assignment, challenges.fri_xs[i]) << std::endl;
                     row += poseidon_instance.rows_amount;
+                    poseidon_rows += poseidon_instance.rows_amount;
                 }
-/*
-                std::cout << "Check table values" << std::endl;
+
+                std::vector<var> xs;
                 for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+                    typename constant_pow_component_type::input_type constant_pow_input = {challenges.fri_xs[i]};
+                    typename constant_pow_component_type::result_type constant_pow_output = generate_assignments(
+                        constant_pow_instance, assignment, constant_pow_input, row
+                    );
+                    xs.push_back(constant_pow_output.y);
+                    row+= constant_pow_instance.rows_amount;
+                    constant_pow_rows += constant_pow_instance.rows_amount;
+                }
+
+                x_index_component_type x_index_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
+                    component.fri_initial_merkle_proof_size, component.fri_omega
+                );
+                std::cout << "Check table values" << std::endl;
+//                colinear_checks_component_type colinear_checks_instance(component.fri_params_r); // Fix after 1st round will be ready
+//                colinear_checks_input.ys[0] = zero_var;
+//                colinear_checks_input.ys[1] = zero_var;
+                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+//                    typename colinear_checks_component_type::input_type colinear_checks_input;
+//                    colinear_checks_input.x = xs[i];
+//                    for( std::size j = 0; j < component.fri_params_r; j++){
+//                        colinear_checks_input.ys[2*j + 2] = instance_input.round_proof_values[i][2*j];
+//                        colinear_checks_input.ys[2*j + 3] = instance_input.round_proof_values[i][2*j + 1];
+//                        colinear_checks_input.alphas[j-1] = challenges.fri_alphas[j];
+//                    }
                     // Just check x_index and merkle proof correspondense
                     std::size_t x_index = 0;
                     std::size_t factor = 1;
@@ -342,7 +403,20 @@ namespace nil {
                     std::cout << x_index + fri_domain_size/2  << " => " << -fri_omega.pow(x_index) << std::endl;
                     std::cout << var_value(assignment, challenges.fri_xs[i]).pow((BlueprintFieldType::modulus-1)/fri_domain_size) << std::endl;
                 }
-*/
+
+                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+                    typename x_index_component_type::input_type x_index_input;
+                    x_index_input.x = xs[i];
+                    for( std::size_t j = 0; j < component.fri_initial_merkle_proof_size; j++){
+                        x_index_input.b.push_back(instance_input.merkle_tree_positions[i][j]);
+                    }
+                    typename x_index_component_type::result_type x_index_output = generate_assignments(
+                        x_index_instance, assignment, x_index_input, row
+                    );
+                    row += x_index_instance.rows_amount;
+                }
+
+
                 // Query proof check
                 // Construct Merkle leaves and accumulate everything to swap_input
                 for( std::size_t i = 0; i < component.fri_params_lambda; i++){
@@ -358,6 +432,7 @@ namespace nil {
                             poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                             poseidon_input.input_state[0] = poseidon_output.output_state[2];
                             row += poseidon_instance.rows_amount;
+                            poseidon_rows += poseidon_instance.rows_amount;
                         }
 //                        std::cout << "Merkle leaf " << var_value(assignment, poseidon_output.output_state[2]) << std::endl;
                         var hash_var = poseidon_output.output_state[2];
@@ -376,6 +451,7 @@ namespace nil {
                             hash_var = poseidon_output.output_state[2];
                             cur_hash++;
                             row += poseidon_instance.rows_amount;
+                            poseidon_rows += poseidon_instance.rows_amount;
                         }
                     }
                     // Round proofs
@@ -384,12 +460,14 @@ namespace nil {
                     var hash_var;
                     var y0;
                     var y1;
+
                     for( std::size_t j = 0; j < component.fri_params_r; j++){
                         if(j != 0){
                             poseidon_input = {zero_var, y0, y1};
                             poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                             hash_var = poseidon_output.output_state[2];
                             row += poseidon_instance.rows_amount;
+                            poseidon_rows += poseidon_instance.rows_amount;
                             for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size - j; k++){
                                 assignment.witness(component.W(1), row) = var_value(assignment, instance_input.merkle_tree_positions[i][k]) == 0? var_value(assignment, instance_input.round_proof_hashes[i][cur_hash]): var_value(assignment, hash_var);
                                 assignment.witness(component.W(2), row) = var_value(assignment, instance_input.merkle_tree_positions[i][k]) == 0? var_value(assignment, hash_var) : var_value(assignment, instance_input.round_proof_hashes[i][cur_hash]);
@@ -398,6 +476,7 @@ namespace nil {
                                 swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k], hash_var, instance_input.round_proof_hashes[i][cur_hash]});
                                 swapped_vars.push_back({var(component.W(1),row, false), var(component.W(2),row, false)});
                                 row += poseidon_instance.rows_amount;
+                                poseidon_rows += poseidon_instance.rows_amount;
                                 hash_var = poseidon_output.output_state[2];
                                 cur_hash++;
                             }
@@ -428,8 +507,12 @@ namespace nil {
 //                    std::cout << "\t" << var_value(assignment, swap_output.output[i].second) << ", " << var_value(assignment, swapped_vars[i].first) << std::endl;
                 }
                 row += swap_instance.rows_amount;
+                swap_rows += swap_instance.rows_amount;
 
                 std::cout << "Generated assignments real rows for " << component.all_witnesses().size() << " witness  = " << row - start_row_index << std::endl << std::endl << std::endl;
+                std::cout << "Poseidon rows = " << poseidon_rows << std::endl;
+                std::cout << "Constant pow rows = " << constant_pow_rows << std::endl;
+                std::cout << "Swap rows = " << swap_rows << std::endl;
                 return result;
             }
 
@@ -448,6 +531,8 @@ namespace nil {
                 using var = typename component_type::var;
                 using poseidon_component_type = typename component_type::poseidon_component_type;
                 using swap_component_type = typename component_type::swap_component_type;
+                using constant_pow_component_type = typename component_type::constant_pow_component_type;
+                using x_index_component_type = typename component_type::x_index_component_type;
                 typename component_type::challenges challenges;
 
                 std::size_t row = start_row_index;
@@ -463,6 +548,11 @@ namespace nil {
 
                 typename swap_component_type::input_type swap_input;
                 std::vector<std::pair<var, var>> swapped_vars;
+
+                constant_pow_component_type constant_pow_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
+                    (BlueprintFieldType::modulus - 1)/component.fri_domain_size
+                );
 
                 challenges.eta = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
@@ -523,6 +613,32 @@ namespace nil {
                     poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);
                     challenges.fri_xs.push_back(poseidon_output.output_state[2]);
                     row += poseidon_instance.rows_amount;
+                }
+
+                std::vector<var> xs;
+                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+                    typename constant_pow_component_type::input_type constant_pow_input = {challenges.fri_xs[i]};
+                    typename constant_pow_component_type::result_type constant_pow_output = generate_circuit(
+                        constant_pow_instance, bp, assignment, constant_pow_input, row
+                    );
+                    xs.push_back(constant_pow_output.y);
+                    row+= constant_pow_instance.rows_amount;
+                }
+
+                x_index_component_type x_index_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
+                    component.fri_initial_merkle_proof_size, component.fri_omega
+                );
+                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+                    typename x_index_component_type::input_type x_index_input;
+                    x_index_input.x = xs[i];
+                    for( std::size_t j = 0; j < component.fri_initial_merkle_proof_size; j++ ){
+                        x_index_input.b.push_back(instance_input.merkle_tree_positions[i][j]);
+                    }
+                    typename x_index_component_type::result_type x_index_output  = generate_circuit(
+                        x_index_instance, bp, assignment, x_index_input, row
+                    );
+                    row += x_index_instance.rows_amount;
                 }
 
                 // Query proof check
