@@ -151,6 +151,7 @@ set(PLONK_TESTS_FILES
     "verifiers/flexible/additions"
     "verifiers/flexible/multiplications"
     "verifiers/flexible/poseidon"
+    "verifiers/flexible/constant_pow"
     "verifiers/placeholder/verifier"
     )
 
