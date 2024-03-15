@@ -98,11 +98,9 @@ namespace nil {
 	                std::vector<var> ys;     // array of pairs of elements r+1 pairs
                     std::vector<var> bs;     // array of r+1 signs
                     std::vector<var> alphas; // array size r
+                    std::size_t r;
 
                     input_type(std::size_t r){
-                        ys.reserve(2*r+2);
-                        bs.reserve(r+1);
-                        alphas.reserve(r);
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
@@ -135,14 +133,14 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit flexible_colinear_checks(ContainerType witness, std::size_t _r, value_type _omega) :
+                explicit flexible_colinear_checks(ContainerType witness, std::size_t _r) :
                     component_type(witness, {}, {}, get_manifest()),
                     r(_r) {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 flexible_colinear_checks(WitnessContainerType witness, ConstantContainerType constant,
-                         PublicInputContainerType public_input, std::size_t _r, value_type _omega) :
+                         PublicInputContainerType public_input, std::size_t _r) :
                     component_type(witness, constant, public_input, get_manifest()),
                     r(_r) {};
 
@@ -152,7 +150,7 @@ namespace nil {
                         constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
-                    std::size_t _r, value_type _omega) :
+                    std::size_t _r) :
                     component_type(witnesses, constants, public_inputs, get_manifest()),
                     r(_r) {};
             };
@@ -186,40 +184,55 @@ namespace nil {
 
                 std::size_t cur = 0;
                 value_type x = var_value(assignment, instance_input.x);
-                value_type cur_val = 1;
                 for (std::size_t row = 0, pair_index = 0; row < rows_amount; row++) {
                     std::size_t block = 0;
                     for (; block < (witness_amount-4)/5; block++) {
                         if (cur < component.r){
-                            value_type b = var_value(assignment, instance_input.vs[2*cur]);
+                            value_type b = var_value(assignment, instance_input.bs[cur]);
                             value_type y0_val = var_value(assignment, instance_input.ys[2*cur]);
                             value_type y1_val = var_value(assignment, instance_input.ys[2*cur+1]);
-                            value_type alpha_val = var_value(assignment, instance_input.alphas[cur]);
+                            value_type alpha = var_value(assignment, instance_input.alphas[cur]);
+
+                            value_type s = 2 * b * x - x;
+                            value_type interpolant = ((alpha + s ) * y0_val - (alpha - s) * y1_val ) / (2 * s);
+//                            std::cout << "Interpolant  " << cur << " index " << b << ":";
+//                            for( std::size_t k = 0; k < instance_input.bs.size(); k++) {
+//                                std::cout << var_value(assignment, instance_input.bs[k]) << " ";
+//                            }
+//                            std::cout << std::endl << interpolant << std::endl;
 
                             assignment.witness(component.W(block*5), start_row_index + row) = x;
-                            assignment.witness(component.W(block*5+2), start_row_index + row) = cur_val;
-                            assignment.witness(component.W(block*5+3), start_row_index + row) = y0_val;
+                            assignment.witness(component.W(block*5+1), start_row_index + row) = b;
+                            assignment.witness(component.W(block*5+2), start_row_index + row) = y0_val;
                             assignment.witness(component.W(block*5+3), start_row_index + row) = y1_val;
-                            assignment.witness(component.W(block*5+3), start_row_index + row) = alpha_val;
-                            cur_val = cur_val * cur_val * ((1-b) + b*component.omega);
-                            x = x * x;
+                            assignment.witness(component.W(block*5+4), start_row_index + row) = alpha;
                             cur++;
+                            x = x * x;
+                            y0_val = var_value(assignment, instance_input.ys[2*cur]);
+                            y1_val = var_value(assignment, instance_input.ys[2*cur+1]);
+                            value_type b_val = var_value(assignment, instance_input.bs[cur]);
+                            //std::cout << b_val * y0_val + (1 - b_val) * y1_val << std::endl;
+                            assignment.witness(component.W(block*5 + 5), start_row_index + row) = x;
+                            assignment.witness(component.W(block*5 + 6), start_row_index + row) = b_val;
+                            assignment.witness(component.W(block*5 + 7), start_row_index + row) = y0_val;
+                            assignment.witness(component.W(block*5 + 8), start_row_index + row) = y1_val;
                         } else {
-                            // Think carefully!
                             // Fill it with something to prevent new gate from being added
-/*                          assignment.witness(component.W(block*5), start_row_index + row) = 0;
-                            assignment.witness(component.W(block*5 + 1), start_row_index + row) = 0;
-                            assignment.witness(component.W(block*5 + 2), start_row_index + row) = 0;
-                            assignment.witness(component.W(block*5 + 3), start_row_index + row) = 0;
-                            assignment.witness(component.W(block*5 + 4), start_row_index + row) = 0;*/
+                            value_type x = assignment.witness(component.W(block * 5), start_row_index + row);
+                            value_type b = assignment.witness(component.W(block * 5 + 1), start_row_index + row);
+                            value_type y0 = assignment.witness(component.W(block * 5 + 2), start_row_index + row);
+                            value_type y1 = assignment.witness(component.W(block * 5 + 3), start_row_index + row);
+                            value_type alpha = 0;
+
+                            value_type s = 2 * b * x - x;
+
+                            assignment.witness(component.W(block*5 + 4), start_row_index + row) = 0; // fake alpha
+                            assignment.witness(component.W(block*5 + 5), start_row_index + row) = x*x; // new fake x
+                            assignment.witness(component.W(block*5 + 6), start_row_index + row) = 0;   // new fake b
+                            assignment.witness(component.W(block*5 + 7), start_row_index + row) = 0;   // new fake b = 0 so, it doesn't matter
+                            assignment.witness(component.W(block*5 + 8), start_row_index + row) = ((alpha + s ) * y0 - (alpha - s) * y1 ) / (2 * s);   // new fake y
+                            x = x * x;
                         }
-                        value_type y0_val = var_value(assignment, instance_input.ys[2*cur]);
-                        value_type y1_val = var_value(assignment, instance_input.ys[2*cur+1]);
-                        value_type b_val = var_value(assignment, instance_input.bs[cur]);
-                        assignment.witness(component.W(block*5), start_row_index + row) = b_val;
-                        assignment.witness(component.W(block*5 + 1), start_row_index + row) = y0_val;
-                        assignment.witness(component.W(block*5 + 2), start_row_index + row) = y1_val;
-                        assignment.witness(component.W(block*5 + 3), start_row_index + row) = x;
                     }
                 }
 
@@ -239,20 +252,29 @@ namespace nil {
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
 
-//                BOOST_ASSERT(component.n == instance_input.arr.size());
-
                 std::vector<constraint_type> constraints;
-/*             constraints.reserve(component.n);
-                var t = var(component.W(0), 0, true);
                 const std::size_t witness_amount = component.witness_amount();
-                for( std::size_t block = 0; block < witness_amount/3; block++ ) {
-                    var input_a_var = var(component.W(block * 3), 0, true),
-                        input_b_var = var(component.W(block * 3 + 1), 0, true),
-                        output_var = var(component.W(block * 3 + 2), 0, true);
+                for( std::size_t block = 0; block < (witness_amount-4)/5; block++ ) {
+                    if( block == 0) continue;
+                    var x = var(component.W(block*5), 0, true);
+                    var b = var(component.W(block*5+1), 0, true);
+                    var y0_var = var(component.W(block * 5+2), 0, true);
+                    var y1_var = var(component.W(block * 5+3), 0, true);
+                    var alpha = var(component.W(block * 5+4), 0, true);
 
-                    constraints.emplace_back(input_a_var + input_b_var - output_var);
+                    auto s = 2 * b * x - x;
+                    auto left = ((alpha + s ) * y0_var - (alpha - s) * y1_var );// / (2 * s);
+                    auto y1 = y1_var * b + (1-b) * y0_var;
+
+                    var x_next = var(component.W(block * 5 + 5), 0, true);
+                    var b_next = var(component.W(block * 5 + 6), 0, true);
+                    var y0_next = var(component.W(block * 5 + 7), 0, true);
+                    var y1_next = var(component.W(block * 5 + 8), 0, true);
+
+                    auto right = (b_next * y0_next + (1 - b_next) * y1_next) * 2 * s;
+
+                    constraints.emplace_back(left - right);
                 }
-*/
                 return bp.add_gate(constraints);
             }
 

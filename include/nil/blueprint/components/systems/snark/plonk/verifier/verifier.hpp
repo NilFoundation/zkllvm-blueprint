@@ -155,7 +155,8 @@ namespace nil {
                         num_gates += constant_pow_gates;
                         std::cout << "X-index gates " << 1 << std::endl;
                         num_gates += 1;
-//                        std::cout << "Colinear checks component gate " << 1 << std::endl;
+                        std::cout << "Colinear checks component gate " << 1 << std::endl;
+                        num_gates += 1;
                     }
                     std::uint32_t gates_amount() const override {
                         std::cout << "Verifier gates_amount " << num_gates << std::endl;
@@ -371,35 +372,6 @@ namespace nil {
                     component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
                     component.fri_initial_merkle_proof_size, component.fri_omega
                 );
-                std::cout << "Check table values" << std::endl;
-//                colinear_checks_component_type colinear_checks_instance(component.fri_params_r); // Fix after 1st round will be ready
-//                colinear_checks_input.ys[0] = zero_var;
-//                colinear_checks_input.ys[1] = zero_var;
-                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
-//                    typename colinear_checks_component_type::input_type colinear_checks_input;
-//                    colinear_checks_input.x = xs[i];
-//                    for( std::size j = 0; j < component.fri_params_r; j++){
-//                        colinear_checks_input.ys[2*j + 2] = instance_input.round_proof_values[i][2*j];
-//                        colinear_checks_input.ys[2*j + 3] = instance_input.round_proof_values[i][2*j + 1];
-//                        colinear_checks_input.alphas[j-1] = challenges.fri_alphas[j];
-//                    }
-                    // Just check x_index and merkle proof correspondense
-                    std::size_t x_index = 0;
-                    std::size_t factor = 1;
-                    for( std::size_t j = 0; j < instance_input.merkle_tree_positions[i].size(); j++){
-                        std::cout << var_value(assignment, instance_input.merkle_tree_positions[i][j]) << " ";
-                        if( var_value(assignment, instance_input.merkle_tree_positions[i][j]) == 0 ) x_index += factor;
-                        factor *= 2;
-                    }
-                    std::cout << " => " << x_index << std::endl;
-                    auto fri_omega = component.fri_omega;
-                    auto fri_domain_size = component.fri_domain_size;
-                    std::cout << fri_omega << std::endl;
-                    std::cout << x_index << " => " << fri_omega.pow(x_index) << std::endl;
-                    std::cout << x_index + fri_domain_size/2  << " => " << -fri_omega.pow(x_index) << std::endl;
-                    std::cout << var_value(assignment, challenges.fri_xs[i]).pow((BlueprintFieldType::modulus-1)/fri_domain_size) << std::endl;
-                }
-
                 for( std::size_t i = 0; i < component.fri_params_lambda; i++){
                     typename x_index_component_type::input_type x_index_input;
                     x_index_input.x = xs[i];
@@ -410,6 +382,28 @@ namespace nil {
                         x_index_instance, assignment, x_index_input, row
                     );
                     row += x_index_instance.rows_amount;
+                }
+
+                colinear_checks_component_type colinear_checks_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}),
+                    std::array<std::uint32_t, 0>(), component.fri_params_r
+                );
+                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+                    typename colinear_checks_component_type::input_type colinear_checks_input(component.fri_params_r);
+                    colinear_checks_input.x = xs[i];
+                    colinear_checks_input.ys.push_back(zero_var); // Fix after 1st round will be ready
+                    colinear_checks_input.ys.push_back(zero_var); // Fix after 1st round will be ready
+                    colinear_checks_input.bs.push_back(zero_var); // Set it to x_index component output
+                    for( std::size_t j = 0; j < component.fri_params_r; j++){
+                        colinear_checks_input.ys.push_back(instance_input.round_proof_values[i][2*j]);
+                        colinear_checks_input.ys.push_back(instance_input.round_proof_values[i][2*j + 1]);
+                        colinear_checks_input.alphas.push_back(challenges.fri_alphas[j]);
+                        colinear_checks_input.bs.push_back(instance_input.merkle_tree_positions[i][instance_input.merkle_tree_positions[i].size() - j - 1]);
+                    }
+                    typename colinear_checks_component_type::result_type colinear_checks_output = generate_assignments(
+                        colinear_checks_instance, assignment, colinear_checks_input, row
+                    );
+                    row += colinear_checks_instance.rows_amount;
                 }
 
 
@@ -514,6 +508,7 @@ namespace nil {
                 using swap_input_type = typename swap_component_type::input_type;
                 using constant_pow_component_type = typename component_type::constant_pow_component_type;
                 using x_index_component_type = typename component_type::x_index_component_type;
+                using colinear_checks_component_type = typename component_type::colinear_checks_component_type;
                 typename component_type::challenges challenges;
 
                 std::size_t row = start_row_index;
@@ -622,6 +617,28 @@ namespace nil {
                         x_index_instance, bp, assignment, x_index_input, row
                     );
                     row += x_index_instance.rows_amount;
+                }
+
+                colinear_checks_component_type colinear_checks_instance(
+                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}),
+                    std::array<std::uint32_t, 0>(), component.fri_params_r
+                );
+                for( std::size_t i = 0; i < component.fri_params_lambda; i++){
+                    typename colinear_checks_component_type::input_type colinear_checks_input(component.fri_params_r);
+                    colinear_checks_input.x = xs[i];
+                    colinear_checks_input.ys.push_back(zero_var); // Fix after 1st round will be ready
+                    colinear_checks_input.ys.push_back(zero_var); // Fix after 1st round will be ready
+                    colinear_checks_input.bs.push_back(zero_var); // Set it to x_index component output
+                    for( std::size_t j = 0; j < component.fri_params_r; j++){
+                        colinear_checks_input.ys.push_back(instance_input.round_proof_values[i][2*j]);
+                        colinear_checks_input.ys.push_back(instance_input.round_proof_values[i][2*j + 1]);
+                        colinear_checks_input.alphas.push_back(challenges.fri_alphas[j]);
+                        colinear_checks_input.bs.push_back(instance_input.merkle_tree_positions[i][instance_input.merkle_tree_positions[i].size() - j - 1]);
+                    }
+                    typename colinear_checks_component_type::result_type colinear_checks_output = generate_circuit(
+                        colinear_checks_instance, bp, assignment, colinear_checks_input, row
+                    );
+                    row += colinear_checks_instance.rows_amount;
                 }
 
                 // Query proof check
