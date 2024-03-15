@@ -58,6 +58,7 @@ set(COMMON_TEST_FILES
     "private_input"
     "proxy"
     "mock/mocked_components"
+    "component_batch"
     )
 
 set(NON_NATIVE_TESTS_FILES
@@ -147,6 +148,8 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/fri_cosets"
     "verifiers/placeholder/fri_lin_inter"
     "verifiers/placeholder/fri_array_swap"
+    "verifiers/placeholder/expression_evaluation_component"
+    "verifiers/placeholder/final_polynomial_check"
     "verifiers/flexible/swap"
     "verifiers/flexible/additions"
     "verifiers/flexible/multiplications"
