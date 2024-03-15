@@ -264,6 +264,13 @@ namespace nil {
                     component_static_info_args...).get_gates_amount() << std::endl;
                 }
 
+                if (bp.num_gates() + bp.num_lookup_gates()!=
+                                component_type::get_gate_manifest(component_instance.witness_amount(), 0,
+                                                                component_static_info_args...).get_gates_amount()){
+                    std::cout << "Num gates = " << bp.num_gates() << std::endl;
+                    std::cout << "Gate amount error " << bp.num_gates() + bp.num_lookup_gates() << " != " << component_type::get_gate_manifest(component_instance.witness_amount(), 0,
+                                                                component_static_info_args...).get_gates_amount() << std::endl;
+                }
                 BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates()==
                                 component_type::get_gate_manifest(component_instance.witness_amount(), 0,
                                                                 component_static_info_args...).get_gates_amount(),
