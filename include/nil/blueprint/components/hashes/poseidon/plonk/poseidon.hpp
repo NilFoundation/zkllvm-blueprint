@@ -29,7 +29,6 @@
 
 #include <string>
 
-#include <nil/crypto3/detail/literals.hpp>
 #include <nil/crypto3/algebra/matrix/matrix.hpp>
 #include <nil/crypto3/algebra/fields/pallas/base_field.hpp>
 #include <nil/crypto3/algebra/fields/vesta/base_field.hpp>
@@ -71,7 +70,7 @@ namespace nil {
 
                 constexpr static const std::size_t rate = 2;
                 constexpr static const std::size_t gates_amount = 11;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "poseidon hash";
 
                 using var = typename component_type::var;
@@ -84,8 +83,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                        std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -101,8 +99,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return rounds_amount / rounds_per_row + 1;
                 }
 

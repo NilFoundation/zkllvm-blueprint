@@ -190,17 +190,16 @@ namespace nil {
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
+                static manifest_type get_manifest(std::size_t bits_amount, comparison_mode mode) {
                     static manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(
-                            new manifest_range_param(3, (BlueprintFieldType::modulus_bits + 28 - 1) / 28 )),
+                            new manifest_range_param(3, std::max<std::size_t>(4, (bits_amount + 28 - 1) / 28 + 1))),
                         false
                     );
                     return manifest;
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              std::size_t bits_amount,
                                                              comparison_mode mode) {
                     return rows_amount_internal(witness_amount, bits_amount);

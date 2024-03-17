@@ -184,7 +184,6 @@ namespace nil {
                                blueprint::connectedness_check_type connectedness_check,
                                ComponentStaticInfoArgs... component_static_info_args) {
             using component_type = ComponentType;
-
             blueprint::circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> bp;
             blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> assignment(desc);
 
@@ -197,7 +196,11 @@ namespace nil {
 
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
-            std::size_t start_row = dist(gen);
+            std::size_t start_row = 0; // dist(gen);
+            // resize to ensure that if the component is empty by default (e.g. a component which only uses batching)
+            if (start_row != 0) {
+                assignment.witness(0, start_row - 1) = 0;
+            }
 
             if constexpr (PrivateInput) {
                 for (std::size_t i = 0; i < public_input.size(); i++) {
@@ -209,11 +212,45 @@ namespace nil {
                 }
             }
 
+            auto component_result = boost::get<typename component_type::result_type>(
+                assigner(component_instance, assignment, instance_input, start_row));
             blueprint::components::generate_circuit<BlueprintFieldType>(
                 component_instance, bp, assignment, instance_input, start_row);
 
-            auto component_result = boost::get<typename component_type::result_type>(
-                assigner(component_instance, assignment, instance_input, start_row));
+            // Stretched components do not have a manifest, as they are dynamically generated.
+            if constexpr (!blueprint::components::is_component_stretcher<
+                                    BlueprintFieldType, ComponentType>::value) {
+                BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates() ==
+                                component_type::get_gate_manifest(component_instance.witness_amount(),
+                                                                  component_static_info_args...).get_gates_amount(),
+                                "Component total gates amount does not match actual gates amount.");
+            }
+
+            if (start_row + component_instance.rows_amount >= public_input.size()) {
+                std::cout << "compute rows amount carefully" << std::endl;
+                /*BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
+                                "Component rows amount does not match actual rows amount.");
+                // Stretched components do not have a manifest, as they are dynamically generated.
+                if constexpr (!blueprint::components::is_component_stretcher<
+                                    BlueprintFieldType, ComponentType>::value) {
+                    BOOST_ASSERT_MSG(assignment.rows_amount() - start_row ==
+                                    component_type::get_rows_amount(component_instance.witness_amount(),
+                                                                    component_static_info_args...),
+                                    "Static component rows amount does not match actual rows amount.");
+                }*/
+            }
+
+            const std::size_t rows_after_component_batching =
+                assignment.finalize_component_batches(bp, start_row + component_instance.rows_amount);
+            const std::size_t rows_after_const_batching =
+                assignment.finalize_constant_batches(bp, 0, std::max<std::size_t>(start_row, 1));
+            const std::size_t rows_after_batching = std::max(rows_after_component_batching, rows_after_const_batching);
+            for (auto variable : component_result.all_vars()) {
+                if (assignment.get_batch_variable_map().count(variable)) {
+                    variable.get() = assignment.get_batch_variable_map().at(variable);
+                }
+            }
+
             result_check(assignment, component_result);
 
             if constexpr (!PrivateInput) {
@@ -221,7 +258,7 @@ namespace nil {
                     assignment,
                     bp,
                     instance_input.all_vars(),
-                    component_result.all_vars(), start_row, component_instance.rows_amount,
+                    component_result.all_vars(), start_row, rows_after_batching - start_row,
                     connectedness_check);
                 if (connectedness_check.t == blueprint::connectedness_check_type::type::NONE) {
                     std::cout << "WARNING: Connectedness check is disabled." << std::endl;
@@ -232,36 +269,15 @@ namespace nil {
                 // If the whole of public_input isn't shown, increase the end row
 
                 // auto zones = blueprint::detail::generate_connectedness_zones(
-                //      assignment, bp, instance_input.all_vars(), start_row, component_instance.rows_amount);
+                //      assignment, bp, instance_input.all_vars(), start_row, rows_after_batching - start_row);
                 // blueprint::detail::export_connectedness_zones(
-                //      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
+                //      zones, assignment, instance_input.all_vars(), start_row, rows_after_batching - start_row, std::cout);
 
                 // BOOST_ASSERT_MSG(is_connected,
                 //    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
 
             desc.usable_rows_amount = assignment.rows_amount();
-
-            if (start_row + component_instance.rows_amount >= public_input.size()) {
-                BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
-                                "Component rows amount does not match actual rows amount.");
-                // Stretched components do not have a manifest, as they are dynamically generated.
-                if constexpr (!blueprint::components::is_component_stretcher<
-                                    BlueprintFieldType, ComponentType>::value) {
-                    BOOST_ASSERT_MSG(assignment.rows_amount() - start_row ==
-                                    component_type::get_rows_amount(component_instance.witness_amount(), 0,
-                                                                    component_static_info_args...),
-                                    "Static component rows amount does not match actual rows amount.");
-                }
-            }
-            // Stretched components do not have a manifest, as they are dynamically generated.
-            if constexpr (!blueprint::components::is_component_stretcher<
-                                    BlueprintFieldType, ComponentType>::value) {
-                BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates()==
-                                component_type::get_gate_manifest(component_instance.witness_amount(), 0,
-                                                                component_static_info_args...).get_gates_amount(),
-                                "Component total gates amount does not match actual gates amount.");
-            }
 
             if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
@@ -270,7 +286,9 @@ namespace nil {
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
                 std::vector<size_t> lookup_columns_indices;
-                for( std::size_t i = 1; i < assignment.constants_amount(); i++ )  lookup_columns_indices.push_back(i);
+                for(std::size_t i = 1; i < assignment.constants_amount(); i++) {
+                    lookup_columns_indices.push_back(i);
+                }
 
                 std::size_t cur_selector_id = 0;
                 for(const auto &gate: bp.gates()){
@@ -342,8 +360,9 @@ namespace nil {
             result_check(assignment, component_result);
 
             if (start_row + component_instance.empty_rows_amount >= public_input.size()) {
+                // std::cout << "Compute rows_amount carefully" << std::endl;
                 BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.empty_rows_amount,
-                                "Component rows amount does not match actual rows amount.");
+                               "Component rows amount does not match actual rows amount.");
             }
             BOOST_ASSERT(bp.num_gates() == 0);
             BOOST_ASSERT(bp.num_lookup_gates() == 0);

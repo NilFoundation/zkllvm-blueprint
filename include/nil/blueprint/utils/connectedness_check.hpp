@@ -114,7 +114,7 @@ namespace nil {
                     const auto output_value =
                         zones.find_set(copy_var_address<BlueprintFieldType>(
                                        row_size, start_row_index, rows_amount, variable)) + 1;
-                    const var& unwrapped_var = variable.get();
+                    const var &unwrapped_var = variable.get();
                     switch (unwrapped_var.type) {
                         case var::column_type::constant:
                             output_assignment.constant(unwrapped_var.index, unwrapped_var.rotation) = output_value;

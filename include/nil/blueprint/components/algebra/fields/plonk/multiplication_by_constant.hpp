@@ -64,14 +64,13 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static constexpr const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::size_t empty_rows_amount = get_empty_rows_amount();
 
                 using var = typename component_type::var;
@@ -86,8 +85,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return 1;
                 }
                 constexpr static std::size_t get_empty_rows_amount() {
