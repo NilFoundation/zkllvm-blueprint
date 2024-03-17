@@ -78,6 +78,7 @@ jobs:
             blueprint_verifiers_placeholder_f1_loop_test,
             blueprint_verifiers_placeholder_f3_loop_test,
             blueprint_verifiers_placeholder_gate_component_test,
+            blueprint_verifiers_flexible_pow_factor_test,
             blueprint_proxy_test
             blueprint_mock_mocked_components_test
             blueprint_component_batch_test
