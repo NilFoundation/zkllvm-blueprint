@@ -78,6 +78,8 @@ jobs:
             blueprint_verifiers_placeholder_f1_loop_test,
             blueprint_verifiers_placeholder_f3_loop_test,
             blueprint_verifiers_placeholder_gate_component_test,
+            blueprint_algebra_curves_plonk_bls12_g2_test,
+            blueprint_algebra_fields_plonk_non_native_fp12_arithmetic_test,
             blueprint_proxy_test
             blueprint_mock_mocked_components_test
           ]  # Tests to execute
