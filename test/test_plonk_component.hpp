@@ -276,7 +276,6 @@ namespace nil {
                 BOOST_ASSERT_MSG(is_connected,
                    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
-
             desc.usable_rows_amount = assignment.rows_amount();
 
             if constexpr (nil::blueprint::use_lookups<component_type>()) {
