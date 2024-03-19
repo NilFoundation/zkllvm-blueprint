@@ -216,7 +216,7 @@ namespace nil {
                         common_data, fri_params,
                         SrcParams::WitnessColumns + SrcParams::PublicInputColumns + SrcParams::ComponentConstantColumns
                     );
-                    rows_amount = 500000; // TODO: count rows carefully
+                    rows_amount = 100000; // TODO: count rows carefully
                     vk0 = common_data.vk.constraint_system_with_params_hash;
                     vk1 = common_data.vk.fixed_values_commitment;
                     fri_params_r = fri_params.r;
@@ -357,6 +357,8 @@ namespace nil {
                     poseidon_rows += poseidon_instance.rows_amount;
                 }
 
+                std::size_t challenge_poseidon_rows = poseidon_rows;
+
                 std::vector<var> xs;
                 for( std::size_t i = 0; i < component.fri_params_lambda; i++){
                     typename constant_pow_component_type::input_type constant_pow_input = {challenges.fri_xs[i]};
@@ -384,6 +386,7 @@ namespace nil {
                     row += x_index_instance.rows_amount;
                 }
 
+                std::size_t colinear_checks_rows = 0;
                 colinear_checks_component_type colinear_checks_instance(
                     component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}),
                     std::array<std::uint32_t, 0>(), component.fri_params_r
@@ -404,11 +407,14 @@ namespace nil {
                         colinear_checks_instance, assignment, colinear_checks_input, row
                     );
                     row += colinear_checks_instance.rows_amount;
+                    colinear_checks_rows += colinear_checks_instance.rows_amount;
                 }
 
 
                 // Query proof check
                 // Construct Merkle leaves
+                std::size_t merkle_leaf_rows = 0;
+                std::size_t merkle_proof_rows = 0;
                 for( std::size_t i = 0; i < component.fri_params_lambda; i++){
                     // Initial proof merkle leaf
                     std::size_t cur = 0;
@@ -423,6 +429,7 @@ namespace nil {
                             poseidon_input.input_state[0] = poseidon_output.output_state[2];
                             row += poseidon_instance.rows_amount;
                             poseidon_rows += poseidon_instance.rows_amount;
+                            merkle_leaf_rows += poseidon_instance.rows_amount;
                         }
 //                        std::cout << "Merkle leaf " << var_value(assignment, poseidon_output.output_state[2]) << std::endl;
                         var hash_var = poseidon_output.output_state[2];
@@ -443,6 +450,7 @@ namespace nil {
                             cur_hash++;
                             row += poseidon_instance.rows_amount;
                             poseidon_rows += poseidon_instance.rows_amount;
+                            merkle_proof_rows += poseidon_instance.rows_amount;
                         }
                     }
                     // Round proofs
@@ -451,7 +459,6 @@ namespace nil {
                     var hash_var;
                     var y0;
                     var y1;
-
                     for( std::size_t j = 0; j < component.fri_params_r; j++){
                         if(j != 0){
                             poseidon_input = {zero_var, y0, y1};
@@ -459,6 +466,7 @@ namespace nil {
                             hash_var = poseidon_output.output_state[2];
                             row += poseidon_instance.rows_amount;
                             poseidon_rows += poseidon_instance.rows_amount;
+                            merkle_proof_rows += poseidon_instance.rows_amount;
                             for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size - j; k++){
                                 swap_input_type swap_input;
                                 swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
@@ -469,6 +477,7 @@ namespace nil {
                                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                                 row += poseidon_instance.rows_amount;
                                 poseidon_rows += poseidon_instance.rows_amount;
+                                merkle_proof_rows += poseidon_instance.rows_amount;
                                 hash_var = poseidon_output.output_state[2];
                                 cur_hash++;
                             }
@@ -485,8 +494,12 @@ namespace nil {
 
                 std::cout << "Generated assignments real rows for " << component.all_witnesses().size() << " witness  = " << row - start_row_index << std::endl << std::endl << std::endl;
                 std::cout << "Poseidon rows = " << poseidon_rows << std::endl;
+                std::cout << "Challenge rows = " << challenge_poseidon_rows << std::endl;
+                std::cout << "Merkle leaf rows = " << merkle_leaf_rows << std::endl;
+                std::cout << "Merkle proof rows = " << merkle_proof_rows << std::endl;
                 std::cout << "Constant pow rows = " << constant_pow_rows << std::endl;
                 std::cout << "Swap rows = " << swap_rows << std::endl;
+                std::cout << "Colinear checks rows = " << colinear_checks_rows << std::endl;
                 return result;
             }
 

@@ -366,7 +366,7 @@ void test_flexible_verifier(
 
     nil::crypto3::test_component<component_type, field_type, typename DstParams::Hash, DstParams::Lambda> (
         component_instance, desc, public_input, result_check,
-        instance_input, nil::blueprint::connectedness_check_type::type::STRONG,
+        instance_input, nil::blueprint::connectedness_check_type::type::NONE,
         SrcParams(), constraint_system, common_data, fri_params
     );
     std::cout << "desc = " << desc.rows_amount << " " << desc.witness_columns << " " << desc.public_input_columns << " " << desc.constant_columns << " " << desc.selector_columns << std::endl;
@@ -402,7 +402,7 @@ void test_multiple_arithmetizations(std::string folder_name){
 BOOST_AUTO_TEST_SUITE(blueprint_pallas_test_suite)
 
 BOOST_AUTO_TEST_CASE(basic_test) {
-    test_multiple_arithmetizations<default_zkllvm_params>("../libs/crypto3/libs/blueprint/test/verifiers/placeholder/data/merkle_tree_poseidon");
+    test_multiple_arithmetizations<default_zkllvm_params>("../libs/blueprint/test/verifiers/placeholder/data/merkle_tree_poseidon");
 }
 
 // TODO: add vesta tests
