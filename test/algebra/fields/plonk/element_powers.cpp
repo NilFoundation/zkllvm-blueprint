@@ -64,8 +64,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
 
     using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = zk::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3,
-                                                                          4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type =
+        zk::components::element_powers<ArithmetizationType, n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     var one(0, 0, false, var::column_type::public_input);
     var base(0, 1, false, var::column_type::public_input);
@@ -82,22 +82,21 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_element_powers) {
     if (expected_result.size() > 1) {
         expected_result[1] = base_value;
     }
-    for (std::size_t i =2; i < n; i++) {
+    for (std::size_t i = 2; i < n; i++) {
         last_value = last_value * base_value;
         expected_result[i] = last_value;
     }
 
-
-    auto result_check = [&expected_result](AssignmentType &assignment,
-        component_type::result_type &real_res) {
-            for (std::size_t i = 0; i < n; i++) {
-                assert(expected_result[i] == assignment.var_value(real_res.output[i]));
-            }
+    auto result_check = [&expected_result](AssignmentType &assignment, component_type::result_type &real_res) {
+        for (std::size_t i = 0; i < n; i++) {
+            assert(expected_result[i] == assignment.var_value(real_res.output[i]));
+        }
     };
 
     test_component<component_type, BlueprintFieldType, hash_type, Lambda>(params, public_input, result_check);
 
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "element_powers_component: " << duration.count() << "ms" << std::endl;
 }
 

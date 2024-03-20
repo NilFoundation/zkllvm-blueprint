@@ -37,7 +37,7 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/proof.hpp>
 

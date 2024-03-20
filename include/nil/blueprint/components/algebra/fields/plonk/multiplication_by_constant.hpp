@@ -50,9 +50,8 @@ namespace nil {
             class mul_by_constant;
 
             template<typename BlueprintFieldType>
-            class mul_by_constant<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                BlueprintFieldType>:
-                public plonk_component<BlueprintFieldType> {
+            class mul_by_constant<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>
+                : public plonk_component<BlueprintFieldType> {
 
             public:
                 using component_type = plonk_component<BlueprintFieldType>;
@@ -64,8 +63,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -79,10 +77,8 @@ namespace nil {
                 using manifest_type = plonk_component_manifest;
 
                 static manifest_type get_manifest() {
-                    static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(2)),
-                        true
-                    );
+                    static manifest_type manifest =
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(2)), true);
                     return manifest;
                 }
 
@@ -119,71 +115,67 @@ namespace nil {
                     }
                 };
 
-                template <typename WitnessContainerType, typename ConstantContainerType,
-                    typename PublicInputContainerType>
+                template<typename WitnessContainerType, typename ConstantContainerType,
+                         typename PublicInputContainerType>
                 mul_by_constant(WitnessContainerType witness, ConstantContainerType constant,
-                        PublicInputContainerType public_input, value_type constant_):
-                    component_type(witness, constant, public_input, get_manifest()),
-                    constant(constant_) {};
+                                PublicInputContainerType public_input, value_type constant_) :
+                    component_type(witness, constant, public_input, get_manifest()), constant(constant_) {};
 
-                mul_by_constant(std::initializer_list<
-                        typename component_type::witness_container_type::value_type> witnesses,
-                               std::initializer_list<
-                        typename component_type::constant_container_type::value_type> constants,
-                               std::initializer_list<
-                        typename component_type::public_input_container_type::value_type> public_inputs,
-                        value_type constant_):
-                    component_type(witnesses, constants, public_inputs, get_manifest()),
-                    constant(constant_) {};
+                mul_by_constant(std::initializer_list<typename component_type::witness_container_type::value_type>
+                                    witnesses,
+                                std::initializer_list<typename component_type::constant_container_type::value_type>
+                                    constants,
+                                std::initializer_list<typename component_type::public_input_container_type::value_type>
+                                    public_inputs,
+                                value_type constant_) :
+                    component_type(witnesses, constants, public_inputs, get_manifest()), constant(constant_) {};
 
-                static typename BlueprintFieldType::value_type calculate(typename BlueprintFieldType::value_type x,
-                                                                         typename BlueprintFieldType::value_type constant) {
+                static typename BlueprintFieldType::value_type
+                    calculate(typename BlueprintFieldType::value_type x,
+                              typename BlueprintFieldType::value_type constant) {
                     return x * constant;
                 }
             };
 
             template<typename BlueprintFieldType>
             using plonk_mul_by_constant =
-                mul_by_constant<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                BlueprintFieldType>;
+                mul_by_constant<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>;
 
             template<typename BlueprintFieldType>
-            typename plonk_mul_by_constant<BlueprintFieldType>::result_type
-                generate_assignments(
-                    const plonk_mul_by_constant<BlueprintFieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                    const typename plonk_mul_by_constant<BlueprintFieldType>::input_type instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_mul_by_constant<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_mul_by_constant<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_mul_by_constant<BlueprintFieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 const std::size_t j = start_row_index;
 
                 assignment.witness(component.W(0), j) = var_value(assignment, instance_input.x);
-                assignment.witness(component.W(1), j) = component.constant *
-                    var_value(assignment, instance_input.x);
+                assignment.witness(component.W(1), j) = component.constant * var_value(assignment, instance_input.x);
 
                 return typename plonk_mul_by_constant<BlueprintFieldType>::result_type(component, start_row_index);
             }
 
             template<typename BlueprintFieldType>
-            typename plonk_mul_by_constant<BlueprintFieldType>::result_type
-                generate_empty_assignments(
-                    const plonk_mul_by_constant<BlueprintFieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                    const typename plonk_mul_by_constant<BlueprintFieldType>::input_type instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_mul_by_constant<BlueprintFieldType>::result_type generate_empty_assignments(
+                const plonk_mul_by_constant<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_mul_by_constant<BlueprintFieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 using component_type = plonk_mul_by_constant<BlueprintFieldType>;
-                assignment.witness(component.W(1), start_row_index) = component_type::calculate(var_value(assignment, instance_input.x), component.constant);
+                assignment.witness(component.W(1), start_row_index) =
+                    component_type::calculate(var_value(assignment, instance_input.x), component.constant);
 
                 return typename plonk_mul_by_constant<BlueprintFieldType>::result_type(component, start_row_index);
             }
 
             template<typename BlueprintFieldType>
-            std::size_t generate_gates(
-                const plonk_mul_by_constant<BlueprintFieldType> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename plonk_mul_by_constant<BlueprintFieldType>::input_type &instance_input) {
+            std::size_t
+                generate_gates(const plonk_mul_by_constant<BlueprintFieldType> &component,
+                               circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                               assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                               const typename plonk_mul_by_constant<BlueprintFieldType>::input_type &instance_input) {
 
                 using var = typename plonk_mul_by_constant<BlueprintFieldType>::var;
 
@@ -209,13 +201,12 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            typename plonk_mul_by_constant<BlueprintFieldType>::result_type
-                generate_circuit(
-                    const plonk_mul_by_constant<BlueprintFieldType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                    const typename plonk_mul_by_constant<BlueprintFieldType>::input_type &instance_input,
-                    const std::size_t start_row_index) {
+            typename plonk_mul_by_constant<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_mul_by_constant<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_mul_by_constant<BlueprintFieldType>::input_type &instance_input,
+                const std::size_t start_row_index) {
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
@@ -229,18 +220,15 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const plonk_mul_by_constant<BlueprintFieldType>
-                    &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_mul_by_constant<BlueprintFieldType>::input_type
-                    &instance_input,
+                const plonk_mul_by_constant<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_mul_by_constant<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 assignment.constant(component.C(0), start_row_index) = component.constant;
             }
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_FIELD_MULTIPLICATION_BY_CONSTANT_HPP

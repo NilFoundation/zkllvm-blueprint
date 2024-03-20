@@ -34,41 +34,35 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace chips {
+    namespace blueprint {
+        namespace chips {
 
-                template<typename ArithmetizationType,
-                         typename CurveType>
-                class incomplete_addition;
+            template<typename ArithmetizationType, typename CurveType>
+            class incomplete_addition;
 
-                template<typename BlueprintFieldType,
+            template<typename BlueprintFieldType,
 
-                         typename CurveType>
-                class incomplete_addition<
-                    snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams>,
-                    CurveType>{
+                     typename CurveType>
+            class incomplete_addition<
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>, CurveType> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams> ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                    ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
-                public:
-                    constexpr static const std::size_t rows_amount = 0;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-                    static snark::plonk_constraint<BlueprintFieldType> generate(
-                        blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &public_assignment,
-                        const var& X1, const var& Y1, const var& X2, const var& Y2,
-                        const var& X3, const var& Y3) {
+            public:
+                constexpr static const std::size_t rows_amount = 0;
 
-                        return bp.add_constraint();
-                    }
-                };
-            }    // namespace chips
-        }        // namespace blueprint
-    }            // namespace crypto3
+                static snark::plonk_constraint<BlueprintFieldType>
+                    generate(blueprint<ArithmetizationType> &bp, assignment<ArithmetizationType> &public_assignment,
+                             const var &X1, const var &Y1, const var &X2, const var &Y2, const var &X3, const var &Y3) {
+
+                    return bp.add_constraint();
+                }
+            };
+        }    // namespace chips
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_INCOMPLETE_ADDITION_CHIP_HPP

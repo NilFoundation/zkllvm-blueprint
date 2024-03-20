@@ -35,7 +35,7 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/crypto3/zk/chips/plonk/bit_check.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
     namespace crypto3 {

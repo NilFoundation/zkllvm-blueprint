@@ -31,18 +31,16 @@
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/column_type.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                struct index_term_type {
-                    const column_type type;
-                    const std::size_t index;
-                    const char *str_repr;
-                    const std::size_t rows_amount;
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+    namespace blueprint {
+        namespace components {
+            struct index_term_type {
+                const column_type type;
+                const std::size_t index;
+                const char *str_repr;
+                const std::size_t rows_amount;
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_CONSTRAINTS_INDEX_TERM_TYPE_HPP

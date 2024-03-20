@@ -32,469 +32,446 @@
 #include <nil/crypto3/hash/pedersen.hpp>
 #include <nil/crypto3/hash/algorithm/hash.hpp>
 
-#include <nil/blueprint/components/algebra/curves/fixed_base_mul_zcash.hpp>
+#include <nil/blueprint/components/algebra/curves/detail/r1cs/fixed_base_mul_zcash.hpp>
 #include <nil/blueprint/components/hashes/hash_io.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                /**
-                 * Windowed hash function using elliptic curves point multiplication
-                 *
-                 * For a given input of scalars, create an equivalent set of base points within a namespace.
-                 */
-                template<typename Curve = nil::crypto3::algebra::curves::jubjub,
-                         typename BasePointGeneratorHash = hashes::sha2<256>,
-                         typename HashParams = hashes::find_group_hash_default_params>
-                struct pedersen_to_point : public component<typename Curve::base_field_type> {
-                    using curve_type = Curve;
-                    using commitment_component = fixed_base_mul_zcash<curve_type>;
-                    using field_type = typename commitment_component::field_type;
-                    using element_component = typename commitment_component::twisted_edwards_element_component;
+    namespace blueprint {
+        namespace components {
+            /**
+             * Windowed hash function using elliptic curves point multiplication
+             *
+             * For a given input of scalars, create an equivalent set of base points within a namespace.
+             */
+            template<typename Curve = nil::crypto3::algebra::curves::jubjub,
+                     typename BasePointGeneratorHash = crypto3::hashes::sha2<256>,
+                     typename HashParams = crypto3::hashes::find_group_hash_default_params>
+            struct pedersen_to_point : public component<typename Curve::base_field_type> {
+                using curve_type = Curve;
+                using commitment_component = fixed_base_mul_zcash<curve_type>;
+                using field_type = typename commitment_component::field_type;
+                using element_component = typename commitment_component::twisted_edwards_element_component;
 
-                    using result_type = element_component;
+                using result_type = element_component;
 
-                    // hash_type is corresponding to the component hash policy
-                    // void means there is no implementation of the corresponding hash algorithm
-                    using hash_type = void;
+                // hash_type is corresponding to the component hash policy
+                // void means there is no implementation of the corresponding hash algorithm
+                using hash_type = void;
 
-                    commitment_component m_commitment;
-                    result_type result;
+                commitment_component m_commitment;
+                result_type result;
 
-                    static std::vector<typename element_component::group_value_type> get_base_points(std::size_t n) {
-                        using group_hash_type = hashes::find_group_hash<HashParams, BasePointGeneratorHash,
-                                                                        typename element_component::group_type>;
-                        assert(n > 0);
-                        std::vector<typename element_component::group_value_type> basepoints;
-                        for (std::uint32_t i = 0; i < n; ++i) {
-                            basepoints.emplace_back(hash<group_hash_type>({
-                                i,
-                            }));
+                static std::vector<typename element_component::group_value_type> get_base_points(std::size_t n) {
+                    using group_hash_type = crypto3::hashes::find_group_hash<HashParams, BasePointGeneratorHash,
+                                                                             typename element_component::group_type>;
+                    assert(n > 0);
+                    std::vector<typename element_component::group_value_type> basepoints;
+                    for (std::uint32_t i = 0; i < n; ++i) {
+                        basepoints.emplace_back(crypto3::hash<group_hash_type>({i}));
+                    }
+                    return basepoints;
+                }
+
+                /// Auto allocation of the result.
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen_to_point(blueprint<field_type> &bp,
+                                  const detail::blueprint_variable_vector<field_type> &in_bits) :
+                    component<field_type>(bp),
+                    m_commitment(bp, get_base_points(commitment_component::basepoints_required(in_bits.size())),
+                                 in_bits),
+                    result(m_commitment.result) {
+                }
+
+                /// Auto allocation of the result.
+                /// Take in_bits as block_variable.
+                pedersen_to_point(blueprint<field_type> &bp, const block_variable<field_type> &in_block) :
+                    pedersen_to_point(bp, in_block.bits) {
+                }
+
+                /// Auto allocation of the result.
+                /// Take in_bits as digest_variable.
+                pedersen_to_point(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest) :
+                    pedersen_to_point(bp, in_digest.bits) {
+                }
+
+                /// Auto allocation of the result.
+                /// Take in_bits as container of block_variable.
+                template<typename Blocks,
+                         typename std::enable_if<
+                             std::is_same<block_variable<field_type>,
+                                          typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen_to_point(blueprint<field_type> &bp, const Blocks &in_blocks) :
+                    pedersen_to_point(bp, [&]() {
+                        detail::blueprint_variable_vector<field_type> in_bits;
+                        for (const auto &in_block : in_blocks) {
+                            in_bits.insert(std::end(in_bits), std::cbegin(in_block.bits), std::cend(in_block.bits));
                         }
-                        return basepoints;
-                    }
+                        return in_bits;
+                    }()) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen_to_point(blueprint<field_type> &bp,
-                                      const detail::blueprint_variable_vector<field_type> &in_bits) :
-                        component<field_type>(bp),
-                        m_commitment(bp, get_base_points(commitment_component::basepoints_required(in_bits.size())),
-                                     in_bits),
-                        result(m_commitment.result) {
-                    }
+                /// Auto allocation of the result.
+                /// Take in_bits as container of digest_variable.
+                template<typename Digests,
+                         typename std::enable_if<
+                             std::is_same<digest_variable<field_type>,
+                                          typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen_to_point(blueprint<field_type> &bp, const Digests &in_digests) :
+                    pedersen_to_point(bp, [&]() {
+                        detail::blueprint_variable_vector<field_type> in_bits;
+                        for (const auto &in_digest : in_digests) {
+                            in_bits.insert(std::end(in_bits), std::cbegin(in_digest.bits), std::cend(in_digest.bits));
+                        }
+                        return in_bits;
+                    }()) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as block_variable.
-                    pedersen_to_point(blueprint<field_type> &bp, const block_variable<field_type> &in_block) :
-                        pedersen_to_point(bp, in_block.bits) {
-                    }
+                /// Manual allocation of the result
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen_to_point(blueprint<field_type> &bp,
+                                  const detail::blueprint_variable_vector<field_type> &in_bits,
+                                  const result_type &in_result) :
+                    component<field_type>(bp),
+                    m_commitment(bp, get_base_points(commitment_component::basepoints_required(in_bits.size())),
+                                 in_bits, in_result),
+                    result(m_commitment.result) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as digest_variable.
-                    pedersen_to_point(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest) :
-                        pedersen_to_point(bp, in_digest.bits) {
-                    }
+                /// Manual allocation of the result
+                /// Take in_bits as block_variable.
+                pedersen_to_point(blueprint<field_type> &bp, const block_variable<field_type> &in_block,
+                                  const result_type &in_result) : pedersen_to_point(bp, in_block.bits, in_result) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as container of block_variable.
-                    template<
-                        typename Blocks,
-                        typename std::enable_if<
-                            std::is_same<block_variable<field_type>,
-                                         typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen_to_point(blueprint<field_type> &bp, const Blocks &in_blocks) :
-                        pedersen_to_point(bp, [&]() {
+                /// Manual allocation of the result
+                /// Take in_bits as digest_variable.
+                pedersen_to_point(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest,
+                                  const result_type &in_result) : pedersen_to_point(bp, in_digest.bits, in_result) {
+                }
+
+                /// Manual allocation of the result
+                /// Take in_bits as container of block_variable.
+                template<typename Blocks,
+                         typename std::enable_if<
+                             std::is_same<block_variable<field_type>,
+                                          typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen_to_point(blueprint<field_type> &bp, const Blocks &in_blocks, const result_type &in_result) :
+                    pedersen_to_point(
+                        bp,
+                        [&]() {
                             detail::blueprint_variable_vector<field_type> in_bits;
                             for (const auto &in_block : in_blocks) {
                                 in_bits.insert(std::end(in_bits), std::cbegin(in_block.bits), std::cend(in_block.bits));
                             }
                             return in_bits;
-                        }()) {
-                    }
+                        }(),
+                        in_result) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as container of digest_variable.
-                    template<
-                        typename Digests,
-                        typename std::enable_if<
-                            std::is_same<digest_variable<field_type>,
-                                         typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen_to_point(blueprint<field_type> &bp, const Digests &in_digests) :
-                        pedersen_to_point(bp, [&]() {
+                /// Manual allocation of the result
+                /// Take in_bits as container of digest_variable.
+                template<typename Digests,
+                         typename std::enable_if<
+                             std::is_same<digest_variable<field_type>,
+                                          typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen_to_point(blueprint<field_type> &bp, const Digests &in_digests, const result_type &in_result) :
+                    pedersen_to_point(
+                        bp,
+                        [&]() {
                             detail::blueprint_variable_vector<field_type> in_bits;
                             for (const auto &in_digest : in_digests) {
                                 in_bits.insert(std::end(in_bits), std::cbegin(in_digest.bits),
                                                std::cend(in_digest.bits));
                             }
                             return in_bits;
-                        }()) {
-                    }
+                        }(),
+                        in_result) {
+                }
 
-                    /// Manual allocation of the result
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen_to_point(blueprint<field_type> &bp,
-                                      const detail::blueprint_variable_vector<field_type> &in_bits,
-                                      const result_type &in_result) :
-                        component<field_type>(bp),
-                        m_commitment(bp, get_base_points(commitment_component::basepoints_required(in_bits.size())),
-                                     in_bits, in_result),
-                        result(m_commitment.result) {
-                    }
+                // TODO: ignored for now, enforce bitness checking constrains
+                void generate_gates(bool ensure_output_bitness = false) {
+                    this->m_commitment.generate_gates();
+                }
 
-                    /// Manual allocation of the result
-                    /// Take in_bits as block_variable.
-                    pedersen_to_point(blueprint<field_type> &bp, const block_variable<field_type> &in_block,
-                                      const result_type &in_result) :
-                        pedersen_to_point(bp, in_block.bits, in_result) {
-                    }
+                void generate_assignments() {
+                    this->m_commitment.generate_assignments();
+                }
+            };
 
-                    /// Manual allocation of the result
-                    /// Take in_bits as digest_variable.
-                    pedersen_to_point(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest,
-                                      const result_type &in_result) :
-                        pedersen_to_point(bp, in_digest.bits, in_result) {
-                    }
+            template<typename Curve = nil::crypto3::algebra::curves::jubjub,
+                     typename BasePointGeneratorHash = crypto3::hashes::sha2<256>,
+                     typename HashParams = crypto3::hashes::find_group_hash_default_params>
+            struct pedersen : public component<typename Curve::base_field_type> {
+                using curve_type = Curve;
+                using hash_component = pedersen_to_point<curve_type, BasePointGeneratorHash, HashParams>;
+                using field_type = typename hash_component::field_type;
+                using element_component = typename hash_component::element_component;
+                using to_bits_component = typename element_component::to_bits_component;
 
-                    /// Manual allocation of the result
-                    /// Take in_bits as container of block_variable.
-                    template<
-                        typename Blocks,
-                        typename std::enable_if<
-                            std::is_same<block_variable<field_type>,
-                                         typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen_to_point(blueprint<field_type> &bp, const Blocks &in_blocks,
-                                      const result_type &in_result) :
-                        pedersen_to_point(
-                            bp,
-                            [&]() {
-                                detail::blueprint_variable_vector<field_type> in_bits;
-                                for (const auto &in_block : in_blocks) {
-                                    in_bits.insert(std::end(in_bits), std::cbegin(in_block.bits),
-                                                   std::cend(in_block.bits));
-                                }
-                                return in_bits;
-                            }(),
-                            in_result) {
-                    }
+                using result_type = digest_variable<field_type>;
 
-                    /// Manual allocation of the result
-                    /// Take in_bits as container of digest_variable.
-                    template<
-                        typename Digests,
-                        typename std::enable_if<
-                            std::is_same<digest_variable<field_type>,
-                                         typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen_to_point(blueprint<field_type> &bp, const Digests &in_digests,
-                                      const result_type &in_result) :
-                        pedersen_to_point(
-                            bp,
-                            [&]() {
-                                detail::blueprint_variable_vector<field_type> in_bits;
-                                for (const auto &in_digest : in_digests) {
-                                    in_bits.insert(std::end(in_bits), std::cbegin(in_digest.bits),
-                                                   std::cend(in_digest.bits));
-                                }
-                                return in_bits;
-                            }(),
-                            in_result) {
-                    }
+                // hash_type is corresponding to the component hash policy
+                using hash_type = nil::crypto3::hashes::pedersen<HashParams, BasePointGeneratorHash,
+                                                                 typename element_component::group_type>;
+                // TODO: retrieve digest_bits from hash_type
+                static constexpr std::size_t digest_bits = field_type::value_bits;
 
-                    // TODO: ignored for now, enforce bitness checking constrains
-                    void generate_gates(bool ensure_output_bitness = false) {
-                        this->m_commitment.generate_gates();
-                    }
+                hash_component hasher;
+                to_bits_component to_bits_converter;
+                result_type result;
 
-                    void generate_assignments() {
-                        this->m_commitment.generate_assignments();
-                    }
-                };
+                /// Auto allocation of the result.
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen(blueprint<field_type> &bp, const detail::blueprint_variable_vector<field_type> &in_bits) :
+                    component<field_type>(bp), hasher(bp, in_bits), to_bits_converter(bp, hasher.result),
+                    result(bp, digest_bits, to_bits_converter.result, 0) {
+                    assert(this->result.digest_size == digest_bits);
+                }
 
-                template<typename Curve = nil::crypto3::algebra::curves::jubjub,
-                         typename BasePointGeneratorHash = hashes::sha2<256>,
-                         typename HashParams = hashes::find_group_hash_default_params>
-                struct pedersen : public component<typename Curve::base_field_type> {
-                    using curve_type = Curve;
-                    using hash_component = pedersen_to_point<curve_type, BasePointGeneratorHash, HashParams>;
-                    using field_type = typename hash_component::field_type;
-                    using element_component = typename hash_component::element_component;
-                    using to_bits_component = typename element_component::to_bits_component;
+                /// Auto allocation of the result.
+                /// Take in_bits as block_variable.
+                pedersen(blueprint<field_type> &bp, const block_variable<field_type> &in_block) :
+                    pedersen(bp, in_block.bits) {
+                }
 
-                    using result_type = digest_variable<field_type>;
+                /// Auto allocation of the result.
+                /// Take in_bits as digest_variable.
+                pedersen(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest) :
+                    pedersen(bp, in_digest.bits) {
+                }
 
-                    // hash_type is corresponding to the component hash policy
-                    using hash_type = nil::crypto3::hashes::pedersen<HashParams, BasePointGeneratorHash,
-                                                                     typename element_component::group_type>;
-                    // TODO: retrieve digest_bits from hash_type
-                    static constexpr std::size_t digest_bits = field_type::value_bits;
+                /// Auto allocation of the result.
+                /// Take in_bits as container of block_variable.
+                template<typename Blocks,
+                         typename std::enable_if<
+                             std::is_same<block_variable<field_type>,
+                                          typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen(blueprint<field_type> &bp, const Blocks &in_blocks) :
+                    pedersen(bp, [&]() {
+                        detail::blueprint_variable_vector<field_type> in_bits;
+                        for (const auto &in_block : in_blocks) {
+                            in_bits.insert(std::end(in_bits), std::cbegin(in_block.bits), std::cend(in_block.bits));
+                        }
+                        return in_bits;
+                    }()) {
+                }
 
-                    hash_component hasher;
-                    to_bits_component to_bits_converter;
-                    result_type result;
+                /// Auto allocation of the result.
+                /// Take in_bits as container of digest_variable.
+                template<typename Digests,
+                         typename std::enable_if<
+                             std::is_same<digest_variable<field_type>,
+                                          typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen(blueprint<field_type> &bp, const Digests &in_digests) :
+                    pedersen(bp, [&]() {
+                        detail::blueprint_variable_vector<field_type> in_bits;
+                        for (const auto &in_digest : in_digests) {
+                            in_bits.insert(std::end(in_bits), std::cbegin(in_digest.bits), std::cend(in_digest.bits));
+                        }
+                        return in_bits;
+                    }()) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen(blueprint<field_type> &bp, const detail::blueprint_variable_vector<field_type> &in_bits) :
-                        component<field_type>(bp), hasher(bp, in_bits), to_bits_converter(bp, hasher.result),
-                        result(bp, digest_bits, to_bits_converter.result, 0) {
-                        assert(this->result.digest_size == digest_bits);
-                    }
+                /// Manual allocation of the result.
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen(blueprint<field_type> &bp, const detail::blueprint_variable_vector<field_type> &in_bits,
+                         const result_type &in_result) :
+                    component<field_type>(bp), hasher(bp, in_bits),
+                    to_bits_converter(bp, hasher.result, in_result.bits), result(in_result) {
+                    assert(this->result.digest_size == digest_bits);
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as block_variable.
-                    pedersen(blueprint<field_type> &bp, const block_variable<field_type> &in_block) :
-                        pedersen(bp, in_block.bits) {
-                    }
+                /// Manual allocation of the result.
+                /// Take in_bits as block_variable.
+                pedersen(blueprint<field_type> &bp, const block_variable<field_type> &in_block,
+                         const result_type &in_result) : pedersen(bp, in_block.bits, in_result) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as digest_variable.
-                    pedersen(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest) :
-                        pedersen(bp, in_digest.bits) {
-                    }
+                /// Manual allocation of the result.
+                /// Take in_bits as digest_variable.
+                pedersen(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest,
+                         const result_type &in_result) : pedersen(bp, in_digest.bits, in_result) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as container of block_variable.
-                    template<
-                        typename Blocks,
-                        typename std::enable_if<
-                            std::is_same<block_variable<field_type>,
-                                         typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen(blueprint<field_type> &bp, const Blocks &in_blocks) :
-                        pedersen(bp, [&]() {
+                /// Manual allocation of the result.
+                /// Take in_bits as container of block_variable.
+                template<typename Blocks,
+                         typename std::enable_if<
+                             std::is_same<block_variable<field_type>,
+                                          typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen(blueprint<field_type> &bp, const Blocks &in_blocks, const result_type &in_result) :
+                    pedersen(
+                        bp,
+                        [&]() {
                             detail::blueprint_variable_vector<field_type> in_bits;
                             for (const auto &in_block : in_blocks) {
                                 in_bits.insert(std::end(in_bits), std::cbegin(in_block.bits), std::cend(in_block.bits));
                             }
                             return in_bits;
-                        }()) {
-                    }
+                        }(),
+                        in_result) {
+                }
 
-                    /// Auto allocation of the result.
-                    /// Take in_bits as container of digest_variable.
-                    template<
-                        typename Digests,
-                        typename std::enable_if<
-                            std::is_same<digest_variable<field_type>,
-                                         typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen(blueprint<field_type> &bp, const Digests &in_digests) :
-                        pedersen(bp, [&]() {
+                /// Manual allocation of the result.
+                /// Take in_bits as container of digest_variable.
+                template<typename Digests,
+                         typename std::enable_if<
+                             std::is_same<digest_variable<field_type>,
+                                          typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
+                             bool>::type = true>
+                pedersen(blueprint<field_type> &bp, const Digests &in_digests, const result_type &in_result) :
+                    pedersen(
+                        bp,
+                        [&]() {
                             detail::blueprint_variable_vector<field_type> in_bits;
                             for (const auto &in_digest : in_digests) {
                                 in_bits.insert(std::end(in_bits), std::cbegin(in_digest.bits),
                                                std::cend(in_digest.bits));
                             }
                             return in_bits;
-                        }()) {
-                    }
+                        }(),
+                        in_result) {
+                }
 
-                    /// Manual allocation of the result.
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen(blueprint<field_type> &bp, const detail::blueprint_variable_vector<field_type> &in_bits,
-                             const result_type &in_result) :
-                        component<field_type>(bp),
-                        hasher(bp, in_bits), to_bits_converter(bp, hasher.result, in_result.bits), result(in_result) {
-                        assert(this->result.digest_size == digest_bits);
-                    }
+                // TODO: ignored for now, enforce bitness checking constrains
+                void generate_gates(bool ensure_output_bitness = false) {
+                    this->hasher.generate_gates(ensure_output_bitness);
+                    this->to_bits_converter.generate_gates();
+                    this->result.generate_gates();
+                }
 
-                    /// Manual allocation of the result.
-                    /// Take in_bits as block_variable.
-                    pedersen(blueprint<field_type> &bp, const block_variable<field_type> &in_block,
-                             const result_type &in_result) :
-                        pedersen(bp, in_block.bits, in_result) {
-                    }
+                void generate_assignments() {
+                    this->hasher.generate_assignments();
+                    // to_bits_converter generate witness also for result
+                    this->to_bits_converter.generate_assignments();
+                }
 
-                    /// Manual allocation of the result.
-                    /// Take in_bits as digest_variable.
-                    pedersen(blueprint<field_type> &bp, const digest_variable<field_type> &in_digest,
-                             const result_type &in_result) :
-                        pedersen(bp, in_digest.bits, in_result) {
-                    }
+                static std::size_t get_digest_len() {
+                    return digest_bits;
+                }
+            };
 
-                    /// Manual allocation of the result.
-                    /// Take in_bits as container of block_variable.
-                    template<
-                        typename Blocks,
-                        typename std::enable_if<
-                            std::is_same<block_variable<field_type>,
-                                         typename std::iterator_traits<typename Blocks::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen(blueprint<field_type> &bp, const Blocks &in_blocks, const result_type &in_result) :
-                        pedersen(
-                            bp,
-                            [&]() {
-                                detail::blueprint_variable_vector<field_type> in_bits;
-                                for (const auto &in_block : in_blocks) {
-                                    in_bits.insert(std::end(in_bits), std::cbegin(in_block.bits),
-                                                   std::cend(in_block.bits));
-                                }
-                                return in_bits;
-                            }(),
-                            in_result) {
-                    }
+            /// @brief See https://zips.z.cash/protocol/protocol.pdf#concretewindowedcommit
+            template<typename Curve = nil::crypto3::algebra::curves::jubjub,
+                     typename BasePointGeneratorHash = crypto3::hashes::sha2<256>,
+                     typename HashParams = crypto3::hashes::find_group_hash_default_params>
+            struct pedersen_commitment_to_point : public component<typename Curve::base_field_type> {
+                using hash_component = pedersen_to_point<Curve, BasePointGeneratorHash, HashParams>;
+                using element_component = typename hash_component::element_component;
+                using addition_component = typename element_component::addition_component;
 
-                    /// Manual allocation of the result.
-                    /// Take in_bits as container of digest_variable.
-                    template<
-                        typename Digests,
-                        typename std::enable_if<
-                            std::is_same<digest_variable<field_type>,
-                                         typename std::iterator_traits<typename Digests::iterator>::value_type>::value,
-                            bool>::type = true>
-                    pedersen(blueprint<field_type> &bp, const Digests &in_digests, const result_type &in_result) :
-                        pedersen(
-                            bp,
-                            [&]() {
-                                detail::blueprint_variable_vector<field_type> in_bits;
-                                for (const auto &in_digest : in_digests) {
-                                    in_bits.insert(std::end(in_bits), std::cbegin(in_digest.bits),
-                                                   std::cend(in_digest.bits));
-                                }
-                                return in_bits;
-                            }(),
-                            in_result) {
-                    }
+                using field_type = typename hash_component::field_type;
+                using result_type = typename hash_component::result_type;
 
-                    // TODO: ignored for now, enforce bitness checking constrains
-                    void generate_gates(bool ensure_output_bitness = false) {
-                        this->hasher.generate_gates(ensure_output_bitness);
-                        this->to_bits_converter.generate_gates();
-                        this->result.generate_gates();
-                    }
+            public:
+                result_type result;
 
-                    void generate_assignments() {
-                        this->hasher.generate_assignments();
-                        // to_bits_converter generate witness also for result
-                        this->to_bits_converter.generate_assignments();
-                    }
+            private:
+                hash_component hasher;
+                element_component random_point;
+                addition_component adder;
 
-                    static std::size_t get_digest_len() {
-                        return digest_bits;
-                    }
-                };
+                /// Auto allocation of the result
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen_commitment_to_point(blueprint<field_type> &bp,
+                                             const detail::blueprint_variable_vector<field_type> &in_bits) :
+                    component<field_type>(bp),
+                    // public field
+                    result(bp),
+                    // private fields
+                    hasher(bp, in_bits), random_point(bp), adder(bp, hasher.result, random_point, result) {
+                }
 
-                /// @brief See https://zips.z.cash/protocol/protocol.pdf#concretewindowedcommit
-                template<typename Curve = nil::crypto3::algebra::curves::jubjub,
-                         typename BasePointGeneratorHash = hashes::sha2<256>,
-                         typename HashParams = hashes::find_group_hash_default_params>
-                struct pedersen_commitment_to_point : public component<typename Curve::base_field_type> {
-                    using hash_component = pedersen_to_point<Curve, BasePointGeneratorHash, HashParams>;
-                    using element_component = typename hash_component::element_component;
-                    using addition_component = typename element_component::addition_component;
+                /// Manual allocation of the result
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen_commitment_to_point(blueprint<field_type> &bp,
+                                             const detail::blueprint_variable_vector<field_type> &in_bits,
+                                             const result_type &result) :
+                    component<field_type>(bp),
+                    // public field
+                    result(result),
+                    // private fields
+                    hasher(bp, in_bits), random_point(bp), adder(bp, hasher.result, random_point, result) {
+                }
 
-                    using field_type = typename hash_component::field_type;
-                    using result_type = typename hash_component::result_type;
+                void generate_gates(bool ensure_output_bitness = false) {
+                    hasher.generate_gates(ensure_output_bitness);
+                    adder.generate_gates();
+                }
 
-                public:
-                    result_type result;
+                void generate_assignments(const typename field_type::value_type &r) {
+                    using group_hash_type = crypto3::hashes::find_group_hash<HashParams, BasePointGeneratorHash,
+                                                                             typename element_component::group_type>;
 
-                private:
-                    hash_component hasher;
-                    element_component random_point;
-                    addition_component adder;
+                    hasher.generate_assignments();
+                    random_point.generate_assignments(r * crypto3::hash<group_hash_type>(std::vector<std::uint8_t> {
+                                                              'r',
+                                                          }));
+                    adder.generate_assignments();
+                }
+            };
 
-                    /// Auto allocation of the result
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen_commitment_to_point(blueprint<field_type> &bp,
-                                                 const detail::blueprint_variable_vector<field_type> &in_bits) :
-                        component<field_type>(bp),
-                        // public field
-                        result(bp),
-                        // private fields
-                        hasher(bp, in_bits), random_point(bp), adder(bp, hasher.result, random_point, result) {
-                    }
+            template<typename Curve = nil::crypto3::algebra::curves::jubjub,
+                     typename BasePointGeneratorHash = crypto3::hashes::sha2<256>,
+                     typename HashParams = crypto3::hashes::find_group_hash_default_params>
+            struct pedersen_commitment : public component<typename Curve::base_field_type> {
+                using commitment_component = pedersen_commitment_to_point<Curve, BasePointGeneratorHash, HashParams>;
+                using element_component = typename commitment_component::element_component;
+                using to_bits_component = typename element_component::to_bits_component;
 
-                    /// Manual allocation of the result
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen_commitment_to_point(blueprint<field_type> &bp,
-                                                 const detail::blueprint_variable_vector<field_type> &in_bits,
-                                                 const result_type &result) :
-                        component<field_type>(bp),
-                        // public field
-                        result(result),
-                        // private fields
-                        hasher(bp, in_bits), random_point(bp), adder(bp, hasher.result, random_point, result) {
-                    }
+                using field_type = typename commitment_component::field_type;
+                using result_type = digest_variable<field_type>;
 
-                    void generate_gates(bool ensure_output_bitness = false) {
-                        hasher.generate_gates(ensure_output_bitness);
-                        adder.generate_gates();
-                    }
+            private:
+                commitment_component commiter;
+                to_bits_component to_bits_converter;
 
-                    void generate_assignments(const typename field_type::value_type &r) {
-                        using group_hash_type = hashes::find_group_hash<HashParams, BasePointGeneratorHash,
-                                                                        typename element_component::group_type>;
+            public:
+                result_type result;
 
-                        hasher.generate_assignments();
-                        random_point.generate_assignments(r * hash<group_hash_type>(std::vector<std::uint8_t> {
-                                                                   'r',
-                                                               }));
-                        adder.generate_assignments();
-                    }
-                };
+                /// Auto allocation of the result
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen_commitment(blueprint<field_type> &bp,
+                                    const detail::blueprint_variable_vector<field_type> &in_bits) :
+                    component<field_type>(bp),
+                    // private fields
+                    commiter(bp, in_bits), to_bits_converter(bp, commiter.result),
+                    // public field
+                    result(bp, field_type::value_bits, to_bits_converter.result, 0) {
+                }
 
-                template<typename Curve = nil::crypto3::algebra::curves::jubjub,
-                         typename BasePointGeneratorHash = hashes::sha2<256>,
-                         typename HashParams = hashes::find_group_hash_default_params>
-                struct pedersen_commitment : public component<typename Curve::base_field_type> {
-                    using commitment_component =
-                        pedersen_commitment_to_point<Curve, BasePointGeneratorHash, HashParams>;
-                    using element_component = typename commitment_component::element_component;
-                    using to_bits_component = typename element_component::to_bits_component;
+                /// Manual allocation of the result
+                /// Take in_bits as blueprint_variable_vector.
+                pedersen_commitment(blueprint<field_type> &bp,
+                                    const detail::blueprint_variable_vector<field_type> &in_bits,
+                                    const result_type &result) :
+                    component<field_type>(bp),
+                    // private fields
+                    commiter(bp, in_bits), to_bits_converter(bp, commiter.result, result.bits),
+                    // public field
+                    result(result) {
+                }
 
-                    using field_type = typename commitment_component::field_type;
-                    using result_type = digest_variable<field_type>;
+                void generate_gates(bool ensure_output_bitness = false) {
+                    commiter.generate_gates(ensure_output_bitness);
+                    to_bits_converter.generate_gates();
+                }
 
-                private:
-                    commitment_component commiter;
-                    to_bits_component to_bits_converter;
-
-                public:
-                    result_type result;
-
-                    /// Auto allocation of the result
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen_commitment(blueprint<field_type> &bp,
-                                        const detail::blueprint_variable_vector<field_type> &in_bits) :
-                        component<field_type>(bp),
-                        // private fields
-                        commiter(bp, in_bits), to_bits_converter(bp, commiter.result),
-                        // public field
-                        result(bp, field_type::value_bits, to_bits_converter.result, 0) {
-                    }
-
-                    /// Manual allocation of the result
-                    /// Take in_bits as blueprint_variable_vector.
-                    pedersen_commitment(blueprint<field_type> &bp,
-                                        const detail::blueprint_variable_vector<field_type> &in_bits,
-                                        const result_type &result) :
-                        component<field_type>(bp),
-                        // private fields
-                        commiter(bp, in_bits), to_bits_converter(bp, commiter.result, result.bits),
-                        // public field
-                        result(result) {
-                    }
-
-                    void generate_gates(bool ensure_output_bitness = false) {
-                        commiter.generate_gates(ensure_output_bitness);
-                        to_bits_converter.generate_gates();
-                    }
-
-                    void generate_assignments(const typename field_type::value_type &r) {
-                        commiter.generate_assignments(r);
-                        // to_bits_converter generate witness also for result
-                        to_bits_converter.generate_assignments();
-                        result.generate_gates();
-                    }
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                void generate_assignments(const typename field_type::value_type &r) {
+                    commiter.generate_assignments(r);
+                    // to_bits_converter generate witness also for result
+                    to_bits_converter.generate_assignments();
+                    result.generate_gates();
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_HASHES_PEDERSEN_HPP

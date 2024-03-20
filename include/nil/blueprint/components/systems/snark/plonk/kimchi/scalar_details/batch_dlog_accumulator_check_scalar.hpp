@@ -27,23 +27,23 @@
 #ifndef CRYPTO3_ZK_BLUEPRINT_BATCH_VERIFY_SCALAR_FIELD_HPP
 #define CRYPTO3_ZK_BLUEPRINT_BATCH_VERIFY_SCALAR_FIELD_HPP
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
 
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
-#include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/components/algebra/fields/plonk/combined_inner_product.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/combined_inner_product.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/proof.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/batch_scalar/random.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/batch_scalar/prepare_scalars.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/batch_scalar/random.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/batch_scalar/prepare_scalars.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly_coefficients.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly_coefficients.hpp>
 
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
+#include <nil/blueprint/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -191,14 +191,14 @@ namespace nil {
                             scalars[scalar_idx++] = rand_base_i;
 
                             rand_base_i =
-                                zk::components::generate_circuit<mul_component>(bp, assignment, {rand_base_i, rand_base}, row).output;
+                                ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {rand_base_i, rand_base}, row).output;
                             row += mul_component::rows_amount;
                         }
 
                         std::vector<var> challenges_inv(params.challenges.size());
 
                         for (std::size_t i = 0; i < params.challenges.size(); i++) {
-                            challenges_inv[i] = zk::components::generate_circuit<div_component>(bp, assignment,
+                            challenges_inv[i] = ::nil::blueprint::components::generate_circuit<div_component>(bp, assignment,
                                                                                     {one, params.challenges[i]}, row)
                                                     .output;
                             row += div_component::rows_amount;
@@ -213,7 +213,7 @@ namespace nil {
                                 row += b_poly_coeff_component::rows_amount;
 
                                 for (std::size_t k = 0; k < s.size(); k++) {
-                                    s[k] = zk::components::generate_circuit<mul_component>(bp, assignment, {s[k], rs[j]}, row)
+                                    s[k] = ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {s[k], rs[j]}, row)
                                            .output;
                                     row += mul_component::rows_amount;
 
@@ -227,7 +227,7 @@ namespace nil {
                                 j < KimchiCommitmentParamsType::srs_len + kimchi_constants::srs_padding_size();
                                 j++) {
 
-                                scalars[j] = zk::components::generate_circuit<sub_component>(bp, assignment, {scalars[i], termss[i][j]}, row).output;
+                                scalars[j] = ::nil::blueprint::components::generate_circuit<sub_component>(bp, assignment, {scalars[i], termss[i][j]}, row).output;
                                 row += sub_component::rows_amount;
                             }
                         }

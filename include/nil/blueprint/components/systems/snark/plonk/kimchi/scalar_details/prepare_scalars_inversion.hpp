@@ -27,11 +27,11 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/component.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/component.hpp>
 
-#include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -101,12 +101,12 @@ namespace nil {
                         result_type result;
 
                         for (std::size_t i = 0; i < InputSize; ++i) {
-                            shifted[i] = zk::components::generate_circuit<add_component>(
+                            shifted[i] = ::nil::blueprint::components::generate_circuit<add_component>(
                                              bp, assignment, {params.scalars[i], shift}, row)
                                              .output;
                             row += add_component::rows_amount;
                             result.output[i] =
-                                zk::components::generate_circuit<mul_component>(bp, assignment, {shifted[i], coef}, row)
+                                ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {shifted[i], coef}, row)
                                     .output;
                             row += mul_component::rows_amount;
                         }

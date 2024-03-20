@@ -61,6 +61,7 @@
 
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
 
+using namespace nil;
 using namespace nil::crypto3;
 using namespace nil::crypto3::zk;
 using namespace nil::crypto3::algebra;
@@ -73,8 +74,8 @@ void test_disjunction_component(std::size_t w) {
 
     std::size_t n = std::log2(w) + ((w > (1ul << std::size_t(std::log2(w)))) ? 1 : 0);
 
-    blueprint::blueprint<field_type> bp;
-    nil::crypto3::blueprint::detail::blueprint_variable<field_type> output;
+    blueprint<field_type> bp;
+    blueprint::detail::blueprint_variable<field_type> output;
     output.allocate(bp);
 
     bp.set_input_sizes(1);

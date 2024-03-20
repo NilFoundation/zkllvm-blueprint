@@ -33,176 +33,201 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/component.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/multiplication.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/exponentiation.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/subtraction.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                // (x - w^{n - 3}) * (x - w^{n - 2}) * (x - w^{n - 1})
-                // zk-polynomial evaluation
-                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/circuits/polynomials/permutation.rs#L91
-                // Input: group generator (w),
-                //        domain size (n),
-                //        evaluation point (x)
-                // Output: (x - w^{n - 3}) * (x - w^{n - 2}) * (x - w^{n - 1})
-                template<typename ArithmetizationType, std::size_t... WireIndexes>
-                class zkpm_evaluate;
+            // (x - w^{n - 3}) * (x - w^{n - 2}) * (x - w^{n - 1})
+            // zk-polynomial evaluation
+            // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/circuits/polynomials/permutation.rs#L91
+            // Input: group generator (w),
+            //        domain size (n),
+            //        evaluation point (x)
+            // Output: (x - w^{n - 3}) * (x - w^{n - 2}) * (x - w^{n - 1})
+            template<typename ArithmetizationType, std::size_t... WireIndexes>
+            class zkpm_evaluate;
 
-                template<typename BlueprintFieldType,
+            template<typename BlueprintFieldType,
 
-                         std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3,
-                         std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7,
-                         std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11,
-                         std::size_t W12, std::size_t W13, std::size_t W14>
-                class zkpm_evaluate<snark::plonk_constraint_system<BlueprintFieldType>,
-                                    W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+                     std::size_t W0,
+                     std::size_t W1,
+                     std::size_t W2,
+                     std::size_t W3,
+                     std::size_t W4,
+                     std::size_t W5,
+                     std::size_t W6,
+                     std::size_t W7,
+                     std::size_t W8,
+                     std::size_t W9,
+                     std::size_t W10,
+                     std::size_t W11,
+                     std::size_t W12,
+                     std::size_t W13,
+                     std::size_t W14>
+            class zkpm_evaluate<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                W0,
+                                W1,
+                                W2,
+                                W3,
+                                W4,
+                                W5,
+                                W6,
+                                W7,
+                                W8,
+                                W9,
+                                W10,
+                                W11,
+                                W12,
+                                W13,
+                                W14> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType>
-                        ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType> ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-                    using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
-                    using exp_component = zk::components::exponentiation<ArithmetizationType, 60, W0, W1,
-                                                                         W2, W3, W4, W5, W6, W7, W8, W9,
-                                                                         W10, W11, W12, W13, W14>;
-                    using sub_component = zk::components::subtraction<ArithmetizationType, W0, W1, W2>;
+                using mul_component = multiplication<ArithmetizationType,
+                                                     BlueprintFieldType,
+                                                     basic_non_native_policy<BlueprintFieldType>>;
+                using exp_component = exponentiation<ArithmetizationType, BlueprintFieldType, 60>;
+                using sub_component =
+                    subtraction<ArithmetizationType, BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
-                    constexpr static const std::size_t selector_seed = 0x0f25;
+                constexpr static const std::size_t selector_seed = 0x0f25;
 
-                    constexpr static const std::size_t zk_rows = 3;
+                constexpr static const std::size_t zk_rows = 3;
 
-                public:
-                    constexpr static const std::size_t rows_amount = 1 + exp_component::rows_amount +
-                                                                     4 * mul_component::rows_amount +
-                                                                     3 * sub_component::rows_amount;
-                    constexpr static const std::size_t gates_amount = 0;
+            public:
+                constexpr static const std::size_t rows_amount =
+                    1 + exp_component::rows_amount + 4 * mul_component::rows_amount + 3 * sub_component::rows_amount;
+                constexpr static const std::size_t gates_amount = 0;
 
-                    struct params_type {
-                        var group_gen;
-                        std::size_t domain_size;
-                        var x;
-                    };
+                struct params_type {
+                    var group_gen;
+                    std::size_t domain_size;
+                    var x;
+                };
 
-                    struct result_type {
-                        var output;
+                struct result_type {
+                    var output;
 
-                        result_type(std::size_t start_row_index) {
-                            std::size_t row = start_row_index;
-                        }
-                    };
-
-                    static result_type
-                        generate_circuit(blueprint<ArithmetizationType> &bp,
-                                         blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                         const params_type &params,
-                                         const std::size_t start_row_index) {
-
-                        generate_assignments_constants(bp, assignment, params, start_row_index);
-
-                        var domain_size = var(0, start_row_index, false, var::column_type::constant);
-
+                    result_type(std::size_t start_row_index) {
                         std::size_t row = start_row_index;
-                        row++;    // skip row for constants in exp_component
-
-                        result_type result(row);
-
-                        var w1 = exp_component::generate_circuit(bp, assignment, {params.group_gen, domain_size}, row)
-                                     .output;
-                        row += exp_component::rows_amount;
-                        var w2 =
-                            zk::components::generate_circuit<mul_component>(bp, assignment, {w1, params.group_gen}, row)
-                                .output;
-                        row += mul_component::rows_amount;
-                        var w3 =
-                            zk::components::generate_circuit<mul_component>(bp, assignment, {w2, params.group_gen}, row)
-                                .output;
-                        row += mul_component::rows_amount;
-
-                        var a1 =
-                            zk::components::generate_circuit<sub_component>(bp, assignment, {params.x, w1}, row).output;
-                        row += sub_component::rows_amount;
-                        var a2 =
-                            zk::components::generate_circuit<sub_component>(bp, assignment, {params.x, w2}, row).output;
-                        row += sub_component::rows_amount;
-                        var a3 =
-                            zk::components::generate_circuit<sub_component>(bp, assignment, {params.x, w3}, row).output;
-                        row += sub_component::rows_amount;
-
-                        var ans1 =
-                            zk::components::generate_circuit<mul_component>(bp, assignment, {a1, a2}, row).output;
-                        row += mul_component::rows_amount;
-                        result.output =
-                            zk::components::generate_circuit<mul_component>(bp, assignment, {ans1, a3}, row).output;
-                        row += mul_component::rows_amount;
-
-                        return result;
-                    }
-
-                    static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
-                                                            const params_type &params,
-                                                            const std::size_t start_row_index) {
-
-                        var domain_size = var(0, start_row_index, false, var::column_type::constant);
-
-                        std::size_t row = start_row_index;
-                        row++;    // skip row for constants in exp_component
-
-                        result_type result(row);
-
-                        var w1 = exp_component::generate_assignments(assignment, {params.group_gen, domain_size}, row)
-                                     .output;
-                        row += exp_component::rows_amount;
-                        var w2 = mul_component::generate_assignments(assignment, {w1, params.group_gen}, row).output;
-                        row += mul_component::rows_amount;
-                        var w3 = mul_component::generate_assignments(assignment, {w2, params.group_gen}, row).output;
-                        row += mul_component::rows_amount;
-
-                        var a1 = sub_component::generate_assignments(assignment, {params.x, w1}, row).output;
-                        row += sub_component::rows_amount;
-                        var a2 = sub_component::generate_assignments(assignment, {params.x, w2}, row).output;
-                        row += sub_component::rows_amount;
-                        var a3 = sub_component::generate_assignments(assignment, {params.x, w3}, row).output;
-                        row += sub_component::rows_amount;
-
-                        var ans1 = mul_component::generate_assignments(assignment, {a1, a2}, row).output;
-                        row += mul_component::rows_amount;
-                        result.output = mul_component::generate_assignments(assignment, {ans1, a3}, row).output;
-                        row += mul_component::rows_amount;
-
-                        return result;
-                    }
-
-                private:
-                    static void generate_gates(blueprint<ArithmetizationType> &bp,
-                                               blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                               const params_type &params,
-                                               const std::size_t first_selector_index) {
-                    }
-
-                    static void
-                        generate_copy_constraints(blueprint<ArithmetizationType> &bp,
-                                                  blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                                  const params_type &params,
-                                                  const std::size_t start_row_index) {
-                    }
-
-                    static void generate_assignments_constants(
-                        blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                        const params_type &params,
-                        const std::size_t start_row_index) {
-                        std::size_t row = start_row_index;
-                        assignment.constant(0)[row] = params.domain_size - zk_rows;
                     }
                 };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+
+                static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
+                                                    assignment<ArithmetizationType> &assignment,
+                                                    const params_type &params,
+                                                    const std::size_t start_row_index) {
+
+                    generate_assignments_constants(bp, assignment, params, start_row_index);
+
+                    var domain_size = var(0, start_row_index, false, var::column_type::constant);
+
+                    std::size_t row = start_row_index;
+                    row++;    // skip row for constants in exp_component
+
+                    result_type result(row);
+
+                    var w1 =
+                        exp_component::generate_circuit(bp, assignment, {params.group_gen, domain_size}, row).output;
+                    row += exp_component::rows_amount;
+                    var w2 = ::nil::blueprint::components::generate_circuit<mul_component>(
+                                 bp, assignment, {w1, params.group_gen}, row)
+                                 .output;
+                    row += mul_component::rows_amount;
+                    var w3 = ::nil::blueprint::components::generate_circuit<mul_component>(
+                                 bp, assignment, {w2, params.group_gen}, row)
+                                 .output;
+                    row += mul_component::rows_amount;
+
+                    var a1 = ::nil::blueprint::components::generate_circuit<sub_component>(
+                                 bp, assignment, {params.x, w1}, row)
+                                 .output;
+                    row += sub_component::rows_amount;
+                    var a2 = ::nil::blueprint::components::generate_circuit<sub_component>(
+                                 bp, assignment, {params.x, w2}, row)
+                                 .output;
+                    row += sub_component::rows_amount;
+                    var a3 = ::nil::blueprint::components::generate_circuit<sub_component>(
+                                 bp, assignment, {params.x, w3}, row)
+                                 .output;
+                    row += sub_component::rows_amount;
+
+                    var ans1 =
+                        ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {a1, a2}, row)
+                            .output;
+                    row += mul_component::rows_amount;
+                    result.output =
+                        ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {ans1, a3}, row)
+                            .output;
+                    row += mul_component::rows_amount;
+
+                    return result;
+                }
+
+                static result_type generate_assignments(assignment<ArithmetizationType> &assignment,
+                                                        const params_type &params,
+                                                        const std::size_t start_row_index) {
+
+                    var domain_size = var(0, start_row_index, false, var::column_type::constant);
+
+                    std::size_t row = start_row_index;
+                    row++;    // skip row for constants in exp_component
+
+                    result_type result(row);
+
+                    var w1 =
+                        exp_component::generate_assignments(assignment, {params.group_gen, domain_size}, row).output;
+                    row += exp_component::rows_amount;
+                    var w2 = mul_component::generate_assignments(assignment, {w1, params.group_gen}, row).output;
+                    row += mul_component::rows_amount;
+                    var w3 = mul_component::generate_assignments(assignment, {w2, params.group_gen}, row).output;
+                    row += mul_component::rows_amount;
+
+                    var a1 = sub_component::generate_assignments(assignment, {params.x, w1}, row).output;
+                    row += sub_component::rows_amount;
+                    var a2 = sub_component::generate_assignments(assignment, {params.x, w2}, row).output;
+                    row += sub_component::rows_amount;
+                    var a3 = sub_component::generate_assignments(assignment, {params.x, w3}, row).output;
+                    row += sub_component::rows_amount;
+
+                    var ans1 = mul_component::generate_assignments(assignment, {a1, a2}, row).output;
+                    row += mul_component::rows_amount;
+                    result.output = mul_component::generate_assignments(assignment, {ans1, a3}, row).output;
+                    row += mul_component::rows_amount;
+
+                    return result;
+                }
+
+            private:
+                static void generate_gates(blueprint<ArithmetizationType> &bp,
+                                           assignment<ArithmetizationType> &assignment,
+                                           const params_type &params,
+                                           const std::size_t first_selector_index) {
+                }
+
+                static void generate_copy_constraints(blueprint<ArithmetizationType> &bp,
+                                                      assignment<ArithmetizationType> &assignment,
+                                                      const params_type &params,
+                                                      const std::size_t start_row_index) {
+                }
+
+                static void generate_assignments_constants(blueprint<ArithmetizationType> &bp,
+                                                           assignment<ArithmetizationType> &assignment,
+                                                           const params_type &params,
+                                                           const std::size_t start_row_index) {
+                    std::size_t row = start_row_index;
+                    assignment.constant(0)[row] = params.domain_size - zk_rows;
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_ZKPM_EVALUATE_HPP

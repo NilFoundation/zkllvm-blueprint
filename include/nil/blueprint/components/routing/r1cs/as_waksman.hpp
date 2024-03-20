@@ -34,7 +34,7 @@
 #include <nil/crypto3/zk/snark/integer_permutation.hpp>
 #include <nil/crypto3/zk/snark/routing/as_waksman.hpp>
 
-#include <nil/blueprint/components/packing.hpp>
+#include <nil/blueprint/components/detail/r1cs/packing.hpp>
 #include <nil/blueprint/components/blueprint.hpp>
 
 namespace nil {

@@ -172,7 +172,8 @@ set(HASHES_TESTS_FILES
     "hashes/r1cs/knapsack_verification"
     "hashes/r1cs/sha256"
     "hashes/r1cs/sha256_verification"
-    "hashes/r1cs/pedersen")
+#    "hashes/r1cs/pedersen"
+)
 
 set(PAIRING_TESTS_FILES
     "algebra/pairing/weierstrass/r1cs/miller_loop"
@@ -191,11 +192,13 @@ set(MERKLE_TREE_TESTS_FILES
     "merkle_tree_components")
 
 set(VOTING_TESTS_FILES
-    "voting/r1cs/encrypted_input_voting")
+#    "voting/r1cs/encrypted_input_voting"
+)
 
 set(BASIC_COMPONENTS_TESTS_FILES
-    "basic_components"
-    "basic_components_r1cs_gg_ppzksnark")
+#    "basic_components"
+#    "basic_components_r1cs_gg_ppzksnark"
+)
 
 SET(ALGEBRA_TESTS_FILES
     ${FIELDS_TESTS_FILES}

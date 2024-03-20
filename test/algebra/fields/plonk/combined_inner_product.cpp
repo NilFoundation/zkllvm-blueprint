@@ -65,13 +65,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combined_inner_product) {
 
     using var = zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = zk::components::combined_inner_product<ArithmetizationType, k, 0, 1, 2, 3,
-                                                                          4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
+    using component_type = zk::components::
+        combined_inner_product<ArithmetizationType, k, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14>;
 
     std::array<var, k> input_var_zeta1;
     std::array<var, k> input_var_zeta2;
     std::vector<typename BlueprintFieldType::value_type> public_input;
-    for (std::size_t i = 0 ; i < k; i++) {
+    for (std::size_t i = 0; i < k; i++) {
         input_var_zeta1[i] = var(0, 2 * i, false, var::column_type::public_input);
         input_var_zeta2[i] = var(0, 2 * i + 1, false, var::column_type::public_input);
         public_input.push_back(algebra::random_element<BlueprintFieldType>());
@@ -85,14 +85,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_combined_inner_product) {
 
     typename component_type::params_type params = {input_var_zeta1, input_var_zeta2, xi, r};
 
-
-    auto result_check = [](AssignmentType &assignment,
-        component_type::result_type &real_res) {
-    };
+    auto result_check = [](AssignmentType &assignment, component_type::result_type &real_res) {};
 
     test_component<component_type, BlueprintFieldType, hash_type, Lambda>(params, public_input, result_check);
 
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
     std::cout << "combined_inner_product_component: " << duration.count() << "ms" << std::endl;
 }
 

@@ -36,18 +36,16 @@
 #include <nil/blueprint/components/algebra/curves/pasta/plonk/types.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                template<typename BlueprintFieldType, std::size_t SplitSize>
-                struct kimchi_commitment_type {
-                    using var_ec_point = typename zk::components::var_ec_point<BlueprintFieldType>;
-                    std::array<var_ec_point, SplitSize> parts;
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+            template<typename BlueprintFieldType, std::size_t SplitSize>
+            struct kimchi_commitment_type {
+                using var_ec_point = typename components::var_ec_point<BlueprintFieldType>;
+                std::array<var_ec_point, SplitSize> parts;
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_COMMITMENT_HPP

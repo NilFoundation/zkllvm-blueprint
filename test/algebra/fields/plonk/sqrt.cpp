@@ -48,14 +48,14 @@
 using namespace nil::crypto3;
 using namespace nil::blueprint;
 
-template <typename BlueprintFieldType>
+template<typename BlueprintFieldType>
 void test_sqrt(typename BlueprintFieldType::value_type input) {
     constexpr std::size_t WitnessColumns = 15;
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
     constexpr std::size_t SelectorColumns = 4;
-    zk::snark::plonk_table_description<BlueprintFieldType> desc(
-        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
+    zk::snark::plonk_table_description<BlueprintFieldType> desc(WitnessColumns, PublicInputColumns, ConstantColumns,
+                                                                SelectorColumns);
     using ArithmetizationType = zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = assignment<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
@@ -67,8 +67,7 @@ void test_sqrt(typename BlueprintFieldType::value_type input) {
 
     typename BlueprintFieldType::value_type expected_res = input.sqrt();
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {input};
 
@@ -78,8 +77,8 @@ void test_sqrt(typename BlueprintFieldType::value_type input) {
         assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    test_component<component_type, BlueprintFieldType, hash_type, Lambda>
-        (component_instance, desc, public_input, result_check, instance_input);
+    test_component<component_type, BlueprintFieldType, hash_type, Lambda>(component_instance, desc, public_input,
+                                                                          result_check, instance_input);
 }
 
 static const std::size_t random_tests_amount = 10;

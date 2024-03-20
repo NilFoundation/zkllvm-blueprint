@@ -29,20 +29,20 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/component.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/component.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/zkpm_evaluate.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/index_terms_scalars.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/perm_scalars.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/constraints/generic_scalars.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/zkpm_evaluate.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/constraints/index_terms_scalars.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/constraints/perm_scalars.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/constraints/generic_scalars.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/element_powers.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/plonk_map_fields.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/pickles/scalar_details/plonk_map_fields.hpp>
 
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
     namespace crypto3 {

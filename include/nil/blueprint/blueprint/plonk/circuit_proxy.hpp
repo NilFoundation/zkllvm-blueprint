@@ -41,11 +41,11 @@ namespace nil {
             : public circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> {
 
         private:
-
             typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType> ArithmetizationType;
             using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
             using lookup_constraint_type = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-            using lookup_table_definition = typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
+            using lookup_table_definition =
+                typename nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
 
             std::shared_ptr<circuit<ArithmetizationType>> circuit_ptr;
             std::uint32_t id;
@@ -55,33 +55,36 @@ namespace nil {
             std::set<std::uint32_t> used_lookup_tables;
 
             std::uint32_t get_gate_index(std::size_t selector_index) const {
-                const auto& gates = circuit_ptr->gates();
-                auto it = std::find_if(gates.begin(), gates.end(), [selector_index](const typename ArithmetizationType::gates_container_type::value_type& gate) -> bool
-                    { return selector_index == gate.selector_index; });
+                const auto &gates = circuit_ptr->gates();
+                auto it = std::find_if(
+                    gates.begin(), gates.end(),
+                    [selector_index](const typename ArithmetizationType::gates_container_type::value_type &gate)
+                        -> bool { return selector_index == gate.selector_index; });
                 return it - gates.begin();
             }
 
             std::uint32_t get_lookup_gate_index(std::size_t selector_index) const {
-                const auto& lookup_gates = circuit_ptr->lookup_gates();
-                auto it = std::find_if(lookup_gates.begin(), lookup_gates.end(),
-                                       [selector_index](const typename ArithmetizationType::lookup_gates_container_type::value_type& lookup_gate) -> bool
-                { return selector_index == lookup_gate.tag_index; });
+                const auto &lookup_gates = circuit_ptr->lookup_gates();
+                auto it = std::find_if(
+                    lookup_gates.begin(), lookup_gates.end(),
+                    [selector_index](
+                        const typename ArithmetizationType::lookup_gates_container_type::value_type &lookup_gate)
+                        -> bool { return selector_index == lookup_gate.tag_index; });
                 return it - lookup_gates.begin();
             }
 
         public:
-
             circuit_proxy(std::shared_ptr<circuit<ArithmetizationType>> circuit, std::uint32_t _id) :
-                    circuit_ptr(circuit),
-                    id(_id) {}
+                circuit_ptr(circuit), id(_id) {
+            }
 
             circuit_proxy() = delete;
 
-            const circuit<ArithmetizationType>& get() const {
+            const circuit<ArithmetizationType> &get() const {
                 return *circuit_ptr;
             }
 
-            circuit<ArithmetizationType>& get() {
+            circuit<ArithmetizationType> &get() {
                 return *circuit_ptr;
             }
 
@@ -89,35 +92,35 @@ namespace nil {
                 return id;
             }
 
-            const std::set<std::uint32_t>& get_used_gates() const {
+            const std::set<std::uint32_t> &get_used_gates() const {
                 return used_gates;
             }
 
-            const typename ArithmetizationType::gates_container_type& gates() const override {
+            const typename ArithmetizationType::gates_container_type &gates() const override {
                 return circuit_ptr->gates();
             }
 
-            const std::set<std::uint32_t>& get_used_copy_constraints() const {
+            const std::set<std::uint32_t> &get_used_copy_constraints() const {
                 return used_copy_constraints;
             }
 
-            const typename ArithmetizationType::copy_constraints_container_type& copy_constraints() const override {
+            const typename ArithmetizationType::copy_constraints_container_type &copy_constraints() const override {
                 return circuit_ptr->copy_constraints();
             }
 
-            const std::set<std::uint32_t>& get_used_lookup_gates() const {
+            const std::set<std::uint32_t> &get_used_lookup_gates() const {
                 return used_lookup_gates;
             }
 
-            const typename ArithmetizationType::lookup_gates_container_type& lookup_gates() const override {
+            const typename ArithmetizationType::lookup_gates_container_type &lookup_gates() const override {
                 return circuit_ptr->lookup_gates();
             }
 
-            const std::set<std::uint32_t>& get_used_lookup_tables() const {
+            const std::set<std::uint32_t> &get_used_lookup_tables() const {
                 return used_lookup_tables;
             }
 
-            const typename ArithmetizationType::lookup_tables_type& lookup_tables() const override {
+            const typename ArithmetizationType::lookup_tables_type &lookup_tables() const override {
                 return circuit_ptr->lookup_tables();
             }
 
@@ -183,21 +186,23 @@ namespace nil {
                 used_lookup_tables.insert(idx);
             }
 
-            const typename lookup_library<BlueprintFieldType>::left_reserved_type
-                    &get_reserved_indices() const override {
+            const typename lookup_library<BlueprintFieldType>::left_reserved_type &
+                get_reserved_indices() const override {
                 return circuit_ptr->get_reserved_indices();
             }
 
             const typename lookup_library<BlueprintFieldType>::right_reserved_type &
-                    get_reserved_indices_right() const override {
+                get_reserved_indices_right() const override {
                 return circuit_ptr->get_reserved_indices_right();
             }
 
-            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &get_reserved_tables() const override {
+            const std::map<std::string, std::shared_ptr<lookup_table_definition>> &
+                get_reserved_tables() const override {
                 return circuit_ptr->get_reserved_tables();
             }
 
-            void add_copy_constraint(const crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> &copy_constraint) override {
+            void add_copy_constraint(
+                const crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> &copy_constraint) override {
                 circuit_ptr->add_copy_constraint(copy_constraint);
                 if (circuit_ptr->copy_constraints().size() > 0) {
                     used_copy_constraints.insert(circuit_ptr->copy_constraints().size() - 1);
@@ -208,7 +213,7 @@ namespace nil {
                 return circuit_ptr->get_next_selector_index();
             }
 
-            void export_circuit(std::ostream& os) const override {
+            void export_circuit(std::ostream &os) const override {
                 std::ios_base::fmtflags os_flags(os.flags());
 
                 const auto gates = circuit_ptr->gates();
@@ -223,7 +228,7 @@ namespace nil {
                    << "copy_constraints_size: " << copy_constraints.size() << " "
                    << "lookup_gates_size: " << used_lookup_gates.size() << "\n";
 
-                for (const auto& i : used_gates) {
+                for (const auto &i : used_gates) {
                     os << i << ": selector: " << gates[i].selector_index
                        << " constraints_size: " << gates[i].constraints.size() << "\n";
                     for (std::size_t j = 0; j < gates[i].constraints.size(); j++) {
@@ -231,13 +236,12 @@ namespace nil {
                     }
                 }
 
-                for (const auto& i : used_copy_constraints) {
-                    os << i << ": " << copy_constraints[i].first << " "
-                       << copy_constraints[i].second << "\n";
+                for (const auto &i : used_copy_constraints) {
+                    os << i << ": " << copy_constraints[i].first << " " << copy_constraints[i].second << "\n";
                 }
 
                 std::cout << "\nlookup gates:\n";
-                for (const auto& i : used_lookup_gates) {
+                for (const auto &i : used_lookup_gates) {
                     os << i << ": selector: " << lookup_gates[i].tag_index
                        << " lookup constraints size: " << lookup_gates[i].constraints.size() << "\n";
                     for (std::size_t j = 0; j < lookup_gates[i].constraints.size(); j++) {
@@ -252,9 +256,9 @@ namespace nil {
                 }
 
                 std::cout << "\nlookup tables:\n";
-                for (const auto& i : used_lookup_tables) {
+                for (const auto &i : used_lookup_tables) {
                     bool found = false;
-                    for (const auto& it : lookup_table_indexes) {
+                    for (const auto &it : lookup_table_indexes) {
                         if (it.second == (i + 1)) {
                             os << i << ": " << it.first << "\n";
                             found = true;

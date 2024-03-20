@@ -49,8 +49,8 @@
 
 using namespace nil;
 
-template <typename FieldType>
-void test_add(std::vector<typename FieldType::value_type> public_input){
+template<typename FieldType>
+void test_add(std::vector<typename FieldType::value_type> public_input) {
     using BlueprintFieldType = FieldType;
     constexpr std::size_t WitnessColumns = 3;
     constexpr std::size_t PublicInputColumns = 1;
@@ -65,34 +65,36 @@ void test_add(std::vector<typename FieldType::value_type> public_input){
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::addition<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+    using component_type = blueprint::components::
+        addition<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input),
+                                                          var(0, 1, false, var::column_type::public_input)};
 
     typename BlueprintFieldType::value_type expected_res = public_input[0] + public_input[1];
 
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-            std::cout << "add test: " << "\n";
-            std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
-            std::cout << "expected: " << expected_res.data    << "\n";
-            std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
-            #endif
-            assert(expected_res == var_value(assignment, real_res.output));
+                                                      typename component_type::result_type &real_res) {
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "add test: "
+                  << "\n";
+        std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
+        std::cout << "expected: " << expected_res.data << "\n";
+        std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
+#endif
+        assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2},{},{});
+    component_type component_instance({0, 1, 2}, {}, {});
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
-    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
 }
 
-template <typename FieldType>
-void test_sub(std::vector<typename FieldType::value_type> public_input){
+template<typename FieldType>
+void test_sub(std::vector<typename FieldType::value_type> public_input) {
     using BlueprintFieldType = FieldType;
     constexpr std::size_t WitnessColumns = 3;
     constexpr std::size_t PublicInputColumns = 1;
@@ -107,34 +109,38 @@ void test_sub(std::vector<typename FieldType::value_type> public_input){
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::subtraction<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+    using component_type =
+        blueprint::components::subtraction<ArithmetizationType,
+                                           BlueprintFieldType,
+                                           nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input),
+                                                          var(0, 1, false, var::column_type::public_input)};
 
     typename BlueprintFieldType::value_type expected_res = public_input[0] - public_input[1];
 
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-            std::cout << "sub test: " << "\n";
-            std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
-            std::cout << "expected: " << expected_res.data    << "\n";
-            std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
-            #endif
-            assert(expected_res == var_value(assignment, real_res.output));
+                                                      typename component_type::result_type &real_res) {
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "sub test: "
+                  << "\n";
+        std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
+        std::cout << "expected: " << expected_res.data << "\n";
+        std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
+#endif
+        assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2},{},{});
+    component_type component_instance({0, 1, 2}, {}, {});
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
-    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
 }
 
-template <typename FieldType>
-void test_mul(std::vector<typename FieldType::value_type> public_input){
+template<typename FieldType>
+void test_mul(std::vector<typename FieldType::value_type> public_input) {
     using BlueprintFieldType = FieldType;
     constexpr std::size_t WitnessColumns = 3;
     constexpr std::size_t PublicInputColumns = 1;
@@ -149,35 +155,38 @@ void test_mul(std::vector<typename FieldType::value_type> public_input){
 
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::multiplication<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+    using component_type =
+        blueprint::components::multiplication<ArithmetizationType,
+                                              BlueprintFieldType,
+                                              nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input),
+                                                          var(0, 1, false, var::column_type::public_input)};
 
     typename BlueprintFieldType::value_type expected_res = public_input[0] * public_input[1];
 
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-            std::cout << "mul test: " << "\n";
-            std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
-            std::cout << "expected: " << expected_res.data    << "\n";
-            std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
-            #endif
-            assert(expected_res == var_value(assignment, real_res.output));
+                                                      typename component_type::result_type &real_res) {
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "mul test: "
+                  << "\n";
+        std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
+        std::cout << "expected: " << expected_res.data << "\n";
+        std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
+#endif
+        assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2},{},{});
+    component_type component_instance({0, 1, 2}, {}, {});
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
-    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
 }
 
-template <typename FieldType>
-void test_mul_by_const(std::vector<typename FieldType::value_type> public_input,
-    typename FieldType::value_type y){
+template<typename FieldType>
+void test_mul_by_const(std::vector<typename FieldType::value_type> public_input, typename FieldType::value_type y) {
     using BlueprintFieldType = FieldType;
     constexpr std::size_t WitnessColumns = 2;
     constexpr std::size_t PublicInputColumns = 1;
@@ -194,33 +203,32 @@ void test_mul_by_const(std::vector<typename FieldType::value_type> public_input,
 
     using component_type = blueprint::components::mul_by_constant<ArithmetizationType, BlueprintFieldType>;
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input)};
 
     typename BlueprintFieldType::value_type expected_res = public_input[0] * y;
 
     auto result_check = [&expected_res, public_input, y](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-            std::cout << "mul_by_const test: " << "\n";
-            std::cout << "input   : " << public_input[0].data << " " << y.data << "\n";
-            std::cout << "expected: " << expected_res.data    << "\n";
-            std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
-            #endif
-            assert(expected_res == var_value(assignment, real_res.output));
+                                                         typename component_type::result_type &real_res) {
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "mul_by_const test: "
+                  << "\n";
+        std::cout << "input   : " << public_input[0].data << " " << y.data << "\n";
+        std::cout << "expected: " << expected_res.data << "\n";
+        std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
+#endif
+        assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1},{0},{},y);
+    component_type component_instance({0, 1}, {0}, {}, y);
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
-    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
 }
 
-template <typename FieldType>
-void test_div(std::vector<typename FieldType::value_type> public_input,
-    typename FieldType::value_type expected_res){
+template<typename FieldType>
+void test_div(std::vector<typename FieldType::value_type> public_input, typename FieldType::value_type expected_res) {
     using BlueprintFieldType = FieldType;
     constexpr std::size_t WitnessColumns = 4;
     constexpr std::size_t PublicInputColumns = 1;
@@ -234,26 +242,26 @@ void test_div(std::vector<typename FieldType::value_type> public_input,
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-    using component_type = blueprint::components::division<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
+    using component_type = blueprint::components::
+        division<ArithmetizationType, BlueprintFieldType, nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input),
+                                                          var(0, 1, false, var::column_type::public_input)};
 
-    auto result_check = [&expected_res](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-            assert(expected_res == var_value(assignment, real_res.output));
+    auto result_check = [&expected_res](AssignmentType &assignment, typename component_type::result_type &real_res) {
+        assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2, 3},{},{});
+    component_type component_instance({0, 1, 2, 3}, {}, {});
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
-    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
 }
 
-template <typename FieldType>
-void test_div_or_zero(std::vector<typename FieldType::value_type> public_input){
+template<typename FieldType>
+void test_div_or_zero(std::vector<typename FieldType::value_type> public_input) {
     using BlueprintFieldType = FieldType;
     constexpr std::size_t WitnessColumns = 5;
     constexpr std::size_t PublicInputColumns = 1;
@@ -270,8 +278,8 @@ void test_div_or_zero(std::vector<typename FieldType::value_type> public_input){
 
     using component_type = blueprint::components::division_or_zero<ArithmetizationType, BlueprintFieldType>;
 
-    typename component_type::input_type instance_input = {
-        var(0, 0, false, var::column_type::public_input), var(0, 1, false, var::column_type::public_input)};
+    typename component_type::input_type instance_input = {var(0, 0, false, var::column_type::public_input),
+                                                          var(0, 1, false, var::column_type::public_input)};
 
     typename FieldType::value_type expected_res;
     if (public_input[1] != 0) {
@@ -281,25 +289,26 @@ void test_div_or_zero(std::vector<typename FieldType::value_type> public_input){
     }
 
     auto result_check = [&expected_res, public_input](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-            #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-            std::cout << "div_or_zero test: " << "\n";
-            std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
-            std::cout << "expected: " << expected_res.data    << "\n";
-            std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
-            #endif
-            assert(expected_res == var_value(assignment, real_res.output));
+                                                      typename component_type::result_type &real_res) {
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+        std::cout << "div_or_zero test: "
+                  << "\n";
+        std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";
+        std::cout << "expected: " << expected_res.data << "\n";
+        std::cout << "real    : " << var_value(assignment, real_res.output).data << "\n\n";
+#endif
+        assert(expected_res == var_value(assignment, real_res.output));
     };
 
-    component_type component_instance({0, 1, 2, 3, 4},{},{});
+    component_type component_instance({0, 1, 2, 3, 4}, {}, {});
 
-    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
-    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda> (
+    nil::crypto3::test_empty_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input);
 }
 
-template <typename FieldType>
+template<typename FieldType>
 void test_5_components(int i, int j) {
     test_add<FieldType>({i, j});
     test_sub<FieldType>({i, j});
@@ -308,7 +317,7 @@ void test_5_components(int i, int j) {
     test_div_or_zero<FieldType>({i, j});
 }
 
-template <typename FieldType>
+template<typename FieldType>
 void test_5_components_on_random_data() {
     nil::crypto3::random::algebraic_engine<FieldType> generate_random;
     boost::random::mt19937 seed_seq;
@@ -324,15 +333,15 @@ void test_5_components_on_random_data() {
     test_div_or_zero<FieldType>({i, j});
 }
 
-template <typename FieldType, std::size_t RandomTestsAmount>
+template<typename FieldType, std::size_t RandomTestsAmount>
 void field_operations_test() {
-    for (int i = -2; i < 3; i++){
-        for (int j = -2; j < 3; j++){
+    for (int i = -2; i < 3; i++) {
+        for (int j = -2; j < 3; j++) {
             test_5_components<FieldType>(i, j);
         }
     }
 
-    for (std::size_t i = 0; i < RandomTestsAmount; i++){
+    for (std::size_t i = 0; i < RandomTestsAmount; i++) {
         test_5_components_on_random_data<FieldType>();
     }
 }

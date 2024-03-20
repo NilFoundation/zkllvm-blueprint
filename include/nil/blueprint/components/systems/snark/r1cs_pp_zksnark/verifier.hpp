@@ -38,7 +38,7 @@
 
 #include <nil/crypto3/algebra/algorithms/pair.hpp>
 
-#include <nil/blueprint/components/packing.hpp>
+#include <nil/blueprint/components/detail/r1cs/packing.hpp>
 #include <nil/blueprint/components/conjunction.hpp>
 #include <nil/blueprint/components/algebra/curves/weierstrass/element_g1.hpp>
 #include <nil/blueprint/components/algebra/curves/weierstrass/element_g2.hpp>

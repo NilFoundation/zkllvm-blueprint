@@ -52,9 +52,8 @@ namespace nil {
             class multiplication;
 
             template<typename BlueprintFieldType, typename NonNativePolicyType>
-            class multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                                 BlueprintFieldType, NonNativePolicyType>
-                : public plonk_component<BlueprintFieldType> {
+            class multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType,
+                                 NonNativePolicyType> : public plonk_component<BlueprintFieldType> {
 
             public:
                 using component_type = plonk_component<BlueprintFieldType>;
@@ -69,17 +68,14 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
                 static manifest_type get_manifest() {
-                    static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(3)),
-                        false
-                    );
+                    static manifest_type manifest =
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(3)), false);
                     return manifest;
                 }
 
@@ -145,18 +141,15 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             using plonk_multiplication =
-                multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                               BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
+                multiplication<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType,
+                               basic_non_native_policy<BlueprintFieldType>>;
 
             template<typename BlueprintFieldType>
-            typename plonk_multiplication<BlueprintFieldType>::result_type
-                generate_assignments(
-                    const plonk_multiplication<BlueprintFieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &assignment,
-                    const typename plonk_multiplication<BlueprintFieldType>::input_type
-                        instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_multiplication<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_multiplication<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_multiplication<BlueprintFieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 const std::size_t j = start_row_index;
 
@@ -164,36 +157,29 @@ namespace nil {
                 assignment.witness(component.W(1), j) = var_value(assignment, instance_input.y);
                 assignment.witness(component.W(2), j) =
                     var_value(assignment, instance_input.x) * var_value(assignment, instance_input.y);
-                return typename plonk_multiplication<BlueprintFieldType>::result_type(
-                    component, start_row_index);
+                return typename plonk_multiplication<BlueprintFieldType>::result_type(component, start_row_index);
             }
 
             template<typename BlueprintFieldType>
-            typename plonk_multiplication<BlueprintFieldType>::result_type
-                generate_empty_assignments(
-                    const plonk_multiplication<BlueprintFieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &assignment,
-                    const typename plonk_multiplication<BlueprintFieldType>::input_type
-                        instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_multiplication<BlueprintFieldType>::result_type generate_empty_assignments(
+                const plonk_multiplication<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_multiplication<BlueprintFieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 using component_type = plonk_multiplication<BlueprintFieldType>;
                 const std::size_t j = start_row_index;
                 assignment.witness(component.W(2), j) = component_type::calculate(
                     var_value(assignment, instance_input.x), var_value(assignment, instance_input.y));
-                return typename plonk_multiplication<BlueprintFieldType>::result_type(
-                    component, start_row_index);
+                return typename plonk_multiplication<BlueprintFieldType>::result_type(component, start_row_index);
             }
 
             template<typename BlueprintFieldType>
-            std::size_t generate_gates(
-                const plonk_multiplication<BlueprintFieldType> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_multiplication<BlueprintFieldType>::input_type
-                    &instance_input) {
+            std::size_t
+                generate_gates(const plonk_multiplication<BlueprintFieldType> &component,
+                               circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                               assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                               const typename plonk_multiplication<BlueprintFieldType>::input_type &instance_input) {
 
                 using var = typename plonk_multiplication<BlueprintFieldType>::var;
 
@@ -206,10 +192,8 @@ namespace nil {
             void generate_copy_constraints(
                 const plonk_multiplication<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_multiplication<BlueprintFieldType>::input_type
-                    &instance_input,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_multiplication<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 using var = typename plonk_multiplication<BlueprintFieldType>::var;
@@ -225,10 +209,8 @@ namespace nil {
             typename plonk_multiplication<BlueprintFieldType>::result_type generate_circuit(
                 const plonk_multiplication<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_multiplication<BlueprintFieldType>::input_type
-                    &instance_input,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_multiplication<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
@@ -237,11 +219,10 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_multiplication<BlueprintFieldType>::result_type(
-                    component, start_row_index);
+                return typename plonk_multiplication<BlueprintFieldType>::result_type(component, start_row_index);
             }
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_FIELD_MULTIPLICATION_HPP

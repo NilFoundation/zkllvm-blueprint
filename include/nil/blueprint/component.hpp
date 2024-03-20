@@ -30,6 +30,7 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/constraint_satisfaction_problems/r1cs.hpp>
+
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/assert.hpp>
 
@@ -42,11 +43,10 @@ namespace nil {
         namespace components {
 
             template<typename ArithmetizationType>
-            class component{};
+            class component { };
 
             template<typename BlueprintFieldType>
-            class plonk_component:
-                public component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> {
+            class plonk_component : public component<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> {
             public:
                 using manifest_type = nil::blueprint::plonk_component_manifest;
                 using witness_container_type = std::vector<std::uint32_t>;
@@ -96,10 +96,10 @@ namespace nil {
                  * @param[in] constant Container with constant columns global indices.
                  * @param[in] public_input Container with public input columns global indices.
                  */
-                template <typename WitnessContainerType, typename ConstantContainerType,
-                    typename PublicInputContainerType>
+                template<typename WitnessContainerType, typename ConstantContainerType,
+                         typename PublicInputContainerType>
                 plonk_component(WitnessContainerType witness, ConstantContainerType constant,
-                        PublicInputContainerType public_input, const manifest_type &manifest) {
+                                PublicInputContainerType public_input, const manifest_type &manifest) {
                     _W.resize(witness.size());
                     _C.resize(constant.size());
                     _PI.resize(public_input.size());
@@ -124,11 +124,9 @@ namespace nil {
             };
 
             template<typename BlueprintFieldType>
-            class r1cs_component:
-                public component<crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType>> {
+            class r1cs_component : public component<crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType>> {
             protected:
-                typedef crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType>
-                    ArithmetizationType;
+                typedef crypto3::zk::snark::r1cs_constraint_system<BlueprintFieldType> ArithmetizationType;
 
                 blueprint<ArithmetizationType> &bp;
 
@@ -137,7 +135,7 @@ namespace nil {
                 }
             };
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENT_HPP

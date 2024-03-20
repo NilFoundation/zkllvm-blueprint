@@ -31,25 +31,25 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/component.hpp>
-#include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/components/algebra/curves/pasta/plonk/endo_scalar.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/oracles_cip.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/binding.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/transcript_fr.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/oracles_cip.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/b_poly.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/verify_scalar.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/binding.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/proof.hpp>
 
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_scalar.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/evals_of_split_evals.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/derive_plonk.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/pickles/scalar_details/prepare_scalars_inversion.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/pickles/base_details/batch_dlog_accumulator_check_scalar.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/pickles/scalar_details/evals_of_split_evals.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/pickles/scalar_details/derive_plonk.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/pickles/scalar_details/prepare_scalars_inversion.hpp>
 
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -226,7 +226,7 @@ namespace nil {
                             row += endo_scalar_component::rows_amount;
                             auto alpha = endo_scalar_component::generate_circuit(bp, assignment, {params.def_values[i].plonk.alpha}, row).output;
                             row += endo_scalar_component::rows_amount;
-                            auto zetaw = zk::components::generate_circuit<mul_component>(bp, assignment, {zets, params.domain_generator}, row).output;
+                            auto zetaw = ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {zets, params.domain_generator}, row).output;
                             row += mul_component::rows_amount;
                             var min_poly_joint_combiner;
                             if (KimchiParamsType::circuit_params::lookup_used) {
@@ -306,10 +306,10 @@ s
                                         .output;
                             row += b_poly_component::rows_amount;
 
-                            auto t = zk::components::generate_circuit<mul_component>(bp, assignment, {chal_zetaw, r_actual}, row).output;
+                            auto t = ::nil::blueprint::components::generate_circuit<mul_component>(bp, assignment, {chal_zetaw, r_actual}, row).output;
                             row += mul_component::rows_amount;
 
-                            auto b_actual = zk::components::generate_circuit<add_component>(bp, assignment, {chal_zeta, t}, row).output;
+                            auto b_actual = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {chal_zeta, t}, row).output;
                             row += add_component::rows_amount;
 
                             shifted_combined_inner_product = prepare_scalars_inversion_component::generate_circuit(bp, assignment, {

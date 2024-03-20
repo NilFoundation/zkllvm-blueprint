@@ -29,7 +29,8 @@
 
 #include <string>
 
-#include <nil/crypto3/detail/literals.hpp>
+#include <nil/crypto3/multiprecision/cpp_int/literals.hpp>
+
 #include <nil/crypto3/algebra/matrix/matrix.hpp>
 #include <nil/crypto3/algebra/fields/pallas/base_field.hpp>
 #include <nil/crypto3/algebra/fields/vesta/base_field.hpp>
@@ -50,8 +51,7 @@ namespace nil {
             class poseidon;
 
             template<typename BlueprintFieldType, typename FieldType>
-            class poseidon<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                           FieldType>
+            class poseidon<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, FieldType>
                 : public plonk_component<BlueprintFieldType> {
 
             public:
@@ -84,20 +84,16 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                        std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
-
                 static manifest_type get_manifest() {
                     using manifest_param = nil::blueprint::manifest_param;
                     using manifest_single_value_param = nil::blueprint::manifest_single_value_param;
-                    static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(15)),
-                        false
-                    );
+                    static manifest_type manifest =
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(15)), false);
                     return manifest;
                 }
 
@@ -149,24 +145,18 @@ namespace nil {
                          std::initializer_list<typename component_type::constant_container_type::value_type>
                              constants,
                          std::initializer_list<typename component_type::public_input_container_type::value_type>
-                             public_inputs) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()) {};
+                             public_inputs) : component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
             template<typename BlueprintFieldType, typename FieldType>
-            using plonk_poseidon =
-                poseidon<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                         FieldType>;
+            using plonk_poseidon = poseidon<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, FieldType>;
 
             template<typename BlueprintFieldType, typename FieldType>
-            typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type
-                generate_assignments(
-                    const plonk_poseidon<BlueprintFieldType, FieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &assignment,
-                    const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type
-                        instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type generate_assignments(
+                const plonk_poseidon<BlueprintFieldType, FieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 using component_type = plonk_poseidon<BlueprintFieldType, FieldType>;
 
@@ -239,21 +229,17 @@ namespace nil {
                     state = next_state;
                 }
 
-                return typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type(
-                    component, start_row_index);
+                return typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type(component, start_row_index);
             }
 
             template<typename BlueprintFieldType, typename FieldType>
-            std::array<std::size_t,
-                plonk_poseidon<BlueprintFieldType, FieldType>::rounds_amount /
-                plonk_poseidon<BlueprintFieldType, FieldType>::rounds_per_row>
-            generate_gates(
-                const plonk_poseidon<BlueprintFieldType, FieldType> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type
-                    &instance_input) {
+            std::array<std::size_t, plonk_poseidon<BlueprintFieldType, FieldType>::rounds_amount /
+                                        plonk_poseidon<BlueprintFieldType, FieldType>::rounds_per_row>
+                generate_gates(
+                    const plonk_poseidon<BlueprintFieldType, FieldType> &component,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                    const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type &instance_input) {
 
                 using component_type = plonk_poseidon<BlueprintFieldType, FieldType>;
                 using var = typename component_type::var;
@@ -357,10 +343,10 @@ namespace nil {
                          var(component.W(13), 0).pow(component_type::sbox_alpha) * component_type::mds[2][1] +
                          var(component.W(14), 0).pow(component_type::sbox_alpha) * component_type::mds[2][2] +
                          component_type::round_constant[z + 4][2]);
-                    selectors[j] = bp.add_gate(
-                        {constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
-                         constraint_7, constraint_8, constraint_9, constraint_10, constraint_11, constraint_12,
-                         constraint_13, constraint_14, constraint_15});
+                    selectors[j] =
+                        bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4, constraint_5, constraint_6,
+                                     constraint_7, constraint_8, constraint_9, constraint_10, constraint_11,
+                                     constraint_12, constraint_13, constraint_14, constraint_15});
                     j++;
                 }
                 return selectors;
@@ -370,10 +356,8 @@ namespace nil {
             void generate_copy_constraints(
                 const plonk_poseidon<BlueprintFieldType, FieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type
-                    &instance_input,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 // CRITICAL: these copy constraints might not be sufficient, but are definitely required.
@@ -386,30 +370,24 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename FieldType>
-            typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type
-                generate_circuit(
-                    const plonk_poseidon<BlueprintFieldType, FieldType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &assignment,
-                    const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type
-                        &instance_input,
-                    const std::size_t start_row_index) {
+            typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type generate_circuit(
+                const plonk_poseidon<BlueprintFieldType, FieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_poseidon<BlueprintFieldType, FieldType>::input_type &instance_input,
+                const std::size_t start_row_index) {
 
                 auto selector_indices = generate_gates(component, bp, assignment, instance_input);
-                for (std::size_t z = 0, i = 0;
-                     z < plonk_poseidon<BlueprintFieldType, FieldType>::rounds_amount;
-                     z += plonk_poseidon<BlueprintFieldType, FieldType>::rounds_per_row,
-                     i++) {
+                for (std::size_t z = 0, i = 0; z < plonk_poseidon<BlueprintFieldType, FieldType>::rounds_amount;
+                     z += plonk_poseidon<BlueprintFieldType, FieldType>::rounds_per_row, i++) {
                     assignment.enable_selector(selector_indices[i], start_row_index + i);
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
-                return typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type(
-                    component, start_row_index);
+                return typename plonk_poseidon<BlueprintFieldType, FieldType>::result_type(component, start_row_index);
             }
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_PLONK_POSEIDON_HPP

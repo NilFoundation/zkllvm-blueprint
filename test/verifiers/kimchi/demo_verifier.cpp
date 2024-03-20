@@ -50,8 +50,8 @@
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
-#include <nil/crypto3/zk/algorithms/allocate.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/allocate.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 #include <nil/blueprint/components/algebra/curves/pasta/plonk/unified_addition.hpp>
 
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_kimchi_demo_verifier_test) {
         std::size_t row = start_row + i * component_type::rows_amount;
         result[i] = component_type::result_type(component_params, row);
 
-        zk::components::generate_circuit<component_type>(bp, public_assignment, component_params, row);
+        ::nil::blueprint::components::generate_circuit<component_type>(bp, public_assignment, component_params, row);
 
         component_type::generate_assignments(assignment_bp, component_params, row);
     }

@@ -27,7 +27,8 @@
 #ifndef CRYPTO3_BLUEPRINT_PLONK_DETAIL_POSEIDON_CONSTANTS_HPP
 #define CRYPTO3_BLUEPRINT_PLONK_DETAIL_POSEIDON_CONSTANTS_HPP
 
-#include <nil/crypto3/detail/literals.hpp>
+#include <nil/crypto3/multiprecision/cpp_int/literals.hpp>
+
 #include <nil/crypto3/algebra/matrix/matrix.hpp>
 
 #include <nil/crypto3/algebra/fields/pallas/base_field.hpp>
@@ -37,13 +38,12 @@ namespace nil {
     namespace blueprint {
         namespace components {
             namespace detail {
-                
+
                 template<typename ConstFieldType, std::size_t state_size, std::size_t rounds_amount>
                 struct poseidon_constants;
 
                 template<std::size_t state_size, std::size_t rounds_amount>
-                struct poseidon_constants<typename nil::crypto3::algebra::fields::pallas_base_field,
-                                          state_size,
+                struct poseidon_constants<typename nil::crypto3::algebra::fields::pallas_base_field, state_size,
                                           rounds_amount> {
                     using FieldType = nil::crypto3::algebra::fields::pallas_base_field;
 
@@ -233,8 +233,7 @@ namespace nil {
                 };
 
                 template<std::size_t state_size, std::size_t rounds_amount>
-                struct poseidon_constants<typename nil::crypto3::algebra::fields::vesta_base_field,
-                                          state_size,
+                struct poseidon_constants<typename nil::crypto3::algebra::fields::vesta_base_field, state_size,
                                           rounds_amount> {
                     using FieldType = nil::crypto3::algebra::fields::vesta_base_field;
 
@@ -541,7 +540,7 @@ namespace nil {
 
             }    // namespace detail
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_PLONK_DETAIL_POSEIDON_CONSTANTS_HPP

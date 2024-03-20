@@ -34,36 +34,31 @@
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace chips {
+    namespace blueprint {
+        namespace chips {
 
-                template<typename ArithmetizationType>
-                class bit_check;
+            template<typename ArithmetizationType>
+            class bit_check;
 
-                template<typename BlueprintFieldType,
-                         typename ArithmetizationParams>
-                class bit_check<
-                    snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams>>{
+            template<typename BlueprintFieldType, typename ArithmetizationParams>
+            class bit_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType,
-                        ArithmetizationParams> ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>
+                    ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
-                public:
-                    constexpr static const std::size_t rows_amount = 0;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-                    static snark::plonk_constraint<BlueprintFieldType> generate(
-                        blueprint<ArithmetizationType> &bp,
-                        const var& X1) {
+            public:
+                constexpr static const std::size_t rows_amount = 0;
 
-                        return bp.add_constraint(X1 * (X1 - 1));
-                    }
-                };
-            }    // namespace chips
-        }        // namespace blueprint
-    }            // namespace crypto3
+                static crypto3::zk::snark::plonk_constraint<BlueprintFieldType>
+                    generate(blueprint<ArithmetizationType> &bp, const var &X1) {
+
+                    return bp.add_constraint(X1 * (X1 - 1));
+                }
+            };
+        }    // namespace chips
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_BIT_CHECK_CHIP_HPP

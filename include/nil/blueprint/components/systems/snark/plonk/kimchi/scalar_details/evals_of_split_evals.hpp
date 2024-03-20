@@ -29,15 +29,15 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
-#include <nil/crypto3/zk/component.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/component.hpp>
 
-#include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/components/algebra/fields/plonk/exponentiation.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/oracles_scalar/combine_proof_evals.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/exponentiation.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/evaluation_proof.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/oracles_scalar/combine_proof_evals.hpp>
 
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
     namespace crypto3 {
@@ -151,40 +151,40 @@ namespace nil {
                                 row += combined_proof_evals_component::rows_amount;
 
                                 for (std::size_t k = 0; k < evals_acc.w.size(); k++) {
-                                    evals_acc.w[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.w[k], params.split_evals[j].w[k]}, row).output;
+                                    evals_acc.w[k] = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.w[k], params.split_evals[j].w[k]}, row).output;
                                     row += add_component::rows_amount;
                                 }
 
-                                evals_acc.z = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.z, params.split_evals[j].z}, row).output;
+                                evals_acc.z = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.z, params.split_evals[j].z}, row).output;
                                 row += add_component::rows_amount;
 
                                 for (std::size_t k = 0; k < evals_acc.s.size(); k++) {
-                                    evals_acc.s[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.s[k], params.split_evals[j].s[k]}, row).output;
+                                    evals_acc.s[k] = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.s[k], params.split_evals[j].s[k]}, row).output;
                                     row += add_component::rows_amount;
                                 }
 
                                 if (KimchiParamsType::circuit_params::lookup_columns > 0) {
                                     for (std::size_t k = 0; k < evals_acc.lookup.sorted.size(); k++) {
-                                        evals_acc.lookup.sorted[k] = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.sorted[k], params.split_evals[j].lookup.sorted[k]}, row).output;
+                                        evals_acc.lookup.sorted[k] = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.sorted[k], params.split_evals[j].lookup.sorted[k]}, row).output;
                                         row += add_component::rows_amount;
                                     }
 
-                                    evals_acc.lookup.aggreg = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.aggreg, params.split_evals[j].lookup.aggreg}, row).output;
+                                    evals_acc.lookup.aggreg = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.aggreg, params.split_evals[j].lookup.aggreg}, row).output;
                                     row += add_component::rows_amount;
 
-                                    evals_acc.lookup.table = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.table, params.split_evals[j].lookup.table}, row).output;
+                                    evals_acc.lookup.table = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.table, params.split_evals[j].lookup.table}, row).output;
                                     row += add_component::rows_amount;
 
                                     if (KimchiParamsType::circuit_params::lookup_runtime) {
-                                        evals_acc.lookup.runtime = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.runtime, params.split_evals[j].lookup.runtime}, row).output;
+                                        evals_acc.lookup.runtime = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.lookup.runtime, params.split_evals[j].lookup.runtime}, row).output;
                                         row += add_component::rows_amount;
                                     }
                                 }
 
-                                evals_acc.generic_selector = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.generic_selector, params.split_evals[j].generic_selector}, row).output;
+                                evals_acc.generic_selector = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.generic_selector, params.split_evals[j].generic_selector}, row).output;
                                 row += add_component::rows_amount;
 
-                                evals_acc.poseidon_selector = zk::components::generate_circuit<add_component>(bp, assignment, {evals_acc.poseidon_selector, params.split_evals[j].poseidon_selector}, row).output;
+                                evals_acc.poseidon_selector = ::nil::blueprint::components::generate_circuit<add_component>(bp, assignment, {evals_acc.poseidon_selector, params.split_evals[j].poseidon_selector}, row).output;
                                 row += add_component::rows_amount;
                             }
                         }
