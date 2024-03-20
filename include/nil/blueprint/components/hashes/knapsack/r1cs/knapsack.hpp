@@ -65,7 +65,7 @@
 
 #include <nil/crypto3/container/merkle/tree.hpp>
 
-#include <nil/blueprint/components/packing.hpp>
+#include <nil/blueprint/components/detail/r1cs/packing.hpp>
 #include <nil/blueprint/components/hashes/hash_io.hpp>
 
 namespace nil {

@@ -33,48 +33,44 @@
 #include <nil/blueprint/component.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                template<typename FieldType, typename KimchiParamsType>
-                struct kimchi_lookup_evaluations {
-                    using var = snark::plonk_variable<FieldType>;
+            template<typename FieldType, typename KimchiParamsType>
+            struct kimchi_lookup_evaluations {
+                kimchi_lookup_evaluations() = default;
 
-                    std::array<var, KimchiParamsType::circuit_params::lookup_columns> sorted;
+                using var = crypto3::zk::snark::plonk_variable<FieldType>;
 
-                    var aggreg;
-                    var table;
+                std::array<var, KimchiParamsType::circuit_params::lookup_columns> sorted;
 
-                    var runtime;
+                var aggreg;
+                var table;
 
-                    kimchi_lookup_evaluations() {
-                    }
-                };
+                var runtime;
+            };
 
-                template<typename FieldType, typename KimchiParamsType>
-                struct kimchi_proof_evaluations {
-                    using var = snark::plonk_variable<FieldType>;
-                    // witness polynomials
-                    std::array<var, KimchiParamsType::witness_columns> w;
-                    // permutation polynomial
-                    var z;
-                    // permutation polynomials
-                    // (PERMUTS-1 evaluations because the last permutation is only used in commitment form)
-                    std::array<var, KimchiParamsType::permut_size - 1> s;
-                    // /// lookup-related evaluations
-                    kimchi_lookup_evaluations<FieldType, KimchiParamsType> lookup;
-                    // /// evaluation of the generic selector polynomial
-                    var generic_selector;
-                    // /// evaluation of the poseidon selector polynomial
-                    var poseidon_selector;
+            template<typename FieldType, typename KimchiParamsType>
+            struct kimchi_proof_evaluations {
+                kimchi_proof_evaluations() = default;
 
-                    kimchi_proof_evaluations() {
-                    }
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                using var = crypto3::zk::snark::plonk_variable<FieldType>;
+                // witness polynomials
+                std::array<var, KimchiParamsType::witness_columns> w;
+                // permutation polynomial
+                var z;
+                // permutation polynomials
+                // (PERMUTS-1 evaluations because the last permutation is only used in commitment form)
+                std::array<var, KimchiParamsType::permut_size - 1> s;
+                // /// lookup-related evaluations
+                kimchi_lookup_evaluations<FieldType, KimchiParamsType> lookup;
+                // /// evaluation of the generic selector polynomial
+                var generic_selector;
+                // /// evaluation of the poseidon selector polynomial
+                var poseidon_selector;
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_TYPES_EVALUATION_PROOF_HPP

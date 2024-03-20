@@ -46,11 +46,11 @@ auto test_logic_and_flag(std::vector<typename BlueprintFieldType::value_type> pu
     constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 1;
 
-    zk::snark::plonk_table_description<BlueprintFieldType> desc = {
-        WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns};
-    using ArithmetizationType =
-        nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
-    using AssignmentType = nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
+    zk::snark::plonk_table_description<BlueprintFieldType> desc = {WitnessColumns, PublicInputColumns, ConstantColumns,
+                                                                   SelectorColumns};
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
+    using AssignmentType =
+        nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -71,8 +71,7 @@ auto test_logic_and_flag(std::vector<typename BlueprintFieldType::value_type> pu
     typename BlueprintFieldType::value_type p = public_input[0] * public_input[1];
     typename BlueprintFieldType::value_type expected_result = (p.is_zero() ? p : BlueprintFieldType::value_type::one());
 
-    auto result_check = [&expected_result](AssignmentType &assignment,
-                                           typename component_type::result_type &real_res) {
+    auto result_check = [&expected_result](AssignmentType &assignment, typename component_type::result_type &real_res) {
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "logic and test: \n";
         std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";

@@ -32,159 +32,155 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_MONTGOMERY_G1_COMPONENT_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_MONTGOMERY_G1_COMPONENT_HPP
 
-#include <nil/blueprint/components/algebra/curves/element_g1_affine.hpp>
+#include <nil/blueprint/components/algebra/curves/detail/r1cs/element_g1_affine.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                /**
-                 * @brief Component that creates constraints for the addition of two elements from G1. (if element from
-                 * group G1 lies on the elliptic curve)
-                 */
-                template<typename Curve>
-                struct element_g1_addition<Curve, algebra::curves::forms::montgomery,
-                                           algebra::curves::coordinates::affine>
-                    : public component<typename element_g1<Curve, algebra::curves::forms::montgomery,
-                                                           algebra::curves::coordinates::affine>::field_type> {
-                    using curve_type = Curve;
-                    using form = algebra::curves::forms::montgomery;
-                    using coordinates = algebra::curves::coordinates::affine;
+    namespace blueprint {
+        namespace components {
+            /**
+             * @brief Component that creates constraints for the addition of two elements from G1. (if element from
+             * group G1 lies on the elliptic curve)
+             */
+            template<typename Curve>
+            struct element_g1_addition<Curve, crypto3::algebra::curves::forms::montgomery,
+                                       crypto3::algebra::curves::coordinates::affine>
+                : public component<typename element_g1<Curve, crypto3::algebra::curves::forms::montgomery,
+                                                       crypto3::algebra::curves::coordinates::affine>::field_type> {
+                using curve_type = Curve;
+                using form = crypto3::algebra::curves::forms::montgomery;
+                using coordinates = crypto3::algebra::curves::coordinates::affine;
 
-                    using element_component = element_g1<curve_type, form, coordinates>;
+                using element_component = element_g1<curve_type, form, coordinates>;
 
-                    using field_type = typename element_component::field_type;
-                    using group_type = typename element_component::group_type;
+                using field_type = typename element_component::field_type;
+                using group_type = typename element_component::group_type;
 
-                    using result_type = element_component;
+                using result_type = element_component;
 
-                    const element_component p1;
-                    const element_component p2;
-                    element_component result;
-                    element_fp<field_type> lambda;
+                const element_component p1;
+                const element_component p2;
+                element_component result;
+                element_fp<field_type> lambda;
 
-                    /// Auto allocation of the result
-                    element_g1_addition(blueprint<field_type> &bp,
-                                        const element_component &in_p1,
-                                        const element_component &in_p2) :
-                        component<field_type>(bp),
-                        p1(in_p1), p2(in_p2), result(bp) {
-                        detail::blueprint_variable<field_type> lambda_var;
-                        lambda_var.allocate(this->bp);
-                        this->lambda = lambda_var;
-                    }
+                /// Auto allocation of the result
+                element_g1_addition(blueprint<field_type> &bp,
+                                    const element_component &in_p1,
+                                    const element_component &in_p2) :
+                    component<field_type>(bp), p1(in_p1), p2(in_p2), result(bp) {
+                    detail::blueprint_variable<field_type> lambda_var;
+                    lambda_var.allocate(this->bp);
+                    this->lambda = lambda_var;
+                }
 
-                    /// Manual allocation of the result
-                    element_g1_addition(blueprint<field_type> &bp,
-                                        const element_component &in_p1,
-                                        const element_component &in_p2,
-                                        const result_type &in_result) :
-                        component<field_type>(bp),
-                        p1(in_p1), p2(in_p2), result(in_result) {
-                        detail::blueprint_variable<field_type> lambda_var;
-                        lambda_var.allocate(this->bp);
-                        this->lambda = lambda_var;
-                    }
+                /// Manual allocation of the result
+                element_g1_addition(blueprint<field_type> &bp,
+                                    const element_component &in_p1,
+                                    const element_component &in_p2,
+                                    const result_type &in_result) :
+                    component<field_type>(bp), p1(in_p1), p2(in_p2), result(in_result) {
+                    detail::blueprint_variable<field_type> lambda_var;
+                    lambda_var.allocate(this->bp);
+                    this->lambda = lambda_var;
+                }
 
-                    void generate_gates() {
-                        // lambda = (y' - y) / (x' - x)
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<field_type>(
-                            {this->p2.X - this->p1.X}, {this->lambda}, {this->p2.Y - this->p1.Y}));
-                        // (lambda) * (lambda) = (A + x + x' + x'')
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<field_type>(
-                            {this->lambda},
-                            {this->lambda},
-                            {group_type::params_type::A + this->p1.X + this->p2.X + this->result.X}));
-                        // y'' = -(y + lambda(x'' - x))
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<field_type>(
-                            {this->p1.X - this->result.X}, this->lambda, {this->result.Y + this->p1.Y}));
-                    }
+                void generate_gates() {
+                    // lambda = (y' - y) / (x' - x)
+                    this->bp.add_r1cs_constraint(crypto3::zk::snark::r1cs_constraint<field_type>(
+                        {this->p2.X - this->p1.X}, {this->lambda}, {this->p2.Y - this->p1.Y}));
+                    // (lambda) * (lambda) = (A + x + x' + x'')
+                    this->bp.add_r1cs_constraint(crypto3::zk::snark::r1cs_constraint<field_type>(
+                        {this->lambda},
+                        {this->lambda},
+                        {group_type::params_type::A + this->p1.X + this->p2.X + this->result.X}));
+                    // y'' = -(y + lambda(x'' - x))
+                    this->bp.add_r1cs_constraint(crypto3::zk::snark::r1cs_constraint<field_type>(
+                        {this->p1.X - this->result.X}, this->lambda, {this->result.Y + this->p1.Y}));
+                }
 
-                    void generate_assignments() {
-                        this->bp.lc_val(this->lambda) =
-                            (this->bp.lc_val(this->p2.Y) - this->bp.lc_val(this->p1.Y)) *
-                            (this->bp.lc_val(this->p2.X) - this->bp.lc_val(this->p1.X)).inversed();
-                        this->bp.lc_val(this->result.X) = this->bp.lc_val(this->lambda).squared() -
-                                                          group_type::params_type::A - this->bp.lc_val(this->p1.X) -
-                                                          this->bp.lc_val(this->p2.X);
-                        this->bp.lc_val(this->result.Y) =
-                            -(this->bp.lc_val(this->p1.Y) +
-                              (this->bp.lc_val(this->lambda) *
-                               (this->bp.lc_val(this->result.X) - this->bp.lc_val(this->p1.X))));
-                    }
-                };
+                void generate_assignments() {
+                    this->bp.lc_val(this->lambda) =
+                        (this->bp.lc_val(this->p2.Y) - this->bp.lc_val(this->p1.Y)) *
+                        (this->bp.lc_val(this->p2.X) - this->bp.lc_val(this->p1.X)).inversed();
+                    this->bp.lc_val(this->result.X) = this->bp.lc_val(this->lambda).squared() -
+                                                      group_type::params_type::A - this->bp.lc_val(this->p1.X) -
+                                                      this->bp.lc_val(this->p2.X);
+                    this->bp.lc_val(this->result.Y) =
+                        -(this->bp.lc_val(this->p1.Y) +
+                          (this->bp.lc_val(this->lambda) *
+                           (this->bp.lc_val(this->result.X) - this->bp.lc_val(this->p1.X))));
+                }
+            };
 
-                /**
-                 * Gadget to convert affine Montgomery coordinates into affine twisted Edwards coordinates.
-                 */
-                template<typename Curve>
-                struct element_g1_to_twisted_edwards<Curve, algebra::curves::forms::montgomery,
-                                                     algebra::curves::coordinates::affine>
-                    : public component<typename element_g1<Curve, algebra::curves::forms::montgomery,
-                                                           algebra::curves::coordinates::affine>::field_type> {
-                    using curve_type = Curve;
-                    using form = algebra::curves::forms::montgomery;
-                    using coordinates = algebra::curves::coordinates::affine;
+            /**
+             * Gadget to convert affine Montgomery coordinates into affine twisted Edwards coordinates.
+             */
+            template<typename Curve>
+            struct element_g1_to_twisted_edwards<Curve, crypto3::algebra::curves::forms::montgomery,
+                                                 crypto3::algebra::curves::coordinates::affine>
+                : public component<typename element_g1<Curve, crypto3::algebra::curves::forms::montgomery,
+                                                       crypto3::algebra::curves::coordinates::affine>::field_type> {
+                using curve_type = Curve;
+                using form = crypto3::algebra::curves::forms::montgomery;
+                using coordinates = crypto3::algebra::curves::coordinates::affine;
 
-                    using element_component = element_g1<curve_type, form, coordinates>;
-                    using to_element_component =
-                        element_g1<curve_type, algebra::curves::forms::twisted_edwards, coordinates>;
+                using element_component = element_g1<curve_type, form, coordinates>;
+                using to_element_component =
+                    element_g1<curve_type, crypto3::algebra::curves::forms::twisted_edwards, coordinates>;
 
-                    using field_type = typename element_component::field_type;
-                    using group_type = typename element_component::group_type;
-                    using to_group_type = typename to_element_component::group_type;
+                using field_type = typename element_component::field_type;
+                using group_type = typename element_component::group_type;
+                using to_group_type = typename to_element_component::group_type;
 
-                    using result_type = to_element_component;
+                using result_type = to_element_component;
 
-                    // Input point
-                    const element_component p;
-                    // Output point
-                    result_type result;
-                    // Intermediate variables
-                    typename field_type::value_type scale;
+                // Input point
+                const element_component p;
+                // Output point
+                result_type result;
+                // Intermediate variables
+                typename field_type::value_type scale;
 
-                    /// Auto allocation of the result
-                    element_g1_to_twisted_edwards(blueprint<field_type> &bp, const element_component &in_p) :
-                        component<field_type>(bp), p(in_p), result(bp),
-                        scale((static_cast<typename field_type::value_type>(4) /
-                               (static_cast<typename field_type::value_type>(to_group_type::params_type::a) -
-                                static_cast<typename field_type::value_type>(to_group_type::params_type::d)) /
-                               static_cast<typename field_type::value_type>(group_type::params_type::B))
-                                  .sqrt()) {
-                    }
+                /// Auto allocation of the result
+                element_g1_to_twisted_edwards(blueprint<field_type> &bp, const element_component &in_p) :
+                    component<field_type>(bp), p(in_p), result(bp),
+                    scale((static_cast<typename field_type::value_type>(4) /
+                           (static_cast<typename field_type::value_type>(to_group_type::params_type::a) -
+                            static_cast<typename field_type::value_type>(to_group_type::params_type::d)) /
+                           static_cast<typename field_type::value_type>(group_type::params_type::B))
+                              .sqrt()) {
+                }
 
-                    /// Manual allocation of the result
-                    element_g1_to_twisted_edwards(blueprint<field_type> &bp, const element_component &in_p,
-                                                  const result_type &in_result) :
-                        component<field_type>(bp),
-                        p(in_p), result(in_result),
-                        scale((static_cast<typename field_type::value_type>(4) /
-                               (static_cast<typename field_type::value_type>(to_group_type::params_type::a) -
-                                static_cast<typename field_type::value_type>(to_group_type::params_type::d)) /
-                               static_cast<typename field_type::value_type>(group_type::params_type::B))
-                                  .sqrt()) {
-                    }
+                /// Manual allocation of the result
+                element_g1_to_twisted_edwards(blueprint<field_type> &bp, const element_component &in_p,
+                                              const result_type &in_result) :
+                    component<field_type>(bp), p(in_p), result(in_result),
+                    scale((static_cast<typename field_type::value_type>(4) /
+                           (static_cast<typename field_type::value_type>(to_group_type::params_type::a) -
+                            static_cast<typename field_type::value_type>(to_group_type::params_type::d)) /
+                           static_cast<typename field_type::value_type>(group_type::params_type::B))
+                              .sqrt()) {
+                }
 
-                    void generate_gates() {
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<field_type>({this->p.Y}, {this->result.X},
-                                                                                        {this->p.X * this->scale}));
-                        this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<field_type>({this->p.X + field_type::value_type::one()},
-                                                               {this->result.Y},
-                                                               {this->p.X - field_type::value_type::one()}));
-                    }
+                void generate_gates() {
+                    this->bp.add_r1cs_constraint(crypto3::zk::snark::r1cs_constraint<field_type>(
+                        {this->p.Y}, {this->result.X}, {this->p.X * this->scale}));
+                    this->bp.add_r1cs_constraint(
+                        crypto3::zk::snark::r1cs_constraint<field_type>({this->p.X + field_type::value_type::one()},
 
-                    void generate_assignments() {
-                        typename to_group_type::value_type p_to_XY =
-                            typename group_type::value_type(this->bp.lc_val(p.X), this->bp.lc_val(p.Y))
-                                .to_twisted_edwards();
-                        this->bp.lc_val(result.X) = p_to_XY.X;
-                        this->bp.lc_val(result.Y) = p_to_XY.Y;
-                    }
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                                                                        {this->result.Y},
+                                                                        {this->p.X - field_type::value_type::one()}));
+                }
+
+                void generate_assignments() {
+                    typename to_group_type::value_type p_to_XY =
+                        typename group_type::value_type(this->bp.lc_val(p.X), this->bp.lc_val(p.Y))
+                            .to_twisted_edwards();
+                    this->bp.lc_val(result.X) = p_to_XY.X;
+                    this->bp.lc_val(result.Y) = p_to_XY.Y;
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_MONTGOMERY_G1_COMPONENT_HPP

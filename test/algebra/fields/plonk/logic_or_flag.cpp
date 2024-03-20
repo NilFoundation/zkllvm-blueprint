@@ -51,9 +51,9 @@ auto test_logic_or_flag(std::vector<typename BlueprintFieldType::value_type> pub
 
     zk::snark::plonk_table_description<BlueprintFieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
-    using ArithmetizationType =
-        nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
-    using AssignmentType = nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
+    using AssignmentType =
+        nil::blueprint::assignment<nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
@@ -77,8 +77,7 @@ auto test_logic_or_flag(std::vector<typename BlueprintFieldType::value_type> pub
         (public_input[1].is_zero() ? public_input[1] : BlueprintFieldType::value_type::one());
     typename BlueprintFieldType::value_type expected_result = fx + fy - fx * fy;
 
-    auto result_check = [&expected_result](AssignmentType &assignment,
-                                           typename component_type::result_type &real_res) {
+    auto result_check = [&expected_result](AssignmentType &assignment, typename component_type::result_type &real_res) {
 #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "logic or test: \n";
         std::cout << "input   : " << public_input[0].data << " " << public_input[1].data << "\n";

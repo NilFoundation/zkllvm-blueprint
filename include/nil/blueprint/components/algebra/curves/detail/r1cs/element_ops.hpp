@@ -30,26 +30,24 @@
 #define CRYPTO3_BLUEPRINT_COMPONENTS_ELEMENT_OPS_COMPONENT_HPP
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                template<typename Curve, typename Form, typename Coordinates>
-                struct element_g1_is_well_formed { };
+    namespace blueprint {
+        namespace components {
+            template<typename Curve, typename Form, typename Coordinates>
+            struct element_g1_is_well_formed { };
 
-                template<typename Curve, typename Form, typename Coordinates>
-                struct element_g1_addition { };
+            template<typename Curve, typename Form, typename Coordinates>
+            struct element_g1_addition { };
 
-                template<typename Curve, typename Form, typename Coordinates>
-                struct element_g1_conditional_addition { };
+            template<typename Curve, typename Form, typename Coordinates>
+            struct element_g1_conditional_addition { };
 
-                template<typename Curve, typename Form, typename Coordinates>
-                struct element_g1_to_twisted_edwards { };
+            template<typename Curve, typename Form, typename Coordinates>
+            struct element_g1_to_twisted_edwards { };
 
-                template<typename Curve, typename Form, typename Coordinates>
-                struct element_g1_to_bits { };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+            template<typename Curve, typename Form, typename Coordinates>
+            struct element_g1_to_bits { };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_ELEMENT_OPS_COMPONENT_HPP

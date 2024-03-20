@@ -37,43 +37,41 @@
 #include <nil/blueprint/components/algebra/fields/element_fp6_2over3.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                using namespace nil::crypto3::algebra;
+            using namespace nil::crypto3::algebra;
 
-                template<typename CurveType>
-                class basic_curve_component_policy;
+            template<typename CurveType>
+            class basic_curve_component_policy;
 
-                /**
-                 * Specialization for MNT4.
-                 */
-                template<std::size_t Version>
-                class basic_curve_component_policy<curves::mnt4<Version>> {
-                    using curve_type = typename curves::mnt4<Version>;
+            /**
+             * Specialization for MNT4.
+             */
+            template<std::size_t Version>
+            class basic_curve_component_policy<curves::mnt4<Version>> {
+                using curve_type = typename curves::mnt4<Version>;
 
-                    typedef typename curve_type::chained_on_curve_type chained_on_curve_type;    // mnt6
+                typedef typename curve_type::chained_on_curve_type chained_on_curve_type;    // mnt6
 
-                    typedef typename chained_on_curve_type::pairing::fqe_type fqe_type;
-                    typedef typename chained_on_curve_type::pairing::fqk_type fqk_type;
+                typedef typename chained_on_curve_type::pairing::fqe_type fqe_type;
+                typedef typename chained_on_curve_type::pairing::fqk_type fqk_type;
 
-                    typedef typename curve_type::pairing::fp_type field_type;
+                typedef typename curve_type::pairing::fp_type field_type;
 
-                public:
-                    typedef element_fp3<fqe_type> Fqe_variable_type;
-                    typedef element_fp3_mul<fqe_type> Fqe_mul_component_type;
-                    typedef element_fp3_mul_by_lc<fqe_type> Fqe_mul_by_lc_component_type;
-                    typedef element_fp3_squared<fqe_type> Fqe_sqr_component_type;
+            public:
+                typedef element_fp3<fqe_type> Fqe_variable_type;
+                typedef element_fp3_mul<fqe_type> Fqe_mul_component_type;
+                typedef element_fp3_mul_by_lc<fqe_type> Fqe_mul_by_lc_component_type;
+                typedef element_fp3_squared<fqe_type> Fqe_sqr_component_type;
 
-                    typedef element_fp6_2over3<fqk_type> Fqk_variable_type;
-                    typedef element_fp6_2over3_mul<fqk_type> Fqk_mul_component_type;
-                    typedef element_fp6_2over3_mul_by_2345<fqk_type> Fqk_special_mul_component_type;
-                    typedef element_fp6_2over3_squared<fqk_type> Fqk_sqr_component_type;
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                typedef element_fp6_2over3<fqk_type> Fqk_variable_type;
+                typedef element_fp6_2over3_mul<fqk_type> Fqk_mul_component_type;
+                typedef element_fp6_2over3_mul_by_2345<fqk_type> Fqk_special_mul_component_type;
+                typedef element_fp6_2over3_squared<fqk_type> Fqk_sqr_component_type;
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_MNT4_BASIC_CURVE_COMPONENT_POLICY_HPP

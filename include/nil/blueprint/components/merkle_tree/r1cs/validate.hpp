@@ -36,13 +36,13 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/components/hashes/digest_selector_component.hpp>
 #include <nil/blueprint/components/hashes/hash_io.hpp>
-#include <nil/blueprint/components/merkle_tree/prove.hpp>
+#include <nil/blueprint/components/merkle_tree/r1cs/prove.hpp>
 
 namespace nil {
     namespace blueprint {
         namespace components {
-            template<typename HashComponent = pedersen<>, typename Field = typename HashComponent::field_type,
-                     std::size_t Arity = 2>
+            template<typename HashComponent = components::pedersen<>,
+                     typename Field = typename HashComponent::field_type, std::size_t Arity = 2>
             struct merkle_proof_validate : public component<Field> {
                 static constexpr std::size_t arity = Arity;
 
@@ -52,8 +52,7 @@ namespace nil {
 
                 // TODO: add support of the trees with arity more than 2
                 static_assert(arity == 2);
-                static_assert(
-                    std::is_same<digest_variable<field_type>, typename HashComponent::result_type>::value);
+                static_assert(std::is_same<digest_variable<field_type>, typename HashComponent::result_type>::value);
 
             private:
                 std::vector<HashComponent> hashers;
@@ -80,9 +79,8 @@ namespace nil {
                                       const digest_variable<field_type> &root,
                                       const merkle_proof_component &path,
                                       const detail::blueprint_linear_combination<field_type> &read_successful) :
-                    component<field_type>(bp),
-                    digest_size(HashComponent::digest_bits), tree_depth(tree_depth), address_bits(address_bits),
-                    leaf(leaf), root(root), path(path), read_successful(read_successful) {
+                    component<field_type>(bp), digest_size(HashComponent::digest_bits), tree_depth(tree_depth),
+                    address_bits(address_bits), leaf(leaf), root(root), path(path), read_successful(read_successful) {
                     /*
                        The tricky part here is ordering. For Merkle tree
                        authentication paths, path[0] corresponds to one layer below
@@ -155,7 +153,7 @@ namespace nil {
                 }
             };
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_MERKLE_TREE_CHECK_READ_COMPONENT_HPP

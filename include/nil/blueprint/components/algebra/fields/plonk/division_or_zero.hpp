@@ -49,8 +49,7 @@ namespace nil {
             class division_or_zero;
 
             template<typename BlueprintFieldType>
-            class division_or_zero<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                                   BlueprintFieldType>
+            class division_or_zero<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>
                 : public plonk_component<BlueprintFieldType> {
 
             public:
@@ -63,8 +62,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -85,10 +83,8 @@ namespace nil {
                 using manifest_type = plonk_component_manifest;
 
                 static manifest_type get_manifest() {
-                    static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(5)),
-                        false
-                    );
+                    static manifest_type manifest =
+                        manifest_type(std::shared_ptr<manifest_param>(new manifest_single_value_param(5)), false);
                     return manifest;
                 }
 
@@ -116,23 +112,22 @@ namespace nil {
                     }
                 };
 
-                template <typename ContainerType>
-                division_or_zero(ContainerType witness):
-                    component_type(witness, {}, {}, get_manifest()){};
+                template<typename ContainerType>
+                division_or_zero(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {};
 
-                template <typename WitnessContainerType, typename ConstantContainerType,
-                    typename PublicInputContainerType>
+                template<typename WitnessContainerType, typename ConstantContainerType,
+                         typename PublicInputContainerType>
                 division_or_zero(WitnessContainerType witness, ConstantContainerType constant,
-                        PublicInputContainerType public_input):
-                    component_type(witness, constant, public_input, get_manifest()){};
+                                 PublicInputContainerType public_input) :
+                    component_type(witness, constant, public_input, get_manifest()) {};
 
-                division_or_zero(std::initializer_list<
-                        typename component_type::witness_container_type::value_type> witnesses,
-                               std::initializer_list<
-                        typename component_type::constant_container_type::value_type> constants,
-                               std::initializer_list<
-                        typename component_type::public_input_container_type::value_type> public_inputs):
-                    component_type(witnesses, constants, public_inputs, get_manifest()){};
+                division_or_zero(std::initializer_list<typename component_type::witness_container_type::value_type>
+                                     witnesses,
+                                 std::initializer_list<typename component_type::constant_container_type::value_type>
+                                     constants,
+                                 std::initializer_list<typename component_type::public_input_container_type::value_type>
+                                     public_inputs) :
+                    component_type(witnesses, constants, public_inputs, get_manifest()) {};
 
                 static typename BlueprintFieldType::value_type calculate(typename BlueprintFieldType::value_type x,
                                                                          typename BlueprintFieldType::value_type y) {
@@ -142,41 +137,40 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             using plonk_division_or_zero =
-                division_or_zero<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                BlueprintFieldType>;
+                division_or_zero<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>;
 
             template<typename BlueprintFieldType>
-            typename plonk_division_or_zero<BlueprintFieldType>::result_type
-                generate_assignments(
-                    const plonk_division_or_zero<BlueprintFieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                    const typename plonk_division_or_zero<BlueprintFieldType>::input_type instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_division_or_zero<BlueprintFieldType>::result_type generate_assignments(
+                const plonk_division_or_zero<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_division_or_zero<BlueprintFieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 const std::size_t j = start_row_index;
 
                 assignment.witness(component.W(0), j) = var_value(assignment, instance_input.x);
                 assignment.witness(component.W(1), j) = var_value(assignment, instance_input.y);
                 if (var_value(assignment, instance_input.y) != 0) {
-                    assignment.witness(component.W(2), j) = var_value(assignment, instance_input.x) /
-                        var_value(assignment, instance_input.y);
+                    assignment.witness(component.W(2), j) =
+                        var_value(assignment, instance_input.x) / var_value(assignment, instance_input.y);
                 } else {
                     assignment.witness(component.W(2), j) = 0;
                 }
                 assignment.witness(component.W(3), j) = (var_value(assignment, instance_input.y) == 0) ?
-                    0 : var_value(assignment, instance_input.y).inversed();
-                assignment.witness(component.W(4), j) = var_value(assignment, instance_input.y) * assignment.witness(component.W(3), j);
+                                                            0 :
+                                                            var_value(assignment, instance_input.y).inversed();
+                assignment.witness(component.W(4), j) =
+                    var_value(assignment, instance_input.y) * assignment.witness(component.W(3), j);
 
                 return typename plonk_division_or_zero<BlueprintFieldType>::result_type(component, start_row_index);
             }
 
             template<typename BlueprintFieldType>
-            typename plonk_division_or_zero<BlueprintFieldType>::result_type
-                generate_empty_assignments(
-                    const plonk_division_or_zero<BlueprintFieldType> &component,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                    const typename plonk_division_or_zero<BlueprintFieldType>::input_type instance_input,
-                    const std::uint32_t start_row_index) {
+            typename plonk_division_or_zero<BlueprintFieldType>::result_type generate_empty_assignments(
+                const plonk_division_or_zero<BlueprintFieldType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_division_or_zero<BlueprintFieldType>::input_type instance_input,
+                const std::uint32_t start_row_index) {
 
                 using component_type = plonk_division_or_zero<BlueprintFieldType>;
                 assignment.witness(component.W(2), start_row_index) = component_type::calculate(
@@ -186,11 +180,11 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            std::size_t generate_gates(
-                const plonk_division_or_zero<BlueprintFieldType> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename plonk_division_or_zero<BlueprintFieldType>::input_type &instance_input) {
+            std::size_t
+                generate_gates(const plonk_division_or_zero<BlueprintFieldType> &component,
+                               circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                               assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                               const typename plonk_division_or_zero<BlueprintFieldType>::input_type &instance_input) {
 
                 using var = typename plonk_division_or_zero<BlueprintFieldType>::var;
 
@@ -220,13 +214,12 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            typename plonk_division_or_zero<BlueprintFieldType>::result_type
-                generate_circuit(
-                    const plonk_division_or_zero<BlueprintFieldType> &component,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                    const typename plonk_division_or_zero<BlueprintFieldType>::input_type &instance_input,
-                    const std::size_t start_row_index){
+            typename plonk_division_or_zero<BlueprintFieldType>::result_type generate_circuit(
+                const plonk_division_or_zero<BlueprintFieldType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename plonk_division_or_zero<BlueprintFieldType>::input_type &instance_input,
+                const std::size_t start_row_index) {
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
@@ -237,7 +230,7 @@ namespace nil {
                 return typename plonk_division_or_zero<BlueprintFieldType>::result_type(component, start_row_index);
             }
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_FIELD_DIVISION_OR_ZERO_HPP

@@ -36,8 +36,8 @@
 #include <nil/blueprint/components/algebra/curves/twisted_edwards/element_g1.hpp>
 #include <nil/blueprint/components/hashes/pedersen.hpp>
 #include <nil/blueprint/blueprint/r1cs/circuit.hpp>
-#include <nil/blueprint/blueprint/r1cs/assignment.hpp>
 
+using namespace nil;
 using namespace nil::crypto3;
 using namespace nil::crypto3::zk;
 using namespace nil::crypto3::algebra;
@@ -54,8 +54,8 @@ void test_blueprint_variable_vector_component_constructor(const std::vector<bool
     using field_type = typename HashComponent::field_type;
 
     // input as blueprint_variable_vector
-    blueprint<field_type> bp, bp_manual;
-    nil::crypto3::zk::detail::blueprint_variable_vector<field_type> scalar, scalar_manual;
+    blueprint::blueprint<field_type> bp, bp_manual;
+    blueprint::detail::blueprint_variable_vector<field_type> scalar, scalar_manual;
     scalar.allocate(bp, in_bits.size());
     scalar.fill_with_bits(bp, in_bits);
     scalar_manual.allocate(bp_manual, in_bits.size());
@@ -88,8 +88,9 @@ void test_block_variable_component_constructor(const std::vector<bool> &in_bits,
     using field_type = typename HashComponent::field_type;
 
     // input as block_variable
-    blueprint<field_type> bp, bp_manual;
-    components::block_variable<field_type> in_block(bp, in_bits.size()), in_block_manual(bp_manual, in_bits.size());
+    blueprint::blueprint<field_type> bp, bp_manual;
+    blueprint::components::block_variable<field_type> in_block(bp, in_bits.size()),
+        in_block_manual(bp_manual, in_bits.size());
     in_block.generate_assignments(in_bits);
     in_block_manual.generate_assignments(in_bits);
 
@@ -117,16 +118,16 @@ void test_block_variables_component_constructor(const std::vector<bool> &in_bits
     using field_type = typename HashComponent::field_type;
 
     // input as container of block_variable
-    blueprint<field_type> bp, bp_manual;
+    blueprint::blueprint<field_type> bp, bp_manual;
     std::size_t half_size = in_bits.size() / 2;
-    components::block_variable<field_type> in_block_left(bp, half_size), in_block_right(bp, in_bits.size() - half_size),
-        in_block_manual_left(bp_manual, half_size), in_block_manual_right(bp_manual, in_bits.size() - half_size);
+    blueprint::components::block_variable<field_type> in_block_left(bp, half_size),
+        in_block_right(bp, in_bits.size() - half_size), in_block_manual_left(bp_manual, half_size),
+        in_block_manual_right(bp_manual, in_bits.size() - half_size);
     in_block_left.generate_assignments(std::vector<bool>(std::cbegin(in_bits), std::cbegin(in_bits) + half_size));
     in_block_right.generate_assignments(std::vector<bool>(std::cbegin(in_bits) + half_size, std::cend(in_bits)));
     in_block_manual_left.generate_assignments(
         std::vector<bool>(std::cbegin(in_bits), std::cbegin(in_bits) + half_size));
-    in_block_manual_right.generate_assignments(
-        std::vector<bool>(std::cbegin(in_bits) + half_size, std::cend(in_bits)));
+    in_block_manual_right.generate_assignments(std::vector<bool>(std::cbegin(in_bits) + half_size, std::cend(in_bits)));
 
     // Auto allocation of the result
     HashComponent hash_comp(bp,
@@ -162,8 +163,8 @@ void test_blueprint_variable_vector_component_constructor(const std::vector<bool
     using field_type = typename HashComponent::field_type;
 
     // input as blueprint_variable_vector
-    blueprint<field_type> bp_bits, bp_bits_manual;
-    nil::crypto3::zk::detail::blueprint_variable_vector<field_type> scalar_bits, scalar_bits_manual;
+    blueprint::blueprint<field_type> bp_bits, bp_bits_manual;
+    blueprint::detail::blueprint_variable_vector<field_type> scalar_bits, scalar_bits_manual;
     scalar_bits.allocate(bp_bits, in_bits.size());
     scalar_bits.fill_with_bits(bp_bits, in_bits);
     scalar_bits_manual.allocate(bp_bits_manual, in_bits.size());
@@ -195,8 +196,8 @@ void test_digest_variable_component_constructor(const std::vector<bool> &in_bits
     using field_type = typename HashComponent::field_type;
 
     // input as digest_variable
-    blueprint<field_type> bp_bits, bp_bits_manual;
-    components::digest_variable<field_type> in_block(bp_bits, in_bits.size()),
+    blueprint::blueprint<field_type> bp_bits, bp_bits_manual;
+    blueprint::components::digest_variable<field_type> in_block(bp_bits, in_bits.size()),
         in_block_manual(bp_bits_manual, in_bits.size());
     in_block.generate_assignments(in_bits);
     in_block_manual.generate_assignments(in_bits);
@@ -224,17 +225,16 @@ void test_digest_variables_component_constructor(const std::vector<bool> &in_bit
     using field_type = typename HashComponent::field_type;
 
     // input as container of block_variable
-    blueprint<field_type> bp_bits, bp_bits_manual;
+    blueprint::blueprint<field_type> bp_bits, bp_bits_manual;
     std::size_t half_size = in_bits.size() / 2;
-    components::digest_variable<field_type> in_block_left(bp_bits, half_size),
+    blueprint::components::digest_variable<field_type> in_block_left(bp_bits, half_size),
         in_block_right(bp_bits, in_bits.size() - half_size), in_block_manual_left(bp_bits_manual, half_size),
         in_block_manual_right(bp_bits_manual, in_bits.size() - half_size);
     in_block_left.generate_assignments(std::vector<bool>(std::cbegin(in_bits), std::cbegin(in_bits) + half_size));
     in_block_right.generate_assignments(std::vector<bool>(std::cbegin(in_bits) + half_size, std::cend(in_bits)));
     in_block_manual_left.generate_assignments(
         std::vector<bool>(std::cbegin(in_bits), std::cbegin(in_bits) + half_size));
-    in_block_manual_right.generate_assignments(
-        std::vector<bool>(std::cbegin(in_bits) + half_size, std::cend(in_bits)));
+    in_block_manual_right.generate_assignments(std::vector<bool>(std::cbegin(in_bits) + half_size, std::cend(in_bits)));
 
     // Auto allocation of the result
     HashComponent hash_comp_bits(bp_bits,
@@ -263,8 +263,8 @@ void test_digest_variables_component_constructor(const std::vector<bool> &in_bit
 
 // TODO: extend tests (check verification of wrong values)
 template<typename Curve,
-         typename HashToPointComponent = components::pedersen_to_point<Curve>,
-         typename HashComponent = components::pedersen<Curve>>
+         typename HashToPointComponent = blueprint::components::pedersen_to_point<Curve>,
+         typename HashComponent = blueprint::components::pedersen<Curve>>
 void test_pedersen_default_params_component(
     const std::vector<bool> &in_bits,
     const typename HashToPointComponent::element_component::group_value_type &expected,

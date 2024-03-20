@@ -32,153 +32,183 @@
 
 // #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/multiplication.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/addition.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                // shift scalars for scalar multiplication input
-                // f(X) = X -> X - 2^255 when the scalar field is larger than the base field and // TODO: "larger scalar
-                // field is depricated case" f(X) = X -> (X - 2^255 - 1) / 2 otherwise Input: [x_0, ..., x_InputSize]
-                // Output: [f(x_0), ..., f(x_InputSize)]
-                template<typename ArithmetizationType, typename CurveType, std::size_t InputSize, std::size_t... WireIndexes>
-                class prepare_scalars;
+            // shift scalars for scalar multiplication input
+            // f(X) = X -> X - 2^255 when the scalar field is larger than the base field and // TODO: "larger scalar
+            // field is depricated case" f(X) = X -> (X - 2^255 - 1) / 2 otherwise Input: [x_0, ..., x_InputSize]
+            // Output: [f(x_0), ..., f(x_InputSize)]
+            template<typename ArithmetizationType,
+                     typename CurveType,
+                     std::size_t InputSize,
+                     std::size_t... WireIndexes>
+            class prepare_scalars;
 
-                template<typename BlueprintFieldType, typename CurveType,
-                         std::size_t InputSize, std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3,
-                         std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7, std::size_t W8,
-                         std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13,
-                         std::size_t W14>
-                class prepare_scalars<snark::plonk_constraint_system<BlueprintFieldType>,
-                                      CurveType, InputSize, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+            template<typename BlueprintFieldType,
+                     typename CurveType,
+                     std::size_t InputSize,
+                     std::size_t W0,
+                     std::size_t W1,
+                     std::size_t W2,
+                     std::size_t W3,
+                     std::size_t W4,
+                     std::size_t W5,
+                     std::size_t W6,
+                     std::size_t W7,
+                     std::size_t W8,
+                     std::size_t W9,
+                     std::size_t W10,
+                     std::size_t W11,
+                     std::size_t W12,
+                     std::size_t W13,
+                     std::size_t W14>
+            class prepare_scalars<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                  CurveType,
+                                  InputSize,
+                                  W0,
+                                  W1,
+                                  W2,
+                                  W3,
+                                  W4,
+                                  W5,
+                                  W6,
+                                  W7,
+                                  W8,
+                                  W9,
+                                  W10,
+                                  W11,
+                                  W12,
+                                  W13,
+                                  W14> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType>
-                        ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType> ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-                    using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
-                    using add_component = zk::components::addition<ArithmetizationType, W0, W1, W2>;
+                using mul_component = multiplication<ArithmetizationType,
+                                                     BlueprintFieldType,
+                                                     basic_non_native_policy<BlueprintFieldType>>;
+                using add_component =
+                    addition<ArithmetizationType, BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
-                    constexpr static const std::size_t selector_seed = 0x0f2C;
+                constexpr static const std::size_t selector_seed = 0x0f2C;
 
-                    constexpr static bool scalar_larger() {
-                        using ScalarField = typename CurveType::scalar_field_type;
-                        using BaseField = typename CurveType::base_field_type;
+                constexpr static bool scalar_larger() {
+                    using ScalarField = typename CurveType::scalar_field_type;
+                    using BaseField = typename CurveType::base_field_type;
 
-                        auto n1 = ScalarField::modulus;
-                        auto n2 = BaseField::modulus;
+                    auto n1 = ScalarField::modulus;
+                    auto n2 = BaseField::modulus;
 
-                        return n1 > n2;
-                    }
+                    return n1 > n2;
+                }
 
-                public:
-                    constexpr static const std::size_t rows_amount =
-                        InputSize * (add_component::rows_amount + mul_component::rows_amount);
-                    constexpr static const std::size_t gates_amount = 0;
+            public:
+                constexpr static const std::size_t rows_amount =
+                    InputSize * (add_component::rows_amount + mul_component::rows_amount);
+                constexpr static const std::size_t gates_amount = 0;
 
-                    struct params_type {
-                        std::array<var, InputSize> scalars;
-                    };
-
-                    struct result_type {
-                        std::array<var, InputSize> output;
-                    };
-
-                    static result_type
-                        generate_circuit(blueprint<ArithmetizationType> &bp,
-                                         blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                         const params_type &params,
-                                         const std::size_t start_row_index) {
-
-                        generate_assignments_constants(bp, assignment, params, start_row_index);
-
-                        var shift = var(0, start_row_index, false, var::column_type::constant);
-                        var coef = var(0, start_row_index + 1, false, var::column_type::constant);
-
-                        std::size_t row = start_row_index;
-
-                        std::array<var, InputSize> shifted;
-                        result_type result;
-
-                        for (std::size_t i = 0; i < InputSize; ++i) {
-                            shifted[i] = zk::components::generate_circuit<add_component>(
-                                             bp, assignment, {params.scalars[i], shift}, row)
-                                             .output;
-                            row += add_component::rows_amount;
-                            result.output[i] =
-                                zk::components::generate_circuit<mul_component>(bp, assignment, {shifted[i], coef}, row)
-                                    .output;
-                            row += mul_component::rows_amount;
-                        }
-
-                        generate_copy_constraints(bp, assignment, params, start_row_index);
-
-                        return result;
-                    }
-
-                    static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
-                                                            const params_type &params,
-                                                            const std::size_t start_row_index) {
-
-                        var shift = var(0, start_row_index, false, var::column_type::constant);
-                        var coef = var(0, start_row_index + 1, false, var::column_type::constant);
-
-                        std::size_t row = start_row_index;
-
-                        std::array<var, InputSize> shifted;
-                        result_type result;
-
-                        for (std::size_t i = 0; i < InputSize; ++i) {
-                            shifted[i] =
-                                add_component::generate_assignments(assignment, {params.scalars[i], shift}, row).output;
-                            row += add_component::rows_amount;
-                            result.output[i] =
-                                mul_component::generate_assignments(assignment, {shifted[i], coef}, row).output;
-                            row += mul_component::rows_amount;
-                        }
-
-                        return result;
-                    }
-
-                private:
-                    static void generate_gates(blueprint<ArithmetizationType> &bp,
-                                               blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                               const params_type &params,
-                                               const std::size_t first_selector_index) {
-                    }
-
-                    static void
-                        generate_copy_constraints(blueprint<ArithmetizationType> &bp,
-                                                  blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                                  const params_type &params,
-                                                  const std::size_t start_row_index) {
-                    }
-
-                    static void generate_assignments_constants(
-                        blueprint<ArithmetizationType> &bp,
-                        blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                        const params_type &params,
-                        const std::size_t start_row_index) {
-                        std::size_t row = start_row_index;
-                        typename BlueprintFieldType::value_type base = 2;
-                        if (scalar_larger()) {
-                            assignment.constant(0)[row] = -base.pow(255);
-                            row++;
-                            assignment.constant(0)[row] = 1;
-                        } else {
-                            assignment.constant(0)[row] = -base.pow(255) - 1;
-                            row++;
-                            assignment.constant(0)[row] = 1 / base;
-                        }
-                    }
+                struct params_type {
+                    std::array<var, InputSize> scalars;
                 };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+
+                struct result_type {
+                    std::array<var, InputSize> output;
+                };
+
+                static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
+                                                    assignment<ArithmetizationType> &assignment,
+                                                    const params_type &params,
+                                                    const std::size_t start_row_index) {
+
+                    generate_assignments_constants(bp, assignment, params, start_row_index);
+
+                    var shift = var(0, start_row_index, false, var::column_type::constant);
+                    var coef = var(0, start_row_index + 1, false, var::column_type::constant);
+
+                    std::size_t row = start_row_index;
+
+                    std::array<var, InputSize> shifted;
+                    result_type result;
+
+                    for (std::size_t i = 0; i < InputSize; ++i) {
+                        shifted[i] = ::nil::blueprint::components::generate_circuit<add_component>(
+                                         bp, assignment, {params.scalars[i], shift}, row)
+                                         .output;
+                        row += add_component::rows_amount;
+                        result.output[i] = ::nil::blueprint::components::generate_circuit<mul_component>(
+                                               bp, assignment, {shifted[i], coef}, row)
+                                               .output;
+                        row += mul_component::rows_amount;
+                    }
+
+                    generate_copy_constraints(bp, assignment, params, start_row_index);
+
+                    return result;
+                }
+
+                static result_type generate_assignments(assignment<ArithmetizationType> &assignment,
+                                                        const params_type &params,
+                                                        const std::size_t start_row_index) {
+
+                    var shift = var(0, start_row_index, false, var::column_type::constant);
+                    var coef = var(0, start_row_index + 1, false, var::column_type::constant);
+
+                    std::size_t row = start_row_index;
+
+                    std::array<var, InputSize> shifted;
+                    result_type result;
+
+                    for (std::size_t i = 0; i < InputSize; ++i) {
+                        shifted[i] =
+                            add_component::generate_assignments(assignment, {params.scalars[i], shift}, row).output;
+                        row += add_component::rows_amount;
+                        result.output[i] =
+                            mul_component::generate_assignments(assignment, {shifted[i], coef}, row).output;
+                        row += mul_component::rows_amount;
+                    }
+
+                    return result;
+                }
+
+            private:
+                static void generate_gates(blueprint<ArithmetizationType> &bp,
+                                           assignment<ArithmetizationType> &assignment,
+                                           const params_type &params,
+                                           const std::size_t first_selector_index) {
+                }
+
+                static void generate_copy_constraints(blueprint<ArithmetizationType> &bp,
+                                                      assignment<ArithmetizationType> &assignment,
+                                                      const params_type &params,
+                                                      const std::size_t start_row_index) {
+                }
+
+                static void generate_assignments_constants(blueprint<ArithmetizationType> &bp,
+                                                           assignment<ArithmetizationType> &assignment,
+                                                           const params_type &params,
+                                                           const std::size_t start_row_index) {
+                    std::size_t row = start_row_index;
+                    typename BlueprintFieldType::value_type base = 2;
+                    if (scalar_larger()) {
+                        assignment.constant(0)[row] = -base.pow(255);
+                        row++;
+                        assignment.constant(0)[row] = 1;
+                    } else {
+                        assignment.constant(0)[row] = -base.pow(255) - 1;
+                        row++;
+                        assignment.constant(0)[row] = 1 / base;
+                    }
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_BATCH_SCALAR_PREPARE_SCALARS_HPP

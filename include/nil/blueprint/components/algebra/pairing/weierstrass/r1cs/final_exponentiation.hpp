@@ -35,7 +35,7 @@
 
 #include <nil/crypto3/algebra/algorithms/pair.hpp>
 
-#include <nil/blueprint/components/packing.hpp>
+#include <nil/blueprint/components/detail/r1cs/packing.hpp>
 #include <nil/blueprint/components/algebra/fields/exponentiation.hpp>
 #include <nil/blueprint/components/algebra/pairing/detail/mnt4.hpp>
 #include <nil/blueprint/components/algebra/pairing/detail/mnt6.hpp>

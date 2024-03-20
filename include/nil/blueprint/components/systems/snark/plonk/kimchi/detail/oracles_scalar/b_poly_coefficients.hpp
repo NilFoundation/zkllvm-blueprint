@@ -34,113 +34,109 @@
 
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/multiplication.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                // Coefficients of univariate polynomial
-                // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/poly-commitment/src/commitment.rs#L251
-                // Input: challenges
-                // Output: f = [c0, c1, ...], where f = (1 + challenges[-1] * X)(1 + challenges[-2] * X^2)(1 +
-                // challenges[-3] * X^4)...
-                template<typename ArithmetizationType, std::size_t EvalRounds, std::size_t... WireIndexes>
-                class b_poly_coefficients;
+            // Coefficients of univariate polynomial
+            // https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/poly-commitment/src/commitment.rs#L251
+            // Input: challenges
+            // Output: f = [c0, c1, ...], where f = (1 + challenges[-1] * X)(1 + challenges[-2] * X^2)(1 +
+            // challenges[-3] * X^4)...
+            template<typename ArithmetizationType, std::size_t EvalRounds, std::size_t... WireIndexes>
+            class b_poly_coefficients;
 
-                template<typename BlueprintFieldType, std::size_t EvalRounds,
-                         std::size_t W0, std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5,
-                         std::size_t W6, std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10,
-                         std::size_t W11, std::size_t W12, std::size_t W13, std::size_t W14>
-                class b_poly_coefficients<snark::plonk_constraint_system<BlueprintFieldType>,
-                                          EvalRounds, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+            template<typename BlueprintFieldType, std::size_t EvalRounds, std::size_t W0, std::size_t W1,
+                     std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6, std::size_t W7,
+                     std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11, std::size_t W12, std::size_t W13,
+                     std::size_t W14>
+            class b_poly_coefficients<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, EvalRounds, W0,
+                                      W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType>
-                        ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType> ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-                    using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
+                using mul_component = multiplication<ArithmetizationType, BlueprintFieldType,
+                                                     basic_non_native_policy<BlueprintFieldType>>;
 
-                    constexpr static const std::size_t selector_seed = 0x0f21;
+                constexpr static const std::size_t selector_seed = 0x0f21;
 
-                public:
-                    constexpr static const std::size_t polynomial_len = 1 << EvalRounds;
+            public:
+                constexpr static const std::size_t polynomial_len = 1 << EvalRounds;
 
-                    constexpr static const std::size_t rows_amount = mul_component::rows_amount * polynomial_len;
-                    constexpr static const std::size_t gates_amount = 0;
+                constexpr static const std::size_t rows_amount = mul_component::rows_amount * polynomial_len;
+                constexpr static const std::size_t gates_amount = 0;
 
-                    struct params_type {
-                        std::array<var, EvalRounds> &challenges;
-                        var one;
-                    };
-
-                    struct result_type {
-                        std::array<var, polynomial_len> output;
-                    };
-
-                    static result_type
-                        generate_circuit(blueprint<ArithmetizationType> &bp,
-                                         blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                         const params_type &params,
-                                         const std::size_t start_row_index) {
-
-                        std::size_t row = start_row_index;
-
-                        std::array<var, polynomial_len> output;
-                        output[0] = params.one;
-                        std::size_t k = 0;
-                        std::size_t pow = 1;
-
-                        for (std::size_t i = 1; i < polynomial_len; i++) {
-                            std::size_t shift = i == pow ? 1 : 0;
-                            k += shift;
-                            pow <<= shift;
-                            output[i] = zk::components::generate_circuit<mul_component>(
-                                            bp, assignment,
-                                            {output[i - (pow >> 1)], params.challenges[EvalRounds - 1 - (k - 1)]}, row)
-                                            .output;
-                            row += mul_component::rows_amount;
-                        }
-
-                        result_type res;
-                        res.output = output;
-                        return res;
-                    }
-
-                    static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
-                                                            const params_type &params,
-                                                            const std::size_t start_row_index) {
-
-                        std::size_t row = start_row_index;
-
-                        std::array<var, polynomial_len> output;
-                        output[0] = params.one;
-                        std::size_t k = 0;
-                        std::size_t pow = 1;
-
-                        for (std::size_t i = 1; i < polynomial_len; i++) {
-                            std::size_t shift = i == pow ? 1 : 0;
-                            k += shift;
-                            pow <<= shift;
-                            output[i] = mul_component::generate_assignments(
-                                            assignment,
-                                            {output[i - (pow >> 1)], params.challenges[EvalRounds - 1 - (k - 1)]},
-                                            row)
-                                            .output;
-                            row += mul_component::rows_amount;
-                        }
-
-                        result_type res;
-                        res.output = output;
-                        return res;
-                    }
+                struct params_type {
+                    std::array<var, EvalRounds> &challenges;
+                    var one;
                 };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+
+                struct result_type {
+                    std::array<var, polynomial_len> output;
+                };
+
+                static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
+                                                    assignment<ArithmetizationType> &assignment,
+                                                    const params_type &params,
+                                                    const std::size_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+
+                    std::array<var, polynomial_len> output;
+                    output[0] = params.one;
+                    std::size_t k = 0;
+                    std::size_t pow = 1;
+
+                    for (std::size_t i = 1; i < polynomial_len; i++) {
+                        std::size_t shift = i == pow ? 1 : 0;
+                        k += shift;
+                        pow <<= shift;
+                        output[i] = ::nil::blueprint::components::generate_circuit<mul_component>(
+                                        bp, assignment,
+                                        {output[i - (pow >> 1)], params.challenges[EvalRounds - 1 - (k - 1)]}, row)
+                                        .output;
+                        row += mul_component::rows_amount;
+                    }
+
+                    result_type res;
+                    res.output = output;
+                    return res;
+                }
+
+                static result_type generate_assignments(assignment<ArithmetizationType> &assignment,
+                                                        const params_type &params,
+                                                        const std::size_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+
+                    std::array<var, polynomial_len> output;
+                    output[0] = params.one;
+                    std::size_t k = 0;
+                    std::size_t pow = 1;
+
+                    for (std::size_t i = 1; i < polynomial_len; i++) {
+                        std::size_t shift = i == pow ? 1 : 0;
+                        k += shift;
+                        pow <<= shift;
+                        output[i] =
+                            mul_component::generate_assignments(
+                                assignment, {output[i - (pow >> 1)], params.challenges[EvalRounds - 1 - (k - 1)]}, row)
+                                .output;
+                        row += mul_component::rows_amount;
+                    }
+
+                    result_type res;
+                    res.output = output;
+                    return res;
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_B_POLY_COEFFICIENTS_HPP

@@ -53,10 +53,10 @@ namespace nil {
                 using gate_type = nil::crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
 
                 zoning_info() = default;
-                zoning_info(std::size_t rows_amount_, std::size_t selector_amount_)
-                    : rows_amount(rows_amount_), selector_amount(selector_amount_),
-                      zones(rows_amount_ + selector_amount_ + 1),
-                      constant_priority(rows_amount_, false) {}
+                zoning_info(std::size_t rows_amount_, std::size_t selector_amount_) :
+                    rows_amount(rows_amount_), selector_amount(selector_amount_),
+                    zones(rows_amount_ + selector_amount_ + 1), constant_priority(rows_amount_, false) {
+                }
 
                 std::size_t rows_amount;
                 std::size_t zones_amount;
@@ -176,8 +176,8 @@ namespace nil {
                 typedef typename ComponentType::result_type result_type;
                 typedef zoning_info<BlueprintFieldType> zone_type;
                 using var = typename nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-                using gate_type = typename nil::crypto3::zk::snark::plonk_gate<BlueprintFieldType,
-                                                    nil::crypto3::zk::snark::plonk_constraint<BlueprintFieldType>>;
+                using gate_type = typename nil::crypto3::zk::snark::plonk_gate<
+                    BlueprintFieldType, nil::crypto3::zk::snark::plonk_constraint<BlueprintFieldType>>;
 
                 // overloading this because this isn't a proper component (not in the inheritance hierarchy)
                 std::size_t witness_amount() const {
@@ -192,35 +192,32 @@ namespace nil {
                     using pow_operation = nil::crypto3::math::pow_operation<var>;
                     using binary_arithmetic_operation = nil::crypto3::math::binary_arithmetic_operation<var>;
 
-                    gate_mover(const component_stretcher *stretcher_, std::size_t selector_)
-                        : stretcher(stretcher_), selector(selector_) {}
+                    gate_mover(const component_stretcher *stretcher_, std::size_t selector_) :
+                        stretcher(stretcher_), selector(selector_) {
+                    }
 
-                    expression visit(const expression& expr) {
+                    expression visit(const expression &expr) {
                         return boost::apply_visitor(*this, expr.get_expr());
                     }
 
-                    expression operator()(const term_type& term) {
+                    expression operator()(const term_type &term) {
                         std::vector<var> vars;
                         auto coeff = term.get_coeff();
-                        for (const auto& var: term.get_vars()) {
+                        for (const auto &var : term.get_vars()) {
                             vars.emplace_back(stretcher->move_gate_var(var, selector));
                         }
                         term_type result(vars, coeff);
                         return result;
                     }
 
-                    expression operator()(const pow_operation& pow) {
-                        expression base = boost::apply_visitor(
-                            *this, pow.get_expr().get_expr());
+                    expression operator()(const pow_operation &pow) {
+                        expression base = boost::apply_visitor(*this, pow.get_expr().get_expr());
                         return pow_operation(base, pow.get_power());
                     }
 
-                    expression operator()(
-                            const binary_arithmetic_operation& op) {
-                        expression left =
-                            boost::apply_visitor(*this, op.get_expr_left().get_expr());
-                        expression right =
-                            boost::apply_visitor(*this, op.get_expr_right().get_expr());
+                    expression operator()(const binary_arithmetic_operation &op) {
+                        expression left = boost::apply_visitor(*this, op.get_expr_left().get_expr());
+                        expression right = boost::apply_visitor(*this, op.get_expr_right().get_expr());
                         switch (op.get_op()) {
                             case nil::crypto3::math::ArithmeticOperator::ADD:
                                 return left + right;
@@ -232,6 +229,7 @@ namespace nil {
                                 __builtin_unreachable();
                         }
                     }
+
                 private:
                     const component_stretcher *stretcher;
                     const std::size_t selector;
@@ -252,16 +250,15 @@ namespace nil {
                 mutable bool remapping_computed = false;
 
                 void compute_remapping(
-                        assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                        std::size_t old_witness_amount,
-                        const input_type &instance_input) const {
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                    std::size_t old_witness_amount,
+                    const input_type &instance_input) const {
                     circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> tmp_circuit;
-                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> tmp_assignment(
-                        assignment.witnesses_amount(), assignment.public_inputs_amount(),
-                        assignment.constants_amount(), assignment.selectors_amount()
-                    );
-                    auto converted_input = input_type_converter<ComponentType>::convert(instance_input, assignment,
-                                                                                        tmp_assignment);
+                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                        tmp_assignment(assignment.witnesses_amount(), assignment.public_inputs_amount(),
+                                       assignment.constants_amount(), assignment.selectors_amount());
+                    auto converted_input =
+                        input_type_converter<ComponentType>::convert(instance_input, assignment, tmp_assignment);
                     generate_circuit(this->component, tmp_circuit, tmp_assignment, converted_input, 0);
                     generate_assignments(this->component, tmp_assignment, converted_input, 0);
                     zones = generate_zones(tmp_circuit, tmp_assignment, 0, this->component.rows_amount);
@@ -312,7 +309,7 @@ namespace nil {
                             }
                         } else {
                             // We rely on default remapping
-                             constant_remapping[curr_var.rotation] = new_rotation;
+                            constant_remapping[curr_var.rotation] = new_rotation;
                             constant_assigned[new_rotation] = true;
                             if (first_unassigned_const == new_rotation) {
                                 while (constant_assigned[first_unassigned_const]) {
@@ -321,8 +318,10 @@ namespace nil {
                             }
                         }
                     }
-                    this->rows_amount = std::max_element(zones.zone_sizes.begin(), zones.zone_sizes.end(),
-                                                         [](auto a, auto b) { return a.second < b.second; })->second;
+                    this->rows_amount =
+                        std::max_element(zones.zone_sizes.begin(), zones.zone_sizes.end(), [](auto a, auto b) {
+                            return a.second < b.second;
+                        })->second;
                     this->remapping_computed = true;
                 }
 
@@ -331,24 +330,21 @@ namespace nil {
                     switch (old.type) {
                         case var::column_type::constant:
                             // Assumes a single constant column
-                            new_var = var(
-                                old.index,
-                                new_rotation,
-                                old.relative,
-                                var::column_type::constant);
+                            new_var = var(old.index, new_rotation, old.relative, var::column_type::constant);
                             break;
                         case var::column_type::public_input:
                             // public input is actually the original input variables
                             new_var = input_type_converter<ComponentType>::deconvert_var(input, old);
                             break;
                         case var::column_type::witness:
-                            BOOST_ASSERT_MSG(
-                                old.relative == false,
-                                "We should not move relative variables with move_var, use move_gate_var for gate variables. Copy constraints should be absolute.");
-                            new_var = var(zone_mapping[zones.zones.find_set(old.rotation)] * old_witness_amount + old.index,
-                                          new_rotation,
-                                          old.relative,
-                                          var::column_type::witness);
+                            BOOST_ASSERT_MSG(old.relative == false,
+                                             "We should not move relative variables with move_var, use move_gate_var "
+                                             "for gate variables. Copy constraints should be absolute.");
+                            new_var =
+                                var(zone_mapping[zones.zones.find_set(old.rotation)] * old_witness_amount + old.index,
+                                    new_rotation,
+                                    old.relative,
+                                    var::column_type::witness);
                             break;
                         case var::column_type::selector:
                             BOOST_ASSERT_MSG(false, "Selectors should be moved while moving gates.");
@@ -365,19 +361,15 @@ namespace nil {
                             break;
                         case var::column_type::constant:
                             // Assumes only a single constant column
-                            new_var = var(
-                                old.index,
-                                old.rotation,
-                                old.relative,
-                                var::column_type::constant);
+                            new_var = var(old.index, old.rotation, old.relative, var::column_type::constant);
                             break;
                         case var::column_type::witness:
-                            new_var = var(
-                                zone_mapping[zones.zones.find_set(this->component.rows_amount + selector)] * old_witness_amount +
-                                    old.index,
-                                old.rotation,
-                                old.relative,
-                                var::column_type::witness);
+                            new_var = var(zone_mapping[zones.zones.find_set(this->component.rows_amount + selector)] *
+                                                  old_witness_amount +
+                                              old.index,
+                                          old.rotation,
+                                          old.relative,
+                                          var::column_type::witness);
                             break;
                         case var::column_type::selector:
                             BOOST_ASSERT_MSG(false, "Selector columns should not be inside gates.");
@@ -387,14 +379,10 @@ namespace nil {
                 }
 
                 void move_circuit(
-                    const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &tmp_circuit,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &tmp_assignment,
-                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &bp,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &assignment,
+                    const circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &tmp_circuit,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &tmp_assignment,
+                    circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
                     const input_type &instance_input,
                     std::size_t start_row_index) const {
                     // Need to do multiple things here:
@@ -402,7 +390,7 @@ namespace nil {
                     for (auto gate : tmp_circuit.gates()) {
                         std::vector<nil::crypto3::zk::snark::plonk_constraint<BlueprintFieldType>> new_constraints;
                         gate_mover gate_displacer = gate_mover(this, gate.selector_index);
-                        for (auto constraint: gate.constraints) {
+                        for (auto constraint : gate.constraints) {
                             auto new_constraint = gate_displacer.visit(constraint);
                             new_constraints.push_back(new_constraint);
                         }
@@ -437,38 +425,30 @@ namespace nil {
                     // 4) Move copy constraints
                     for (auto constraint : tmp_circuit.copy_constraints()) {
                         var new_first, new_second;
-                        for (auto &[new_var, old_var] :
-                                              {std::make_pair(std::ref(new_first), constraint.first),
-                                               std::make_pair(std::ref(new_second), constraint.second)}) {
+                        for (auto &[new_var, old_var] : {std::make_pair(std::ref(new_first), constraint.first),
+                                                         std::make_pair(std::ref(new_second), constraint.second)}) {
                             if (old_var.type == var::column_type::constant &&
                                 constant_remapping.find(old_var.rotation) != constant_remapping.end()) {
-                                new_var = move_var(
-                                    old_var,
-                                    start_row_index + constant_remapping[old_var.rotation],
-                                    instance_input);
+                                new_var = move_var(old_var, start_row_index + constant_remapping[old_var.rotation],
+                                                   instance_input);
                             } else {
-                                new_var = move_var(
-                                    old_var,
-                                    start_row_index + line_mapping[old_var.rotation],
-                                    instance_input);
+                                new_var =
+                                    move_var(old_var, start_row_index + line_mapping[old_var.rotation], instance_input);
                             }
                         }
                         if (constraint.first.type == var::column_type::constant ||
                             constraint.second.type == var::column_type::constant) {
                         }
-                        nil::crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType>
-                            new_constraint(new_first, new_second);
+                        nil::crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> new_constraint(new_first,
+                                                                                                          new_second);
                         bp.add_copy_constraint(new_constraint);
                     }
                 }
 
                 void move_assignment(
-                    const component_stretcher<BlueprintFieldType, ComponentType>
-                        &component,
-                    const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &tmp_assignment,
-                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                        &assignment,
+                    const component_stretcher<BlueprintFieldType, ComponentType> &component,
+                    const assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &tmp_assignment,
+                    assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
                     std::size_t start_row_index) const {
 
                     for (std::size_t i = 0; i < this->component.rows_amount; i++) {
@@ -486,24 +466,20 @@ namespace nil {
                 }
 
                 component_stretcher(ComponentType &component_,
-                                   std::size_t old_witness_amount_,
-                                   std::size_t stretched_witness_amount_)
-                    : component(component_), old_witness_amount(old_witness_amount_),
-                      stretched_witness_amount(stretched_witness_amount_),
-                      stretch_coeff(stretched_witness_amount_ / old_witness_amount_) {}
+                                    std::size_t old_witness_amount_,
+                                    std::size_t stretched_witness_amount_) :
+                    component(component_), old_witness_amount(old_witness_amount_),
+                    stretched_witness_amount(stretched_witness_amount_),
+                    stretch_coeff(stretched_witness_amount_ / old_witness_amount_) {
+                }
             };
 
             template<typename BlueprintFieldType, typename ComponentType>
             typename ComponentType::result_type generate_circuit(
-                const component_stretcher<BlueprintFieldType, ComponentType>
-                    &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename component_stretcher<BlueprintFieldType,
-                                                         ComponentType>::input_type
-                    &instance_input,
+                const component_stretcher<BlueprintFieldType, ComponentType> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename component_stretcher<BlueprintFieldType, ComponentType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
                 if (!component.remapping_computed) {
@@ -512,46 +488,36 @@ namespace nil {
                 nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     tmp_assignment(assignment.witnesses_amount(), assignment.public_inputs_amount(),
                                    assignment.constants_amount(), assignment.selectors_amount());
-                circuit<crypto3::zk::snark::plonk_constraint_system<
-                    BlueprintFieldType>> tmp_circuit;
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> tmp_circuit;
 
-                auto result = generate_circuit(
-                    component.component, tmp_circuit, tmp_assignment, instance_input, 0);
-                component.move_circuit(tmp_circuit, tmp_assignment, bp, assignment,
-                                       instance_input, start_row_index);
+                auto result = generate_circuit(component.component, tmp_circuit, tmp_assignment, instance_input, 0);
+                component.move_circuit(tmp_circuit, tmp_assignment, bp, assignment, instance_input, start_row_index);
                 return result_type_converter<ComponentType>::convert(component, result, instance_input,
                                                                      start_row_index);
             }
 
             template<typename BlueprintFieldType, typename ComponentType>
             typename ComponentType::result_type generate_assignments(
-                const component_stretcher<BlueprintFieldType, ComponentType>
-                    &component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename component_stretcher<BlueprintFieldType, ComponentType>::input_type
-                    &instance_input,
+                const component_stretcher<BlueprintFieldType, ComponentType> &component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
+                const typename component_stretcher<BlueprintFieldType, ComponentType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
                 if (!component.remapping_computed) {
-                    component.compute_remapping(assignment, component.witness_amount(),instance_input);
+                    component.compute_remapping(assignment, component.witness_amount(), instance_input);
                 }
 
-                nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<
-                    BlueprintFieldType>> tmp_assignment(
-                        assignment.witnesses_amount(), assignment.public_inputs_amount(),
-                        assignment.constants_amount(), assignment.selectors_amount());
-                circuit<crypto3::zk::snark::plonk_constraint_system<
-                    BlueprintFieldType>> tmp_circuit;
+                nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                    tmp_assignment(assignment.witnesses_amount(), assignment.public_inputs_amount(),
+                                   assignment.constants_amount(), assignment.selectors_amount());
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> tmp_circuit;
 
-                auto converted_input = input_type_converter<ComponentType>::convert(instance_input, assignment,
-                                                                                    tmp_assignment);
+                auto converted_input =
+                    input_type_converter<ComponentType>::convert(instance_input, assignment, tmp_assignment);
                 // We need to generate a circuit here, because the constants are generated in generate_circuit.
                 // The assignment might rely on the generated constants.
-                generate_circuit(
-                    component.component, tmp_circuit, tmp_assignment, converted_input, 0);
-                auto result = generate_assignments(
-                    component.component, tmp_assignment, converted_input, 0);
+                generate_circuit(component.component, tmp_circuit, tmp_assignment, converted_input, 0);
+                auto result = generate_assignments(component.component, tmp_assignment, converted_input, 0);
                 component.move_assignment(component, tmp_assignment, assignment, start_row_index);
 
                 return result_type_converter<ComponentType>::convert(component, result, instance_input,
@@ -559,16 +525,14 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename ComponentType>
-            struct is_component_stretcher : std::false_type {};
+            struct is_component_stretcher : std::false_type { };
 
             template<typename BlueprintFieldType, typename ComponentType>
-            struct is_component_stretcher<
-                BlueprintFieldType,
-                component_stretcher<BlueprintFieldType, ComponentType>>
-                    : std::true_type {};
+            struct is_component_stretcher<BlueprintFieldType, component_stretcher<BlueprintFieldType, ComponentType>>
+                : std::true_type { };
 
-        } // namespace components
-    }     // namespace blueprint
-}   // namespace nil
+        }    // namespace components
+    }    // namespace blueprint
+}    // namespace nil
 
-#endif   // CRYPTO3_BLUEPRINT_PLONK_COMPONENT_STRETCHER_HPP
+#endif    // CRYPTO3_BLUEPRINT_PLONK_COMPONENT_STRETCHER_HPP

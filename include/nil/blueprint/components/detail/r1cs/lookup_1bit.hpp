@@ -27,65 +27,60 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_DETAIL_LOOKUP_1BIT_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_DETAIL_LOOKUP_1BIT_HPP
 
-#include <nil/blueprint/components/component.hpp>
-#include <nil/blueprint/components/blueprint.hpp>
-#include <nil/blueprint/components/blueprint_variable.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/blueprint/r1cs/circuit.hpp>
+#include <nil/blueprint/blueprint/r1cs/detail/r1cs/blueprint_variable.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                /**
-                 * One-bit window lookup table using one constraint
-                 */
-                template<typename Field>
-                struct lookup_1bit : public component<Field> {
-                    using field_type = Field;
-                    using field_value_type = typename Field::value_type;
-                    using result_type = detail::blueprint_variable<Field>;
+    namespace blueprint {
+        namespace components {
+            /**
+             * One-bit window lookup table using one constraint
+             */
+            template<typename Field>
+            struct lookup_1bit : public component<Field> {
+                using field_type = Field;
+                using field_value_type = typename Field::value_type;
+                using result_type = detail::blueprint_variable<Field>;
 
-                    const std::vector<field_value_type> constants;
-                    const detail::blueprint_variable<Field> bit;
-                    result_type result;
+                const std::vector<field_value_type> constants;
+                const detail::blueprint_variable<Field> bit;
+                result_type result;
 
-                    /// Auto allocation of the result
-                    template<typename Constants>
-                    lookup_1bit(blueprint<Field> &bp,
-                                const Constants &in_constants,
-                                const detail::blueprint_variable<Field> &in_bit) :
-                        component<Field>(bp),
-                        constants(std::cbegin(in_constants), std::cend(in_constants)), bit(in_bit) {
-                        assert(this->constants.size() == 2);
-                        this->result.allocate(this->bp);
-                    }
+                /// Auto allocation of the result
+                template<typename Constants>
+                lookup_1bit(blueprint<Field> &bp,
+                            const Constants &in_constants,
+                            const detail::blueprint_variable<Field> &in_bit) :
+                    component<Field>(bp), constants(std::cbegin(in_constants), std::cend(in_constants)), bit(in_bit) {
+                    assert(this->constants.size() == 2);
+                    this->result.allocate(this->bp);
+                }
 
-                    /// Manual allocation of the result
-                    template<typename Constants>
-                    lookup_1bit(blueprint<Field> &bp,
-                                const Constants &in_constants,
-                                const detail::blueprint_variable<Field> &in_bit,
-                                const result_type &in_result) :
-                        component<Field>(bp),
-                        constants(std::cbegin(in_constants), std::cend(in_constants)), bit(in_bit), result(in_result) {
-                        assert(this->constants.size() == 2);
-                    }
+                /// Manual allocation of the result
+                template<typename Constants>
+                lookup_1bit(blueprint<Field> &bp,
+                            const Constants &in_constants,
+                            const detail::blueprint_variable<Field> &in_bit,
+                            const result_type &in_result) :
+                    component<Field>(bp), constants(std::cbegin(in_constants), std::cend(in_constants)), bit(in_bit),
+                    result(in_result) {
+                    assert(this->constants.size() == 2);
+                }
 
-                    void generate_gates() {
-                        this->bp.add_r1cs_constraint(snark::r1cs_constraint<field_type>(
-                            {constants[0] + bit * constants[1] - (bit * constants[0])},
-                            {field_value_type::one()},
-                            result));
-                    }
+                void generate_gates() {
+                    this->bp.add_r1cs_constraint(crypto3::zk::snark::r1cs_constraint<field_type>(
+                        {constants[0] + bit * constants[1] - (bit * constants[0])}, {field_value_type::one()}, result));
+                }
 
-                    void generate_assignments() {
-                        std::size_t i = static_cast<std::size_t>(
-                            static_cast<typename field_type::integral_type>((this->bp.val(bit)).data));
-                        this->bp.val(result) = constants[i];
-                    }
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                void generate_assignments() {
+                    std::size_t i = static_cast<std::size_t>(
+                        static_cast<typename field_type::integral_type>((this->bp.val(bit)).data));
+                    this->bp.val(result) = constants[i];
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_DETAIL_LOOKUP_1BIT_HPP

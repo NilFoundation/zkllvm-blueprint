@@ -35,97 +35,95 @@
 #include <algorithm>
 #include <type_traits>
 
-#include <nil/blueprint/components/component.hpp>
-#include <nil/blueprint/components/blueprint_variable.hpp>
-#include <nil/blueprint/components/blueprint_linear_combination.hpp>
+#include <nil/blueprint/component.hpp>
+#include <nil/blueprint/blueprint/r1cs/detail/r1cs/blueprint_variable.hpp>
+#include <nil/blueprint/blueprint/r1cs/detail/r1cs/blueprint_linear_combination.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                template<typename Field>
-                struct lookup_signed_3bit : public component<Field> {
-                    using field_type = Field;
-                    using field_value_type = typename field_type::value_type;
+    namespace blueprint {
+        namespace components {
+            template<typename Field>
+            struct lookup_signed_3bit : public component<Field> {
+                using field_type = Field;
+                using field_value_type = typename field_type::value_type;
 
-                    static constexpr std::size_t chunk_bits = 3;
-                    static constexpr std::size_t lookup_bits = 2;
+                static constexpr std::size_t chunk_bits = 3;
+                static constexpr std::size_t lookup_bits = 2;
 
-                    // Input variables
-                    std::vector<field_value_type> c;
-                    const detail::blueprint_variable_vector<field_type> b;
-                    // Intermediate variable
-                    detail::blueprint_variable<field_type> b0b1;
-                    // Output variable
-                    detail::blueprint_variable<field_type> result;
+                // Input variables
+                std::vector<field_value_type> c;
+                const detail::blueprint_variable_vector<field_type> b;
+                // Intermediate variable
+                detail::blueprint_variable<field_type> b0b1;
+                // Output variable
+                detail::blueprint_variable<field_type> result;
 
-                    /// Auto allocation of the result
-                    template<typename Constants,
-                             typename std::enable_if<std::is_same<field_value_type,
-                                                                  typename std::iterator_traits<
-                                                                      typename Constants::iterator>::value_type>::value,
-                                                     bool>::type = true>
-                    lookup_signed_3bit(blueprint<field_type> &bp,
-                                       const Constants &in_constants,
-                                       const detail::blueprint_variable_vector<field_type> &in_bits) :
-                        component<field_type>(bp),
-                        b(in_bits) {
-                        this->b0b1.allocate(this->bp);
-                        this->result.allocate(this->bp);
-                        std::copy(std::cbegin(in_constants), std::cend(in_constants), std::back_inserter(this->c));
+                /// Auto allocation of the result
+                template<
+                    typename Constants,
+                    typename std::enable_if<
+                        std::is_same<field_value_type,
+                                     typename std::iterator_traits<typename Constants::iterator>::value_type>::value,
+                        bool>::type = true>
+                lookup_signed_3bit(blueprint<field_type> &bp,
+                                   const Constants &in_constants,
+                                   const detail::blueprint_variable_vector<field_type> &in_bits) :
+                    component<field_type>(bp), b(in_bits) {
+                    this->b0b1.allocate(this->bp);
+                    this->result.allocate(this->bp);
+                    std::copy(std::cbegin(in_constants), std::cend(in_constants), std::back_inserter(this->c));
+                }
+
+                /// Manual allocation of the result
+                template<
+                    typename Constants,
+                    typename std::enable_if<
+                        std::is_same<field_value_type,
+                                     typename std::iterator_traits<typename Constants::iterator>::value_type>::value,
+                        bool>::type = true>
+                lookup_signed_3bit(blueprint<field_type> &bp,
+                                   const Constants &in_constants,
+                                   const detail::blueprint_variable_vector<field_type> &in_bits,
+                                   const detail::blueprint_variable<field_type> &in_result) :
+                    component<field_type>(bp), b(in_bits), result(in_result) {
+                    this->b0b1.allocate(this->bp);
+                    std::copy(std::cbegin(in_constants), std::cend(in_constants), std::back_inserter(this->c));
+                }
+
+                void generate_gates() {
+                    /// b0b1 = b[0] * b[1]
+                    this->bp.add_r1cs_constraint(
+                        crypto3::zk::snark::r1cs_constraint<field_type>(this->b[0], this->b[1], this->b0b1));
+
+                    /// y_lc = c[0] + b[0] * (c[1]-c0) + b[1] * (c[2]-c[0]) + b[0]&b[1] * (c[3] - c[2] - c[1] +
+                    /// c[0])
+                    detail::blueprint_linear_combination<field_type> y_lc;
+                    y_lc.assign(
+                        this->bp,
+                        crypto3::math::linear_term<field_type>(detail::blueprint_variable<field_type>(0), this->c[0]) +
+                            crypto3::math::linear_term<field_type>(this->b[0], this->c[1] - this->c[0]) +
+                            crypto3::math::linear_term<field_type>(this->b[1], this->c[2] - this->c[0]) +
+                            crypto3::math::linear_term<field_type>(this->b0b1,
+                                                                   this->c[3] - this->c[2] - this->c[1] + this->c[0]));
+
+                    /// (y_lc + y_lc) * b[2] == y_lc - result
+                    this->bp.add_r1cs_constraint(crypto3::zk::snark::r1cs_constraint<field_type>(
+                        {y_lc + y_lc}, this->b[2], {y_lc - this->result}));
+                }
+
+                void generate_assignments() {
+                    auto i = static_cast<std::size_t>(static_cast<typename field_type::integral_type>(
+                        this->b.get_field_element_from_bits(this->bp).data));
+                    field_value_type result = this->c[i & 3];
+                    if (i > 3) {
+                        result = result * (-field_value_type::one());
                     }
-
-                    /// Manual allocation of the result
-                    template<typename Constants,
-                             typename std::enable_if<std::is_same<field_value_type,
-                                                                  typename std::iterator_traits<
-                                                                      typename Constants::iterator>::value_type>::value,
-                                                     bool>::type = true>
-                    lookup_signed_3bit(blueprint<field_type> &bp,
-                                       const Constants &in_constants,
-                                       const detail::blueprint_variable_vector<field_type> &in_bits,
-                                       const detail::blueprint_variable<field_type> &in_result) :
-                        component<field_type>(bp),
-                        b(in_bits), result(in_result) {
-                        this->b0b1.allocate(this->bp);
-                        std::copy(std::cbegin(in_constants), std::cend(in_constants), std::back_inserter(this->c));
-                    }
-
-                    void generate_gates() {
-                        /// b0b1 = b[0] * b[1]
-                        this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<field_type>(this->b[0], this->b[1], this->b0b1));
-
-                        /// y_lc = c[0] + b[0] * (c[1]-c0) + b[1] * (c[2]-c[0]) + b[0]&b[1] * (c[3] - c[2] - c[1] +
-                        /// c[0])
-                        detail::blueprint_linear_combination<field_type> y_lc;
-                        y_lc.assign(
-                            this->bp,
-                            math::linear_term<field_type>(detail::blueprint_variable<field_type>(0), this->c[0]) +
-                                math::linear_term<field_type>(this->b[0], this->c[1] - this->c[0]) +
-                                math::linear_term<field_type>(this->b[1], this->c[2] - this->c[0]) +
-                                math::linear_term<field_type>(this->b0b1,
-                                                              this->c[3] - this->c[2] - this->c[1] + this->c[0]));
-
-                        /// (y_lc + y_lc) * b[2] == y_lc - result
-                        this->bp.add_r1cs_constraint(
-                            snark::r1cs_constraint<field_type>({y_lc + y_lc}, this->b[2], {y_lc - this->result}));
-                    }
-
-                    void generate_assignments() {
-                        auto i = static_cast<std::size_t>(static_cast<typename field_type::integral_type>(
-                            this->b.get_field_element_from_bits(this->bp).data));
-                        field_value_type result = this->c[i & 3];
-                        if (i > 3) {
-                            result = result * (-field_value_type::one());
-                        }
-                        this->bp.val(this->b0b1) = this->bp.val(this->b[0]) * this->bp.val(this->b[1]);
-                        this->bp.val(this->result) = result;
-                    }
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+                    this->bp.val(this->b0b1) = this->bp.val(this->b[0]) * this->bp.val(this->b[1]);
+                    this->bp.val(this->result) = result;
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_LOOKUP_SIGNED_3BIT_COMPONENT_HPP

@@ -26,17 +26,17 @@
 #ifndef CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_BASE_DETAILS_BATCH_DGLOG_ACCUMULATOR_CHECK_BASE_HPP
 #define CRYPTO3_ZK_BLUEPRINT_PLONK_PICKLES_BASE_DETAILS_BATCH_DGLOG_ACCUMULATOR_CHECK_BASE_HPP
 
-#include <nil/crypto3/zk/blueprint/plonk.hpp>
+#include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/crypto3/zk/assignment/plonk.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/proof.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/commitment.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/transcript_fq.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/detail/to_group.hpp>
-#include <nil/crypto3/zk/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-#include <nil/crypto3/zk/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/types.hpp>
-#include <nil/crypto3/zk/components/algebra/curves/pasta/plonk/multi_scalar_mul_15_wires.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/proof.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/commitment.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/transcript_fq.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/to_group.hpp>
+#include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/components/algebra/curves/pasta/plonk/types.hpp>
+#include <nil/blueprint/components/algebra/curves/pasta/plonk/multi_scalar_mul_15_wires.hpp>
 
 namespace nil {
     namespace crypto3 {

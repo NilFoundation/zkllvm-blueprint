@@ -39,7 +39,7 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-            template<typename HashComponent = nil::crypto3::zk::components::pedersen<>,
+            template<typename HashComponent = components::pedersen<>,
                      typename FieldType = typename HashComponent::field_type, std::size_t Arity = 2>
             struct merkle_proof : public component<FieldType> {
                 using merkle_tree_container =
@@ -116,7 +116,7 @@ namespace nil {
                 }
             };
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_MERKLE_AUTHENTICATION_PATH_VARIABLE_HPP

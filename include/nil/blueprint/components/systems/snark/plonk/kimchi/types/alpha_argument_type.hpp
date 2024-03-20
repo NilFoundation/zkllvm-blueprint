@@ -29,18 +29,16 @@
 #include <nil/blueprint/component.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
-                enum argument_type {
-                    Permutation,
-                    Generic,
-                    Zero,
-                    Lookup,
-                };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+    namespace blueprint {
+        namespace components {
+            enum argument_type {
+                Permutation,
+                Generic,
+                Zero,
+                Lookup,
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_TYPES_ALPHA_ARGUMENT_TYPE_HPP

@@ -37,51 +37,50 @@
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/inner_constants.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                template<typename ArithmetizationType, typename BlueprintFieldType, typename KimchiParamsType>
-                struct binding {
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
-                    using commitment_parms_type = typename KimchiParamsType::commitment_params_type;
-                    using kimchi_constants = zk::components::kimchi_inner_constants<KimchiParamsType>;
+            template<typename ArithmetizationType, typename BlueprintFieldType, typename KimchiParamsType>
+            struct binding {
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
+                using commitment_parms_type = typename KimchiParamsType::commitment_params_type;
+                using kimchi_constants = kimchi_inner_constants<KimchiParamsType>;
 
-                    template<typename VarType, std::size_t BatchSize>
-                    struct fr_data {
-                    private:
-                        constexpr static const std::size_t f_comm_msm_size = kimchi_constants::f_comm_msm_size;
-                        constexpr static const std::size_t lookup_columns = KimchiParamsType::circuit_params::lookup_columns;
+                template<typename VarType, std::size_t BatchSize>
+                struct fr_data {
+                private:
+                    constexpr static const std::size_t f_comm_msm_size = kimchi_constants::f_comm_msm_size;
+                    constexpr static const std::size_t lookup_columns =
+                        KimchiParamsType::circuit_params::lookup_columns;
 
-                    public:
-                        std::array<VarType, kimchi_constants::final_msm_size(BatchSize)> scalars;
-                        std::array<std::array<VarType, f_comm_msm_size>, BatchSize> f_comm_scalars;
-                        std::array<VarType, BatchSize> cip_shifted;
+                public:
+                    std::array<VarType, kimchi_constants::final_msm_size(BatchSize)> scalars;
+                    std::array<std::array<VarType, f_comm_msm_size>, BatchSize> f_comm_scalars;
+                    std::array<VarType, BatchSize> cip_shifted;
 
-                        std::array<var, KimchiParamsType::public_input_size> neg_pub;
-                        std::array<var, BatchSize> zeta_to_srs_len;
-                        var zeta_to_domain_size_minus_1;
+                    std::array<var, KimchiParamsType::public_input_size> neg_pub;
+                    std::array<var, BatchSize> zeta_to_srs_len;
+                    var zeta_to_domain_size_minus_1;
 
-                        std::array<var, lookup_columns> joint_combiner_powers_prepared;
-                    };
-
-                    template<typename VarType>
-                    struct fq_data { };
-
-                    struct fq_sponge_output {
-                        var joint_combiner;
-                        var beta;    // beta and gamma can be combined from limbs in the base circuit
-                        var gamma;
-                        var alpha;
-                        var zeta;
-                        var fq_digest;    // TODO overflow check
-                        std::array<var, commitment_parms_type::eval_rounds> challenges;
-                        var c;
-                    };
+                    std::array<var, lookup_columns> joint_combiner_powers_prepared;
                 };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+
+                template<typename VarType>
+                struct fq_data { };
+
+                struct fq_sponge_output {
+                    var joint_combiner;
+                    var beta;    // beta and gamma can be combined from limbs in the base circuit
+                    var gamma;
+                    var alpha;
+                    var zeta;
+                    var fq_digest;    // TODO overflow check
+                    std::array<var, commitment_parms_type::eval_rounds> challenges;
+                    var c;
+                };
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_BINDING_HPP

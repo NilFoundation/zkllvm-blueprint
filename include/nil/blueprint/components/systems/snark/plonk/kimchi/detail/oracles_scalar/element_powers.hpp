@@ -34,122 +34,145 @@
 
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/proof.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
-#include <nil/crypto3/zk/algorithms/generate_circuit.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/multiplication.hpp>
+#include <nil/blueprint/algorithms/generate_circuit.hpp>
 
 namespace nil {
-    namespace crypto3 {
-        namespace blueprint {
-            namespace components {
+    namespace blueprint {
+        namespace components {
 
-                // for (base, n) calculates [base^0, base^1, ..., base^n]
-                // n >= 0
-                // Input: base, n
-                // Output: [base^0, base^1, ..., base^n]
-                template<typename ArithmetizationType, std::size_t n, std::size_t... WireIndexes>
-                class element_powers;
+            // for (base, n) calculates [base^0, base^1, ..., base^n]
+            // n >= 0
+            // Input: base, n
+            // Output: [base^0, base^1, ..., base^n]
+            template<typename ArithmetizationType, std::size_t n, std::size_t... WireIndexes>
+            class element_powers;
 
-                template<typename BlueprintFieldType, std::size_t n, std::size_t W0,
-                         std::size_t W1, std::size_t W2, std::size_t W3, std::size_t W4, std::size_t W5, std::size_t W6,
-                         std::size_t W7, std::size_t W8, std::size_t W9, std::size_t W10, std::size_t W11,
-                         std::size_t W12, std::size_t W13, std::size_t W14>
-                class element_powers<snark::plonk_constraint_system<BlueprintFieldType>, n, W0,
-                                     W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14> {
+            template<typename BlueprintFieldType,
+                     std::size_t n,
+                     std::size_t W0,
+                     std::size_t W1,
+                     std::size_t W2,
+                     std::size_t W3,
+                     std::size_t W4,
+                     std::size_t W5,
+                     std::size_t W6,
+                     std::size_t W7,
+                     std::size_t W8,
+                     std::size_t W9,
+                     std::size_t W10,
+                     std::size_t W11,
+                     std::size_t W12,
+                     std::size_t W13,
+                     std::size_t W14>
+            class element_powers<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                 n,
+                                 W0,
+                                 W1,
+                                 W2,
+                                 W3,
+                                 W4,
+                                 W5,
+                                 W6,
+                                 W7,
+                                 W8,
+                                 W9,
+                                 W10,
+                                 W11,
+                                 W12,
+                                 W13,
+                                 W14> {
 
-                    typedef snark::plonk_constraint_system<BlueprintFieldType>
-                        ArithmetizationType;
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType> ArithmetizationType;
 
-                    using var = snark::plonk_variable<typename BlueprintFieldType::value_type>;
+                using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
-                    using mul_component = zk::components::multiplication<ArithmetizationType, W0, W1, W2>;
+                using mul_component = multiplication<ArithmetizationType,
+                                                     BlueprintFieldType,
+                                                     basic_non_native_policy<BlueprintFieldType>>;
 
-                    constexpr static const std::size_t selector_seed = 0x0f0c;
+                constexpr static const std::size_t selector_seed = 0x0f0c;
 
-                public:
-                    constexpr static const std::size_t rows_amount =
-                        n <= 1 ? 1 : (n - 2) * mul_component::rows_amount + 1;
-                    constexpr static const std::size_t gates_amount = 0;
+            public:
+                constexpr static const std::size_t rows_amount = n <= 1 ? 1 : (n - 2) * mul_component::rows_amount + 1;
+                constexpr static const std::size_t gates_amount = 0;
 
-                    struct params_type {
-                        var base;
-                        var one;
-                    };
+                struct params_type {
+                    var base;
+                    var one;
+                };
 
-                    struct result_type {
-                        std::array<var, n> output;
+                struct result_type {
+                    std::array<var, n> output;
 
-                        result_type(std::size_t component_start_row) {
-                            output[0] = var(W0, component_start_row, false);
-                            if (n > 0) {
-                                output[1] = var(W1, component_start_row, false);
-                            }
-                            for (std::size_t i = 2; i < n; i++) {
-                                output[i] = typename mul_component::result_type(component_start_row + i - 1).output;
-                            }
+                    result_type(std::size_t component_start_row) {
+                        output[0] = var(W0, component_start_row, false);
+                        if (n > 0) {
+                            output[1] = var(W1, component_start_row, false);
                         }
-                    };
-
-                    static result_type
-                        generate_circuit(blueprint<ArithmetizationType> &bp,
-                                         blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                         const params_type &params,
-                                         const std::size_t start_row_index) {
-
-                        var base(W1, start_row_index, false);
-                        var last_result(W1, start_row_index, false);
-                        std::size_t row = start_row_index + 1;
                         for (std::size_t i = 2; i < n; i++) {
-                            last_result = zk::components::generate_circuit<mul_component>(bp, assignment,
-                                                                                          {base, last_result}, row)
-                                              .output;
-                            row += mul_component::rows_amount;
+                            output[i] = typename mul_component::result_type(component_start_row + i - 1).output;
                         }
-
-                        generate_copy_constraints(bp, assignment, params, start_row_index);
-                        return result_type(start_row_index);
-                    }
-
-                    static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
-                                                            const params_type &params,
-                                                            const std::size_t start_row_index) {
-
-                        std::size_t row = start_row_index;
-
-                        assignment.witness(W0)[start_row_index] = 1;
-                        assignment.witness(W1)[start_row_index] = assignment.var_value(params.base);
-                        var base(W1, start_row_index, false);
-                        var last_result(W1, start_row_index, false);
-                        row++;
-
-                        for (std::size_t i = 2; i < n; i++) {
-                            last_result =
-                                mul_component::generate_assignments(assignment, {base, last_result}, row).output;
-                            row += mul_component::rows_amount;
-                        }
-
-                        return result_type(start_row_index);
-                    }
-
-                private:
-                    static void generate_gates(blueprint<ArithmetizationType> &bp,
-                                               blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                               const params_type &params,
-                                               const std::size_t first_selector_index) {
-                    }
-
-                    static void
-                        generate_copy_constraints(blueprint<ArithmetizationType> &bp,
-                                                  blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                                  const params_type &params,
-                                                  const std::size_t start_row_index) {
-
-                        bp.add_copy_constraint({{W0, static_cast<int>(start_row_index), false}, params.one});
-                        bp.add_copy_constraint({{W1, static_cast<int>(start_row_index), false}, params.base});
                     }
                 };
-            }    // namespace components
-        }        // namespace blueprint
-    }            // namespace crypto3
+
+                static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
+                                                    assignment<ArithmetizationType> &assignment,
+                                                    const params_type &params,
+                                                    const std::size_t start_row_index) {
+
+                    var base(W1, start_row_index, false);
+                    var last_result(W1, start_row_index, false);
+                    std::size_t row = start_row_index + 1;
+                    for (std::size_t i = 2; i < n; i++) {
+                        last_result = ::nil::blueprint::components::generate_circuit<mul_component>(
+                                          bp, assignment, {base, last_result}, row)
+                                          .output;
+                        row += mul_component::rows_amount;
+                    }
+
+                    generate_copy_constraints(bp, assignment, params, start_row_index);
+                    return result_type(start_row_index);
+                }
+
+                static result_type generate_assignments(assignment<ArithmetizationType> &assignment,
+                                                        const params_type &params,
+                                                        const std::size_t start_row_index) {
+
+                    std::size_t row = start_row_index;
+
+                    assignment.witness(W0)[start_row_index] = 1;
+                    assignment.witness(W1)[start_row_index] = assignment.var_value(params.base);
+                    var base(W1, start_row_index, false);
+                    var last_result(W1, start_row_index, false);
+                    row++;
+
+                    for (std::size_t i = 2; i < n; i++) {
+                        last_result = mul_component::generate_assignments(assignment, {base, last_result}, row).output;
+                        row += mul_component::rows_amount;
+                    }
+
+                    return result_type(start_row_index);
+                }
+
+            private:
+                static void generate_gates(blueprint<ArithmetizationType> &bp,
+                                           assignment<ArithmetizationType> &assignment,
+                                           const params_type &params,
+                                           const std::size_t first_selector_index) {
+                }
+
+                static void generate_copy_constraints(blueprint<ArithmetizationType> &bp,
+                                                      assignment<ArithmetizationType> &assignment,
+                                                      const params_type &params,
+                                                      const std::size_t start_row_index) {
+
+                    bp.add_copy_constraint({{W0, static_cast<int>(start_row_index), false}, params.one});
+                    bp.add_copy_constraint({{W1, static_cast<int>(start_row_index), false}, params.base});
+                }
+            };
+        }    // namespace components
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_KIMCHI_DETAIL_ELEMENT_POWERS_HPP

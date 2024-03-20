@@ -29,7 +29,7 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_MERKLE_AUTHENTICATION_PATH_VARIABLE_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_MERKLE_AUTHENTICATION_PATH_VARIABLE_HPP
 
-#include <nil/crypto3/zk/snark/merkle_tree.hpp>
+#include <nil/crypto3/container/merkle/tree.hpp>
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/components/hashes/hash_io.hpp>
 
@@ -59,8 +59,9 @@ namespace nil {
                     }
                 }
 
+                template<std::size_t Arity = 2>
                 void generate_assignments(const std::size_t address,
-                                           const snark::merkle_authentication_path &path) {
+                                          const crypto3::containers::merkle_proof<Hash, FieldType, Arity> &path) {
                     assert(path.size() == tree_depth);
 
                     for (std::size_t i = 0; i < tree_depth; ++i) {
@@ -72,8 +73,10 @@ namespace nil {
                     }
                 }
 
-                snark::merkle_authentication_path get_authentication_path(const std::size_t address) const {
-                    snark::merkle_authentication_path result;
+                template<std::size_t Arity = 2>
+                crypto3::containers::merkle_proof<Hash, FieldType, Arity>
+                    get_authentication_path(const std::size_t address) const {
+                    crypto3::containers::merkle_proof<Hash, FieldType, Arity> result;
                     for (std::size_t i = 0; i < tree_depth; ++i) {
                         if (address & (1ul << (tree_depth - 1 - i))) {
                             result.emplace_back(left_digests[i].get_digest());
@@ -86,7 +89,7 @@ namespace nil {
                 }
             };
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_MERKLE_AUTHENTICATION_PATH_VARIABLE_HPP

@@ -35,7 +35,7 @@
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/transcript_fq.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/detail/to_group.hpp>
 #include <nil/blueprint/components/systems/snark/plonk/kimchi/types/verifier_index.hpp>
-#include <nil/blueprint/components/algebra/fields/plonk/field_operations.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/subtraction.hpp>
 #include <nil/blueprint/components/algebra/curves/pasta/plonk/types.hpp>
 #include <nil/blueprint/components/algebra/curves/pasta/plonk/multi_scalar_mul_15_wires.hpp>
 
@@ -48,14 +48,15 @@ namespace nil {
             // Input: list of batch evaluation proofs
             //      https://github.com/o1-labs/proof-systems/blob/1f8532ec1b8d43748a372632bd854be36b371afe/kimchi/src/verifier.rs#L881-L888
             // Output: -
-            template<typename ArithmetizationType, typename CurveType,
-                typename KimchiParamsType, typename KimchiCommitmentParamsType,
-                std::size_t BatchSize,
+            template<typename ArithmetizationType,
+                     typename CurveType,
+                     typename KimchiParamsType,
+                     typename KimchiCommitmentParamsType,
+                     std::size_t BatchSize,
                      std::size_t... WireIndexes>
             class batch_verify_base_field;
 
             template<typename BlueprintFieldType,
-
                      typename CurveType,
                      typename KimchiParamsType,
                      typename KimchiCommitmentParamsType,
@@ -76,32 +77,31 @@ namespace nil {
                      std::size_t W13,
                      std::size_t W14>
             class batch_verify_base_field<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                                    CurveType,
-                                    KimchiParamsType,
-                                    KimchiCommitmentParamsType,
-                                    BatchSize,
-                                    W0,
-                                    W1,
-                                    W2,
-                                    W3,
-                                    W4,
-                                    W5,
-                                    W6,
-                                    W7,
-                                    W8,
-                                    W9,
-                                    W10,
-                                    W11,
-                                    W12,
-                                    W13,
-                                    W14 > {
+                                          CurveType,
+                                          KimchiParamsType,
+                                          KimchiCommitmentParamsType,
+                                          BatchSize,
+                                          W0,
+                                          W1,
+                                          W2,
+                                          W3,
+                                          W4,
+                                          W5,
+                                          W6,
+                                          W7,
+                                          W8,
+                                          W9,
+                                          W10,
+                                          W11,
+                                          W12,
+                                          W13,
+                                          W14> {
 
-                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType,
-                    ArithmetizationParams> ArithmetizationType;
-
+                typedef crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType> ArithmetizationType;
 
                 using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
-                using sub_component = subtraction<ArithmetizationType, W0, W1, W2>;
+                using sub_component =
+                    subtraction<ArithmetizationType, BlueprintFieldType, basic_non_native_policy<BlueprintFieldType>>;
 
                 using kimchi_constants = kimchi_inner_constants<KimchiParamsType>;
 
@@ -109,38 +109,65 @@ namespace nil {
 
                 constexpr static const std::size_t final_msm_size = kimchi_constants::final_msm_size(BatchSize);
 
-                using msm_component = element_g1_multi_scalar_mul< ArithmetizationType, CurveType, final_msm_size,
-                    W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                using msm_component = element_g1_multi_scalar_mul<ArithmetizationType,
+                                                                  CurveType,
+                                                                  final_msm_size,
+                                                                  W0,
+                                                                  W1,
+                                                                  W2,
+                                                                  W3,
+                                                                  W4,
+                                                                  W5,
+                                                                  W6,
+                                                                  W7,
+                                                                  W8,
+                                                                  W9,
+                                                                  W10,
+                                                                  W11,
+                                                                  W12,
+                                                                  W13,
+                                                                  W14>;
 
-                using to_group_component = to_group<ArithmetizationType,
-                    W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
+                using to_group_component =
+                    to_group<ArithmetizationType, W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14>;
 
-                using var_ec_point = typename var_ec_point<BlueprintFieldType>;
+                using var_ec_point = var_ec_point<BlueprintFieldType>;
 
-                using opening_proof_type = typename
+                using opening_proof_type =
                     kimchi_opening_proof_base<BlueprintFieldType, KimchiCommitmentParamsType::eval_rounds>;
 
-                using batch_proof_type = typename
-                    batch_evaluation_proof_base<BlueprintFieldType,
-                        ArithmetizationType, KimchiParamsType,
-                        KimchiCommitmentParamsType>;
+                using batch_proof_type = batch_evaluation_proof_base<BlueprintFieldType,
+                                                                     ArithmetizationType,
+                                                                     KimchiParamsType,
+                                                                     KimchiCommitmentParamsType>;
 
-                using verifier_index_type = kimchi_verifier_index_base<CurveType,
-                    KimchiParamsType>;
+                using verifier_index_type = kimchi_verifier_index_base<CurveType, KimchiParamsType>;
 
-                using proof_binding = typename binding<ArithmetizationType,
-                    BlueprintFieldType, KimchiParamsType>;
+                using proof_binding = binding<ArithmetizationType, BlueprintFieldType, KimchiParamsType>;
 
-                using transcript_type = kimchi_transcript_fq<ArithmetizationType, CurveType,
-                                W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10,
-                                W11, W12, W13, W14>;
+                using transcript_type = kimchi_transcript_fq<ArithmetizationType,
+                                                             CurveType,
+                                                             W0,
+                                                             W1,
+                                                             W2,
+                                                             W3,
+                                                             W4,
+                                                             W5,
+                                                             W6,
+                                                             W7,
+                                                             W8,
+                                                             W9,
+                                                             W10,
+                                                             W11,
+                                                             W12,
+                                                             W13,
+                                                             W14>;
 
                 constexpr static const std::size_t selector_seed = 0xff91;
 
             public:
-                constexpr static const std::size_t rows_amount = transcript_type::absorb_fr_rows
-                    + transcript_type::challenge_rows
-                    + 1 + msm_component::rows_amount;
+                constexpr static const std::size_t rows_amount =
+                    transcript_type::absorb_fr_rows + transcript_type::challenge_rows + 1 + msm_component::rows_amount;
 
                 constexpr static const std::size_t gates_amount = 0;
 
@@ -156,7 +183,7 @@ namespace nil {
                     }
                 };
 
-                static result_type generate_assignments(blueprint_assignment_table<ArithmetizationType> &assignment,
+                static result_type generate_assignments(assignment<ArithmetizationType> &assignment,
                                                         const params_type &params,
                                                         std::size_t start_row_index) {
                     std::size_t row = start_row_index;
@@ -169,7 +196,7 @@ namespace nil {
 
                     bases[bases_idx++] = params.verifier_index.H;
 
-                    for(std::size_t i = 0; i < KimchiCommitmentParamsType::srs_len; i++) {
+                    for (std::size_t i = 0; i < KimchiCommitmentParamsType::srs_len; i++) {
                         bases[bases_idx++] = params.verifier_index.G[i];
                     }
                     for (std::size_t i = 0; i < padding_size; i++) {
@@ -183,29 +210,30 @@ namespace nil {
                         var t = transcript.challenge_fq_assignment(assignment, row);
                         row += transcript_type::challenge_rows;
 
-                        //var_ec_point U = to_group_component::
+                        // var_ec_point U = to_group_component::
 
-                        //U = transcript.squeeze.to_group()
-                        typename CurveType::template g1_type<algebra::curves::coordinates::affine>::value_type U_value =
-                             algebra::random_element<typename CurveType::template g1_type<algebra::curves::coordinates::affine>>();
+                        // U = transcript.squeeze.to_group()
+                        typename CurveType::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type
+                            U_value = crypto3::algebra::random_element<
+                                typename CurveType::template g1_type<crypto3::algebra::curves::coordinates::affine>>();
                         assignment.witness(W0)[row] = U_value.X;
                         assignment.witness(W1)[row] = U_value.Y;
                         var_ec_point U = {var(0, row), var(1, row)};
                         row++;
 
-                        //params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.x, row);
-                        //params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.y, row);
+                        // params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.x, row);
+                        // params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.y, row);
                         bases[bases_idx++] = params.proofs[i].opening_proof.G;
                         bases[bases_idx++] = U;
-                        for (std::size_t j = 0 ; j < params.proofs[i].opening_proof.L.size(); j++) {
+                        for (std::size_t j = 0; j < params.proofs[i].opening_proof.L.size(); j++) {
                             bases[bases_idx++] = params.proofs[i].opening_proof.L[j];
                             bases[bases_idx++] = params.proofs[i].opening_proof.R[j];
                         }
                         std::size_t unshifted_size = 0;
 
-                        for (std::size_t j = 0 ; j < params.proofs[i].comm.size(); j++) {
+                        for (std::size_t j = 0; j < params.proofs[i].comm.size(); j++) {
                             unshifted_size = params.proofs[i].comm[j].parts.size();
-                            for (std::size_t k =0; k< unshifted_size; k++){
+                            for (std::size_t k = 0; k < unshifted_size; k++) {
                                 bases[bases_idx++] = params.proofs[i].comm[j].parts[k];
                             }
                         }
@@ -223,12 +251,11 @@ namespace nil {
                 }
 
                 static result_type generate_circuit(blueprint<ArithmetizationType> &bp,
-                    blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                    const params_type &params,
-                    const std::size_t start_row_index){
+                                                    assignment<ArithmetizationType> &assignment,
+                                                    const params_type &params,
+                                                    const std::size_t start_row_index) {
 
-                    generate_assignments_constant(bp, assignment,
-                        params, start_row_index);
+                    generate_assignments_constant(bp, assignment, params, start_row_index);
 
                     std::size_t row = start_row_index;
                     var two_pow_255(0, row, false, var::column_type::constant);
@@ -240,7 +267,7 @@ namespace nil {
                     std::size_t bases_idx = 0;
 
                     bases[bases_idx++] = params.verifier_index.H;
-                    for(std::size_t i = 0; i < KimchiCommitmentParamsType::srs_len; i ++) {
+                    for (std::size_t i = 0; i < KimchiCommitmentParamsType::srs_len; i++) {
                         bases[bases_idx++] = params.verifier_index.G[i];
                     }
                     for (std::size_t i = 0; i < padding_size; i++) {
@@ -253,24 +280,24 @@ namespace nil {
                         row += transcript_type::absorb_fr_rows;
                         var t = transcript.challenge_fq_circuit(bp, assignment, row);
                         row += transcript_type::challenge_rows;
-                        //U = transcript.squeeze.to_group()
+                        // U = transcript.squeeze.to_group()
                         var_ec_point U = {var(0, row), var(1, row)};
 
                         row++;
 
-                        //params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.x, row);
-                        //params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.y, row);
+                        // params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.x, row);
+                        // params.proofs[i].transcript.absorb_assignment(assignment, params.proofs[i].o.delta.y, row);
                         bases[bases_idx++] = params.proofs[i].opening_proof.G;
                         bases[bases_idx++] = U;
-                        for (std::size_t j = 0 ; j < params.proofs[i].opening_proof.L.size(); j++) {
+                        for (std::size_t j = 0; j < params.proofs[i].opening_proof.L.size(); j++) {
                             bases[bases_idx++] = params.proofs[i].opening_proof.L[j];
                             bases[bases_idx++] = params.proofs[i].opening_proof.R[j];
                         }
                         std::size_t unshifted_size = 0;
 
-                        for (std::size_t j = 0 ; j < params.proofs[i].comm.size(); j++) {
+                        for (std::size_t j = 0; j < params.proofs[i].comm.size(); j++) {
                             unshifted_size = params.proofs[i].comm[j].parts.size();
-                            for (std::size_t k =0; k < unshifted_size; k++){
+                            for (std::size_t k = 0; k < unshifted_size; k++) {
                                 bases[bases_idx++] = params.proofs[i].comm[j].parts[k];
                             }
                         }
@@ -289,38 +316,32 @@ namespace nil {
                 }
 
             private:
-
-                static void generate_gates(
-                    blueprint<ArithmetizationType> &bp,
-                    blueprint_public_assignment_table<ArithmetizationType> &public_assignment,
-                    const params_type &params,
-                    const std::size_t first_selector_index) {
-
+                static void generate_gates(blueprint<ArithmetizationType> &bp,
+                                           assignment<ArithmetizationType> &public_assignment,
+                                           const params_type &params,
+                                           const std::size_t first_selector_index) {
                 }
 
                 static void generate_copy_constraints(blueprint<ArithmetizationType> &bp,
-                                              blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                              const params_type &params,
-                                              const std::size_t start_row_index) {
+                                                      assignment<ArithmetizationType> &assignment,
+                                                      const params_type &params,
+                                                      const std::size_t start_row_index) {
                     std::size_t row = start_row_index;
-
                 }
 
-                static void
-                    generate_assignments_constant(blueprint<ArithmetizationType> &bp,
-                                              blueprint_public_assignment_table<ArithmetizationType> &assignment,
-                                              const params_type &params,
-                                              std::size_t start_row_index) {
-                        std::size_t row = start_row_index;
-                        typename BlueprintFieldType::integral_type tmp = 1;
-                        assignment.constant(0)[row] = (tmp << 255);
-                        row++;
-                        assignment.constant(0)[row] = 0;
+                static void generate_assignments_constant(blueprint<ArithmetizationType> &bp,
+                                                          assignment<ArithmetizationType> &assignment,
+                                                          const params_type &params,
+                                                          std::size_t start_row_index) {
+                    std::size_t row = start_row_index;
+                    typename BlueprintFieldType::integral_type tmp = 1;
+                    assignment.constant(0)[row] = (tmp << 255);
+                    row++;
+                    assignment.constant(0)[row] = 0;
                 }
             };
-
         }    // namespace components
-    }        // namespace blueprint
+    }    // namespace blueprint
 }    // namespace nil
 
 #endif    // CRYPTO3_BLUEPRINT_COMPONENTS_VARIABLE_BASE_MULTIPLICATION_EDWARD25519_HPP

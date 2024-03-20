@@ -50,7 +50,7 @@
 #include <nil/blueprint/blueprint/plonk/circuit_proxy.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment_proxy.hpp>
-//#include <nil/blueprint/utils/table_profiling.hpp>
+// #include <nil/blueprint/utils/table_profiling.hpp>
 #include <nil/blueprint/utils/satisfiability_check.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
 #include <nil/blueprint/utils/connectedness_check.hpp>
@@ -71,13 +71,12 @@ namespace nil {
     namespace blueprint {
         namespace components {
             template<typename BlueprintFieldType>
-            std::tuple<
-                nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType>,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>>
-                    generate_empty_assignments();
+            std::tuple<nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType>,
+                       circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>,
+                       assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>>
+                generate_empty_assignments();
         }
-    }
+    }    // namespace blueprint
 
     namespace crypto3 {
         inline std::vector<std::size_t> generate_random_step_list(const std::size_t r, const std::size_t max_step) {
@@ -103,7 +102,8 @@ namespace nil {
         }
 
         template<typename fri_type, typename FieldType>
-        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 4, const std::size_t max_step = 1) {
+        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 4,
+                                                         const std::size_t max_step = 1) {
             math::polynomial<typename FieldType::value_type> q = {0, 0, 1};
 
             const std::size_t r = degree_log - 1;
@@ -111,12 +111,8 @@ namespace nil {
             std::vector<std::shared_ptr<math::evaluation_domain<FieldType>>> domain_set =
                 math::calculate_domain_set<FieldType>(degree_log + expand_factor, r);
 
-            typename fri_type::params_type params(
-                (1 << degree_log) - 1,
-                domain_set,
-                generate_random_step_list(r, max_step),
-                expand_factor
-            );
+            typename fri_type::params_type params((1 << degree_log) - 1, domain_set,
+                                                  generate_random_step_list(r, max_step), expand_factor);
 
             return params;
         }
@@ -125,15 +121,14 @@ namespace nil {
         class plonk_test_assigner {
         public:
             virtual typename ComponentType::result_type operator()(
-                const ComponentType&,
-                nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>&,
-                const typename ComponentType::input_type&,
+                const ComponentType &,
+                nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &,
+                const typename ComponentType::input_type &,
                 const std::uint32_t) const = 0;
         };
 
         template<typename ComponentType, typename BlueprintFieldType>
-        class plonk_test_default_assigner :
-            public plonk_test_assigner<ComponentType, BlueprintFieldType> {
+        class plonk_test_default_assigner : public plonk_test_assigner<ComponentType, BlueprintFieldType> {
         public:
             typename ComponentType::result_type operator()(
                 const ComponentType &component,
@@ -141,22 +136,21 @@ namespace nil {
                 const typename ComponentType::input_type &instance_input,
                 const std::uint32_t start_row_index) const override {
 
-                return blueprint::components::generate_assignments<BlueprintFieldType>(
-                            component, assignment, instance_input, start_row_index);
+                return blueprint::components::generate_assignments<BlueprintFieldType>(component, assignment,
+                                                                                       instance_input, start_row_index);
             }
         };
 
         template<typename ComponentType, typename BlueprintFieldType>
-        class plonk_test_custom_assigner :
-            public plonk_test_assigner<ComponentType, BlueprintFieldType> {
+        class plonk_test_custom_assigner : public plonk_test_assigner<ComponentType, BlueprintFieldType> {
 
-            using assigner_type =
-                std::function<typename ComponentType::result_type(
-                    const ComponentType&,
-                    nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>&,
-                    const typename ComponentType::input_type&,
-                    const std::uint32_t)>;
+            using assigner_type = std::function<typename ComponentType::result_type(
+                const ComponentType &,
+                nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &,
+                const typename ComponentType::input_type &,
+                const std::uint32_t)>;
             assigner_type assigner;
+
         public:
             plonk_test_custom_assigner(assigner_type assigner) : assigner(assigner) {};
 
@@ -170,12 +164,12 @@ namespace nil {
             }
         };
 
-        template<
-            typename ComponentType, typename BlueprintFieldType, typename Hash,
-            std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck, bool PrivateInput,
-            typename... ComponentStaticInfoArgs>
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, bool PrivateInput,
+                 typename... ComponentStaticInfoArgs>
         auto prepare_component(ComponentType component_instance,
-                               zk::snark::plonk_table_description<BlueprintFieldType> desc,
+                               zk::snark::plonk_table_description<BlueprintFieldType>
+                                   desc,
                                const PublicInputContainerType &public_input,
                                const FunctorResultCheck &result_check,
                                const plonk_test_assigner<ComponentType, BlueprintFieldType> &assigner,
@@ -188,9 +182,9 @@ namespace nil {
             blueprint::circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> bp;
             blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> assignment(desc);
 
-            if constexpr( nil::blueprint::use_lookups<component_type>() ){
+            if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 auto lookup_tables = component_instance.component_lookup_tables();
-                for(auto &[k,v]:lookup_tables){
+                for (auto &[k, v] : lookup_tables) {
                     bp.reserve_table(k);
                 }
             };
@@ -209,20 +203,17 @@ namespace nil {
                 }
             }
 
-            blueprint::components::generate_circuit<BlueprintFieldType>(
-                component_instance, bp, assignment, instance_input, start_row);
+            blueprint::components::generate_circuit<BlueprintFieldType>(component_instance, bp, assignment,
+                                                                        instance_input, start_row);
 
             auto component_result = boost::get<typename component_type::result_type>(
                 assigner(component_instance, assignment, instance_input, start_row));
             result_check(assignment, component_result);
 
             if constexpr (!PrivateInput) {
-                bool is_connected = check_connectedness(
-                    assignment,
-                    bp,
-                    instance_input.all_vars(),
-                    component_result.all_vars(), start_row, component_instance.rows_amount,
-                    connectedness_check);
+                bool is_connected =
+                    check_connectedness(assignment, bp, instance_input.all_vars(), component_result.all_vars(),
+                                        start_row, component_instance.rows_amount, connectedness_check);
                 if (connectedness_check.t == blueprint::connectedness_check_type::type::NONE) {
                     std::cout << "WARNING: Connectedness check is disabled." << std::endl;
                 }
@@ -234,33 +225,35 @@ namespace nil {
                 // auto zones = blueprint::detail::generate_connectedness_zones(
                 //      assignment, bp, instance_input.all_vars(), start_row, component_instance.rows_amount);
                 // blueprint::detail::export_connectedness_zones(
-                //      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount, std::cout);
+                //      zones, assignment, instance_input.all_vars(), start_row, component_instance.rows_amount,
+                //      std::cout);
 
                 // BOOST_ASSERT_MSG(is_connected,
-                //    "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                //    "Component disconnected! See comment above this assert for a way to output a visual representation
+                //    of the connectedness graph.");
             }
 
             desc.usable_rows_amount = assignment.rows_amount();
 
             if (start_row + component_instance.rows_amount >= public_input.size()) {
                 BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
-                                "Component rows amount does not match actual rows amount.");
+                                 "Component rows amount does not match actual rows amount.");
                 // Stretched components do not have a manifest, as they are dynamically generated.
-                if constexpr (!blueprint::components::is_component_stretcher<
-                                    BlueprintFieldType, ComponentType>::value) {
+                if constexpr (!blueprint::components::is_component_stretcher<BlueprintFieldType,
+                                                                             ComponentType>::value) {
                     BOOST_ASSERT_MSG(assignment.rows_amount() - start_row ==
-                                    component_type::get_rows_amount(component_instance.witness_amount(), 0,
-                                                                    component_static_info_args...),
-                                    "Static component rows amount does not match actual rows amount.");
+                                         component_type::get_rows_amount(component_instance.witness_amount(), 0,
+                                                                         component_static_info_args...),
+                                     "Static component rows amount does not match actual rows amount.");
                 }
             }
             // Stretched components do not have a manifest, as they are dynamically generated.
-            if constexpr (!blueprint::components::is_component_stretcher<
-                                    BlueprintFieldType, ComponentType>::value) {
-                BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates()==
-                                component_type::get_gate_manifest(component_instance.witness_amount(), 0,
-                                                                component_static_info_args...).get_gates_amount(),
-                                "Component total gates amount does not match actual gates amount.");
+            if constexpr (!blueprint::components::is_component_stretcher<BlueprintFieldType, ComponentType>::value) {
+                BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates() ==
+                                     component_type::get_gate_manifest(component_instance.witness_amount(), 0,
+                                                                       component_static_info_args...)
+                                         .get_gates_amount(),
+                                 "Component total gates amount does not match actual gates amount.");
             }
 
             if constexpr (nil::blueprint::use_lookups<component_type>()) {
@@ -270,23 +263,20 @@ namespace nil {
                 // Rather universal for testing
                 // We may start from zero if component doesn't use ordinary constants.
                 std::vector<size_t> lookup_columns_indices;
-                for( std::size_t i = 1; i < assignment.constants_amount(); i++ )  lookup_columns_indices.push_back(i);
+                for (std::size_t i = 1; i < assignment.constants_amount(); i++)
+                    lookup_columns_indices.push_back(i);
 
                 std::size_t cur_selector_id = 0;
-                for(const auto &gate: bp.gates()){
+                for (const auto &gate : bp.gates()) {
                     cur_selector_id = std::max(cur_selector_id, gate.selector_index);
                 }
-                for(const auto &lookup_gate: bp.lookup_gates()){
+                for (const auto &lookup_gate : bp.lookup_gates()) {
                     cur_selector_id = std::max(cur_selector_id, lookup_gate.tag_index);
                 }
                 cur_selector_id++;
                 desc.usable_rows_amount = zk::snark::pack_lookup_tables_horizontal(
-                    bp.get_reserved_indices(),
-                    bp.get_reserved_tables(),
-                    bp, assignment, lookup_columns_indices, cur_selector_id,
-                    desc.usable_rows_amount,
-                    500000
-                );
+                    bp.get_reserved_indices(), bp.get_reserved_tables(), bp, assignment, lookup_columns_indices,
+                    cur_selector_id, desc.usable_rows_amount, 500000);
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
 
@@ -296,25 +286,24 @@ namespace nil {
 
             profiling(assignment);
 #endif
-            //assignment.export_table(std::cout);
-            //bp.export_circuit(std::cout);
+            // assignment.export_table(std::cout);
+            // bp.export_circuit(std::cout);
 
             assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 
             return std::make_tuple(desc, bp, assignment);
         }
 
-        template<
-            typename ComponentType, typename BlueprintFieldType, typename Hash,
-            std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck, bool PrivateInput,
-            typename... ComponentStaticInfoArgs>
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, bool PrivateInput,
+                 typename... ComponentStaticInfoArgs>
         auto prepare_empty_component(ComponentType component_instance,
-                               const zk::snark::plonk_table_description<BlueprintFieldType> &desc,
-                               const PublicInputContainerType &public_input,
-                               const FunctorResultCheck &result_check,
-                               typename ComponentType::input_type instance_input,
-                               blueprint::connectedness_check_type connectedness_check,
-                               ComponentStaticInfoArgs... component_static_info_args) {
+                                     const zk::snark::plonk_table_description<BlueprintFieldType> &desc,
+                                     const PublicInputContainerType &public_input,
+                                     const FunctorResultCheck &result_check,
+                                     typename ComponentType::input_type instance_input,
+                                     blueprint::connectedness_check_type connectedness_check,
+                                     ComponentStaticInfoArgs... component_static_info_args) {
             using component_type = ComponentType;
 
             blueprint::circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> bp;
@@ -335,15 +324,15 @@ namespace nil {
             }
 
             auto component_result = boost::get<typename component_type::result_type>(
-                blueprint::components::generate_empty_assignments<BlueprintFieldType>(
-                component_instance, assignment, instance_input, start_row));
+                blueprint::components::generate_empty_assignments<BlueprintFieldType>(component_instance, assignment,
+                                                                                      instance_input, start_row));
             // assignment.export_table(std::cout);
             // bp.export_circuit(std::cout);
             result_check(assignment, component_result);
 
             if (start_row + component_instance.empty_rows_amount >= public_input.size()) {
                 BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.empty_rows_amount,
-                                "Component rows amount does not match actual rows amount.");
+                                 "Component rows amount does not match actual rows amount.");
             }
             BOOST_ASSERT(bp.num_gates() == 0);
             BOOST_ASSERT(bp.num_lookup_gates() == 0);
@@ -351,62 +340,62 @@ namespace nil {
             return std::make_tuple(desc, bp, assignment);
         }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck,
-                 typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_empty_component(ComponentType component_instance,
-                           zk::snark::plonk_table_description<BlueprintFieldType> input_desc,
-                           const PublicInputContainerType &public_input,
-                           FunctorResultCheck result_check,
-                           typename ComponentType::input_type instance_input,
-                           blueprint::connectedness_check_type connectedness_check =
-                            blueprint::connectedness_check_type::type::STRONG,
-                           ComponentStaticInfoArgs... component_static_info_args) {
+                                 zk::snark::plonk_table_description<BlueprintFieldType>
+                                     input_desc,
+                                 const PublicInputContainerType &public_input,
+                                 FunctorResultCheck result_check,
+                                 typename ComponentType::input_type instance_input,
+                                 blueprint::connectedness_check_type connectedness_check =
+                                     blueprint::connectedness_check_type::type::STRONG,
+                                 ComponentStaticInfoArgs... component_static_info_args) {
             auto [desc, bp, assignments] =
-                prepare_empty_component<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                PublicInputContainerType, FunctorResultCheck, false,
-                                ComponentStaticInfoArgs...>
-                                (component_instance, input_desc, public_input, result_check, instance_input,
-                                connectedness_check, component_static_info_args...);
+                prepare_empty_component<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, false, ComponentStaticInfoArgs...>(
+                    component_instance, input_desc, public_input, result_check, instance_input, connectedness_check,
+                    component_static_info_args...);
         }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck, bool PrivateInput,
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, bool PrivateInput,
                  typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component_inner(ComponentType component_instance,
-                            zk::snark::plonk_table_description<BlueprintFieldType> input_desc,
-                            const PublicInputContainerType &public_input,
-                            const FunctorResultCheck &result_check,
-                            const plonk_test_assigner<ComponentType, BlueprintFieldType>
-                                &assigner,
-                            const typename ComponentType::input_type &instance_input,
-                            bool expected_to_pass,
-                            blueprint::connectedness_check_type connectedness_check,
-                            ComponentStaticInfoArgs... component_static_info_args) {
+                                 zk::snark::plonk_table_description<BlueprintFieldType>
+                                     input_desc,
+                                 const PublicInputContainerType &public_input,
+                                 const FunctorResultCheck &result_check,
+                                 const plonk_test_assigner<ComponentType, BlueprintFieldType> &assigner,
+                                 const typename ComponentType::input_type &instance_input,
+                                 bool expected_to_pass,
+                                 blueprint::connectedness_check_type connectedness_check,
+                                 ComponentStaticInfoArgs... component_static_info_args) {
             auto [desc, bp, assignments] =
-                prepare_component<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                  PublicInputContainerType, FunctorResultCheck, PrivateInput,
-                                  ComponentStaticInfoArgs...>
-                                  (component_instance, input_desc, public_input, result_check, assigner, instance_input,
-                                   expected_to_pass, connectedness_check, component_static_info_args...);
+                prepare_component<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                  FunctorResultCheck, PrivateInput, ComponentStaticInfoArgs...>(
+                    component_instance, input_desc, public_input, result_check, assigner, instance_input,
+                    expected_to_pass, connectedness_check, component_static_info_args...);
 
 // How to define it from crypto3 cmake?
-//#define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
+// #define BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType>;
-            using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
-                Hash, Hash, Lambda, 2
-            >;
+            using lpc_params_type =
+                typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<Hash, Hash, Lambda, 2>;
 
-            using commitment_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
-            using commitment_scheme_type = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<commitment_type>;
-            using placeholder_params_type = typename nil::crypto3::zk::snark::placeholder_params<circuit_params, commitment_scheme_type>;
+            using commitment_type =
+                typename nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
+            using commitment_scheme_type =
+                typename nil::crypto3::zk::commitments::lpc_commitment_scheme<commitment_type>;
+            using placeholder_params_type =
+                typename nil::crypto3::zk::snark::placeholder_params<circuit_params, commitment_scheme_type>;
 
             using fri_type = typename commitment_type::fri_type;
 
@@ -417,158 +406,156 @@ namespace nil {
 
             std::size_t permutation_size = desc.witness_columns + desc.public_input_columns + desc.constant_columns;
 
-            typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type
-                preprocessed_public_data = nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params_type>::process(
-                    bp, assignments.public_table(), desc, lpc_scheme, permutation_size
-                );
+            typename nil::crypto3::zk::snark::placeholder_public_preprocessor<
+                BlueprintFieldType, placeholder_params_type>::preprocessed_data_type preprocessed_public_data =
+                nil::crypto3::zk::snark::placeholder_public_preprocessor<
+                    BlueprintFieldType, placeholder_params_type>::process(bp, assignments.public_table(), desc,
+                                                                          lpc_scheme, permutation_size);
 
-            typename nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type
-                preprocessed_private_data = nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::process(
-                    bp, assignments.private_table(), desc
-                );
+            typename nil::crypto3::zk::snark::placeholder_private_preprocessor<
+                BlueprintFieldType, placeholder_params_type>::preprocessed_data_type preprocessed_private_data =
+                nil::crypto3::zk::snark::placeholder_private_preprocessor<
+                    BlueprintFieldType, placeholder_params_type>::process(bp, assignments.private_table(), desc);
 
-            auto proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params_type>::process(
-                preprocessed_public_data, preprocessed_private_data, desc, bp, lpc_scheme
-            );
+            auto proof =
+                nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params_type>::process(
+                    preprocessed_public_data, preprocessed_private_data, desc, bp, lpc_scheme);
 
-            bool verifier_res = nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params_type>::process(
-                preprocessed_public_data, proof, desc, bp, lpc_scheme
-            );
+            bool verifier_res =
+                nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params_type>::process(
+                    preprocessed_public_data, proof, desc, bp, lpc_scheme);
 
             if (expected_to_pass) {
                 BOOST_CHECK(verifier_res);
-            }
-            else {
+            } else {
                 BOOST_CHECK(!verifier_res);
             }
 #endif
         }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck,
-                 typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component(ComponentType component_instance,
-                           zk::snark::plonk_table_description<BlueprintFieldType> desc,
+                           zk::snark::plonk_table_description<BlueprintFieldType>
+                               desc,
                            const PublicInputContainerType &public_input,
                            FunctorResultCheck result_check,
                            typename ComponentType::input_type instance_input,
                            blueprint::connectedness_check_type connectedness_check =
-                            blueprint::connectedness_check_type::type::STRONG,
+                               blueprint::connectedness_check_type::type::STRONG,
                            ComponentStaticInfoArgs... component_static_info_args) {
-            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                 PublicInputContainerType, FunctorResultCheck, false,
-                                 ComponentStaticInfoArgs...>(
-                                    component_instance, desc, public_input, result_check,
-                                    plonk_test_default_assigner<ComponentType, BlueprintFieldType>(),
-                                    instance_input, true, connectedness_check, component_static_info_args...);
+            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, false, ComponentStaticInfoArgs...>(
+                component_instance, desc, public_input, result_check,
+                plonk_test_default_assigner<ComponentType, BlueprintFieldType>(), instance_input, true,
+                connectedness_check, component_static_info_args...);
         }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component_to_fail(ComponentType component_instance,
-                           zk::snark::plonk_table_description<BlueprintFieldType> desc,
-                           const PublicInputContainerType &public_input,
-                           FunctorResultCheck result_check,
-                           typename ComponentType::input_type instance_input,
-                           blueprint::connectedness_check_type connectedness_check =
-                            blueprint::connectedness_check_type::type::STRONG,
-                           ComponentStaticInfoArgs... component_static_info_args) {
-            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                 PublicInputContainerType, FunctorResultCheck, false, ComponentStaticInfoArgs...>(
-                                    component_instance, desc, public_input, result_check,
-                                    plonk_test_default_assigner<ComponentType, BlueprintFieldType>(),
-                                    instance_input, false, connectedness_check, component_static_info_args...);
+                                   zk::snark::plonk_table_description<BlueprintFieldType>
+                                       desc,
+                                   const PublicInputContainerType &public_input,
+                                   FunctorResultCheck result_check,
+                                   typename ComponentType::input_type instance_input,
+                                   blueprint::connectedness_check_type connectedness_check =
+                                       blueprint::connectedness_check_type::type::STRONG,
+                                   ComponentStaticInfoArgs... component_static_info_args) {
+            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, false, ComponentStaticInfoArgs...>(
+                component_instance, desc, public_input, result_check,
+                plonk_test_default_assigner<ComponentType, BlueprintFieldType>(), instance_input, false,
+                connectedness_check, component_static_info_args...);
         }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck,
-                 typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
-            test_component_custom_assignments(ComponentType component_instance,
-                            zk::snark::plonk_table_description<BlueprintFieldType> desc,
-                            const PublicInputContainerType &public_input, FunctorResultCheck result_check,
-                            const plonk_test_custom_assigner<ComponentType, BlueprintFieldType> &custom_assigner,
-                            typename ComponentType::input_type instance_input,
-                            blueprint::connectedness_check_type connectedness_check =
-                                blueprint::connectedness_check_type::type::STRONG,
-                            ComponentStaticInfoArgs... component_static_info_args) {
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+            test_component_custom_assignments(
+                ComponentType component_instance, zk::snark::plonk_table_description<BlueprintFieldType> desc,
+                const PublicInputContainerType &public_input, FunctorResultCheck result_check,
+                const plonk_test_custom_assigner<ComponentType, BlueprintFieldType> &custom_assigner,
+                typename ComponentType::input_type instance_input,
+                blueprint::connectedness_check_type connectedness_check =
+                    blueprint::connectedness_check_type::type::STRONG,
+                ComponentStaticInfoArgs... component_static_info_args) {
 
-                return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                 PublicInputContainerType, FunctorResultCheck, false, ComponentStaticInfoArgs...>
-                                    (component_instance, desc, public_input, result_check, custom_assigner,
-                                     instance_input, true, connectedness_check, component_static_info_args...);
-            }
+            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, false, ComponentStaticInfoArgs...>(
+                component_instance, desc, public_input, result_check, custom_assigner, instance_input, true,
+                connectedness_check, component_static_info_args...);
+        }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck,
-                 typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
-            test_component_to_fail_custom_assignments(ComponentType component_instance,
-                            zk::snark::plonk_table_description<BlueprintFieldType> desc,
-                            const PublicInputContainerType &public_input, FunctorResultCheck result_check,
-                            const plonk_test_custom_assigner<ComponentType, BlueprintFieldType> &custom_assigner,
-                            typename ComponentType::input_type instance_input,
-                            blueprint::connectedness_check_type connectedness_check =
-                                blueprint::connectedness_check_type::type::STRONG,
-                            ComponentStaticInfoArgs... component_static_info_args) {
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+            test_component_to_fail_custom_assignments(
+                ComponentType component_instance, zk::snark::plonk_table_description<BlueprintFieldType> desc,
+                const PublicInputContainerType &public_input, FunctorResultCheck result_check,
+                const plonk_test_custom_assigner<ComponentType, BlueprintFieldType> &custom_assigner,
+                typename ComponentType::input_type instance_input,
+                blueprint::connectedness_check_type connectedness_check =
+                    blueprint::connectedness_check_type::type::STRONG,
+                ComponentStaticInfoArgs... component_static_info_args) {
 
-                return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                 PublicInputContainerType, FunctorResultCheck, false, ComponentStaticInfoArgs...>
-                                    (component_instance, desc, public_input, result_check, custom_assigner,
-                                     instance_input, false,  connectedness_check,component_static_info_args...);
-            }
+            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, false, ComponentStaticInfoArgs...>(
+                component_instance, desc, public_input, result_check, custom_assigner, instance_input, false,
+                connectedness_check, component_static_info_args...);
+        }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck,
-                 typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component_private_input(ComponentType component_instance,
-                            zk::snark::plonk_table_description<BlueprintFieldType> desc,
-                            const PublicInputContainerType &public_input, FunctorResultCheck result_check,
-                            typename ComponentType::input_type instance_input,
-                            blueprint::connectedness_check_type connectedness_check =
-                                blueprint::connectedness_check_type::type::STRONG,
-                            ComponentStaticInfoArgs... component_static_info_args) {
+                                         zk::snark::plonk_table_description<BlueprintFieldType> desc,
+                                         const PublicInputContainerType &public_input, FunctorResultCheck result_check,
+                                         typename ComponentType::input_type instance_input,
+                                         blueprint::connectedness_check_type connectedness_check =
+                                             blueprint::connectedness_check_type::type::STRONG,
+                                         ComponentStaticInfoArgs... component_static_info_args) {
 
-                return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                 PublicInputContainerType, FunctorResultCheck, true , ComponentStaticInfoArgs...>
-                                    (component_instance, desc, public_input, result_check,
-                                    plonk_test_default_assigner<ComponentType, BlueprintFieldType>(),
-                                    instance_input, true, connectedness_check, component_static_info_args...);
-            }
+            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, true, ComponentStaticInfoArgs...>(
+                component_instance, desc, public_input, result_check,
+                plonk_test_default_assigner<ComponentType, BlueprintFieldType>(), instance_input, true,
+                connectedness_check, component_static_info_args...);
+        }
 
-        template<typename ComponentType, typename BlueprintFieldType, typename Hash,
-                 std::size_t Lambda, typename PublicInputContainerType, typename FunctorResultCheck,
-                 typename... ComponentStaticInfoArgs>
-        typename std::enable_if<
-            std::is_same<typename BlueprintFieldType::value_type,
-                         typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
+        template<typename ComponentType, typename BlueprintFieldType, typename Hash, std::size_t Lambda,
+                 typename PublicInputContainerType, typename FunctorResultCheck, typename... ComponentStaticInfoArgs>
+        typename std::enable_if<std::is_same<
+            typename BlueprintFieldType::value_type,
+            typename std::iterator_traits<typename PublicInputContainerType::iterator>::value_type>::value>::type
             test_component_to_fail_private_input(ComponentType component_instance,
-                            zk::snark::plonk_table_description<BlueprintFieldType> desc,
-                            const PublicInputContainerType &public_input, FunctorResultCheck result_check,
-                            typename ComponentType::input_type instance_input,
-                            blueprint::connectedness_check_type connectedness_check =
-                                blueprint::connectedness_check_type::type::STRONG,
-                            ComponentStaticInfoArgs... component_static_info_args) {
+                                                 zk::snark::plonk_table_description<BlueprintFieldType>
+                                                     desc,
+                                                 const PublicInputContainerType &public_input,
+                                                 FunctorResultCheck result_check,
+                                                 typename ComponentType::input_type instance_input,
+                                                 blueprint::connectedness_check_type connectedness_check =
+                                                     blueprint::connectedness_check_type::type::STRONG,
+                                                 ComponentStaticInfoArgs... component_static_info_args) {
 
-                return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda,
-                                 PublicInputContainerType, FunctorResultCheck, true , ComponentStaticInfoArgs...>
-                                    (component_instance, desc, public_input, result_check,
-                                    plonk_test_default_assigner<ComponentType, BlueprintFieldType>(),
-                                    instance_input, false, connectedness_check, component_static_info_args...);
-            }
+            return test_component_inner<ComponentType, BlueprintFieldType, Hash, Lambda, PublicInputContainerType,
+                                        FunctorResultCheck, true, ComponentStaticInfoArgs...>(
+                component_instance, desc, public_input, result_check,
+                plonk_test_default_assigner<ComponentType, BlueprintFieldType>(), instance_input, false,
+                connectedness_check, component_static_info_args...);
+        }
 
         /*
             Most of the time while testing we do not want to generate an entire set of assignments from scratch.
@@ -577,30 +564,30 @@ namespace nil {
         */
         template<typename BlueprintFieldType, typename ComponentType>
         std::function<typename ComponentType::result_type(
-                const ComponentType&,
-                nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>&,
-                const typename ComponentType::input_type&,
-                const std::uint32_t)>
+            const ComponentType &,
+            nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &,
+            const typename ComponentType::input_type &,
+            const std::uint32_t)>
             generate_patched_assignments(
-                const std::map<std::pair<std::size_t, std::size_t>, typename BlueprintFieldType::value_type>
-                    &patches) {
+                const std::map<std::pair<std::size_t, std::size_t>, typename BlueprintFieldType::value_type> &patches) {
 
-            return [&patches]
-                    (const ComponentType &component,
-                     nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                     const typename ComponentType::input_type &instance_input,
-                     const std::uint32_t start_row_index) {
-                typename ComponentType::result_type result =
-                    blueprint::components::generate_assignments<BlueprintFieldType>(
-                        component, assignment, instance_input, start_row_index);
+            return
+                [&patches](const ComponentType &component,
+                           nil::blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                               &assignment,
+                           const typename ComponentType::input_type &instance_input,
+                           const std::uint32_t start_row_index) {
+                    typename ComponentType::result_type result =
+                        blueprint::components::generate_assignments<BlueprintFieldType>(
+                            component, assignment, instance_input, start_row_index);
 
-                for (const auto &patch : patches) {
-                    assignment.witness(component.W(patch.first.second), patch.first.first + start_row_index) =
-                        patch.second;
-                }
+                    for (const auto &patch : patches) {
+                        assignment.witness(component.W(patch.first.second), patch.first.first + start_row_index) =
+                            patch.second;
+                    }
 
-                return result;
-            };
+                    return result;
+                };
         }
     }    // namespace crypto3
 }    // namespace nil
