@@ -57,7 +57,7 @@
 
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 
-// #include "profiling_plonk_circuit.hpp"
+//#include "profiling_plonk_circuit.hpp"
 
 #include <nil/marshalling/status_type.hpp>
 #include <nil/marshalling/field_type.hpp>
@@ -252,7 +252,15 @@ namespace nil {
                     variable.get() = assignment.get_batch_variable_map().at(variable);
                 }
             }
+/*
+            std::ofstream fass("circuit.tbl");
+            assignment.export_table(fass);
+            fass.close();
 
+            std::ofstream fcirc("circuit.crt");
+            bp.export_circuit(fcirc);
+            fcirc.close();
+*/
             result_check(assignment, component_result);
 
             if constexpr (!PrivateInput) {
@@ -309,14 +317,15 @@ namespace nil {
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
 
-#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+//#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
 
-            profiling(assignment);
-#endif
+//            profiling(assignment);
+//#endif
             //assignment.export_table(std::cout);
             //bp.export_circuit(std::cout);
+
 
             assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 

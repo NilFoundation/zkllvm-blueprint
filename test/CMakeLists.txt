@@ -80,6 +80,7 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/comparison_flag"
     "algebra/fields/plonk/non_native/equality_flag"
     "algebra/fields/plonk/non_native/division_remainder"
+    "algebra/fields/plonk/non_native/mnt4_fp4_fixed_power"
     "non_native/plonk/bool_scalar_multiplication"
     "non_native/plonk/add_mul_zkllvm_compatible"
     "non_native/plonk/scalar_non_native_range"
@@ -188,6 +189,8 @@ set(HASHES_TESTS_FILES
     "hashes/r1cs/pedersen")
 
 set(PAIRING_TESTS_FILES
+    "algebra/pairing/weierstrass/plonk/mnt4_pairing"
+    "algebra/pairing/weierstrass/plonk/mnt4_exponentiation"
     "algebra/pairing/weierstrass/r1cs/miller_loop"
     "algebra/pairing/weierstrass/r1cs/precomputation")
 
