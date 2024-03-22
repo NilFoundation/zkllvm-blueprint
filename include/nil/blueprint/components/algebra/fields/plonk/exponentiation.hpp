@@ -154,11 +154,6 @@ namespace nil {
                                          start_row_index + component.rows_amount - 1, false);
                         }
 
-                        result_type(const exponentiation &component, std::size_t start_row_index) {
-                            output = var(component.W(intermediate_start + component.intermediate_results_per_row - 1),
-                                         start_row_index + component.rows_amount - 1, false);
-                        }
-
                         std::vector<std::reference_wrapper<var>> all_vars() {
                             return {output};
                         }

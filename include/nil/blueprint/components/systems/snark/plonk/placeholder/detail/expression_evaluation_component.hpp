@@ -62,8 +62,10 @@ namespace nil {
                             nil::blueprint::basic_non_native_policy<BlueprintFieldType>>;
 
                     expression_to_execution_simple(assignment_type &_assignment,
-                                                   const std::unordered_map<var, var> &_variable_map)
-                        : assignment(_assignment), variable_map(_variable_map)
+                                                   const std::unordered_map<var, var> &_variable_map,
+                                                   bool _generate_assignment_call)
+                        : assignment(_assignment), variable_map(_variable_map),
+                          generate_assignment_call(_generate_assignment_call)
                     {}
 
                     var visit(const nil::crypto3::math::expression<var> &expr) {
@@ -80,14 +82,16 @@ namespace nil {
                         if (term.get_coeff() != value_type::one()) {
                             auto coeff_var = assignment.add_batch_constant_variable(term.get_coeff());
                             result = assignment.template add_input_to_batch<multiplication_component_type>(
-                                {coeff_var, variable_map.at(term.get_vars()[curr_term])}).output;
+                                {coeff_var, variable_map.at(term.get_vars()[curr_term])},
+                                generate_assignment_call).output;
                         } else {
                             result = variable_map.at(term.get_vars()[curr_term]);
                         }
                         curr_term++;
                         for (; curr_term < term_size; curr_term++) {
                             result = assignment.template add_input_to_batch<multiplication_component_type>(
-                                {result, variable_map.at(term.get_vars()[curr_term])}).output;
+                                {result, variable_map.at(term.get_vars()[curr_term])},
+                                generate_assignment_call).output;
                         }
                         return result;
                     }
@@ -103,16 +107,19 @@ namespace nil {
                         while (power > 1) {
                             if (power % 2 == 0) {
                                 expr_res = assignment.template add_input_to_batch<multiplication_component_type>(
-                                    {expr_res, expr_res}).output;
+                                    {expr_res, expr_res},
+                                    generate_assignment_call).output;
                                 power /= 2;
                             } else {
                                 result = assignment.template add_input_to_batch<multiplication_component_type>(
-                                    {result, expr_res}).output;
+                                    {result, expr_res},
+                                    generate_assignment_call).output;
                                 power -= 1;
                             }
                         }
                         return assignment.template add_input_to_batch<multiplication_component_type>(
-                                {result, expr_res}).output;
+                                {result, expr_res},
+                                generate_assignment_call).output;
                     }
 
                     var operator()(const nil::crypto3::math::binary_arithmetic_operation<var>& op) {
@@ -121,13 +128,16 @@ namespace nil {
                         switch (op.get_op()) {
                             case crypto3::math::ArithmeticOperator::ADD:
                                 return assignment.template add_input_to_batch<addition_component_type>(
-                                            {res1, res2}).output;
+                                            {res1, res2},
+                                            generate_assignment_call).output;
                             case crypto3::math::ArithmeticOperator::SUB:
                                 return assignment.template add_input_to_batch<subtraction_component_type>(
-                                            {res1, res2}).output;
+                                            {res1, res2},
+                                            generate_assignment_call).output;
                             case crypto3::math::ArithmeticOperator::MULT:
                                 return assignment.template add_input_to_batch<multiplication_component_type>(
-                                            {res1, res2}).output;
+                                            {res1, res2},
+                                            generate_assignment_call).output;
                             default:
                                 throw std::runtime_error("Unsupported operation");
                         }
@@ -135,6 +145,7 @@ namespace nil {
                 private:
                     assignment_type &assignment;
                     const std::unordered_map<var, var> &variable_map;
+                    bool generate_assignment_call;
                 };
 
                 template<typename ArithmetizationType>
@@ -254,7 +265,7 @@ namespace nil {
                 using component_type = plonk_expression_evaluation_component<BlueprintFieldType>;
                 using expression_evaluator_type = typename component_type::expression_evaluator_type;
 
-                expression_evaluator_type evaluator(assignment, instance_input.variable_mapping);
+                expression_evaluator_type evaluator(assignment, instance_input.variable_mapping, true);
                 return typename component_type::result_type(evaluator.visit(component.constraint), start_row_index);
             }
 
@@ -273,7 +284,7 @@ namespace nil {
                 using component_type = plonk_expression_evaluation_component<BlueprintFieldType>;
                 using expression_evaluator_type = typename component_type::expression_evaluator_type;
 
-                expression_evaluator_type evaluator(assignment, instance_input.variable_mapping);
+                expression_evaluator_type evaluator(assignment, instance_input.variable_mapping, false);
                 return typename component_type::result_type(evaluator.visit(component.constraint), start_row_index);
             }
         }    // namespace components
