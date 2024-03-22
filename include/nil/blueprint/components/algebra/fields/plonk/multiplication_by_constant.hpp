@@ -108,10 +108,6 @@ namespace nil {
                         output = var(component.W(1), start_row_index, false, var::column_type::witness);
                     }
 
-                    result_type(const mul_by_constant &component, std::size_t start_row_index) {
-                        output = var(component.W(1), start_row_index, false, var::column_type::witness);
-                    }
-
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {output};
                     }

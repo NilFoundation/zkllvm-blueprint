@@ -438,7 +438,7 @@ namespace nil {
                             swap_input_type swap_input;
                             swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
                                                       instance_input.initial_proof_hashes[i][cur_hash], hash_var});
-                            auto swap_result = assignment.template add_input_to_batch<swap_component_type, std::size_t>(
+                            auto swap_result = assignment.template add_input_to_batch_assignment<swap_component_type, std::size_t>(
                                                     swap_input, 1);
                             poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
                             poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
@@ -471,7 +471,7 @@ namespace nil {
                                 swap_input_type swap_input;
                                 swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
                                                           instance_input.round_proof_hashes[i][cur_hash], hash_var});
-                                auto swap_result = assignment.template add_input_to_batch<swap_component_type, std::size_t>(
+                                auto swap_result = assignment.template add_input_to_batch_assignment<swap_component_type, std::size_t>(
                                                         swap_input, 1);
                                 poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
                                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
@@ -669,7 +669,7 @@ namespace nil {
                             swap_input_type swap_input;
                             swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
                                                       instance_input.initial_proof_hashes[i][cur_hash], hash_var});
-                            auto swap_result = assignment.template add_input_to_batch<swap_component_type, std::size_t>(
+                            auto swap_result = assignment.template add_input_to_batch_circuit<swap_component_type, std::size_t>(
                                                     swap_input, 1);
                             poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
                             poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);
@@ -701,7 +701,7 @@ namespace nil {
                                 swap_input_type swap_input;
                                 swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
                                                           instance_input.round_proof_hashes[i][cur_hash], hash_var});
-                                auto swap_result = assignment.template add_input_to_batch<swap_component_type, std::size_t>(
+                                auto swap_result = assignment.template add_input_to_batch_circuit<swap_component_type, std::size_t>(
                                                         swap_input, 1);
                                 poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
                                 poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);

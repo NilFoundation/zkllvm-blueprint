@@ -104,9 +104,6 @@ namespace nil {
 
                 struct result_type {
                     var output = var(0, 0, false);
-                    result_type(const addition &component, std::uint32_t start_row_index) {
-                        output = var(component.W(2), start_row_index, false, var::column_type::witness);
-                    }
 
                     result_type(const addition &component, std::size_t start_row_index) {
                         output = var(component.W(2), start_row_index, false, var::column_type::witness);

@@ -80,6 +80,9 @@ namespace nil {
         template<typename BatchType, typename ArithmetizationType, typename VariableType>
         struct has_finalize_batch;
 
+        template<typename BatchType>
+        struct has_name;
+
         template<typename ComponentType>
         struct input_type_v;
 
@@ -119,6 +122,7 @@ namespace nil {
                 boost::mpl::vector<
                     has_add_input<_batch, _input_type, _result_type>,
                     has_finalize_batch<_batch, ArithmetizationType, var>,
+                    has_name<_batch>,
                     boost::type_erasure::same_type<boost::type_erasure::deduced<input_type_v<_batch>>, _input_type>,
                     boost::type_erasure::same_type<boost::type_erasure::deduced<result_type_v<_batch>>, _result_type>,
                     boost::type_erasure::same_type<boost::type_erasure::deduced<component_params_type_v<_batch>>, _variadics>,
@@ -156,21 +160,38 @@ namespace nil {
             }
 
             template<typename ComponentType, typename... ComponentParams>
+            typename ComponentType::result_type add_input_to_batch_assignment(
+                    const typename ComponentType::input_type &input,
+                    ComponentParams... params) {
+
+                return add_input_to_batch<ComponentType>(input, false, params...);
+            }
+
+            template<typename ComponentType, typename... ComponentParams>
+            typename ComponentType::result_type add_input_to_batch_circuit(
+                    const typename ComponentType::input_type &input,
+                    ComponentParams... params) {
+
+                return add_input_to_batch<ComponentType>(input, true, params...);
+            }
+
+            template<typename ComponentType, typename... ComponentParams>
             typename ComponentType::result_type add_input_to_batch(
                     const typename ComponentType::input_type &input,
+                    bool called_from_generate_circuit,
                     ComponentParams... params) {
                 using batching_type = component_batch<ArithmetizationType, BlueprintFieldType, ComponentType,
                                                       ComponentParams...>;
                 batching_type batch(*this, std::tuple<ComponentParams...>(params...));
                 auto it = component_batches.find(batch);
                 if (it == component_batches.end()) {
-                    auto result = batch.add_input(input);
+                    auto result = batch.add_input(input, called_from_generate_circuit);
                     component_batches.insert(batch);
                     return result;
                 } else {
                     // safe because the ordering doesn't depend on the batch inputs
                     return boost::type_erasure::any_cast<batching_type&>(const_cast<batcher_type&>(*it))
-                            .add_input(input);
+                            .add_input(input, called_from_generate_circuit);
                 }
             }
 

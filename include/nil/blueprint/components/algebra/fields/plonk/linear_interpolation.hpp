@@ -91,7 +91,7 @@ namespace nil {
                 };
 
                 struct result_type {
-		    std::array<var,2> output;
+                    std::array<var,2> output;
 
                     result_type(const linear_inter_coefs &component, std::uint32_t start_row_index) {
                         output = { var(component.W(4), start_row_index, false, var::column_type::witness),
