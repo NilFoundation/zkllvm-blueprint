@@ -273,7 +273,7 @@ namespace nil {
 
                 auto LineFunctionDouble = [&assignment, &component, &start_row_index, &xP, &yP](
                         fp12_element f, curve_point t, std::size_t row) {
-                    fp2_element ty_inv = t[1].inversed();
+                    fp2_element ty_inv = t[1].inversed(); // inversed y coordinate of point T is the ZC (zero-check) pair of cells
                     std::array<value_type,6> T = { t[0].data[0], t[0].data[1], t[1].data[0], t[1].data[1], ty_inv.data[0], ty_inv.data[1] };
 
                     fp12_element x  = fp12_element::one() * xP,
@@ -394,8 +394,9 @@ namespace nil {
                 // We transform them into constraints:
                 // (2yQ)^2 (xR + 2xQ) - (3xQ^2)^2 = 0
                 // (2yQ) (yR + yQ) + (3xQ^2)(xR - xQ) = 0
-                // Additional constraint to assure that the double of (0,0) is (0,0):
-                // (ZC * yQ - 1) * yQ = 0
+                // Additional constraint to assure that the double of (0,0) is (0,0).
+                // If yQ is 0, xR and yR are forced to be zero. For a non-zero yQ
+                // yR cannot be zero either => ZC is the inverse of yQ
                 // (ZC * yQ - 1) * xR = 0
                 // (ZC * yQ - 1) * yR = 0
                 std::vector<constraint_type> doubling_constrs = {};
@@ -405,10 +406,6 @@ namespace nil {
                 doubling_constrs.push_back(C[1]);
 
                 C = (2*yQ)*(yR + yQ) + (3*xQ*xQ)*(xR - xQ);
-                doubling_constrs.push_back(C[0]);
-                doubling_constrs.push_back(C[1]);
-
-                C = (ZC*yQ - one)*yQ;
                 doubling_constrs.push_back(C[0]);
                 doubling_constrs.push_back(C[1]);
 

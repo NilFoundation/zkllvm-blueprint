@@ -44,18 +44,23 @@
 namespace nil {
     namespace blueprint {
         namespace components {
-            // E'(F_p^2) : y^2 = x^3 + a point addition gate.
-            // Expects point at infinity encoded by (0,0) in input and output
+            // E'(F_p^2) =  { (x,y) :  y^2 = x^3 + b } point addition gate.
+            // Expects point at infinity encoded by (0,0) in input and output.
+            // Relies upon the value b being a non-cubic residue, thus y = 0
+            // being a property of point at infinity.
             // Input: (xP, yP) = P[4], (xQ, yQ) = Q[4]
-            // Output: (xR, yR) = R[4], R = P + Q as element of E'(F_p^2)
+            // Output: B1, B2, (xR, yR) = R[4], R = P + Q as element of E'(F_p^2),
+            // If Q = (0,0), B1 and B2 are arbitrary
+            // If P or R is (0,0) then B1 = 1, while B2 is arbitrary
+            // Otherwise B1 = 0. If P = Q, then B2 = 1, otherwise B2 = 0.
             //
             // We organize the computations in 2-cell blocks for storing Fp2 elements
             // The 12 blocks used are stored in 1 row with 24 cells or 2 rows with 12 cells.
             // Block contents are:
-            //  0  1  2  3  4  5  6   7   8  9  10 11
-            // +--+--+--+--+--+--+---+---+--+--+--+--+
-            // |xP|yP|xQ|yQ|zP|zQ|zPQ|wPQ|la|  |xR|yR|
-            // +--+--+--+--+--+--+---+---+--+--+--+--+
+            //  0  1  2  3  4  5  6   7   8    9   10 11
+            // +--+--+--+--+--+--+---+---+--+-----+--+--+
+            // |xP|yP|xQ|yQ|zP|zQ|zPQ|wPQ|la|B1 B2|xR|yR|
+            // +--+--+--+--+--+--+---+---+--+-----+--+--+
             //
 
             template<typename ArithmetizationType>
@@ -113,18 +118,21 @@ namespace nil {
                 };
 
                 struct result_type {
+                    var B1, B2;
 		    std::array<var,4> R;
 
                     result_type(const bls12_g2_point_addition &component, std::uint32_t start_row_index) {
                         const std::size_t WA = component.witness_amount();
 
+                        B1 = var(component.W(WA - 6), start_row_index + (WA < 24), false, var::column_type::witness);
+                        B2 = var(component.W(WA - 5), start_row_index + (WA < 24), false, var::column_type::witness);
                         for(std::size_t i = 0; i < 4; i++) {
                             R[i] = var(component.W(WA - 4 + i), start_row_index + (WA < 24), false, var::column_type::witness);
                         }
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
-                        std::vector<std::reference_wrapper<var>> res = {};
+                        std::vector<std::reference_wrapper<var>> res = { B1, B2 };
 
                         for(auto & e : R) { res.push_back(e); }
                         return res;
@@ -172,6 +180,7 @@ namespace nil {
                 using fp2_element = typename policy_type_fp2::value_type;
 
                 fp2_element fp2zero = fp2_element(0,0),
+                            fp2one = fp2_element(1,0),
                             xP = fp2_element(var_value(assignment, instance_input.P[0]),
                                              var_value(assignment, instance_input.P[1])),
                             yP = fp2_element(var_value(assignment, instance_input.P[2]),
@@ -186,6 +195,8 @@ namespace nil {
                             wPQ = (yP + yQ).inversed(),
                             lambda = (xP == xQ)? (3*xP.pow(2) / (2*yP)) : ((yP-yQ)/(xP-xQ)),
                             nu = yP - lambda*xP,
+                            B2 = fp2one - (xP - xQ)*zPQ,
+                            B1 = fp2one - yP*zP + B2*(fp2one - (yP + yQ)*wPQ),
                             xR, yR;
                 if (yP == fp2zero) {
                     xR = xQ;
@@ -216,7 +227,7 @@ namespace nil {
                     assignment.witness(component.W((12 + i) % WA),start_row_index + (WA < 24)) = zPQ.data[i];
                     assignment.witness(component.W((14 + i) % WA),start_row_index + (WA < 24)) = wPQ.data[i];
                     assignment.witness(component.W((16 + i) % WA),start_row_index + (WA < 24)) = lambda.data[i];
-                    // block #9 is skipped for alignment purposes
+                    assignment.witness(component.W((18 + i) % WA),start_row_index + (WA < 24)) = (i == 0) ? B1.data[0] : B2.data[0];
                     assignment.witness(component.W((20 + i) % WA),start_row_index + (WA < 24)) = xR.data[i];
                     assignment.witness(component.W((22 + i) % WA),start_row_index + (WA < 24)) = yR.data[i];
                 }
@@ -255,70 +266,64 @@ namespace nil {
                               zPQ = {var(component.W(12 % WA), (WA < 24), true),var(component.W(13 % WA), (WA < 24), true)},
                               wPQ = {var(component.W(14 % WA), (WA < 24), true),var(component.W(15 % WA), (WA < 24), true)},
                                la = {var(component.W(16 % WA), (WA < 24), true),var(component.W(17 % WA), (WA < 24), true)},
+                               B1 = {var(component.W(18 % WA), (WA < 24), true),cnstr_zero},
+                               B2 = {var(component.W(19 % WA), (WA < 24), true),cnstr_zero},
                                xR = {var(component.W(20 % WA), (WA < 24), true),var(component.W(21 % WA), (WA < 24), true)},
                                yR = {var(component.W(22 % WA), (WA < 24), true),var(component.W(23 % WA), (WA < 24), true)};
                 fp2_constraint C;
 
                 std::vector<constraint_type> Cs = {};
 
-                // yP(1 - yP zP) = 0  (1)
-                C = yP * (one - yP * zP);
-                Cs.push_back(C[0]); Cs.push_back(C[1]);
-
-                // yQ(1 - yQ zQ) = 0  (2)
-                C = yQ * (one - yQ * zQ);
-                Cs.push_back(C[0]); Cs.push_back(C[1]);
-
-                // (xR - xQ)(1 - yP zP) = 0 (3)
+                // (xR - xQ)(1 - yP zP) = 0 (1)
                 C = (xR - xQ) * (one - yP * zP);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // (yR - yQ)(1 - yP zP) = 0 (4)
+                // (yR - yQ)(1 - yP zP) = 0 (2)
                 C = (yR - yQ)*(one - yP * zP);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // (xR - xP)(1 - yQ zQ) = 0 (5)
+                // (xR - xP)(1 - yQ zQ) = 0 (3)
                 C = (xR - xP)*(one - yQ*zQ);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // (yR - yP)(1 - yQ zQ) = 0 (6)
+                // (yR - yP)(1 - yQ zQ) = 0 (4)
                 C = (yR - yP)*(one - yQ*zQ);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // (xP - xQ)(1 - (xP-xQ) zPQ) = 0 (7)
-                C = (xP - xQ)*(one - (xP - xQ)*zPQ);
+                // B2 - (1 - (xP-xQ) zPQ) = 0 (5)
+                C = B2 - (one - (xP - xQ)*zPQ);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // zPQ (1 - (xP - xQ) zPQ) = 0 (8)
-                C = zPQ * (one - (xP - xQ) * zPQ);
+                // (xP - xQ) B2 = 0 (6)
+                C = (xP - xQ)*B2;
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // (yP + yQ)(1 - (yP + yQ) wPQ) = 0 (9)
+                // (yP + yQ)(1 - (yP + yQ) wPQ) = 0 (7)
                 C = (yP + yQ)*(one - (yP + yQ)*wPQ);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // wPQ (1 - (yP + yQ) wPQ) = 0 (10)
-                C = wPQ * (one - (yP + yQ)*wPQ);
+                // B1 - (1 - yP zP) - B2 (1 - (yP + yQ) wPQ) = 0 (8)
+                C = B1 - (one - yP*zP) - B2*(one - (yP + yQ)*wPQ);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // yP(1 - (xP - xQ) zPQ) yQ(1 - (yP + yQ) wPQ) xR = 0 (11)
-                C = yP * (one - (xP-xQ)*zPQ) * yQ * (one - (yP + yQ)* wPQ) * xR;
+                // (1 - yP zP - B1) xR = 0 (9)
+                C = (one - yP*zP - B1) * xR;
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // yP(1 - (xP - xQ) zPQ) yQ(1 - (yP + yQ) wPQ) yR = 0 (12)
-                C = yP * (one - (xP-xQ)*zPQ) * yQ * (one - (yP + yQ)* wPQ) * yR;
+                // (1 - yP zP - B1) yR = 0 (10)
+                C = (one - yP*zP - B1) * yR;
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // yP yQ (zPQ + wPQ (1 - (xP - xQ) zPQ)) (xR - la^2 + xP + xQ) = 0 (13)
-                C = yP * yQ * (zPQ + wPQ * (one - (xP - xQ)*zPQ)) * (xR - la*la + xP + xQ);
+                // yP yQ (xP - xQ + (yP + yQ) B2) (xR - la^2 + xP + xQ) = 0 (11)
+                C = yP * yQ * (xP - xQ + (yP + yQ) * B2) * (xR - la*la + xP + xQ);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // yP yQ (zPQ + wPQ (1 - (xP - xQ) zPQ)) (yR + yP + la(xR - xP)) = 0 (14)
-                C = yP * yQ * (zPQ + wPQ * (one - (xP - xQ)*zPQ)) * (yR + yP + la*(xR - xP));
+                // yP yQ (xP - xQ + (yP + yQ) B2) (yR + yP + la(xR - xP)) = 0 (12)
+                C = yP * yQ * (xP - xQ + (yP + yQ) * B2) * (yR + yP + la*(xR - xP));
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
-                // yQ ( 2yP zPQ ( (xP - xQ)la - (yP - yQ) ) + (1 - (xP - xQ)zPQ) wPQ (2yP la - 3xP^2)) = 0 (15)
-                C = yQ * (2*yP * zPQ * ((xP - xQ)*la - (yP - yQ)) + (one - (xP - xQ)*zPQ) * wPQ *(2*yP*la - 3*xP*xP));
+                // (xP - xQ) ( (xP - xQ)la - (yP - yQ) ) + B2 (2yP la - 3xP^2)) = 0 (13)
+                C = (xP - xQ) * ((xP - xQ)*la - (yP - yQ)) + B2 *(2*yP*la - 3*xP*xP);
                 Cs.push_back(C[0]); Cs.push_back(C[1]);
 
                 return bp.add_gate(Cs);

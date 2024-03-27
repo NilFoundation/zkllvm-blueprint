@@ -139,12 +139,50 @@ void test_bls12_g2_adding(std::vector<typename CurveType::base_field_type::value
         std::cout << "expected: " << expected_x.data[0] << "," << expected_x.data[1] << ",\n";
         std::cout << "        : " << expected_y.data[0] << "," << expected_y.data[1] << ",\n";
         std::cout << "real    : " << var_value(assignment, real_res.R[0]).data << "," << var_value(assignment, real_res.R[1]).data << ",\n";
-        std::cout << "          " << var_value(assignment, real_res.R[2]).data << "," << var_value(assignment, real_res.R[3]).data << "\n\n";
+        std::cout << "          " << var_value(assignment, real_res.R[2]).data << "," << var_value(assignment, real_res.R[3]).data << "\n";
+        std::cout << "Real adv: B1 = " << var_value(assignment,real_res.B1).data << ", B2 = " << var_value(assignment,real_res.B2).data << "\n";
+        if ((public_input[4].data != 0) && (public_input[5].data != 0) &&
+            (public_input[6].data != 0) && (public_input[7].data != 0)) {
+            std::cout << "Expected adv: ";
+            if (((public_input[0].data == 0) && (public_input[1].data == 0) &&
+                 (public_input[2].data == 0) && (public_input[3].data == 0)) ||
+                ((expected_x.data[0] == 0) && (expected_x.data[1] == 0) &&
+                 (expected_y.data[0] == 0) && (expected_y.data[1] == 0))) {
+                std::cout << "B1 = 1\n";
+            } else {
+                std::cout << "B1 = 0, ";
+                if ((public_input[0].data == public_input[4].data) && (public_input[1].data == public_input[5].data) &&
+                    (public_input[2].data == public_input[6].data) && (public_input[3].data == public_input[7].data)) {
+                    std::cout << "B2 = 1\n";
+                } else {
+                    std::cout << "B2 = 0\n";
+                }
+            }
+        }
+        std::cout << "\n";
         #endif
         assert(expected_x.data[0] == var_value(assignment, real_res.R[0]));
         assert(expected_x.data[1] == var_value(assignment, real_res.R[1]));
         assert(expected_y.data[0] == var_value(assignment, real_res.R[2]));
         assert(expected_y.data[1] == var_value(assignment, real_res.R[3]));
+        if ((public_input[4].data != 0) && (public_input[5].data != 0) &&
+            (public_input[6].data != 0) && (public_input[7].data != 0)) {
+            if (((public_input[0].data == 0) && (public_input[1].data == 0) &&
+                 (public_input[2].data == 0) && (public_input[3].data == 0)) ||
+                ((expected_x.data[0] == 0) && (expected_x.data[1] == 0) &&
+                 (expected_y.data[0] == 0) && (expected_y.data[1] == 0))) {
+                assert(var_value(assignment, real_res.B1) == 1);
+            } else {
+                assert(var_value(assignment, real_res.B1) == 0);
+                if ((public_input[0].data == public_input[4].data) && (public_input[1].data == public_input[5].data) &&
+                    (public_input[2].data == public_input[6].data) && (public_input[3].data == public_input[7].data)) {
+                    assert(var_value(assignment, real_res.B2) == 1);
+                } else {
+                    assert(var_value(assignment, real_res.B2) == 0);
+                }
+            }
+        }
+
     };
 
     component_type component_instance({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},{},{});
@@ -278,8 +316,25 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_bls12_g2_test_381) {
                   -py.data[0],-py.data[1]},
             g2zero);
 
+
+        std::cout << "Doubling addition\n";
+        group_value_type Q = test_g2elems[i];
+        if (Q.Z != field_value_type::zero()) {
+            qx = Q.X / Q.Z.pow(2);
+            qy = Q.Y / Q.Z.pow(3);
+        }
+        test_bls12_g2_adding<curve_type>(
+            std::vector<base_field_value>{
+                px.data[0],px.data[1],
+                py.data[0],py.data[1],
+                qx.data[0],qx.data[1],
+                qy.data[0],qy.data[1]},
+            P + Q);
+
         // non-trivial addition tests
-        std::cout << "Non-trivial additions\n";
+        if (i + 1 < test_g2elems.size()) {
+            std::cout << "Non-trivial additions\n";
+        }
         for(std::size_t j = i + 1; j < test_g2elems.size(); j++) {
             group_value_type Q = test_g2elems[j];
             if (Q.Z != field_value_type::zero()) {
