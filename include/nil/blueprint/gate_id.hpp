@@ -147,6 +147,8 @@ namespace nil {
                     case var::column_type::public_input:
                     case var::column_type::selector:
                         BOOST_ASSERT_MSG(false, "Public input/selectors should not be in a gate.");
+                    case var::column_type::uninitialized:
+                        BOOST_ASSERT_MSG(false, "Trying to use uninitialized var in a gate.");
                 }
                 __builtin_unreachable();
             };
