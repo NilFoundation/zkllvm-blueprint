@@ -103,7 +103,7 @@ namespace nil {
                 };
 
                 struct result_type {
-		    std::array<var,3> output;
+                    std::array<var,3> output;
 
                     result_type(const quadratic_inter_coefs &component, std::uint32_t start_row_index) {
                         output = { var(component.W(6), start_row_index, false, var::column_type::witness),

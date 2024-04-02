@@ -212,10 +212,10 @@ namespace nil {
                 }
             }
 
-            auto component_result = boost::get<typename component_type::result_type>(
-                assigner(component_instance, assignment, instance_input, start_row));
             blueprint::components::generate_circuit<BlueprintFieldType>(
                 component_instance, bp, assignment, instance_input, start_row);
+            auto component_result = boost::get<typename component_type::result_type>(
+                assigner(component_instance, assignment, instance_input, start_row));
 
             // Stretched components do not have a manifest, as they are dynamically generated.
             if constexpr (!blueprint::components::is_component_stretcher<

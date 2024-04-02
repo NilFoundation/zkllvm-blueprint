@@ -188,10 +188,6 @@ namespace nil {
                         X = var(component.W(0), start_row_index + component.rows_amount - 1, false, var::column_type::witness);
                         Y = var(component.W(1), start_row_index + component.rows_amount - 1, false, var::column_type::witness);
                     }
-                    result_type(const curve_element_variable_base_scalar_mul &component, std::size_t start_row_index) {
-                        X = var(component.W(0), start_row_index + component.rows_amount - 1, false, var::column_type::witness);
-                        Y = var(component.W(1), start_row_index + component.rows_amount - 1, false, var::column_type::witness);
-                    }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {X, Y};

@@ -116,8 +116,8 @@ BOOST_AUTO_TEST_CASE(component_batch_basic_test) {
 
     using component_type = components::multiplication<
         ArithmetizationType, field_type, nil::blueprint::basic_non_native_policy<field_type>>;
-    assignment.add_input_to_batch<component_type>({public_input_var_maker(), public_input_var_maker()});
-    assignment.add_input_to_batch<component_type>({public_input_var_maker(), public_input_var_maker()});
+    assignment.add_input_to_batch_assignment<component_type>({public_input_var_maker(), public_input_var_maker()});
+    assignment.add_input_to_batch_assignment<component_type>({public_input_var_maker(), public_input_var_maker()});
     std::size_t row = assignment.finalize_component_batches(circuit, 0);
     BOOST_CHECK_EQUAL(row, 1);
     BOOST_CHECK_EQUAL(circuit.gates().size(), 1);
@@ -161,18 +161,18 @@ BOOST_AUTO_TEST_CASE(component_batch_continuation_test) {
 
     using component_type = components::multiplication<
         ArithmetizationType, field_type, nil::blueprint::basic_non_native_policy<field_type>>;
-    auto first_result = assignment.add_input_to_batch<component_type>({public_input_var_maker(), public_input_var_maker()});
-    auto second_result = assignment.add_input_to_batch<component_type>({public_input_var_maker(), public_input_var_maker()});
-    assignment.add_input_to_batch<component_type>({public_input_var_maker(), public_input_var_maker()});
-    auto third_result = assignment.add_input_to_batch<component_type>({public_input_var_maker(), public_input_var_maker()});
-    auto fourth_result = assignment.add_input_to_batch<component_type>({first_result.output, second_result.output});
+    auto first_result = assignment.add_input_to_batch_assignment<component_type>({public_input_var_maker(), public_input_var_maker()});
+    auto second_result = assignment.add_input_to_batch_assignment<component_type>({public_input_var_maker(), public_input_var_maker()});
+    assignment.add_input_to_batch_assignment<component_type>({public_input_var_maker(), public_input_var_maker()});
+    auto third_result = assignment.add_input_to_batch_assignment<component_type>({public_input_var_maker(), public_input_var_maker()});
+    auto fourth_result = assignment.add_input_to_batch_assignment<component_type>({first_result.output, second_result.output});
     using addition_type = components::addition<
         ArithmetizationType, field_type, nil::blueprint::basic_non_native_policy<field_type>>;
     std::size_t row = 0;
     addition_type add_component({0, 1, 2}, {}, {});
     auto addition_result = generate_assignments(add_component, assignment, {third_result.output, fourth_result.output}, row);
     generate_circuit(add_component, circuit, assignment, {third_result.output, fourth_result.output}, row++);
-    auto fifth_result = assignment.add_input_to_batch<component_type>({addition_result.output, public_input_var_maker()});
+    auto fifth_result = assignment.add_input_to_batch_assignment<component_type>({addition_result.output, public_input_var_maker()});
     generate_assignments(add_component, assignment, {addition_result.output, fifth_result.output}, row);
     generate_circuit(add_component, circuit, assignment, {addition_result.output, fifth_result.output}, row++);
     row = assignment.finalize_component_batches(circuit, row);
@@ -235,26 +235,26 @@ BOOST_AUTO_TEST_CASE(component_batch_multibatch_test) {
     using add_component_type = components::addition<
         ArithmetizationType, field_type, nil::blueprint::basic_non_native_policy<field_type>>;
     using div_or_zero_component_type = components::division_or_zero<ArithmetizationType, field_type>;
-    auto mul_result = assignment.add_input_to_batch<mul_component_type>(
+    auto mul_result = assignment.add_input_to_batch_assignment<mul_component_type>(
         {public_input_var_maker(), public_input_var_maker()});
-    auto add_result = assignment.add_input_to_batch<add_component_type>({mul_result.output, public_input_var_maker()});
-    auto mul_result_2 = assignment.add_input_to_batch<mul_component_type>({add_result.output, mul_result.output});
-    assignment.add_input_to_batch<mul_component_type>({public_input_var_maker(), public_input_var_maker()});
+    auto add_result = assignment.add_input_to_batch_assignment<add_component_type>({mul_result.output, public_input_var_maker()});
+    auto mul_result_2 = assignment.add_input_to_batch_assignment<mul_component_type>({add_result.output, mul_result.output});
+    assignment.add_input_to_batch_assignment<mul_component_type>({public_input_var_maker(), public_input_var_maker()});
     div_or_zero_component_type div_or_zero_component({0, 1, 2, 3, 4}, {}, {});
     var div_or_zero_var = public_input_var_maker();
     auto div_or_zero_res = generate_assignments(
         div_or_zero_component, assignment, {mul_result_2.output, div_or_zero_var}, 0);
     generate_circuit(div_or_zero_component, circuit, assignment, {mul_result_2.output, div_or_zero_var}, 0);
-    assignment.add_input_to_batch<mul_component_type>({div_or_zero_res.output, public_input_var_maker()});
-    assignment.add_input_to_batch<mul_component_type>({public_input_var_maker(), public_input_var_maker()});
-    assignment.add_input_to_batch<add_component_type>({add_result.output, mul_result.output});
+    assignment.add_input_to_batch_assignment<mul_component_type>({div_or_zero_res.output, public_input_var_maker()});
+    assignment.add_input_to_batch_assignment<mul_component_type>({public_input_var_maker(), public_input_var_maker()});
+    assignment.add_input_to_batch_assignment<add_component_type>({add_result.output, mul_result.output});
     // duplicates, should not count!
     for (std::size_t i = 0; i < 5; i++) {
-        assignment.add_input_to_batch<add_component_type>({add_result.output, mul_result.output});
+        assignment.add_input_to_batch_assignment<add_component_type>({add_result.output, mul_result.output});
     }
     // not duplicates, should count
     for (std::size_t i = 0; i < 5; i++) {
-        assignment.add_input_to_batch<mul_component_type>({public_input_var_maker(), public_input_var_maker()});
+        assignment.add_input_to_batch_assignment<mul_component_type>({public_input_var_maker(), public_input_var_maker()});
     }
     std::size_t row = assignment.finalize_component_batches(circuit, 1);
     BOOST_CHECK_EQUAL(row, 4);
@@ -371,11 +371,11 @@ BOOST_AUTO_TEST_CASE(component_batch_const_batch_test) {
     assignment.constant(0, row) = 1445;
     assignment.enable_selector(lookup_selector, row++);
     assignment.constant(0, row) = 1446;
-    auto mul_result = assignment.add_input_to_batch<multiplication_type>(
+    auto mul_result = assignment.add_input_to_batch_assignment<multiplication_type>(
         {assignment.add_batch_constant_variable(1), assignment.add_batch_constant_variable(2)});
     // have to check lookup functionality manually
-    assignment.add_input_to_batch<multiplication_type>({public_input_var_maker(), mul_result.output});
-    assignment.add_input_to_batch<multiplication_type>({mul_by_const_result.output, public_input_var_maker()});
+    assignment.add_input_to_batch_assignment<multiplication_type>({public_input_var_maker(), mul_result.output});
+    assignment.add_input_to_batch_assignment<multiplication_type>({mul_by_const_result.output, public_input_var_maker()});
     assignment.finalize_component_batches(circuit, row);
     assignment.finalize_constant_batches(circuit, 0);
 
@@ -429,16 +429,16 @@ BOOST_AUTO_TEST_CASE(component_batch_params_test) {
     input_type input;
     input.arr.push_back(std::make_tuple<var, var, var>(
         public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()));
-    auto res_1 =  assignment.add_input_to_batch<swap_component_type, std::size_t>(input, size_small);
+    auto res_1 =  assignment.add_input_to_batch_assignment<swap_component_type, std::size_t>(input, size_small);
     input.arr = {};
     input.arr.push_back(std::make_tuple<var, var, var>(
         public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()));
     input.arr.push_back(std::make_tuple<var, var, var>(
         public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()));
-    auto res_2 = assignment.add_input_to_batch<swap_component_type, std::size_t>(input, size_big);
+    auto res_2 = assignment.add_input_to_batch_assignment<swap_component_type, std::size_t>(input, size_big);
     input.arr = {};
     input.arr.push_back({public_input_var_maker.binary_var(), res_1.output[0].first, res_2.output[0].second});
-    auto res_3 = assignment.add_input_to_batch<swap_component_type, std::size_t>(input, size_small);
+    auto res_3 = assignment.add_input_to_batch_assignment<swap_component_type, std::size_t>(input, size_small);
     assignment.finalize_component_batches(circuit, 0);
 
     BOOST_CHECK_EQUAL(circuit.gates().size(), 2);
@@ -475,19 +475,6 @@ BOOST_AUTO_TEST_CASE(component_batch_params_test) {
         BOOST_CHECK_EQUAL(gate_2.constraints[i], expected_constraints[i]);
     }
 
-    // pub_0_abs w_0_abs
-    // pub_0_abs_rot(1) w_1_abs
-    // pub_0_abs_rot(2) w_2_abs
-    // pub_0_abs_rot(9) w_5_abs
-    // w_3_abs w_6_abs
-    // w_4_abs_rot(1) w_7_abs
-    // pub_0_abs_rot(3) w_0_abs_rot(1)
-    // pub_0_abs_rot(4) w_1_abs_rot(1)
-    // pub_0_abs_rot(5) w_2_abs_rot(1)
-    // pub_0_abs_rot(6) w_5_abs_rot(1)
-    // pub_0_abs_rot(7) w_6_abs_rot(1)
-    // pub_0_abs_rot(8) w_7_abs_rot(1)
-
     const std::vector<copy_constraint_type> expected_copy_constraints = {
         {var(0, 0, false, var::column_type::public_input), var(0, 0, false, var::column_type::witness)},
         {var(0, 1, false, var::column_type::public_input), var(1, 0, false, var::column_type::witness)},
@@ -507,6 +494,36 @@ BOOST_AUTO_TEST_CASE(component_batch_params_test) {
 
     // assignment.export_table(std::cout);
     // circuit.export_circuit(std::cout);
+}
+
+BOOST_AUTO_TEST_CASE(component_batch_generate_circuit_variant_basic_test) {
+    using curve_type = nil::crypto3::algebra::curves::vesta;
+    using field_type = typename curve_type::scalar_field_type;
+
+    using assignment_type = assignment<nil::crypto3::zk::snark::plonk_constraint_system<field_type>>;
+    using circuit_type = circuit<nil::crypto3::zk::snark::plonk_constraint_system<field_type>>;
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<field_type>;
+
+    assignment_type assignment(15, 1, 1, 3);
+    circuit_type circuit;
+    public_input_var_maker<field_type> public_input_var_maker(assignment);
+
+    using multiplication_type = components::multiplication<
+        ArithmetizationType, field_type, nil::blueprint::basic_non_native_policy<field_type>>;
+
+    typename multiplication_type::input_type input_1 = {public_input_var_maker(), public_input_var_maker()};
+    typename multiplication_type::input_type input_2 = {public_input_var_maker(), public_input_var_maker()};
+    auto res_1 = assignment.add_input_to_batch_circuit<multiplication_type>(input_1);
+    auto res_2 = assignment.add_input_to_batch_circuit<multiplication_type>(input_2);
+    BOOST_ASSERT(var_value(assignment, res_1.output) == 0);
+    BOOST_ASSERT(var_value(assignment, res_2.output) == 0);
+    res_1 = assignment.add_input_to_batch_assignment<multiplication_type>(input_1);
+    BOOST_ASSERT(var_value(assignment, res_1.output) == var_value(assignment, input_1.x) * var_value(assignment, input_1.y));
+    BOOST_ASSERT(var_value(assignment, res_1.output) != 0);
+    BOOST_ASSERT(var_value(assignment, res_2.output) == 0);
+    res_2 = assignment.add_input_to_batch_assignment<multiplication_type>(input_2);
+    BOOST_ASSERT(var_value(assignment, res_2.output) == var_value(assignment, input_2.x) * var_value(assignment, input_2.y));
+    BOOST_ASSERT(var_value(assignment, res_2.output) != 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
