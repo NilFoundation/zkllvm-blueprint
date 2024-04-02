@@ -380,7 +380,7 @@ namespace nil {
                     for( std::size_t j = 0; j < component.fri_initial_merkle_proof_size; j++){
                         x_index_input.b.push_back(instance_input.merkle_tree_positions[i][j]);
                     }
-                    typename x_index_component_type::result_type x_index_output = generate_assignments(
+                    generate_assignments(
                         x_index_instance, assignment, x_index_input, row
                     );
                     row += x_index_instance.rows_amount;
@@ -403,7 +403,7 @@ namespace nil {
                         colinear_checks_input.alphas.push_back(challenges.fri_alphas[j]);
                         colinear_checks_input.bs.push_back(instance_input.merkle_tree_positions[i][instance_input.merkle_tree_positions[i].size() - j - 1]);
                     }
-                    typename colinear_checks_component_type::result_type colinear_checks_output = generate_assignments(
+                    generate_assignments(
                         colinear_checks_instance, assignment, colinear_checks_input, row
                     );
                     row += colinear_checks_instance.rows_amount;
@@ -540,11 +540,6 @@ namespace nil {
                     (BlueprintFieldType::modulus - 1)/component.fri_domain_size
                 );
 
-                constant_pow_component_type constant_pow_instance(
-                    component.all_witnesses(), std::array<std::uint32_t, 1>({component.C(0)}), std::array<std::uint32_t, 0>(),
-                    (BlueprintFieldType::modulus - 1)/component.fri_domain_size
-                );
-
                 challenges.eta = poseidon_output.output_state[2];
                 row += poseidon_instance.rows_amount;
 
@@ -626,7 +621,7 @@ namespace nil {
                     for( std::size_t j = 0; j < component.fri_initial_merkle_proof_size; j++ ){
                         x_index_input.b.push_back(instance_input.merkle_tree_positions[i][j]);
                     }
-                    typename x_index_component_type::result_type x_index_output  = generate_circuit(
+                    generate_circuit(
                         x_index_instance, bp, assignment, x_index_input, row
                     );
                     row += x_index_instance.rows_amount;
@@ -648,7 +643,7 @@ namespace nil {
                         colinear_checks_input.alphas.push_back(challenges.fri_alphas[j]);
                         colinear_checks_input.bs.push_back(instance_input.merkle_tree_positions[i][instance_input.merkle_tree_positions[i].size() - j - 1]);
                     }
-                    typename colinear_checks_component_type::result_type colinear_checks_output = generate_circuit(
+                    generate_circuit(
                         colinear_checks_instance, bp, assignment, colinear_checks_input, row
                     );
                     row += colinear_checks_instance.rows_amount;
@@ -688,7 +683,6 @@ namespace nil {
                             bp.add_copy_constraint({poseidon_output.output_state[2], instance_input.commitments[j-1]});
                     }
                     // Compute y-s for first round
-                    std::size_t round_merkle_proof_size = component.fri_initial_merkle_proof_size;
                     // Round proofs
                     cur = 0;
                     cur_hash = 0;

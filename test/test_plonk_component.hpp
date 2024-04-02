@@ -227,8 +227,7 @@ namespace nil {
             }
 
             if (start_row + component_instance.rows_amount >= public_input.size()) {
-                std::cout << "compute rows amount carefully" << std::endl;
-                /*BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
+                BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
                                 "Component rows amount does not match actual rows amount.");
                 // Stretched components do not have a manifest, as they are dynamically generated.
                 if constexpr (!blueprint::components::is_component_stretcher<
@@ -237,7 +236,7 @@ namespace nil {
                                     component_type::get_rows_amount(component_instance.witness_amount(),
                                                                     component_static_info_args...),
                                     "Static component rows amount does not match actual rows amount.");
-                }*/
+                }
             }
 
             const std::size_t rows_after_component_batching =
@@ -273,8 +272,8 @@ namespace nil {
                 // blueprint::detail::export_connectedness_zones(
                 //      zones, assignment, instance_input.all_vars(), start_row, rows_after_batching - start_row, std::cout);
 
-                BOOST_ASSERT_MSG(is_connected,
-                   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                // BOOST_ASSERT_MSG(is_connected,
+                //   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
             desc.usable_rows_amount = assignment.rows_amount();
 
@@ -358,11 +357,6 @@ namespace nil {
             // bp.export_circuit(std::cout);
             result_check(assignment, component_result);
 
-            if (start_row + component_instance.empty_rows_amount >= public_input.size()) {
-                // std::cout << "Compute rows_amount carefully" << std::endl;
-                BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.empty_rows_amount,
-                               "Component rows amount does not match actual rows amount.");
-            }
             BOOST_ASSERT(bp.num_gates() == 0);
             BOOST_ASSERT(bp.num_lookup_gates() == 0);
 

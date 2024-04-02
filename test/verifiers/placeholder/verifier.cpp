@@ -147,6 +147,7 @@ struct default_zkllvm_params{
         table_marshalling_type marshalled_table_data;
         auto read_iter = v.begin();
         auto status = marshalled_table_data.read(read_iter, v.size());
+        BOOST_ASSERT(status == nil::marshalling::status_type::success);
         auto [table_description, assignment_table] =
             nil::crypto3::marshalling::types::make_assignment_table<Endianness, assignment_table_type>(
                 marshalled_table_data
@@ -174,6 +175,7 @@ struct default_zkllvm_params{
             circuit_marshalling_type marshalled_data;
             auto read_iter = v.begin();
             auto status = marshalled_data.read(read_iter, v.size());
+            BOOST_ASSERT(status == nil::marshalling::status_type::success);
             constraint_system = nil::crypto3::marshalling::types::make_plonk_constraint_system<Endianness, constraint_system_type>(
                     marshalled_data
             );
@@ -198,6 +200,7 @@ struct default_zkllvm_params{
         common_data_marshalling_type marshalled_data;
         auto read_iter = v.begin();
         auto status = marshalled_data.read(read_iter, v.size());
+        BOOST_ASSERT(status == nil::marshalling::status_type::success);
         return nil::crypto3::marshalling::types::make_placeholder_common_data<Endianness, common_data_type>(
             marshalled_data
         );
@@ -214,7 +217,8 @@ struct default_zkllvm_params{
         proof_marshalling_type marshalled_proof_data;
         auto read_iter = v.begin();
         auto status = marshalled_proof_data.read(read_iter, v.size());
-        return   nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, proof_type>(
+        BOOST_ASSERT(status == nil::marshalling::status_type::success);
+        return nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, proof_type>(
             marshalled_proof_data
         );
     }
@@ -322,19 +326,15 @@ void test_flexible_verifier(
     const typename SrcParams::fri_params_type &fri_params
 ){
     std::cout << "****************** Test flexible verifier with " << DstParams::WitnessColumns <<" witness rows ******************" << std::endl;
-    using src_placeholder_params = typename SrcParams::placeholder_params;
     using field_type = typename SrcParams::field_type;
-    using value_type = typename field_type::value_type;
 
     std::array<std::uint32_t, DstParams::WitnessColumns> witnesses;
     for (std::uint32_t i = 0; i < DstParams::WitnessColumns; i++) {
         witnesses[i] = i;
     }
     using component_type = nil::blueprint::components::plonk_flexible_verifier<typename DstParams::field_type>;
-    using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    bool expected_res = true;
-    auto result_check = [&expected_res](
+    auto result_check = [](
         typename DstParams::assignment_table_type &assignment,
 	    typename component_type::result_type &real_res) {
             return true;
@@ -402,7 +402,7 @@ void test_multiple_arithmetizations(std::string folder_name){
 BOOST_AUTO_TEST_SUITE(blueprint_pallas_test_suite)
 
 BOOST_AUTO_TEST_CASE(basic_test) {
-    test_multiple_arithmetizations<default_zkllvm_params>("../libs/blueprint/test/verifiers/placeholder/data/merkle_tree_poseidon");
+    test_multiple_arithmetizations<default_zkllvm_params>("../libs/crypto3/libs/blueprint/test/verifiers/placeholder/data/merkle_tree_poseidon");
 }
 
 // TODO: add vesta tests

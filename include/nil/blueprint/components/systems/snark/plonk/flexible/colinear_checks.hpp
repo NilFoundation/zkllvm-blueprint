@@ -174,7 +174,6 @@ namespace nil {
                 using component_type = plonk_flexible_colinear_checks<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
 
-                const std::size_t r = instance_input.alphas.size();
                 BOOST_ASSERT(component.r == instance_input.alphas.size());
                 BOOST_ASSERT(component.r + 1 == instance_input.bs.size());
                 BOOST_ASSERT(2 * (component.r + 1) == instance_input.ys.size());
@@ -184,7 +183,7 @@ namespace nil {
 
                 std::size_t cur = 0;
                 value_type x = var_value(assignment, instance_input.x);
-                for (std::size_t row = 0, pair_index = 0; row < rows_amount; row++) {
+                for (std::size_t row = 0; row < rows_amount; row++) {
                     std::size_t block = 0;
                     for (; block < (witness_amount-4)/5; block++) {
                         if (cur < component.r){
@@ -193,8 +192,8 @@ namespace nil {
                             value_type y1_val = var_value(assignment, instance_input.ys[2*cur+1]);
                             value_type alpha = var_value(assignment, instance_input.alphas[cur]);
 
-                            value_type s = 2 * b * x - x;
-                            value_type interpolant = ((alpha + s ) * y0_val - (alpha - s) * y1_val ) / (2 * s);
+                            // value_type s = 2 * b * x - x;
+                            // value_type interpolant = ((alpha + s ) * y0_val - (alpha - s) * y1_val ) / (2 * s);
 //                            std::cout << "Interpolant  " << cur << " index " << b << ":";
 //                            for( std::size_t k = 0; k < instance_input.bs.size(); k++) {
 //                                std::cout << var_value(assignment, instance_input.bs[k]) << " ";

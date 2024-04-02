@@ -166,12 +166,11 @@ namespace nil {
                 const std::size_t rows_amount = component.rows_amount;
 
                 std::size_t cur = 0;
-                value_type cur_val = 1;
                 value_type x = var_value(assignment, instance_input.x);
                 value_type b0;
                 value_type tmp = 1;
                 value_type omega = component.omega;
-                value_type x_index=0;
+                value_type x_index = 0;
                 for( std::size_t i = 0; i < n; i++){
                     value_type b = var_value(assignment, instance_input.b[n - 1 -i]);
                     tmp = tmp * tmp * (b + omega *(1-b));

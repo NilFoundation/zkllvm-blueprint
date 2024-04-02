@@ -74,11 +74,8 @@ namespace nil {
                         // TODO: Commitment scheme may be different
                         auto eval_proof = proof.eval_proof.eval_proof;
                         auto batch_info = eval_proof.z.get_batch_info();
-                        std::size_t sum = 0;
-                        std::size_t poly_num = 0;
                         for(const auto& [k, v]: batch_info){
                             for(std::size_t i = 0; i < v; i++){
-                                poly_num++;
                                 BOOST_ASSERT(eval_proof.z.get_poly_points_number(k, i) != 0);
                                 for(std::size_t j = 0; j < eval_proof.z.get_poly_points_number(k, i); j++){
                                     _proof_field_vector.push_back(eval_proof.z.get(k, i, j));
