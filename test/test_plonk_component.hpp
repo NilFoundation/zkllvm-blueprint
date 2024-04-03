@@ -103,7 +103,9 @@ namespace nil {
         }
 
         template<typename fri_type, typename FieldType>
-        typename fri_type::params_type create_fri_params(std::size_t degree_log, const std::size_t expand_factor = 4, const std::size_t max_step = 1) {
+        typename fri_type::params_type create_fri_params(
+                const std::size_t degree_log, const std::size_t lambda,
+                const std::size_t expand_factor = 4, const std::size_t max_step = 1) {
             math::polynomial<typename FieldType::value_type> q = {0, 0, 1};
 
             const std::size_t r = degree_log - 1;
@@ -115,7 +117,8 @@ namespace nil {
                 (1 << degree_log) - 1,
                 domain_set,
                 generate_random_step_list(r, max_step),
-                expand_factor
+                expand_factor,
+                lambda
             );
 
             return params;
@@ -413,7 +416,7 @@ namespace nil {
 #ifdef BLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED
             using circuit_params = typename nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType>;
             using lpc_params_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment_params<
-                Hash, Hash, Lambda, 2
+                Hash, Hash, 2
             >;
 
             using commitment_type = typename nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
@@ -424,7 +427,8 @@ namespace nil {
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
 
-            typename fri_type::params_type fri_params = create_fri_params<fri_type, BlueprintFieldType>(table_rows_log);
+            typename fri_type::params_type fri_params = create_fri_params<fri_type, BlueprintFieldType>(
+                table_rows_log, Lambda);
             commitment_scheme_type lpc_scheme(fri_params);
 
             std::size_t permutation_size = desc.witness_columns + desc.public_input_columns + desc.constant_columns;
@@ -444,14 +448,14 @@ namespace nil {
             );
 
             bool verifier_res = nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params_type>::process(
-                preprocessed_public_data, proof, desc, bp, lpc_scheme
+                preprocessed_public_data.common_data, proof, desc, bp, lpc_scheme
             );
 
             if (expected_to_pass) {
-                BOOST_CHECK(verifier_res);
+                BOOST_ASSERT(verifier_res);
             }
             else {
-                BOOST_CHECK(!verifier_res);
+                BOOST_ASSERT(!verifier_res);
             }
 #endif
         }
