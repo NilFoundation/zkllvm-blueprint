@@ -149,7 +149,7 @@ namespace nil {
                     struct result_type {
                         var output = var(0, 0);
 
-                        result_type(const exponentiation &component, input_type &params, std::size_t start_row_index) {
+                        result_type(const exponentiation &component, std::size_t start_row_index) {
                             output = var(component.W(intermediate_start + component.intermediate_results_per_row - 1),
                                          start_row_index + component.rows_amount - 1, false);
                         }

@@ -182,7 +182,6 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount,
                                                        std::size_t bits_amount,
                                                        comparison_mode mode) {
                     gate_manifest manifest =
@@ -259,7 +258,7 @@ namespace nil {
 
                 template<typename ContainerType>
                 explicit comparison_flag(ContainerType witness, std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, {}, {}, get_manifest()),
+                        component_type(witness, {}, {}, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_) {};
 
@@ -268,7 +267,7 @@ namespace nil {
                     comparison_flag(WitnessContainerType witness, ConstantContainerType constant,
                                     PublicInputContainerType public_input,
                                     std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, constant, public_input, get_manifest()),
+                        component_type(witness, constant, public_input, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_) {
 
@@ -281,7 +280,7 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t bits_amount_, comparison_mode mode_) :
-                        component_type(witnesses, constants, public_inputs, get_manifest()),
+                        component_type(witnesses, constants, public_inputs, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_) {
 

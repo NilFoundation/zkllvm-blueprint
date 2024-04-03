@@ -184,7 +184,7 @@ namespace nil {
                 struct result_type {
                     var X;
                     var Y;
-                    result_type(const curve_element_variable_base_scalar_mul &component, input_type &params, std::size_t start_row_index) {
+                    result_type(const curve_element_variable_base_scalar_mul &component, std::size_t start_row_index) {
                         X = var(component.W(0), start_row_index + component.rows_amount - 1, false, var::column_type::witness);
                         Y = var(component.W(1), start_row_index + component.rows_amount - 1, false, var::column_type::witness);
                     }
