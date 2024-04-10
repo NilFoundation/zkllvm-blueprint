@@ -35,7 +35,7 @@
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/profiling.hpp>
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
@@ -211,16 +211,17 @@ namespace nil {
                     const typename SrcParams::fri_params_type &fri_params
                 ):  component_type(witnesses, constants, public_inputs, get_manifest())
                 {
+                    auto &desc = common_data.desc;
                     placeholder_info = nil::crypto3::zk::snark::prepare_placeholder_info<typename SrcParams::placeholder_params>(
                         constraint_system,
                         common_data, fri_params,
-                        SrcParams::WitnessColumns + SrcParams::PublicInputColumns + SrcParams::ComponentConstantColumns
+                        constraint_system.permuted_columns().size()
                     );
                     rows_amount = 100000; // TODO: count rows carefully
                     vk0 = common_data.vk.constraint_system_with_params_hash;
                     vk1 = common_data.vk.fixed_values_commitment;
                     fri_params_r = fri_params.r;
-                    fri_params_lambda = SrcParams::Lambda;
+                    fri_params_lambda = fri_params.lambda;
                     fri_omega = fri_params.D[0]->get_domain_element(1);
                     fri_domain_size = fri_params.D[0]->size();
                     fri_initial_merkle_proof_size = log2(fri_params.D[0]->m) - 1;
@@ -380,7 +381,7 @@ namespace nil {
                     for( std::size_t j = 0; j < component.fri_initial_merkle_proof_size; j++){
                         x_index_input.b.push_back(instance_input.merkle_tree_positions[i][j]);
                     }
-                    generate_assignments(
+                    typename x_index_component_type::result_type x_index_output = generate_assignments(
                         x_index_instance, assignment, x_index_input, row
                     );
                     row += x_index_instance.rows_amount;
@@ -403,7 +404,7 @@ namespace nil {
                         colinear_checks_input.alphas.push_back(challenges.fri_alphas[j]);
                         colinear_checks_input.bs.push_back(instance_input.merkle_tree_positions[i][instance_input.merkle_tree_positions[i].size() - j - 1]);
                     }
-                    generate_assignments(
+                    typename colinear_checks_component_type::result_type colinear_checks_output = generate_assignments(
                         colinear_checks_instance, assignment, colinear_checks_input, row
                     );
                     row += colinear_checks_instance.rows_amount;
@@ -431,16 +432,14 @@ namespace nil {
                             poseidon_rows += poseidon_instance.rows_amount;
                             merkle_leaf_rows += poseidon_instance.rows_amount;
                         }
-//                        std::cout << "Merkle leaf " << var_value(assignment, poseidon_output.output_state[2]) << std::endl;
                         var hash_var = poseidon_output.output_state[2];
 //                        std::cout << "First hash i = " << i << "; cur_hash = " << cur_hash << " = " << instance_input.initial_proof_hashes[i][cur_hash] << " = " << var_value(assignment, instance_input.initial_proof_hashes[i][cur_hash]) << std::endl;
                         for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size; k++){
                             swap_input_type swap_input;
-                            swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
-                                                      instance_input.initial_proof_hashes[i][cur_hash], hash_var});
-                            auto swap_result = assignment.template add_input_to_batch_assignment<swap_component_type, std::size_t>(
-                                                    swap_input, 1);
-                            poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
+                            swap_input.inp = {instance_input.merkle_tree_positions[i][k], instance_input.initial_proof_hashes[i][cur_hash], hash_var};
+                            auto swap_result = assignment.template add_input_to_batch<swap_component_type>(
+                                                    swap_input, 0);
+                            poseidon_input = {zero_var, swap_result.output[0], swap_result.output[1]};
                             poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
 //                            std::cout << "\t("
 //                                << var_value(assignment, poseidon_input.input_state[1]) << ", "
@@ -469,11 +468,10 @@ namespace nil {
                             merkle_proof_rows += poseidon_instance.rows_amount;
                             for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size - j; k++){
                                 swap_input_type swap_input;
-                                swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
-                                                          instance_input.round_proof_hashes[i][cur_hash], hash_var});
-                                auto swap_result = assignment.template add_input_to_batch_assignment<swap_component_type, std::size_t>(
-                                                        swap_input, 1);
-                                poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
+                                swap_input.inp = {instance_input.merkle_tree_positions[i][k], instance_input.round_proof_hashes[i][cur_hash], hash_var};
+                                auto swap_result = assignment.template add_input_to_batch<swap_component_type>(
+                                                        swap_input, 0);
+                                poseidon_input = {zero_var, swap_result.output[0], swap_result.output[1]};
                                 poseidon_output = generate_assignments(poseidon_instance, assignment, poseidon_input, row);
                                 row += poseidon_instance.rows_amount;
                                 poseidon_rows += poseidon_instance.rows_amount;
@@ -621,7 +619,7 @@ namespace nil {
                     for( std::size_t j = 0; j < component.fri_initial_merkle_proof_size; j++ ){
                         x_index_input.b.push_back(instance_input.merkle_tree_positions[i][j]);
                     }
-                    generate_circuit(
+                    typename x_index_component_type::result_type x_index_output  = generate_circuit(
                         x_index_instance, bp, assignment, x_index_input, row
                     );
                     row += x_index_instance.rows_amount;
@@ -643,7 +641,7 @@ namespace nil {
                         colinear_checks_input.alphas.push_back(challenges.fri_alphas[j]);
                         colinear_checks_input.bs.push_back(instance_input.merkle_tree_positions[i][instance_input.merkle_tree_positions[i].size() - j - 1]);
                     }
-                    generate_circuit(
+                    typename colinear_checks_component_type::result_type colinear_checks_output = generate_circuit(
                         colinear_checks_instance, bp, assignment, colinear_checks_input, row
                     );
                     row += colinear_checks_instance.rows_amount;
@@ -667,11 +665,10 @@ namespace nil {
                         var hash_var = poseidon_output.output_state[2];
                         for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size; k++){
                             swap_input_type swap_input;
-                            swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
-                                                      instance_input.initial_proof_hashes[i][cur_hash], hash_var});
-                            auto swap_result = assignment.template add_input_to_batch_circuit<swap_component_type, std::size_t>(
+                            swap_input.inp = {instance_input.merkle_tree_positions[i][k], instance_input.initial_proof_hashes[i][cur_hash], hash_var};
+                            auto swap_result = assignment.template add_input_to_batch<swap_component_type>(
                                                     swap_input, 1);
-                            poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
+                            poseidon_input = {zero_var, swap_result.output[0], swap_result.output[1]};
                             poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);
                             hash_var = poseidon_output.output_state[2];
                             cur_hash++;
@@ -683,6 +680,7 @@ namespace nil {
                             bp.add_copy_constraint({poseidon_output.output_state[2], instance_input.commitments[j-1]});
                     }
                     // Compute y-s for first round
+                    std::size_t round_merkle_proof_size = component.fri_initial_merkle_proof_size;
                     // Round proofs
                     cur = 0;
                     cur_hash = 0;
@@ -698,11 +696,10 @@ namespace nil {
                             row += poseidon_instance.rows_amount;
                             for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size - j; k++){
                                 swap_input_type swap_input;
-                                swap_input.arr.push_back({instance_input.merkle_tree_positions[i][k],
-                                                          instance_input.round_proof_hashes[i][cur_hash], hash_var});
-                                auto swap_result = assignment.template add_input_to_batch_circuit<swap_component_type, std::size_t>(
+                                swap_input.inp = {instance_input.merkle_tree_positions[i][k], instance_input.round_proof_hashes[i][cur_hash], hash_var};
+                                auto swap_result = assignment.template add_input_to_batch<swap_component_type>(
                                                         swap_input, 1);
-                                poseidon_input = {zero_var, swap_result.output[0].first, swap_result.output[0].second};
+                                poseidon_input = {zero_var, swap_result.output[0], swap_result.output[1]};
                                 poseidon_output = generate_circuit(poseidon_instance, bp, assignment, poseidon_input, row);
                                 row += poseidon_instance.rows_amount;
                                 hash_var = poseidon_output.output_state[2];

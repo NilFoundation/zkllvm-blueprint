@@ -61,7 +61,7 @@ namespace nil {
                         placeholder_info = nil::crypto3::zk::snark::prepare_placeholder_info<typename PlaceholderParams::placeholder_params>(
                             constraint_system,
                             common_data, fri_params,
-                            PlaceholderParams::WitnessColumns + PlaceholderParams::PublicInputColumns + PlaceholderParams::ComponentConstantColumns
+                            constraint_system.permuted_columns().size()
                         );
 
                         fill_vector();
@@ -105,6 +105,8 @@ namespace nil {
                     std::vector<std::vector<var>> _round_proof_hashes;
 
                     void fill_vector() {
+                        auto &desc = common_data.desc;
+
                         std::size_t cur = 0;
                         _commitments.push_back(var(0, cur++, false, var::column_type::public_input));
                         var_vector.push_back(_commitments[0]);
@@ -126,43 +128,52 @@ namespace nil {
                         // Z-s
                         // Fixed values batch.
                         // Permutation polynomials
-                        for(std::size_t i = 0; i < placeholder_info.permutation_size * 4; i++){
+                        std::cout << "placeholder_info.permutation_size = " << constraint_system.permuted_columns().size() << std::endl;
+                        for(auto &column: constraint_system.permuted_columns()){
+                            std::cout << "Permuted column " << column << std::endl;
+                        }
+                        std::size_t permutation_size = constraint_system.permuted_columns().size();
+                        std::size_t points_num = 0;
+                        for(std::size_t i = 0; i < permutation_size * 2; i++){
                             var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
+                            points_num++;
                         }
                         // Special selectors
                         var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
                         var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
                         var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
                         var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
-                        var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
-                        var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
+                        points_num += 4;
                         //Constant columns
-                        for( std::size_t i = 0; i < PlaceholderParams::ConstantColumns; i++){
-                            for( std::size_t j = 0; j < common_data.columns_rotations[PlaceholderParams::WitnessColumns + PlaceholderParams::PublicInputColumns + i].size(); j++){
+                        for( std::size_t i = 0; i < desc.constant_columns; i++){
+                            for( std::size_t j = 0; j < common_data.columns_rotations[desc.witness_columns + desc.public_input_columns + i].size(); j++){
                                 var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
+                                points_num++;
                             }
-                            var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
                         }
                         //Selector columns
-                        for( std::size_t i = 0; i < PlaceholderParams::SelectorColumns; i++){
-                            for( std::size_t j = 0; j < common_data.columns_rotations[PlaceholderParams::WitnessColumns + PlaceholderParams::PublicInputColumns + PlaceholderParams::ConstantColumns + i].size(); j++){
+                        for( std::size_t i = 0; i < desc.selector_columns; i++){
+                            for( std::size_t j = 0; j < common_data.columns_rotations[desc.witness_columns + desc.public_input_columns + desc.public_input_columns + i].size(); j++){
                                 var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
+                                points_num++;
                             }
-                            var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
                         }
                         //Variable values
                         //Witness columns
-                        for( std::size_t i = 0; i < PlaceholderParams::WitnessColumns; i++){
+                        for( std::size_t i = 0; i < desc.witness_columns; i++){
                             for( std::size_t j = 0; j < common_data.columns_rotations[i].size(); j++){
                                 var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
+                                points_num++;
                             }
                         }
                         //Public input columns
-                        for( std::size_t i = 0; i < PlaceholderParams::PublicInputColumns; i++){
-                            for( std::size_t j = 0; j < common_data.columns_rotations[i + PlaceholderParams::WitnessColumns].size(); j++){
+                        for( std::size_t i = 0; i < desc.public_input_columns; i++){
+                            for( std::size_t j = 0; j < common_data.columns_rotations[i + desc.witness_columns].size(); j++){
                                 var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
+                                points_num++;
                             }
                         }
+                        std::cout << "Proof input points num = " << points_num << std::endl;
                         //Permutation Polynomials
                         var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
                         var_vector.push_back(var(0, cur++, false, var::column_type::public_input));
@@ -190,13 +201,13 @@ namespace nil {
                         }
 
                         // Query proofs
-                        _merkle_tree_positions.resize(PlaceholderParams::Lambda);
-                        _initial_proof_values.resize(PlaceholderParams::Lambda);
-                        _initial_proof_hashes.resize(PlaceholderParams::Lambda);
-                        _round_proof_values.resize(PlaceholderParams::Lambda);
-                        _round_proof_hashes.resize(PlaceholderParams::Lambda);
+                        _merkle_tree_positions.resize(fri_params.lambda);
+                        _initial_proof_values.resize(fri_params.lambda);
+                        _initial_proof_hashes.resize(fri_params.lambda);
+                        _round_proof_values.resize(fri_params.lambda);
+                        _round_proof_hashes.resize(fri_params.lambda);
                         std::cout << "Poly input num = " << placeholder_info.poly_num << std::endl;
-                        for( std::size_t i = 0; i < PlaceholderParams::Lambda; i++){
+                        for( std::size_t i = 0; i < fri_params.lambda; i++){
                             // Initial proof values
                             _initial_proof_values[i] = {};
                             for( std::size_t j = 0; j < placeholder_info.poly_num; j++ ){
@@ -243,10 +254,10 @@ namespace nil {
                         }
                     }
                 private:
-                    common_data_type common_data;
-                    constraint_system_type constraint_system;
+                    const common_data_type &common_data;
+                    const constraint_system_type &constraint_system;
                     std::vector<var> var_vector;
-                    typename PlaceholderParams::fri_params_type fri_params;
+                    const typename PlaceholderParams::fri_params_type &fri_params;
                     placeholder_info_type placeholder_info;
                 };
             }

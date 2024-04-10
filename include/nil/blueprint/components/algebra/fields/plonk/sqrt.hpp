@@ -149,8 +149,11 @@ namespace nil {
                     var output;
 
                     result_type(const sqrt &component, std::size_t component_start_row) {
-                        output = var(component.W(0), component_start_row + 3 +
-                                     exp_component::get_rows_amount(15));
+                        output = var(
+                            component.W(0),
+                            component_start_row + 3 + exp_component::get_rows_amount(15),
+                            false
+                        );
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
@@ -205,14 +208,15 @@ namespace nil {
                 // check if y \in QR(q)
                 auto exp_instance =
                 // qr_check = 1 if y \in QR(q), -1 if y \in QNR(q), 0 if y = 0
-                    exp_component({component.W(0), component.W(1), component.W(2), component.W(3),
-                                   component.W(4), component.W(5), component.W(6), component.W(7),
-                                   component.W(8), component.W(9), component.W(10), component.W(11),
-                                   component.W(12), component.W(13), component.W(14)}, {component.C(0)},
-                                  {});
+                exp_component({
+                    component.W(0), component.W(1), component.W(2), component.W(3),
+                    component.W(4), component.W(5), component.W(6), component.W(7),
+                    component.W(8), component.W(9), component.W(10), component.W(11),
+                    component.W(12), component.W(13), component.W(14)}, {component.C(0)},
+                    {}
+                );
                 var qr_check = generate_circuit(exp_instance, bp, assignment, {instance_input.y, exp}, row).output;
                 row += exp_instance.rows_amount;
-
                 // x = sqrt(y) if y \in QR(q) or y = 0, -1 otherwise
                 auto mul_instance = mul_component({component.W(0), component.W(1), component.W(2)}, {}, {});
                 var x(component.W(0), row, false);
@@ -270,7 +274,7 @@ namespace nil {
             template<typename BlueprintFieldType>
             typename plonk_sqrt<BlueprintFieldType>::result_type
                 generate_assignments(
-                    const plonk_sqrt<BlueprintFieldType> &component,\
+                    const plonk_sqrt<BlueprintFieldType> &component,
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                         &assignment,
                     const typename plonk_sqrt<BlueprintFieldType>::input_type

@@ -45,9 +45,9 @@
 
 using namespace nil;
 
-template <typename BlueprintFieldType, std::size_t WitnessColumns, std::size_t ArraySize>
+template <typename BlueprintFieldType, std::size_t WitnessColumns>
 void test_flexible_swap(
-    const std::vector<std::tuple<typename BlueprintFieldType::value_type, typename BlueprintFieldType::value_type, typename BlueprintFieldType::value_type>> &array
+    const std::array<typename BlueprintFieldType::value_type, 3> &input
 ){
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 0;
@@ -65,33 +65,24 @@ void test_flexible_swap(
     using component_type = blueprint::components::flexible_swap<ArithmetizationType, BlueprintFieldType>;
 
     typename component_type::input_type instance_input;
-    instance_input.arr.reserve(ArraySize);
-    for (std::size_t i = 0; i < ArraySize; i++) {
-        instance_input.arr.emplace_back(std::make_tuple(
-            var(0, 3*i, false, var::column_type::public_input),
-            var(0, 3*i+1, false, var::column_type::public_input),
-            var(0, 3*i+2, false, var::column_type::public_input)
-        ));
-    }
+    instance_input.inp[0] = var(0, 0, false, var::column_type::public_input);
+    instance_input.inp[1] = var(0, 1, false, var::column_type::public_input);
+    instance_input.inp[2] = var(0, 2, false, var::column_type::public_input);
 
     std::vector<value_type> public_input;
-    for (std::size_t i = 0; i < ArraySize; i++) {
-        public_input.push_back(std::get<0>(array[i]));
-        public_input.push_back(std::get<1>(array[i]));
-        public_input.push_back(std::get<2>(array[i]));
-    }
+    public_input.push_back(input[0]);
+    public_input.push_back(input[1]);
+    public_input.push_back(input[2]);
 
-    auto result_check = [&array](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
-        BOOST_ASSERT(real_res.output.size() == ArraySize);
-        for (std::size_t i = 0; i < ArraySize; i++) {
-            if( std::get<0>(array[i]) == 0){
-                BOOST_ASSERT(var_value(assignment, real_res.output[i].first) == std::get<1>(array[i]));
-                BOOST_ASSERT(var_value(assignment, real_res.output[i].second) == std::get<2>(array[i]));
-            } else {
-                BOOST_ASSERT(var_value(assignment, real_res.output[i].first) == std::get<2>(array[i]));
-                BOOST_ASSERT(var_value(assignment, real_res.output[i].second) == std::get<1>(array[i]));
-            }
+    auto result_check = [&public_input](AssignmentType &assignment,
+	    typename component_type::result_type &real_res
+    ) {
+        if( public_input[0] == 0){
+            BOOST_ASSERT(var_value(assignment, real_res.output[0]) == public_input[1]);
+            BOOST_ASSERT(var_value(assignment, real_res.output[1]) == public_input[2]);
+        } else {
+            BOOST_ASSERT(var_value(assignment, real_res.output[0]) == public_input[2]);
+            BOOST_ASSERT(var_value(assignment, real_res.output[1]) == public_input[1]);
         }
     };
 
@@ -101,10 +92,10 @@ void test_flexible_swap(
     }
 
     component_type component_instance = component_type(witnesses, std::array<std::uint32_t, 1>{0},
-                                                       std::array<std::uint32_t, 1>{0}, ArraySize);
+                                                       std::array<std::uint32_t, 1>{0});
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>
         (component_instance, desc, public_input, result_check, instance_input,
-         nil::blueprint::connectedness_check_type::type::STRONG, ArraySize);
+         nil::blueprint::connectedness_check_type::type::STRONG);
 }
 
 template <typename BlueprintFieldType, std::size_t WitnessAmount, std::size_t RandomTestsAmount>
@@ -114,25 +105,7 @@ void flexible_swap_tests() {
     boost::random::uniform_int_distribution<> t_dist(0, 1);
 
     for (std::size_t i = 0; i < RandomTestsAmount; i++) {
-        test_flexible_swap<BlueprintFieldType, WitnessAmount, 3>(
-            {
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()}
-            }
-        );
-        test_flexible_swap<BlueprintFieldType, WitnessAmount, 8>(
-            {
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()},
-                {t_dist(seed_seq), generate_random(), generate_random()}
-            }
-        );
+        test_flexible_swap<BlueprintFieldType, WitnessAmount>({t_dist(seed_seq), generate_random(), generate_random()});
     }
 }
 

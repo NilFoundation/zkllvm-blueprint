@@ -211,8 +211,8 @@ namespace nil {
                 const std::size_t j = start_row_index;
                 var component_x = var(component.W(0), static_cast<int>(j), false);
                 var component_y = var(component.W(1), static_cast<int>(j), false);
-                bp.add_copy_constraint({instance_input.x, component_x});
-                bp.add_copy_constraint({component_y, instance_input.y});
+                if( instance_input.x != component_x )  bp.add_copy_constraint({instance_input.x, component_x});
+                if( instance_input.y != component_y )  bp.add_copy_constraint({component_y, instance_input.y});
             }
 
             template<typename BlueprintFieldType>

@@ -181,8 +181,8 @@ namespace nil {
                         component_type(witness, constant, public_input, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_),
-                        range_check_subcomponent(witness, constant, public_input, bits_amount_) {
-
+                        range_check_subcomponent(witness, constant, public_input, bits_amount_
+                ) {
                     check_params(bits_amount, mode);
                  };
 
@@ -290,9 +290,10 @@ namespace nil {
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
+
                 using var = typename plonk_comparison_unchecked<BlueprintFieldType>::var;
                 generate_circuit(component.range_check_subcomponent, bp, assignment,
-                                 {var(component.W(2), start_row_index + component.range_check_subcomponent.rows_amount)},
+                                 {var(component.W(2), start_row_index + component.range_check_subcomponent.rows_amount, false)},
                                  start_row_index);
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);

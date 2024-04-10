@@ -54,10 +54,10 @@ struct compare_copy_constraints {
     bool operator()(const crypto3::zk::snark::plonk_copy_constraint<FieldType> &lhs,
                     const crypto3::zk::snark::plonk_copy_constraint<FieldType> &rhs) const {
         crypto3::zk::snark::plonk_copy_constraint<FieldType> norm_lhs =
-            lhs.first < lhs.second ? lhs : std::make_pair(lhs.second, lhs.first);
+            lhs.first < lhs.second ? lhs : crypto3::zk::snark::plonk_copy_constraint<FieldType>(lhs.second, lhs.first);
         crypto3::zk::snark::plonk_copy_constraint<FieldType> norm_rhs =
-            rhs.first < rhs.second ? rhs : std::make_pair(rhs.second, rhs.first);
-        return norm_lhs < norm_rhs;
+            rhs.first < rhs.second ? rhs : crypto3::zk::snark::plonk_copy_constraint<FieldType>(rhs.second, rhs.first);
+        return norm_lhs.first < norm_rhs.first || (norm_lhs.first == norm_rhs.first && norm_lhs.second < norm_rhs.second);
     }
 };
 
@@ -65,8 +65,16 @@ template<typename FieldType>
 bool compare_copy_constraint_vectors(const std::vector<crypto3::zk::snark::plonk_copy_constraint<FieldType>> &lhs,
                                      const std::vector<crypto3::zk::snark::plonk_copy_constraint<FieldType>> &rhs) {
     std::set<crypto3::zk::snark::plonk_copy_constraint<FieldType>, compare_copy_constraints<FieldType>>
-        lhs_set(lhs.begin(), lhs.end()), rhs_set(rhs.begin(), rhs.end());
-    if (lhs_set.size() != lhs.size() || rhs_set.size() != rhs.size()) {
+        lhs_set, rhs_set;
+
+    for( const auto &c: lhs ) {
+        lhs_set.insert(c);
+    }
+    for( const auto &c: rhs ) {
+        rhs_set.insert(c);
+    }
+
+    if (lhs_set.size() != rhs_set.size() ) {
         return false;
     }
     return lhs_set == rhs_set;
@@ -427,21 +435,18 @@ BOOST_AUTO_TEST_CASE(component_batch_params_test) {
     constexpr std::size_t size_small = 1;
     constexpr std::size_t size_big = 2;
     input_type input;
-    input.arr.push_back(std::make_tuple<var, var, var>(
-        public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()));
-    auto res_1 =  assignment.add_input_to_batch_assignment<swap_component_type, std::size_t>(input, size_small);
-    input.arr = {};
-    input.arr.push_back(std::make_tuple<var, var, var>(
-        public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()));
-    input.arr.push_back(std::make_tuple<var, var, var>(
-        public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()));
-    auto res_2 = assignment.add_input_to_batch_assignment<swap_component_type, std::size_t>(input, size_big);
-    input.arr = {};
-    input.arr.push_back({public_input_var_maker.binary_var(), res_1.output[0].first, res_2.output[0].second});
-    auto res_3 = assignment.add_input_to_batch_assignment<swap_component_type, std::size_t>(input, size_small);
+
+    input.inp = {public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()};
+    auto res_1 =  assignment.add_input_to_batch_assignment<swap_component_type>(input);
+
+    input.inp = {public_input_var_maker.binary_var(), public_input_var_maker(), public_input_var_maker()};
+    auto res_2 = assignment.add_input_to_batch_assignment<swap_component_type>(input);
+
+    input.inp = {public_input_var_maker.binary_var(), res_1.output[0], res_2.output[1]};
+    auto res_3 = assignment.add_input_to_batch_assignment<swap_component_type>(input);
     assignment.finalize_component_batches(circuit, 0);
 
-    BOOST_CHECK_EQUAL(circuit.gates().size(), 2);
+    BOOST_CHECK_EQUAL(circuit.gates().size(), 1);
     const auto &gate_1 = circuit.gates()[0];
     BOOST_CHECK_EQUAL(gate_1.constraints.size(), 9);
     std::array<constraint_type, 9> expected_constraints = {
@@ -460,34 +465,18 @@ BOOST_AUTO_TEST_CASE(component_batch_params_test) {
         BOOST_CHECK_EQUAL(gate_1.constraints[i], expected_constraints[i]);
     }
 
-    const auto &gate_2 = circuit.gates()[1];
-    BOOST_CHECK_EQUAL(gate_2.constraints.size(), 6);
-    std::array<constraint_type, 9> expected_constraints_2 = {
-        var(0, 0) * (var(0, 0) - 1),
-        var(3, 0) - (((0 - (var(0, 0) - 1)) * var(1, 0)) + var(0, 0) * var(2, 0)),
-        var(4, 0) - (((0 - (var(0, 0) - 1)) * var(2, 0)) + var(0, 0) * var(1, 0)),
-        var(5, 0) * (var(5, 0) - 1),
-        var(8, 0) - (((0 - (var(5, 0) - 1)) * var(6, 0)) + var(5, 0) * var(7, 0)),
-        var(9, 0) - (((0 - (var(5, 0) - 1)) * var(7, 0)) + var(5, 0) * var(6, 0)),
-    };
-
-    for (std::size_t i = 0; i < gate_2.constraints.size(); ++i) {
-        BOOST_CHECK_EQUAL(gate_2.constraints[i], expected_constraints[i]);
-    }
-
     const std::vector<copy_constraint_type> expected_copy_constraints = {
         {var(0, 0, false, var::column_type::public_input), var(0, 0, false, var::column_type::witness)},
         {var(0, 1, false, var::column_type::public_input), var(1, 0, false, var::column_type::witness)},
         {var(0, 2, false, var::column_type::public_input), var(2, 0, false, var::column_type::witness)},
-        {var(0, 9, false, var::column_type::public_input), var(5, 0, false, var::column_type::witness)},
-        {var(3, 0, false, var::column_type::witness), var(6, 0, false, var::column_type::witness)},
-        {var(4, 1, false, var::column_type::witness), var(7, 0, false, var::column_type::witness)},
-        {var(0, 3, false, var::column_type::public_input), var(0, 1, false, var::column_type::witness)},
-        {var(0, 4, false, var::column_type::public_input), var(1, 1, false, var::column_type::witness)},
-        {var(0, 5, false, var::column_type::public_input), var(2, 1, false, var::column_type::witness)},
-        {var(0, 6, false, var::column_type::public_input), var(5, 1, false, var::column_type::witness)},
-        {var(0, 7, false, var::column_type::public_input), var(6, 1, false, var::column_type::witness)},
-        {var(0, 8, false, var::column_type::public_input), var(7, 1, false, var::column_type::witness)},
+
+        {var(0, 3, false, var::column_type::public_input), var(5, 0, false, var::column_type::witness)},
+        {var(0, 4, false, var::column_type::public_input), var(6, 0, false, var::column_type::witness)},
+        {var(0, 5, false, var::column_type::public_input), var(7, 0, false, var::column_type::witness)},
+
+        {var(0, 6, false, var::column_type::public_input), var(10, 0, false, var::column_type::witness)},
+        {var(3, 0, false, var::column_type::witness), var(11, 0, false, var::column_type::witness)},
+        {var(9, 0, false, var::column_type::witness), var(12, 0, false, var::column_type::witness)}
     };
 
     BOOST_ASSERT(compare_copy_constraint_vectors<field_type>(circuit.copy_constraints(), expected_copy_constraints));
