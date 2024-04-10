@@ -192,7 +192,45 @@ namespace nil {
                     const typename SrcParams::common_data_type &common_data,
                     const typename SrcParams::fri_params_type &fri_params
                 ) {
-                    return 100;
+                    auto &desc = common_data.desc;
+                    auto placeholder_info = nil::crypto3::zk::snark::prepare_placeholder_info<typename SrcParams::placeholder_params>(
+                        constraint_system,
+                        common_data, fri_params,
+                        constraint_system.permuted_columns().size()
+                    );
+
+                    auto vk0 = common_data.vk.constraint_system_with_params_hash;
+                    auto vk1 = common_data.vk.fixed_values_commitment;
+                    auto fri_params_r = fri_params.r;
+                    auto fri_params_lambda = fri_params.lambda;
+                    auto fri_omega = fri_params.D[0]->get_domain_element(1);
+                    auto fri_domain_size = fri_params.D[0]->size();
+                    auto fri_initial_merkle_proof_size = log2(fri_params.D[0]->m) - 1;
+
+                    using poseidon_component_type = typename plonk_flexible_verifier::poseidon_component_type;
+                    std::size_t poseidon_rows = poseidon_component_type::get_rows_amount(witness_amount);
+
+                    using constant_pow_component_type = typename plonk_flexible_verifier::constant_pow_component_type;
+                    std::size_t constant_pow_rows = constant_pow_component_type::get_rows_amount(witness_amount, (BlueprintFieldType::modulus - 1)/fri_domain_size);
+
+                    using x_index_component_type = typename plonk_flexible_verifier::x_index_component_type;
+                    std::size_t x_index_rows = x_index_component_type::get_rows_amount(witness_amount, fri_initial_merkle_proof_size);
+
+                    using colinear_checks_component_type = typename plonk_flexible_verifier::colinear_checks_component_type;
+                    std::size_t colinear_checks_rows = colinear_checks_component_type::get_rows_amount(witness_amount, fri_params_r);
+
+                    auto rows_amount = poseidon_rows * 15 + poseidon_rows * fri_params_r + poseidon_rows * fri_params_lambda; //challenges
+                    for( std::size_t i = 0; i < placeholder_info.batches_num; i++){
+                        rows_amount += poseidon_rows * placeholder_info.batches_sizes[i] * fri_params_lambda;
+                        rows_amount += poseidon_rows * fri_initial_merkle_proof_size * fri_params_lambda;
+                    }
+                    for( std::size_t i = 0; i < fri_params.r-1; i++){
+                        rows_amount += poseidon_rows * fri_params_lambda * (fri_initial_merkle_proof_size - i);
+                    }
+                    rows_amount += constant_pow_rows * fri_params_lambda;
+                    rows_amount += x_index_rows * fri_params_lambda;
+                    rows_amount += colinear_checks_rows * fri_params_lambda;
+                    return rows_amount;
                 }
 
                 template <
@@ -217,7 +255,7 @@ namespace nil {
                         common_data, fri_params,
                         constraint_system.permuted_columns().size()
                     );
-                    rows_amount = 100000; // TODO: count rows carefully
+
                     vk0 = common_data.vk.constraint_system_with_params_hash;
                     vk1 = common_data.vk.fixed_values_commitment;
                     fri_params_r = fri_params.r;
@@ -225,6 +263,46 @@ namespace nil {
                     fri_omega = fri_params.D[0]->get_domain_element(1);
                     fri_domain_size = fri_params.D[0]->size();
                     fri_initial_merkle_proof_size = log2(fri_params.D[0]->m) - 1;
+
+                    using poseidon_component_type = typename plonk_flexible_verifier::poseidon_component_type;
+                    using constant_pow_component_type = typename plonk_flexible_verifier::constant_pow_component_type;
+                    using x_index_component_type = typename plonk_flexible_verifier::x_index_component_type;
+                    using colinear_checks_component_type = typename plonk_flexible_verifier::colinear_checks_component_type;
+
+                    poseidon_component_type poseidon_instance(
+                        witnesses, constants, public_inputs
+                    );
+                    std::size_t poseidon_rows = poseidon_instance.rows_amount;
+
+                    x_index_component_type x_index_instance(
+                        witnesses, constants, public_inputs,
+                        fri_initial_merkle_proof_size, fri_omega
+                    );
+                    std::size_t x_index_rows = x_index_instance.rows_amount;
+
+                    constant_pow_component_type constant_pow_instance(
+                        witnesses, constants, public_inputs,
+                        (BlueprintFieldType::modulus - 1)/fri_domain_size
+                    );
+                    std::size_t constant_pow_rows = constant_pow_instance.rows_amount;
+
+                    colinear_checks_component_type colinear_checks_instance(
+                        witnesses, constants, public_inputs,
+                        fri_params_r
+                    );
+                    std::size_t colinear_checks_rows = colinear_checks_instance.rows_amount;
+
+                    rows_amount = poseidon_rows * 15 + poseidon_rows * fri_params_r + poseidon_rows * fri_params_lambda; //challenges
+                    for( std::size_t i = 0; i < placeholder_info.batches_num; i++){
+                        rows_amount += poseidon_rows * placeholder_info.batches_sizes[i] * fri_params_lambda;
+                        rows_amount += poseidon_rows * fri_initial_merkle_proof_size * fri_params_lambda;
+                    }
+                    for( std::size_t i = 0; i < fri_params.r-1; i++){
+                        rows_amount += poseidon_rows * fri_params_lambda * (fri_initial_merkle_proof_size - i);
+                    }
+                    rows_amount += constant_pow_rows * fri_params_lambda;
+                    rows_amount += x_index_rows * fri_params_lambda;
+                    rows_amount += colinear_checks_rows * fri_params_lambda;
                     // Change after implementing minimized permutation_argument
                 }
 
@@ -245,9 +323,11 @@ namespace nil {
                 const std::uint32_t start_row_index
             ) {
                 using component_type = plonk_flexible_verifier<BlueprintFieldType>;
-                using poseidon_component_type = typename component_type::poseidon_component_type;
+
                 using swap_component_type = typename component_type::swap_component_type;
                 using swap_input_type = typename swap_component_type::input_type;
+
+                using poseidon_component_type = typename component_type::poseidon_component_type;
                 using constant_pow_component_type = typename component_type::constant_pow_component_type;
                 using x_index_component_type = typename component_type::x_index_component_type;
                 using colinear_checks_component_type = typename component_type::colinear_checks_component_type;
