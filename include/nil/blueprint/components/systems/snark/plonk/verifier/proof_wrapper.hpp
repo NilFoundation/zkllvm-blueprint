@@ -76,15 +76,20 @@ namespace nil {
                         auto batch_info = eval_proof.z.get_batch_info();
                         std::size_t sum = 0;
                         std::size_t poly_num = 0;
+                        std::size_t points_num = 0;
                         for(const auto& [k, v]: batch_info){
+                            std::cout << "Batch info: " << k << " " << v << std::endl;
                             for(std::size_t i = 0; i < v; i++){
                                 poly_num++;
                                 BOOST_ASSERT(eval_proof.z.get_poly_points_number(k, i) != 0);
                                 for(std::size_t j = 0; j < eval_proof.z.get_poly_points_number(k, i); j++){
+                                    points_num++;
                                     _proof_field_vector.push_back(eval_proof.z.get(k, i, j));
                                 }
                             }
                         }
+                        std::cout << "Proof wrapper poly num: " << poly_num << std::endl;
+                        std::cout << "Proof wrapper points num: " << points_num << std::endl;
 
                         for( std::size_t i = 0; i < eval_proof.fri_proof.fri_roots.size(); i++){
                             _proof_field_vector.push_back(eval_proof.fri_proof.fri_roots[i]);

@@ -378,7 +378,7 @@ namespace nil {
                 // Proceed with care
                 using var = typename plonk_poseidon<BlueprintFieldType, FieldType>::var;
                 for (std::size_t i = 0; i < 3; i++) {
-                    bp.add_copy_constraint({var(component.W(i), start_row_index), instance_input.input_state[i]});
+                    bp.add_copy_constraint({var(component.W(i), start_row_index, false), instance_input.input_state[i]});
                 }
             }
 

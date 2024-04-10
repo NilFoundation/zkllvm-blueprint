@@ -35,7 +35,7 @@
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/profiling.hpp>
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
@@ -211,16 +211,17 @@ namespace nil {
                     const typename SrcParams::fri_params_type &fri_params
                 ):  component_type(witnesses, constants, public_inputs, get_manifest())
                 {
+                    auto &desc = common_data.desc;
                     placeholder_info = nil::crypto3::zk::snark::prepare_placeholder_info<typename SrcParams::placeholder_params>(
                         constraint_system,
                         common_data, fri_params,
-                        SrcParams::WitnessColumns + SrcParams::PublicInputColumns + SrcParams::ComponentConstantColumns
+                        constraint_system.permuted_columns().size()
                     );
                     rows_amount = 100000; // TODO: count rows carefully
                     vk0 = common_data.vk.constraint_system_with_params_hash;
                     vk1 = common_data.vk.fixed_values_commitment;
                     fri_params_r = fri_params.r;
-                    fri_params_lambda = SrcParams::Lambda;
+                    fri_params_lambda = fri_params.lambda;
                     fri_omega = fri_params.D[0]->get_domain_element(1);
                     fri_domain_size = fri_params.D[0]->size();
                     fri_initial_merkle_proof_size = log2(fri_params.D[0]->m) - 1;
@@ -431,7 +432,6 @@ namespace nil {
                             poseidon_rows += poseidon_instance.rows_amount;
                             merkle_leaf_rows += poseidon_instance.rows_amount;
                         }
-//                        std::cout << "Merkle leaf " << var_value(assignment, poseidon_output.output_state[2]) << std::endl;
                         var hash_var = poseidon_output.output_state[2];
 //                        std::cout << "First hash i = " << i << "; cur_hash = " << cur_hash << " = " << instance_input.initial_proof_hashes[i][cur_hash] << " = " << var_value(assignment, instance_input.initial_proof_hashes[i][cur_hash]) << std::endl;
                         for( std::size_t k = 0; k < component.fri_initial_merkle_proof_size; k++){

@@ -28,6 +28,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <nil/crypto3/random/algebraic_engine.hpp>
+#include <nil/crypto3/random/algebraic_random_device.hpp>
 #include <nil/crypto3/hash/algorithm/hash.hpp>
 #include <nil/crypto3/hash/poseidon.hpp>
 
@@ -46,6 +48,8 @@
 #include <nil/marshalling/status_type.hpp>
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/endianness.hpp>
+#include <nil/crypto3/marshalling/zk/types/commitments/eval_storage.hpp>
+#include <nil/crypto3/marshalling/zk/types/commitments/lpc.hpp>
 #include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
@@ -82,15 +86,6 @@ bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
 struct default_zkllvm_params{
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;
 
-    static constexpr std::size_t WitnessColumns = 15;
-    static constexpr std::size_t PublicInputColumns = 1;
-    static constexpr std::size_t ComponentConstantColumns = 5;
-    static constexpr std::size_t LookupConstantColumns = 30;
-    static constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
-    static constexpr std::size_t ComponentSelectorColumns = 50;
-    static constexpr std::size_t LookupSelectorColumns = 6;
-    static constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
-
     using constraint_system_type =
         nil::crypto3::zk::snark::plonk_constraint_system<field_type>;
     using table_description_type =
@@ -103,7 +98,6 @@ struct default_zkllvm_params{
         nil::crypto3::zk::snark::plonk_table<field_type, ColumnType>;
 
     using ColumnsRotationsType = std::vector<std::set<int>>;
-    static const std::size_t Lambda = 20;//ParametersPolicy::lambda;
     using poseidon_policy = nil::crypto3::hashes::detail::mina_poseidon_policy<field_type>;
     using Hash = nil::crypto3::hashes::poseidon<poseidon_policy>;
     using circuit_params = nil::crypto3::zk::snark::placeholder_circuit_params<field_type>;
@@ -111,7 +105,6 @@ struct default_zkllvm_params{
     using lpc_params_type = nil::crypto3::zk::commitments::list_polynomial_commitment_params<
         Hash,
         Hash,
-        Lambda,
         2
     >;
     using lpc_type = nil::crypto3::zk::commitments::list_polynomial_commitment<field_type, lpc_params_type>;
@@ -181,7 +174,7 @@ struct default_zkllvm_params{
         return constraint_system;
     }
 
-    static std::tuple<common_data_type,table_description_type> load_common_data(std::string filename){
+    static common_data_type load_common_data(std::string filename){
         std::ifstream ifile;
         ifile.open(filename, std::ios_base::binary | std::ios_base::in);
         BOOST_ASSERT(ifile.is_open());
@@ -280,15 +273,13 @@ gen_test_proof(
     using field_type = typename SrcParams::field_type;
 
     auto fri_params = create_fri_params<typename SrcParams::lpc_type::fri_type, field_type>(std::ceil(std::log2(table_description.rows_amount)), 0);
-    std::size_t permutation_size =
-        table_description.witness_columns + table_description.public_input_columns + SrcParams::ComponentConstantColumns;
     typename SrcParams::lpc_scheme_type lpc_scheme(fri_params);
 
     std::cout <<"Preprocess public data" << std::endl;
     typename nil::crypto3::zk::snark::placeholder_public_preprocessor<
         field_type, src_placeholder_params>::preprocessed_data_type public_preprocessed_data =
     nil::crypto3::zk::snark::placeholder_public_preprocessor<field_type, src_placeholder_params>::process(
-        constraint_system, assignment_table.move_public_table(), table_description, lpc_scheme, permutation_size
+        constraint_system, assignment_table.move_public_table(), table_description, lpc_scheme
     );
 
     std::cout <<"Preprocess private data" << std::endl;
@@ -340,9 +331,9 @@ void test_flexible_verifier(
             return true;
     };
 
-
     nil::blueprint::components::detail::placeholder_proof_input_type<SrcParams>full_instance_input(common_data, constraint_system, fri_params);
     nil::blueprint::components::detail::placeholder_proof_wrapper<typename SrcParams::placeholder_params>proof_ext(common_data, proof);
+
     std::size_t value_vector_size = proof_ext.vector().size();
     std::cout << "value vector size = " << value_vector_size << std::endl;
     std::cout << "var vector size =   " << full_instance_input.vector().size() << std::endl;
@@ -379,10 +370,13 @@ void test_flexible_verifier(
 template<typename SrcParams>
 void test_multiple_arithmetizations(std::string folder_name){
 //    auto table_description = SrcParams::load_table_description(folder_name + "/assignment.tbl");
+    std::cout << "Start loading" << std::endl;
     auto constraint_system = SrcParams::load_circuit(folder_name + "/circuit.crct");
-    auto [common_data, table_description] = SrcParams::load_common_data(folder_name + "/common.dat");
+    std::cout << "Load constraint system" << std::endl;
+    auto common_data = SrcParams::load_common_data(folder_name + "/common.dat");
     auto proof = SrcParams::load_proof(folder_name + "/proof.bin");
-    auto fri_params = create_fri_params<typename SrcParams::lpc_type::fri_type, typename SrcParams::field_type>(std::ceil(std::log2(table_description.rows_amount)), 2);
+    auto table_description = common_data.desc;
+    auto fri_params = common_data.commitment_params;
 
     std::cout << "Usable rows = " << table_description.usable_rows_amount << std::endl;
     std::cout << "Rows amount = " << table_description.rows_amount << std::endl;
@@ -390,6 +384,7 @@ void test_multiple_arithmetizations(std::string folder_name){
     std::cout << "Public input amount = " << table_description.public_input_columns << std::endl;
     std::cout << "Constant amount = " << table_description.constant_columns << std::endl;
     std::cout << "Selector amount = " << table_description.selector_columns << std::endl;
+    std::cout << "Lambda = " << fri_params.lambda << std::endl;
 
 //    auto [common_data, fri_params, proof] = gen_test_proof<SrcParams>(constraint_system, table_description, assignment_table);
 

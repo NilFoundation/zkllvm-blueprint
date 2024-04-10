@@ -448,7 +448,6 @@ namespace nil {
                 const typename plonk_ed25519_addition<BlueprintFieldType>::input_type
                     &instance_input,
                 const std::size_t start_row_index) {
-
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 std::size_t j = start_row_index;

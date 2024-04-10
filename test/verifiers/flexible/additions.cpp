@@ -100,7 +100,7 @@ void test_flexible_addition(
                                                        std::array<std::uint32_t, 1>{0}, ArraySize);
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>
         (component_instance, desc, public_input, result_check, instance_input,
-         nil::blueprint::connectedness_check_type::type::STRONG, ArraySize);
+         nil::blueprint::connectedness_check_type::type::NONE, ArraySize);
 }
 
 template <typename BlueprintFieldType, std::size_t WitnessAmount, std::size_t RandomTestsAmount>

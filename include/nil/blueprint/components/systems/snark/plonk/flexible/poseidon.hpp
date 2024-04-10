@@ -246,20 +246,20 @@ namespace nil {
                 std::size_t gate_id = 0;
                 for (std::size_t round = 0; round < component_type::rounds_amount; round++) {
                     if(start_column == 0) constraints.push_back(std::vector<constraint_type>());
-                    var input_var1 = var(component.W(start_column), 0);
-                    var input_var2 = var(component.W(start_column+1), 0);
-                    var input_var3 = var(component.W(start_column+2), 0);
+                    var input_var1 = var(component.W(start_column), 0, true);
+                    var input_var2 = var(component.W(start_column+1), 0, true);
+                    var input_var3 = var(component.W(start_column+2), 0, true);
                     var output_var1;
                     var output_var2;
                     var output_var3;
                     if( start_column + 5 < component.witness_amount() ){
-                        output_var1 = var(component.W(start_column+3), 0);
-                        output_var2 = var(component.W(start_column+4), 0);
-                        output_var3 = var(component.W(start_column+5), 0);
+                        output_var1 = var(component.W(start_column+3), 0, true);
+                        output_var2 = var(component.W(start_column+4), 0, true);
+                        output_var3 = var(component.W(start_column+5), 0, true);
                     } else {
-                        output_var1 = var(component.W(0), 1);
-                        output_var2 = var(component.W(1), 1);
-                        output_var3 = var(component.W(2), 1);
+                        output_var1 = var(component.W(0), 1, true);
+                        output_var2 = var(component.W(1), 1, true);
+                        output_var3 = var(component.W(2), 1, true);
                     }
                     auto constraint1 =
                         output_var1 -
@@ -311,7 +311,7 @@ namespace nil {
                 // Proceed with care
                 using var = typename plonk_flexible_poseidon<BlueprintFieldType>::var;
                 for (std::size_t i = 0; i < 3; i++) {
-                    bp.add_copy_constraint({var(component.W(i), start_row_index), instance_input.input_state[i]});
+                    bp.add_copy_constraint({var(component.W(i), start_row_index, false), instance_input.input_state[i]});
                 }
             }
 
