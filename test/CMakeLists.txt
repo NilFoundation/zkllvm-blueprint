@@ -159,6 +159,7 @@ set(PLONK_TESTS_FILES
     "verifiers/flexible/constant_pow"
     "verifiers/flexible/pow_factor"
     "verifiers/placeholder/verifier"
+    "detail/choice_function"
     )
 
 set(FIELDS_TESTS_FILES
