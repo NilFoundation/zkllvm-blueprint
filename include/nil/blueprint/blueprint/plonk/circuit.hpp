@@ -188,6 +188,13 @@ namespace nil {
             virtual void add_copy_constraint(const crypto3::zk::snark::plonk_copy_constraint<BlueprintFieldType> &copy_constraint) {
                 static const std::size_t private_storage_index =
                     assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>::private_storage_index;
+                if (
+                    copy_constraint.first.type == crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>::column_type::uninitialized ||
+                    copy_constraint.second.type == crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>::column_type::uninitialized
+                ) {
+                    std::cerr << "\ntrying to add copy constraint with uninitialized var!\n";
+                    std::abort();
+                }
                 if (copy_constraint.first == copy_constraint.second) {
                     return;
                 }
