@@ -146,7 +146,8 @@ namespace nil {
                         return this->get_constant(point, var.index, var.rotation);
                     case var::column_type::public_input:
                     case var::column_type::selector:
-                        BOOST_ASSERT_MSG(false, "Public input/selectors should not be in a gate.");
+                    case var::column_type::uninitialized:
+                        BOOST_ASSERT_MSG(false, "Public input/selectors/uninitialized must not be in a gate.");
                 }
                 __builtin_unreachable();
             };
