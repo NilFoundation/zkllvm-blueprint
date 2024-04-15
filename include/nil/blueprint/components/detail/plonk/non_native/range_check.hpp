@@ -29,10 +29,12 @@
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
-#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
+#include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
+#include <nil/blueprint/component_stretcher.hpp>
+#include <nil/blueprint/lookup_library.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -119,7 +121,6 @@ namespace nil {
                 };
 
                 struct result_type {
-
                     result_type(const range_check &component, std::uint32_t start_row_index) {}
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
@@ -170,6 +171,25 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
+
+                // using lookup_table_definition = typename
+                //     nil::crypto3::zk::snark::lookup_table_definition<BlueprintFieldType>;
+
+                // std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
+                //     std::vector<std::shared_ptr<lookup_table_definition>> result = {};
+
+                //     auto range_16bit_table = std::shared_ptr<lookup_table_definition>(new range_16bit_table());
+                //     result.push_back(range_16bit_table);
+
+                //     return result;
+                // }
+
+                // std::map<std::string, std::size_t> component_lookup_tables(){
+                //     std::map<std::string, std::size_t> lookup_tables;
+                //     lookup_tables["range_16bit/full"] = 0;
+
+                //     return lookup_tables;
+                // }
             };
 
             template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
@@ -187,6 +207,7 @@ namespace nil {
                 const typename plonk_range_check<BlueprintFieldType,num_chunks,bit_size_chunk,num_bits>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
+                    std::cout << "Generating assignments" << std::endl;
 
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename value_type::integral_type;
@@ -225,17 +246,23 @@ namespace nil {
 	    }
 
             template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
-            std::size_t generate_gates(
+            std::vector<std::size_t> generate_gates(
                 const plonk_range_check<BlueprintFieldType,num_chunks,bit_size_chunk,num_bits> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_range_check<BlueprintFieldType,num_chunks,bit_size_chunk,num_bits>::input_type
-                    &instance_input) {
+                    &instance_input,
+                const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
+                        std::cout << "Generating gates" << std::endl;
 
                 using component_type = plonk_range_check<BlueprintFieldType, num_chunks, bit_size_chunk, num_bits>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using lookup_gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
+
+                std::vector<std::size_t> selector_indexes;
 
                 const std::size_t WA = component.witness_amount();
                 const std::size_t num_rows = component.get_rows_amount(WA, 0);
@@ -243,6 +270,7 @@ namespace nil {
                 std::size_t power = 1;
 
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 typename component_type::coordinates coords(row_shift, 0, WA);
                 var x;
                 var y[component.num_rc_chunks];
@@ -250,7 +278,9 @@ namespace nil {
                     constraint_type constr = var(component.W(coords.column), coords.row, true);
                     ++coords;
                     for (std::size_t j = 0; j < component.num_rc_chunks; ++j) {
-                        constr -= var(component.W(coords.column), coords.row, true) * power;
+                        auto value = var(component.W(coords.column), coords.row, true);
+                        constr -= value * power;
+                        // lookup_constraints.push_back({lookup_tables_indices.at("range_16bit"), {value}});
                         power <<= component.bit_size_rc;
                         ++coords;
                     }
@@ -259,7 +289,9 @@ namespace nil {
                     power = 1;
                 }
 
-                return bp.add_gate(constraints);
+                selector_indexes.push_back(bp.add_gate(constraints));
+                // selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints));
+                return selector_indexes;
             }
 
             template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
@@ -270,6 +302,7 @@ namespace nil {
                     &assignment,
                 const typename plonk_range_check<BlueprintFieldType,num_chunks,bit_size_chunk,num_bits>::input_type &instance_input,
                 const std::size_t start_row_index) {
+                    std::cout << "Generating copy constraints" << std::endl;
 
                 const std::size_t WA = component.witness_amount();
                 using component_type = plonk_range_check<BlueprintFieldType, num_chunks, bit_size_chunk, num_bits>;
@@ -291,6 +324,7 @@ namespace nil {
                     &assignment,
                 const typename plonk_range_check<BlueprintFieldType,num_chunks,bit_size_chunk,num_bits>::input_type &instance_input,
                 const std::size_t start_row_index) {
+                    std::cout << "Generating circuit" << std::endl;
 
                 using component_type = plonk_range_check<BlueprintFieldType, num_chunks, bit_size_chunk, num_bits>;
 
@@ -298,8 +332,9 @@ namespace nil {
                 const std::size_t num_rows = component.get_rows_amount(WA, 0);
                 const std::size_t row_shift = num_rows == 3 ? 1 : 0;
 
-                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input);
-                assignment.enable_selector(selector_index, start_row_index + row_shift);
+                std::vector<std::size_t> selector_index = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
+                assignment.enable_selector(selector_index[0], start_row_index + row_shift);
+                // assignment.enable_selector(selector_index[1], start_row_index + row_shift);
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 return typename component_type::result_type(component, start_row_index);

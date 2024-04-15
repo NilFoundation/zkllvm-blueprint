@@ -49,9 +49,10 @@ template <typename BlueprintFieldType,
         std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bit, 
         std::size_t WitnessColumns>
 void test_range_check(const std::vector<typename BlueprintFieldType::value_type> &public_input){
+    std::cout << "Running range check test\n";
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 0;
-    constexpr std::size_t SelectorColumns = 1;
+    constexpr std::size_t ConstantColumns = 5;
+    constexpr std::size_t SelectorColumns = 10;
     zk::snark::plonk_table_description<BlueprintFieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
@@ -71,12 +72,7 @@ void test_range_check(const std::vector<typename BlueprintFieldType::value_type>
         instance_input.x[i] = var(0, i, false, var::column_type::public_input);
     }
 
-    value_type expected_res[num_chunks];
-    for(std::size_t i = 0; i < num_chunks; i++) {
-        expected_res[i] = public_input[1 + (public_input[0] > 0)*num_chunks + i];
-    }
-
-    auto result_check = [&expected_res, &public_input](AssignmentType &assignment,
+    auto result_check = [](AssignmentType &assignment,
 	    typename component_type::result_type &real_res) {};
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -97,6 +93,7 @@ template <typename BlueprintFieldType,
         std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
         std::size_t WitnessColumns, std::size_t RandomTestsAmount>
 void range_check_tests() {
+    std::cout << "Running range check tests\n";
     using integral_type = typename BlueprintFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
 

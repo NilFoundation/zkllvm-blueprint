@@ -244,6 +244,25 @@ namespace nil {
                 virtual std::size_t get_columns_number(){return 2;}
                 virtual std::size_t get_rows_number(){return 5764801;}
             };
+
+            class range_16bit_table: public lookup_table_definition{
+            public:
+                range_16bit_table(): lookup_table_definition("range_16bit"){
+                    this->subtables["full"] = {{0}, 0, 65536};
+                };
+                virtual void generate(){
+                    this->_table.resize(1);
+                    for (typename BlueprintFieldType::integral_type i = 0;
+                        i < typename BlueprintFieldType::integral_type(65536);
+                        i++
+                    ) {
+                        this->_table[0].push_back(typename BlueprintFieldType::value_type(i));
+                    }
+                }
+
+                virtual std::size_t get_columns_number(){return 1;}
+                virtual std::size_t get_rows_number(){return 65536;}
+            };
         public:
             using bimap_type = boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::set_of<std::size_t>>;
             using left_reserved_type = typename bimap_type::left_map;
@@ -260,6 +279,7 @@ namespace nil {
                 tables["sha256_reverse_sparse_base7"] = std::shared_ptr<lookup_table_definition>(new reverse_sparse_sigmas_base7_table());
                 tables["sha256_maj"] = std::shared_ptr<lookup_table_definition>(new maj_function_table());
                 tables["sha256_ch"] = std::shared_ptr<lookup_table_definition>(new ch_function_table());
+                tables["range_16bit"] = std::shared_ptr<lookup_table_definition>(new range_16bit_table());
             }
 
             void register_lookup_table(std::shared_ptr<lookup_table_definition> table){
