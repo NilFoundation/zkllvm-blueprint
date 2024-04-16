@@ -112,6 +112,14 @@ namespace nil {
                     var x;
                     var y;
 
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 2) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+                        x = input_vect[0];
+                        y = input_vect[1];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {x, y};
                     }

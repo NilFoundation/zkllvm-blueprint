@@ -101,6 +101,23 @@ namespace nil {
                     var_ec_point A;
                     std::array<var, 4> M;
 
+                    input_type(var_ec_point _R, var_ec_point _A, std::array<var,4> _M) : R(_R), A(_A), M(_M) {};
+
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 20) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+
+                        for (std::size_t i = 0; i < 4; i++) {
+                            R.x[i] = input_vect[i];
+                            R.y[i] = input_vect[i + 4];
+                            A.x[i] = input_vect[i + 8];
+                            A.y[i] = input_vect[i + 12];
+                            M[i]   = input_vect[i + 16];
+                        }
+
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> result;
                         result.reserve(20);

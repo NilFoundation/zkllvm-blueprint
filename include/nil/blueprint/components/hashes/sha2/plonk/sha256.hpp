@@ -108,6 +108,19 @@ namespace nil {
                 struct input_type {
                     std::array<var, 4> block_data;
 
+                    input_type(std::array<var, 4> _block_data) : block_data(_block_data) {};
+
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 4) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+
+                        block_data[0] = input_vect[0];
+                        block_data[1] = input_vect[1];
+                        block_data[2] = input_vect[2];
+                        block_data[3] = input_vect[3];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {block_data[0], block_data[1], block_data[2], block_data[3]};
                     }

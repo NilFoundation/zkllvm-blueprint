@@ -149,6 +149,13 @@ namespace nil {
                 struct input_type {
                     var input;
 
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 1) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+                        input = input_vect[0];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {input};
                     }

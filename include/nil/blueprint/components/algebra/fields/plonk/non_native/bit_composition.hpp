@@ -114,6 +114,9 @@ namespace nil {
                 struct input_type {
                     std::vector<var> bits;
 
+                    input_type() {};
+                    input_type(std::vector<var> input_vect) : bits(input_vect) {};
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> res;
                         for (auto& it : bits) {

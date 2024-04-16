@@ -109,6 +109,13 @@ namespace nil {
                     var t; // swap control bit
 	                std::vector<var> arr; // the array with elements to swap
 
+                    input_type (var _t, std::vector<var> _arr) : t(_t), arr(_arr) {};
+
+                    input_type(const std::vector<var>& input_vect) {
+                        t = input_vect[0];
+                        arr.assign(input_vect.begin() + 1, input_vect.end());
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> result;
                         result.reserve(1 + arr.size());

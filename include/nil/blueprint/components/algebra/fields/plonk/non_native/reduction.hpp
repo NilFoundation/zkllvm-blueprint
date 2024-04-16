@@ -92,6 +92,15 @@ namespace nil {
                 struct input_type {
                     std::array<var, 8> k;
 
+                    input_type(std::array<var,8> _k) : k(_k) {};
+
+                    input_type(std::vector<var> input_vect) {
+                        if (input_vect.size() != 8) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+                        std::copy(input_vect.begin(), input_vect.end(), k.begin());
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {k[0], k[1], k[2], k[3], k[4], k[5], k[6], k[7]};
                     }

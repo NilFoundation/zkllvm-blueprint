@@ -89,6 +89,13 @@ namespace nil {
                         input_type() = default;
                         input_type(std::initializer_list<var> input) : input(input) {};
 
+                        input_type (std::vector<var> input_vect) {
+                            if (input_vect.size() != ArgNum) {
+                                throw std::out_of_range("Vector size does not match input size");
+                            }
+                            std::copy(input_vect.begin(), input_vect.end(), input.begin());
+                        }
+
                         std::vector<std::reference_wrapper<var>> all_vars() {
                             std::vector<std::reference_wrapper<var>> result;
                             result.insert(result.end(), input.begin(), input.end());

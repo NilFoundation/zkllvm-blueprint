@@ -94,6 +94,18 @@ namespace nil {
                     var_ec_point P;
                     var_ec_point Q;
 
+                    input_type(var_ec_point _P, var_ec_point _Q): P(_P), Q(_Q) {};
+
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 4) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+                        P.x = input_vect[0];
+                        P.y = input_vect[1];
+                        Q.x = input_vect[2];
+                        Q.y = input_vect[3];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {P.x, P.y, Q.x, Q.y};
                     }

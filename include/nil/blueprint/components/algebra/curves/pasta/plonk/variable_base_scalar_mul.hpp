@@ -172,6 +172,23 @@ namespace nil {
                     input_type(var_ec_point _T, var _b): T(_T), b(_b) {};
                     input_type(var_ec_point _T, var _b, var _b_high): T(_T), b(_b), b_high(_b_high) {};
 
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 3 || input_vect.size() != 4) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+                        if (input_vect.size() == 3) {
+                            T.x = input_vect[0];
+                            T.y = input_vect[1];
+                            b = input_vect[2];
+                        }
+                        if (input_vect.size() == 4) {
+                            T.x = input_vect[0];
+                            T.y = input_vect[1];
+                            b = input_vect[2];
+                            b_high = input_vect[3];
+                        }
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         if (std::is_same<CurveType,nil::crypto3::algebra::curves::pallas>::value) {
                             return {T.x, T.y, b, b_high};

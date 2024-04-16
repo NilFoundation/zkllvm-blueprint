@@ -134,6 +134,23 @@ namespace nil {
                     var_ec_point T;
                     var k;
 
+                    input_type(var_ec_point _T, var _k) : T(_T), k(_k) {};
+
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 9) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+                        T.x[0] = input_vect[0];
+                        T.x[1] = input_vect[1];
+                        T.x[2] = input_vect[2];
+                        T.x[3] = input_vect[3];
+                        T.y[0] = input_vect[4];
+                        T.y[1] = input_vect[5];
+                        T.y[2] = input_vect[6];
+                        T.y[3] = input_vect[7];
+                        k = input_vect[8];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {T.x[0], T.x[1], T.x[2], T.x[3], T.y[0], T.y[1], T.y[2], T.y[3], k};
                     }

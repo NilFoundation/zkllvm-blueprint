@@ -124,6 +124,31 @@ namespace nil {
                     var_ec_point T;
                     var_ec_point R;
 
+                    input_type (var_ec_point _T, var_ec_point _R) : T(_T), R(_R) {};
+
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 16) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+
+                        T.x[0] = input_vect[0];
+                        T.x[1] = input_vect[1];
+                        T.x[2] = input_vect[2];
+                        T.x[3] = input_vect[3];
+                        T.y[0] = input_vect[4];
+                        T.y[1] = input_vect[5];
+                        T.y[2] = input_vect[6];
+                        T.y[3] = input_vect[7];
+                        R.x[0] = input_vect[8];
+                        R.x[1] = input_vect[9];
+                        R.x[2] = input_vect[10];
+                        R.x[3] = input_vect[11];
+                        R.y[0] = input_vect[12];
+                        R.y[1] = input_vect[13];
+                        R.y[2] = input_vect[14];
+                        R.y[3] = input_vect[15];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {T.x[0], T.x[1], T.x[2], T.x[3], T.y[0], T.y[1], T.y[2], T.y[3],
                                 R.x[0], R.x[1], R.x[2], R.x[3], R.y[0], R.y[1], R.y[2], R.y[3]};
@@ -315,37 +340,37 @@ namespace nil {
 
                     typename multiplication_component::result_type t0 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({T_x, R_y}), row);
+                        typename multiplication_component::input_type(T_x, R_y), row);
                     row += multiplication_instance.rows_amount;
 
                     typename multiplication_component::result_type t1 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({T_y, R_x}), row);
+                        typename multiplication_component::input_type(T_y, R_x), row);
                     row += multiplication_instance.rows_amount;
 
                     typename multiplication_component::result_type t2 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({T_x, R_x}), row);
+                        typename multiplication_component::input_type(T_x, R_x), row);
                     row += multiplication_instance.rows_amount;
 
                     typename multiplication_component::result_type t3 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({T_y, R_y}), row);
+                        typename multiplication_component::input_type(T_y, R_y), row);
                     row += multiplication_instance.rows_amount;
 
                     generate_assignments( // z0
                         addition_instance, assignment,
-                        typename addition_component::input_type({t0.output, t1.output}), row);
+                        typename addition_component::input_type(t0.output, t1.output), row);
                     row += addition_instance.rows_amount;
 
                     generate_assignments( // z1
                         addition_instance, assignment,
-                        typename addition_component::input_type({t2.output, t3.output}), row);
+                        typename addition_component::input_type(t2.output, t3.output), row);
                     row += addition_instance.rows_amount;
 
                     typename multiplication_component::result_type z2 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({t0.output, t1.output}), row);
+                        typename multiplication_component::input_type(t0.output, t1.output), row);
                     row += multiplication_instance.rows_amount;
 
                     std::array<var, 4> d_var_array = {var(component.C(0), row + 4, false, var::column_type::constant),
@@ -355,27 +380,27 @@ namespace nil {
 
                     typename multiplication_component::result_type k0 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({d_var_array, z2.output}), row);
+                        typename multiplication_component::input_type(d_var_array, z2.output), row);
                     row += multiplication_instance.rows_amount;
 
                     typename multiplication_component::result_type k1 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({P_x, k0.output}), row);
+                        typename multiplication_component::input_type(P_x, k0.output), row);
                     row += multiplication_instance.rows_amount;
 
                     typename multiplication_component::result_type k2 = generate_assignments(
                         multiplication_instance, assignment,
-                        typename multiplication_component::input_type({P_y, k0.output}), row);
+                        typename multiplication_component::input_type(P_y, k0.output), row);
                     row += multiplication_instance.rows_amount;
 
                     generate_assignments( // k3
                         addition_instance, assignment,
-                        typename addition_component::input_type({P_x, k1.output}), row);
+                        typename addition_component::input_type(P_x, k1.output), row);
                     row += addition_instance.rows_amount;
 
                     generate_assignments( // k4
                         subtraction_instance, assignment,
-                        typename subtraction_component::input_type({P_y, k2.output}), row);
+                        typename subtraction_component::input_type(P_y, k2.output), row);
                     row += subtraction_instance.rows_amount;
 
                     return typename plonk_ed25519_complete_addition<BlueprintFieldType, CurveType>::result_type(component, start_row_index);

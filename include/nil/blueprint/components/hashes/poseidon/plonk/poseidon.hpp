@@ -106,6 +106,13 @@ namespace nil {
                 struct input_type {
                     std::array<var, state_size> input_state;
 
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != state_size) {
+                            throw std::out_of_range("Vector size does not match state_size");
+                        }
+                        std::copy(input_vect.begin(), input_vect.end(), input_state.begin());
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {input_state[0], input_state[1], input_state[2]};
                     }

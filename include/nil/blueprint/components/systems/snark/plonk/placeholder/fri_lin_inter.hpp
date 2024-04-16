@@ -87,6 +87,17 @@ namespace nil {
                 struct input_type {
                     var s, y0, y1, alpha;
 
+                    input_type(const std::vector<var>& input_vect) {
+                        if (input_vect.size() != 4) {
+                            throw std::out_of_range("Vector size does not match input size");
+                        }
+
+                        s =     input_vect[0];
+                        y0 =    input_vect[1];
+                        y1 =    input_vect[2];
+                        alpha = input_vect[3];
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {s, y0, y1, alpha};
                     }
