@@ -187,12 +187,10 @@ namespace nil {
                                bool expected_to_pass,
                                blueprint::connectedness_check_type connectedness_check,
                                ComponentStaticInfoArgs... component_static_info_args) {
-            std::cout << "Preparing component" << std::endl;
             using component_type = ComponentType;
             blueprint::circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> bp;
             blueprint::assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> assignment(desc);
 
-            std::cout << "LOOKUPS: " << nil::blueprint::use_lookups<component_type>() << std::endl;
             if constexpr( nil::blueprint::use_lookups<component_type>() ){
                 auto lookup_tables = component_instance.component_lookup_tables();
                 for(auto &[k,v]:lookup_tables){
@@ -407,7 +405,6 @@ namespace nil {
                             bool expected_to_pass,
                             blueprint::connectedness_check_type connectedness_check,
                             ComponentStaticInfoArgs... component_static_info_args) {
-            std::cout << "Testing component" << std::endl;
             auto [desc, bp, assignments] =
                 prepare_component<ComponentType, BlueprintFieldType, Hash, Lambda,
                                   PublicInputContainerType, FunctorResultCheck, PrivateInput,

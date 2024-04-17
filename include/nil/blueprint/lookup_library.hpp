@@ -248,7 +248,7 @@ namespace nil {
             class range_16bit_table: public lookup_table_definition{
             public:
                 range_16bit_table(): lookup_table_definition("range_16bit"){
-                    this->subtables["full"] = {{0}, 0, 65536};
+                    this->subtables["full"] = {{0}, 0, 65535};
                 };
                 virtual void generate(){
                     this->_table.resize(1);
