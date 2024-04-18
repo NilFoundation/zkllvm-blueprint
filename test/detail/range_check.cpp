@@ -39,9 +39,9 @@
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/components/detail/plonk/non_native/range_check.hpp>
+#include <nil/blueprint/components/detail/plonk/range_check.hpp>
 
-#include "../../test_plonk_component.hpp"
+#include "../test_plonk_component.hpp"
 
 using namespace nil;
 

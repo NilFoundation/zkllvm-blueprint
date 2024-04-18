@@ -160,7 +160,7 @@ set(PLONK_TESTS_FILES
     "verifiers/flexible/pow_factor"
     "verifiers/placeholder/verifier"
     "detail/choice_function"
-    "detail/non_native/range_check"
+    "detail/range_check"
     )
 
 set(FIELDS_TESTS_FILES
