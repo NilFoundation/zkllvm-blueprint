@@ -40,7 +40,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/mnt4_fp4.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp4.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -68,7 +68,7 @@ namespace nil {
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using extended_integral_type = typename BlueprintFieldType::extended_integral_type;
                 using fp4_element = typename policy_type::value_type;
-                using fp4_constraint = detail::mnt4_fp4_element<constraint_type>;
+                using fp4_constraint = detail::abstract_fp4_element<constraint_type, BlueprintFieldType>;
 
             private:
                 static std::vector<std::uint8_t> base4(extended_integral_type x) {
