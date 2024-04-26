@@ -190,7 +190,8 @@ set(HASHES_TESTS_FILES
     "hashes/r1cs/pedersen")
 
 set(PAIRING_TESTS_FILES
-    "algebra/pairing/weierstrass/plonk/mnt4_pairing"
+    "algebra/pairing/weierstrass/plonk/mnt4_miller_loop"
+    "algebra/pairing/weierstrass/plonk/mnt6_miller_loop"
     "algebra/pairing/weierstrass/plonk/mnt4_exponentiation"
     "algebra/pairing/weierstrass/plonk/mnt6_exponentiation"
     "algebra/pairing/weierstrass/r1cs/miller_loop"

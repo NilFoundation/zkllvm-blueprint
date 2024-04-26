@@ -29,6 +29,7 @@
 #define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ABSTRACT_FP3_HPP
 
 #include <array>
+#include <nil/crypto3/algebra/fields/fp3.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -37,6 +38,7 @@ namespace nil {
                 template<typename T, typename UnderlyingFieldType>
                 class abstract_fp3_element {
                 public:
+                    using policy_type_fp3 = crypto3::algebra::fields::fp3<UnderlyingFieldType>;
                     std::array<T,3> data;
 
                     T& operator[](std::size_t idx) {
@@ -47,7 +49,7 @@ namespace nil {
                     }
 
                     constexpr abstract_fp3_element operator*(abstract_fp3_element const& other) {
-                        auto s = UnderlyingFieldType::non_residue;
+                        auto s = policy_type_fp3::extension_policy::non_residue;
                         return {
                             data[0]*other[0] + s*(data[1]*other[2] + data[2]*other[1]),
                             data[0]*other[1] + data[1]*other[0] + s*data[2]*other[2],

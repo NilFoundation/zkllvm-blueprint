@@ -22,7 +22,7 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#define BOOST_TEST_MODULE blueprint_plonk_pairing_mnt4_298
+#define BOOST_TEST_MODULE blueprint_plonk_mnt4_298_miller_loop
 
 #include <boost/test/unit_test.hpp>
 
@@ -109,7 +109,7 @@ static const std::size_t random_tests_amount = 5;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_pairing_test) {
+BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_miller_loop_test) {
     using curve_type = crypto3::algebra::curves::mnt4_298;
     using g2_group_type = typename curve_type::g2_type<>;
     using base_field_value = curve_type::base_field_type::value_type;

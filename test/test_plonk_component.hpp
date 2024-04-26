@@ -252,7 +252,7 @@ namespace nil {
                     variable.get() = assignment.get_batch_variable_map().at(variable);
                 }
             }
-#if 0
+#if 1
             std::ofstream fass("circuit.tbl");
             assignment.export_table(fass);
             fass.close();
