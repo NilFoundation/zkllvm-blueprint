@@ -40,7 +40,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/mnt6_fp6.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/detail/abstract_fp6.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -52,11 +52,11 @@ namespace nil {
             // Output: y[6]: y = x^t as elements of F_p^6
             //
 
-            template<typename ArithmetizationType>
+            template<typename ArithmetizationType, typename FieldType>
             class mnt6_fp6_fixed_power;
 
             template<typename BlueprintFieldType>
-            class mnt6_fp6_fixed_power<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+            class mnt6_fp6_fixed_power<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>
                 : public plonk_component<BlueprintFieldType>
             {
             public:
@@ -67,7 +67,7 @@ namespace nil {
                 using policy_type = crypto3::algebra::fields::fp6_2over3<BlueprintFieldType>;
                 using integral_type = typename policy_type::extension_policy::integral_type;
                 using fp6_element = typename policy_type::value_type;
-                using fp6_constraint = detail::mnt6_fp6_element<constraint_type>;
+                using fp6_constraint = detail::abstract_fp6_element<constraint_type, BlueprintFieldType>;
 
             private:
                 static std::vector<std::uint8_t> base4(integral_type x) {
@@ -105,6 +105,7 @@ namespace nil {
                 const std::size_t rows_amount;
 
                 class gate_manifest_type : public component_gate_manifest {
+                    const integral_type power;
                     std::array<std::size_t,3> gates_footprint(integral_type power) const {
                         std::vector<std::uint8_t> exp_plan = base4(power);
                         return { (exp_plan.size() - std::count(exp_plan.begin(),exp_plan.end(),0) > 1),
@@ -112,7 +113,6 @@ namespace nil {
                                  (std::count(exp_plan.begin(),exp_plan.end(),2) > 0) };
                     }
                 public:
-                    const integral_type power;
                     gate_manifest_type(integral_type power) : power(power) {}
 
                     std::uint32_t gates_amount() const override {
@@ -131,7 +131,6 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(
                         std::size_t witness_amount,
-                        std::size_t lookup_column_amount,
                         integral_type power)
                 {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type(power));
@@ -140,7 +139,7 @@ namespace nil {
 
                 static manifest_type get_manifest() {
                     static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(policy_type::arity)), // ??
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(policy_type::arity)),
                         false
                     );
                     return manifest;
@@ -160,7 +159,6 @@ namespace nil {
 
                 static std::size_t get_rows_amount(
                         std::size_t witness_amount,
-                        std::size_t lookup_column_amount,
                         integral_type power)
                 {
                     std::vector<std::uint8_t>
@@ -215,7 +213,7 @@ namespace nil {
                     power(power),
                     exp_plan(base4(power)),
                     exp_precompute(get_precomputed_exps(exp_plan)),
-                    rows_amount(get_rows_amount(this->witness_amount(), 0, power))
+                    rows_amount(get_rows_amount(this->witness_amount(), power))
                 { };
 
                 template<typename WitnessContainerType, typename ConstantContainerType, typename PublicInputContainerType>
@@ -228,7 +226,7 @@ namespace nil {
                     power(power),
                     exp_plan(base4(power)),
                     exp_precompute(get_precomputed_exps(exp_plan)),
-                    rows_amount(get_rows_amount(this->witness_amount(), 0, power))
+                    rows_amount(get_rows_amount(this->witness_amount(), power))
                 { };
 
                 mnt6_fp6_fixed_power(
@@ -240,40 +238,46 @@ namespace nil {
                     power(power),
                     exp_plan(base4(power)),
                     exp_precompute(get_precomputed_exps(exp_plan)),
-                    rows_amount(get_rows_amount(this->witness_amount(), 0, power))
+                    rows_amount(get_rows_amount(this->witness_amount(), power))
                 { };
             };
 
             /* */
 
             template<typename BlueprintFieldType>
-            typename mnt6_fp6_fixed_power<BlueprintFieldType>::result_type
+            using component_type = mnt6_fp6_fixed_power<
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                BlueprintFieldType>;
+
+            template<typename BlueprintFieldType>
+            typename component_type<BlueprintFieldType>::result_type
             generate_assignments(
-                mnt6_fp6_fixed_power<BlueprintFieldType> const& component,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> const& assignment,
-                typename mnt6_fp6_fixed_power<BlueprintFieldType>::input_type const& instance_input,
+                component_type<BlueprintFieldType> const& component,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> & assignment,
+                typename component_type<BlueprintFieldType>::input_type const& instance_input,
                 const std::uint32_t start_row_index)
             {
 
                 using value_type = typename BlueprintFieldType::value_type;
+                using policy_type = typename component_type<BlueprintFieldType>::policy_type;
 
                 const std::vector<std::uint8_t>
                     exp_plan = component.exp_plan,
                     exp_precompute = component.exp_precompute;
 
-                std::array<value_type, mnt6_fp6_fixed_power<BlueprintFieldType>::policy_type::arity> x;
+                std::array<value_type, component_type<BlueprintFieldType>::policy_type::arity> x;
 
                 for(std::size_t i = 0; i < x.size(); i++) {
                     x[i] = var_value(assignment, instance_input.x[i]);
                 }
 
-                using fp6_element = typename mnt6_fp6_fixed_power<BlueprintFieldType>::fp6_element;
-                fp6_element X = fp6_element({ {x[0],x[1], x[2]}, {x[3],x[4]},x[5]}), Y = X;
+                using fp6_element = typename component_type<BlueprintFieldType>::fp6_element;
+                fp6_element X = fp6_element({ {x[0],x[1],x[2]}, {x[3],x[4],x[5]} }), Y = X;
 
                 std::size_t row = 0;
 
                 auto fill_row = [&component, &assignment, &start_row_index, &row](fp6_element V) {
-                    for(std::size_t i = 0; i < V.arity; i++) {
+                    for(std::size_t i = 0; i < 6; i++) {
                         assignment.witness(component.W(i),start_row_index + row) = V.data[i/3].data[i % 3];
                     }
                     row++;
@@ -295,17 +299,18 @@ namespace nil {
                     }
                 }
 
-                return typename mnt6_fp6_fixed_power<BlueprintFieldType>::result_type(
+                return typename component_type<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
 
             template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                mnt6_fp6_fixed_power<BlueprintFieldType> const& component,
+                component_type<BlueprintFieldType> const& component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> & bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> const& assignment,
-                typename mnt6_fp6_fixed_power<BlueprintFieldType>::input_type const& instance_input)
+                typename component_type<BlueprintFieldType>::input_type const& instance_input)
             {
+                using var = typename component_type<BlueprintFieldType>::var;
 
                 const std::vector<std::uint8_t>
                     exp_plan = component.exp_plan,
@@ -314,8 +319,8 @@ namespace nil {
                 std::vector<std::size_t> gate_list = {}; // at most 4 gate ids
 
 
-                using policy_type = typename mnt6_fp6_fixed_power<BlueprintFieldType>::policy_type;
-                typename mnt6_fp6_fixed_power<BlueprintFieldType>::fp4_constraint X, Y, Z, C;
+                using policy_type = typename component_type<BlueprintFieldType>::policy_type;
+                typename component_type<BlueprintFieldType>::fp6_constraint X, Y, Z, C;
 
                 // power-4 gate
                 for(std::size_t i = 0; i < policy_type::arity; i++) {
@@ -324,7 +329,7 @@ namespace nil {
                 }
                 C = (X * X) * (X * X);
 
-                using constraint_type = typename mnt6_fp6_fixed_power<BlueprintFieldType>::constraint_type;
+                using constraint_type = typename component_type<BlueprintFieldType>::constraint_type;
 
                 std::vector<constraint_type> pow4_constrs = {};
                 for(std::size_t i = 0; i < policy_type::arity; i++) {
@@ -378,19 +383,20 @@ namespace nil {
                     }
                     gate_list.push_back(bp.add_gate(square_constrs));
                 }
+
                 return gate_list;
             }
 
             template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                mnt6_fp6_fixed_power<BlueprintFieldType> const& component,
+                component_type<BlueprintFieldType> const& component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename mnt6_fp6_fixed_power<BlueprintFieldType>::input_type &instance_input,
+                const typename component_type<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index)
             {
-                using var = typename mnt6_fp6_fixed_power<BlueprintFieldType>::var;
-                using policy_type = typename mnt6_fp6_fixed_power<BlueprintFieldType>::policy_type;
+                using var = typename component_type<BlueprintFieldType>::var;
+                using policy_type = typename component_type<BlueprintFieldType>::policy_type;
 
                 const std::vector<std::uint8_t>
                     exp_plan = component.exp_plan,
@@ -439,12 +445,12 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            typename mnt6_fp6_fixed_power<BlueprintFieldType>::result_type
+            typename component_type<BlueprintFieldType>::result_type
             generate_circuit(
-                mnt6_fp6_fixed_power<BlueprintFieldType> const& component,
+                component_type<BlueprintFieldType> const& component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>& bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>& assignment,
-                typename mnt6_fp6_fixed_power<BlueprintFieldType>::input_type const& instance_input,
+                typename component_type<BlueprintFieldType>::input_type const& instance_input,
                 const std::size_t start_row_index)
             {
 
@@ -485,7 +491,7 @@ namespace nil {
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename mnt6_fp6_fixed_power<BlueprintFieldType>::result_type(
+                return typename component_type<BlueprintFieldType>::result_type(
                     component, start_row_index);
             }
         }    // namespace components

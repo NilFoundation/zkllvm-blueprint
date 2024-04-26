@@ -66,12 +66,11 @@ namespace nil {
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using policy_type = crypto3::algebra::fields::fp4<BlueprintFieldType>;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                using extended_integral_type = typename BlueprintFieldType::extended_integral_type;
                 using fp4_element = typename policy_type::value_type;
                 using fp4_constraint = detail::abstract_fp4_element<constraint_type, BlueprintFieldType>;
 
             private:
-                static std::vector<std::uint8_t> base4(extended_integral_type x) {
+                static std::vector<std::uint8_t> base4(integral_type x) {
                     if (x > 0) {
                         std::vector<std::uint8_t> res = {std::uint8_t(x % 4)};
                         x /= 4;
@@ -85,7 +84,7 @@ namespace nil {
                     }
                 }
 
-                static std::size_t gates_amount_internal(extended_integral_type power) {
+                static std::size_t gates_amount_internal(integral_type power) {
                     std::size_t gates = 1; // at least one for power-4 operations
                     std::vector<std::uint8_t> exp_plan = base4(power);
                     if (exp_plan.size() - std::count(exp_plan.begin(),exp_plan.end(),0) > 1) {
@@ -100,28 +99,28 @@ namespace nil {
             public:
                 using manifest_type = plonk_component_manifest;
 
-                const extended_integral_type power/* = pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0*/;
+                const integral_type power/* = pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0*/;
 
                 const std::vector<std::uint8_t> exp_plan, exp_precompute;
                 const std::size_t rows_amount;
 
                 class gate_manifest_type : public component_gate_manifest {
-                    const extended_integral_type power;
-                    std::array<std::size_t,3> gates_footprint(extended_integral_type power) const {
+                    const integral_type power;
+                    std::array<std::size_t,3> gates_footprint(integral_type power) const {
                         std::vector<std::uint8_t> exp_plan = base4(power);
                         return { (exp_plan.size() - std::count(exp_plan.begin(),exp_plan.end(),0) > 1),
                                  (std::count(exp_plan.begin(),exp_plan.end(),3) > 0),
                                  (std::count(exp_plan.begin(),exp_plan.end(),2) > 0) };
                     }
                 public:
-                    gate_manifest_type(extended_integral_type power) : power(power) {}
+                    gate_manifest_type(integral_type power) : power(power) {}
 
                     std::uint32_t gates_amount() const override {
                         return mnt4_fp4_fixed_power::gates_amount_internal(power);
                     }
 
                     bool operator<(const component_gate_manifest *other) const override {
-                        extended_integral_type o_power = dynamic_cast<const gate_manifest_type*>(other)->power;
+                        integral_type o_power = dynamic_cast<const gate_manifest_type*>(other)->power;
 
                         std::array<std::size_t, 3>
                             gates   = gates_footprint(power),
@@ -132,8 +131,7 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(
                         std::size_t witness_amount,
-                        std::size_t lookup_column_amount,
-                        extended_integral_type power)
+                        integral_type power)
                 {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type(power));
                     return manifest;
@@ -141,7 +139,7 @@ namespace nil {
 
                 static manifest_type get_manifest() {
                     static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_range_param(4, 300, 1)),
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(policy_type::arity)),
                         false
                     );
                     return manifest;
@@ -159,7 +157,9 @@ namespace nil {
                     return precompute;
                 }
 
-                static std::size_t get_rows_amount(extended_integral_type power)
+                static std::size_t get_rows_amount(
+                        std::size_t witness_amount,
+                        integral_type power)
                 {
                     std::vector<std::uint8_t>
                         exp_plan = base4(power),
@@ -208,12 +208,12 @@ namespace nil {
                 template<typename ContainerType> explicit
                 mnt4_fp4_fixed_power(
                         ContainerType witness,
-                        extended_integral_type power) :
+                        integral_type power) :
                     component_type(witness, {}, {}, get_manifest()),
                     power(power),
                     exp_plan(base4(power)),
                     exp_precompute(get_precomputed_exps(exp_plan)),
-                    rows_amount(get_rows_amount(power))
+                    rows_amount(get_rows_amount(this->witness_amount(), power))
                 { };
 
                 template<typename WitnessContainerType, typename ConstantContainerType, typename PublicInputContainerType>
@@ -221,31 +221,33 @@ namespace nil {
                         WitnessContainerType witness,
                         ConstantContainerType constant,
                         PublicInputContainerType public_input,
-                        extended_integral_type power) :
+                        integral_type power) :
                     component_type(witness, constant, public_input, get_manifest()),
                     power(power),
                     exp_plan(base4(power)),
                     exp_precompute(get_precomputed_exps(exp_plan)),
-                    rows_amount(get_rows_amount(power))
+                    rows_amount(get_rows_amount(this->witness_amount(), power))
                 { };
 
                 mnt4_fp4_fixed_power(
                         std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                         std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                         std::initializer_list<typename component_type::public_input_container_type::value_type> public_inputs,
-                        extended_integral_type power) :
+                        integral_type power) :
                     component_type(witnesses, constants, public_inputs, get_manifest()),
                     power(power),
                     exp_plan(base4(power)),
                     exp_precompute(get_precomputed_exps(exp_plan)),
-                    rows_amount(get_rows_amount(power))
+                    rows_amount(get_rows_amount(this->witness_amount(), power))
                 { };
             };
 
             /* */
 
             template<typename BlueprintFieldType>
-            using component_type = mnt4_fp4_fixed_power<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>;
+            using component_type = mnt4_fp4_fixed_power<
+                crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                BlueprintFieldType>;
 
             template<typename BlueprintFieldType>
             typename component_type<BlueprintFieldType>::result_type
@@ -275,20 +277,9 @@ namespace nil {
                 std::size_t row = 0;
 
                 auto fill_row = [&component, &assignment, &start_row_index, &row](fp4_element const& V) {
-                    value_type d00 = V.data[0].data[0];
-                    value_type d01 = V.data[0].data[1];
-                    value_type d10 = V.data[1].data[0];
-                    value_type d11 = V.data[1].data[1];
-                    assignment.witness(component.W(0),start_row_index + row) = d00;
-                    assignment.witness(component.W(1),start_row_index + row) = d01;
-                    assignment.witness(component.W(2),start_row_index + row) = d10;
-                    assignment.witness(component.W(3),start_row_index + row) = d11;
-
-                    /*
-                    for(std::size_t i = 0; i < policy_type::arity; i++) {
+                    for(std::size_t i = 0; i < 4; i++) {
                         assignment.witness(component.W(i),start_row_index + row) = V.data[i/2].data[i % 2];
                     }
-                    */
                     row++;
                 };
 

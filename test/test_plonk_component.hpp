@@ -252,7 +252,7 @@ namespace nil {
                     variable.get() = assignment.get_batch_variable_map().at(variable);
                 }
             }
-/*
+#if 0
             std::ofstream fass("circuit.tbl");
             assignment.export_table(fass);
             fass.close();
@@ -260,7 +260,7 @@ namespace nil {
             std::ofstream fcirc("circuit.crt");
             bp.export_circuit(fcirc);
             fcirc.close();
-*/
+#endif
             result_check(assignment, component_result);
 
             if constexpr (!PrivateInput) {
@@ -317,12 +317,12 @@ namespace nil {
             }
             desc.rows_amount = zk::snark::basic_padding(assignment);
 
-//#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
 
 //            profiling(assignment);
-//#endif
+#endif
             //assignment.export_table(std::cout);
             //bp.export_circuit(std::cout);
 
