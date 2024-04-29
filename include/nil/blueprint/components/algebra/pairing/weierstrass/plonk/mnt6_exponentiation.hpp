@@ -72,12 +72,9 @@ namespace nil {
             // Circuit requires 6 witnesses, 6 inputs and 6 outputs
             // 6 gates are used:
             // Gate 0: Raising to power p, "Frobenius map"
-            // Gate 1: "Division in Fp6" : x_next = x_prev / x
-            // Gate 2: "Inverse Division in Fp6": x_next = x / x_prev
-            // Gate 3: "Multiplication"
-            // Gate 4: "Squaring"
-            // Gate 5: "Cubing"
-            // Gates 3-5 are used for powering to w_0
+            // Gate 1: "Division in Fp6"
+            // Gate 2: "Multiplication"
+            // Plus 4 gates from circuit of "fixed_power"
             using namespace detail;
 
             template<typename ArithmetizationType>

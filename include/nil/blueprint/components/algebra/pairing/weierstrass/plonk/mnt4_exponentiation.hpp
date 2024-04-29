@@ -71,9 +71,7 @@ namespace nil {
             // Gate 0: Raising to power p, "Frobenius map"
             // Gate 1: "Division in Fp4"
             // Gate 2: "Multiplication"
-            // Gate 3: "Squaring"
-            // Gate 4: "Cubing"
-            // Gates 3-4 are used for powering to w0
+            // Plus 4 gates from circuit of "fixed_power"
             using namespace detail;
 
             template<typename ArithmetizationType>
