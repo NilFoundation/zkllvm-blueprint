@@ -22,6 +22,10 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 // @file Circuit for final exponentiation for MNT6 elliptic curve pairings
+// Circuit summary:
+// 6 witness, 0 constant, 7 gates, 199 rows
+// 366 copy constraints
+// each gate has 6 constraints, max degree is 2
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_MNT6_EXPONENTIATION_HPP
@@ -73,7 +77,6 @@ namespace nil {
             // Gate 3: "Multiplication"
             // Gate 4: "Squaring"
             // Gate 5: "Cubing"
-            // Gate 6: "Fourth power"
             // Gates 3-5 are used for powering to w_0
             using namespace detail;
 
@@ -123,12 +126,10 @@ namespace nil {
                 constexpr static std::size_t get_rows_amount(
                         std::size_t witness_amount)
                 {
-                    auto x = fixed_power_type::get_rows_amount(
+                    return fixed_power_type::get_rows_amount(
                             witness_amount,
                             crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0)
                         + 12;
-                    std::cout << "Get rows: " <<  x << std::endl;
-                    return x;
                 }
 
                 constexpr static const std::size_t gates_amount = 3;
@@ -291,14 +292,13 @@ namespace nil {
                     }
                 });
                 // Now elt3 holds x^((p^3-1)*(p+1)*w0)
-                // Do not fill as sub-circuit output results are on the last row
-                // fill_row(elt3);
+                // The output of "fixed_power" circuit is copied into 9+R row
 
-                // 8+R-1: Final result is elt/elt3 = x^((p^3-1)*(p+1)*p) * x^(-(p^3-1)(p+1)*w0) = x^((p^3-1)*(p+1)*(p-w0))
+                // 8+R: Final result is elt/elt3 = x^((p^3-1)*(p+1)*p) * x^(-(p^3-1)(p+1)*w0) = x^((p^3-1)*(p+1)*(p-w0))
                 fill_row(elt);
                 fill_row(elt3);
                 elt = elt*elt3.inversed();
-                // 10+R-1
+                // 10+R
                 fill_row(elt);
 
                 return typename plonk_mnt6_exponentiation<BlueprintFieldType>::result_type(
@@ -404,12 +404,12 @@ namespace nil {
                         crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0);
                 std::size_t R = power_instance.rows_amount;
 
-                // initial data in row 0
+                // Initial data in row 0
                 for(std::size_t i = 0; i < 6; ++i) {
                     bp.add_copy_constraint({var(component.W(i), start_row_index, false), instance_input.x[i]});
                 }
 
-                // initial data in row 4
+                // Initial data in row 4
                 for(std::size_t i = 0; i < 6; ++i) {
                     bp.add_copy_constraint({var(component.W(i), start_row_index + 4, false), instance_input.x[i]});
                 }
@@ -421,15 +421,7 @@ namespace nil {
                         var(component.W(i), start_row_index + 8, false),
                     });
                 }
-
-                // Copy from R+8 row to R+10 row
-                for(std::size_t i = 0; i < 6; ++i) {
-                    bp.add_copy_constraint({
-                        var(component.W(i), start_row_index + R + 10, false),
-                        var(component.W(i), start_row_index + R + 8, false),
-                    });
-                }
-             }
+            }
 
             template<typename BlueprintFieldType>
             typename plonk_mnt6_exponentiation<BlueprintFieldType>::result_type
@@ -475,9 +467,15 @@ namespace nil {
                         generate_circuit(power_instance, bp, assignment, power_input, start_row_index + 9);
                 std::size_t R = power_instance.rows_amount;
 
-                // expect result at start_rows_index + R + 9
+                // Copy from subcircuit result to R+10 row
+                for(std::size_t i = 0; i < 6; ++i) {
+                    bp.add_copy_constraint({
+                        var(component.W(i), start_row_index + R + 10, false),
+                        power_output.output[i]
+                        });
+                }
 
-                // Inverse division gate
+                // Division gate at R + 10
                 assignment.enable_selector(selector_index[1], start_row_index + R + 10);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);

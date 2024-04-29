@@ -22,6 +22,10 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 // @file Circuit for final exponentiation for MNT4 elliptic curve pairings
+// Circuit summary:
+// 4 witness, 0 constant, 7 gates, 198 rows
+// 248 copy constraints
+// each gate has 4 constraints, max degree is 2
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_MNT4_EXPONENTIATION_HPP
@@ -69,8 +73,7 @@ namespace nil {
             // Gate 2: "Multiplication"
             // Gate 3: "Squaring"
             // Gate 4: "Cubing"
-            // Gate 5: "Fourth power"
-            // Gates 3-5 are used for powering to w0
+            // Gates 3-4 are used for powering to w0
             using namespace detail;
 
             template<typename ArithmetizationType>
@@ -102,7 +105,8 @@ namespace nil {
                 static gate_manifest get_gate_manifest(
                         std::size_t witness_amount)
                 {
-                    static gate_manifest manifest = gate_manifest(gate_manifest_type());
+                    static gate_manifest manifest = gate_manifest(gate_manifest_type())
+                        .merge_with(fixed_power_type::get_gate_manifest(witness_amount, crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0));
                     return manifest;
                 }
 
@@ -118,12 +122,13 @@ namespace nil {
                 constexpr static std::size_t get_rows_amount(
                         std::size_t witness_amount)
                 {
-                    return fixed_power_type::get_rows_amount(witness_amount,
+                    return fixed_power_type::get_rows_amount(
+                            witness_amount,
                             crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0)
-                        + 9 - 1;
+                        + 9;
                 }
 
-                constexpr static const std::size_t gates_amount = 7;
+                constexpr static const std::size_t gates_amount = 3;
                 const std::size_t rows_amount = get_rows_amount(0);
 
                 struct input_type {
@@ -191,9 +196,12 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 using curve_type = nil::crypto3::algebra::curves::mnt4<298>;
 
-                using fixed_power_type = mnt4_fp4_fixed_power<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>;
+                using fixed_power_type = mnt4_fp4_fixed_power<
+                    crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType>;
 
-                fixed_power_type fixed_power_instance(component._W, component._C, component._PI, crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0);
+                fixed_power_type fixed_power_instance(
+                        component._W, component._C, component._PI,
+                        crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0);
 
                 std::array<value_type, 4> x;
 
@@ -263,7 +271,7 @@ namespace nil {
                     }
                 });
                 // Now elt3 holds x^(p^2-1)*w0
-                // fill_row(elt3);
+                fill_row(elt3);
 
                 // Final result is elt2*elt3 = x^((p^2-1)*p) * x^((p^2-1)*w0) = x^(p^2-1)*(p+w0)
                 fill_row(elt2);
@@ -324,10 +332,9 @@ namespace nil {
                     R = Xn*X - Xp;
 
                     constrs.clear();
-                    constrs.push_back(R[0]);
-                    constrs.push_back(R[1]);
-                    constrs.push_back(R[2]);
-                    constrs.push_back(R[3]);
+                    for(std::size_t i = 0; i < 4; ++i) {
+                        constrs.push_back(R[i]);
+                    }
 
                     gate_list.push_back(bp.add_gate(constrs));
                 }
@@ -339,10 +346,9 @@ namespace nil {
                     R = Xn - X*Xp;
 
                     constrs.clear();
-                    constrs.push_back(R[0]);
-                    constrs.push_back(R[1]);
-                    constrs.push_back(R[2]);
-                    constrs.push_back(R[3]);
+                    for(std::size_t i = 0; i < 4; ++i) {
+                        constrs.push_back(R[i]);
+                    }
 
                     gate_list.push_back(bp.add_gate(constrs));
                 }
@@ -380,7 +386,7 @@ namespace nil {
                 // Copy from 5 row to R+6 row
                 for(std::size_t i = 0; i < 4; ++i) {
                     bp.add_copy_constraint({
-                        var(component.W(i), start_row_index + R + 6, false),
+                        var(component.W(i), start_row_index + R + 7, false),
                         var(component.W(i), start_row_index + 5, false),
                     });
                 }
@@ -402,7 +408,6 @@ namespace nil {
 
                 fixed_power_type power_instance( component._W, component._C, component._PI,
                         crypto3::algebra::pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0);
-                std::size_t R = power_instance.rows_amount;
 
                 std::vector<std::size_t> selector_index = generate_gates(component, bp, assignment, instance_input);
 
@@ -424,11 +429,18 @@ namespace nil {
                 typename fixed_power_type::input_type power_input = { power_input_vars };
                 typename fixed_power_type::result_type power_output =
                         generate_circuit(power_instance, bp, assignment, power_input, start_row_index + 6);
+                std::size_t R = power_instance.rows_amount;
 
-                // expect result at start_rows_index + 6 + R
+                // Copy from subcircuit result to R + 7 row
+                for(std::size_t i = 0; i < 4; ++i) {
+                    bp.add_copy_constraint({
+                        var(component.W(i), start_row_index + R + 6, false),
+                        power_output.output[i]
+                        });
+                }
 
-                // Multiplication gate
-                assignment.enable_selector(selector_index[2], start_row_index + R + 6);
+                // Multiplication gate at R + 7
+                assignment.enable_selector(selector_index[2], start_row_index + R + 7);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 

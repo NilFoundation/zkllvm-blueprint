@@ -112,7 +112,6 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt6_pairing_test) {
     using curve_type = crypto3::algebra::curves::mnt6_298;
     using gt_group_type = typename curve_type::gt_type;
-    using base_field_value = curve_type::base_field_type::value_type;
     using field_type = typename curve_type::gt_type::base_field_type;
 
     nil::crypto3::random::algebraic_engine<field_type> generate_random;
@@ -129,14 +128,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt6_pairing_test) {
             0x01b5c328e47a03bddb00f0992ddbd9945af3e0f4bb8244d29b9b24ca2390e92ecc5666a76191_cppui298
         },
         AB_FE = {
-            /*
-            0x15dec519566f20aa6a3bd4ddb0cee93f9ea157499f20273124883934daeea1867ea53ac4b9b_cppui298,
-            0x3b5fc396c41a54c7c661b3d34ead6f284a50886534f036c004eb31d8d7cb061d3419f6a9d58_cppui298,
-            0x1b79ac259f41bfdc8aa623c65075d0a0fb1823467b174c4ac82cada904d96f3640fd491baf7_cppui298,
-            0x667fef1c7f96557416d9728951128edb921b4ecad5592fd898db5867bf40dfa20de956a717_cppui298,
-            0x39143f4b1cee4646b2a1a77d27fc21aead95a0922a4a5f9facb82d88120b01737fafb1f1d8d_cppui298,
-            0x2f84e7545b29729839b5871c25a131756558cd8bba38d2ef7439f20b5cb54be2a271a3c1bba_cppui298,
-            */
             0x025aba200efbefa81017a858457abfc1e83ce8f7e92788e414fe90bacd465395dec8463bf09a_cppui298,
             0x002ca86c9adeb0cfd62db143cc3fc5b6adb9fd09419a43b6c5b841f129a0ef71fa3881a4b743_cppui298,
             0x00e7bc013d484cc770ddcaa994422f153265c143a64549b916f6893c2e2ab5458e7c3ea5f3d7_cppui298,
@@ -145,8 +136,36 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt6_pairing_test) {
             0x037f4a31f3bc24e9876d57a5b224d8f6475d36407e092bc03144d1bf042a0aee471639db2439_cppui298
         };
 
-     std::cout << "mnt6-298 Final exponentiation test\n";
-     test_mnt6_298_exponentiation<field_type, 6>(AB_ML, AB_FE);
+    std::cout << "mnt6-298 Final exponentiation test\n";
+    test_mnt6_298_exponentiation<field_type, 6>(AB_ML, AB_FE);
+
+    for(std::size_t i = 0; i < random_tests_amount; ++i) {
+        typename gt_group_type::value_type 
+            A = crypto3::algebra::random_element<gt_group_type>(),
+            A_FE = final_exponentiation<curve_type>(A);
+
+        std::vector<field_type::value_type>
+            input = {
+                A.data[0].data[0],
+                A.data[0].data[1],
+                A.data[0].data[2],
+                A.data[1].data[0],
+                A.data[1].data[1],
+                A.data[1].data[2],
+            },
+            result = {
+                A_FE.data[0].data[0],
+                A_FE.data[0].data[1],
+                A_FE.data[0].data[2],
+                A_FE.data[1].data[0],
+                A_FE.data[1].data[1],
+                A_FE.data[1].data[2],
+            };
+
+        std::cout << "mnt6-298 Final exponentiation random test " << i << std::endl;
+        test_mnt6_298_exponentiation<field_type, 6>(input, result);
+
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

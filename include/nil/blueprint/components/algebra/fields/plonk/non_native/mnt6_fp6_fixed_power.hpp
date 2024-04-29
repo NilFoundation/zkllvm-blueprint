@@ -259,7 +259,6 @@ namespace nil {
             {
 
                 using value_type = typename BlueprintFieldType::value_type;
-                using policy_type = typename component_type<BlueprintFieldType>::policy_type;
 
                 const std::vector<std::uint8_t>
                     exp_plan = component.exp_plan,

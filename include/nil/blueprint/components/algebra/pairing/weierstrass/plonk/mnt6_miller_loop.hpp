@@ -22,6 +22,10 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 // @file Declaration of Miller loop component for MNT6 pairings
+// Circuit summary:
+// 23 witness, 1 constant, 2 gates, 219 rows
+// 868 copy constraints
+// each gate has 18 constraints, max degree 4
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_MNT6_MILLER_LOOP_HPP
@@ -79,7 +83,7 @@ namespace nil {
             //
             // Each iteration of the Miller loop adds "doubling" row to the circuit:
             //
-            // f0 f1 f2 f3 f4 f5 P0 P1 T0 T1 T2 T3 T4 T5 Q0 Q1 Q2 Q3 Q4 Q5 L0 L1 L2 L3 L4 L5
+            // f0 f1 f2 f3 f4 f5 P0 P1 T0 T1 T2 T3 T4 T5 Q0 Q1 Q2 Q3 Q4 Q5 [L0] [L1] [L2] L3 L4 L5
             // Gate 0: "doubling"
             // Constraints:
             // 0. UT = untwisted T
@@ -88,7 +92,7 @@ namespace nil {
             // 3. T_next = T + T
             //
             // If current iteration needs to add addition, then "addition" row is inserted:
-            // f0 f1 f2 f3 f4 f5 P0 P1 T0 T1 T2 T3 T4 T5 Q0 Q1 Q2 Q3 Q4 Q5 L0 L1 L2 L3 L4 L5
+            // f0 f1 f2 f3 f4 f5 P0 P1 T0 T1 T2 T3 T4 T5 Q0 Q1 Q2 Q3 Q4 Q5 [L0] [L1] [L2] L3 L4 L5
             // Gate 1: "addition"
             // Constraints:
             // 0. UT = untwisted T, UQ = untwisted Q
@@ -101,18 +105,7 @@ namespace nil {
             // Q is copied only in addition rows.
             // Initial value f (1,0,0,0,0) is copied from constants column
             //
-            // Total number of copy constraints: 724 = 4+2*147+6*71
-            //
-            // We can reduce number of copy constraints by next trick:
-            // 1. Copy Q in doubling rows too
-            // 2. To each gate (doubling and addition) add addition 6 constraints:
-            //    w_i = w_i_rot(1), i = 6,7 (P), 14..19 (Q)
-            // 3. Leave copy constraints for P and Q on the first row
-            // Total number of copy constraints will be:
-            // 4+2+6 = 12 //xz
-            // At the expense of adding 6 additional constraints to each gate
-            //
-            // Witnesses for L0 and L1, L2 could be removed as they are always zero
+            // Witnesses for L0, L1, L2 are removed as they are always zero
 
             using namespace detail;
             using detail::base;
@@ -153,7 +146,8 @@ namespace nil {
                 static manifest_type get_manifest()
                 {
                     static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(18)),
+                        std::shared_ptr<manifest_param>(
+                            new manifest_single_value_param(23)),
                         true // constant column required
                     );
                     return manifest;
@@ -239,8 +233,6 @@ namespace nil {
                 typename plonk_miller_loop<BlueprintFieldType>::input_type const& instance_input,
                 const std::uint32_t start_row_index)
             {
-                using component_type = plonk_miller_loop<BlueprintFieldType>;
-                using var = typename component_type::var;
                 using value_type = typename BlueprintFieldType::value_type;
 
                 using policy_type_fp3 = crypto3::algebra::fields::fp3<BlueprintFieldType>;
@@ -269,7 +261,8 @@ namespace nil {
 
                 /* Calculate point doubling on E', affine coordinates */
                 auto double_point = [](curve_point const& T) {
-                    fp3_element a(curve_type::g2_type<>::params_type::a),
+                    fp3_element
+                        a(curve_type::g2_type<>::params_type::a),
                         lambda = (3*T[0].pow(2) + a) * (2*T[1]).inversed(),
                         xR = lambda.pow(2) - 2*T[0],
                         yR = (3*T[0])*lambda - lambda.pow(3) - T[1];
@@ -353,12 +346,10 @@ namespace nil {
                         assignment.witness(component.W(19),start_row_index + row) = 0;
 
                         // lf
-                        assignment.witness(component.W(20),start_row_index + row) = lf.data[0].data[0];
-                        assignment.witness(component.W(21),start_row_index + row) = lf.data[0].data[1];
-                        assignment.witness(component.W(22),start_row_index + row) = lf.data[0].data[2];
-                        assignment.witness(component.W(23),start_row_index + row) = lf.data[1].data[0];
-                        assignment.witness(component.W(24),start_row_index + row) = lf.data[1].data[1];
-                        assignment.witness(component.W(25),start_row_index + row) = lf.data[1].data[2];
+                        // lf.data[0] is always zero, not inserted into witness columns
+                        assignment.witness(component.W(20),start_row_index + row) = lf.data[1].data[0];
+                        assignment.witness(component.W(21),start_row_index + row) = lf.data[1].data[1];
+                        assignment.witness(component.W(22),start_row_index + row) = lf.data[1].data[2];
                         return g;
                     };
 
@@ -413,12 +404,10 @@ namespace nil {
                         assignment.witness(component.W(19),start_row_index + row) = Q[1].data[2];
 
                         // lf
-                        assignment.witness(component.W(20),start_row_index + row) = lf.data[0].data[0];
-                        assignment.witness(component.W(21),start_row_index + row) = lf.data[0].data[1];
-                        assignment.witness(component.W(22),start_row_index + row) = lf.data[0].data[2];
-                        assignment.witness(component.W(23),start_row_index + row) = lf.data[1].data[0];
-                        assignment.witness(component.W(24),start_row_index + row) = lf.data[1].data[1];
-                        assignment.witness(component.W(25),start_row_index + row) = lf.data[1].data[2];
+                        // lf.data[0] is always zero, not inserted into witness columns
+                        assignment.witness(component.W(20),start_row_index + row) = lf.data[1].data[0];
+                        assignment.witness(component.W(21),start_row_index + row) = lf.data[1].data[1];
+                        assignment.witness(component.W(22),start_row_index + row) = lf.data[1].data[2];
                         return g;
                     };
 
@@ -550,12 +539,10 @@ namespace nil {
                         var(component.W(12), 0, true) * nri,
                     },
                     lf = {
+                        c_zero, c_zero, c_zero,
                         var(component.W(20), 0, true),
                         var(component.W(21), 0, true),
                         var(component.W(22), 0, true),
-                        var(component.W(23), 0, true),
-                        var(component.W(24), 0, true),
-                        var(component.W(25), 0, true)
                     };
 
                 C6 = lf*(2*y1) - (3*x1*x1 + a6);
@@ -651,12 +638,10 @@ namespace nil {
                         var(component.W(18), 0, true) * nri,
                     },
                     lf = {
+                        c_zero, c_zero, c_zero,
                         var(component.W(20), 0, true),
                         var(component.W(21), 0, true),
                         var(component.W(22), 0, true),
-                        var(component.W(23), 0, true),
-                        var(component.W(24), 0, true),
-                        var(component.W(25), 0, true)
                     };
 
 
@@ -772,9 +757,6 @@ namespace nil {
                 const typename plonk_miller_loop<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index)
             {
-                using component_type = plonk_miller_loop<BlueprintFieldType>;
-                using var = typename component_type::var;
-
                 std::vector<std::size_t> selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);

@@ -22,6 +22,10 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 // @file Declaration of Miller loop component for MNT4 pairings
+// Circuit summary:
+// 16 witness, 1 constant, 2 gates, 219 rows
+// 724 copy constraints
+// each gate has 12 constraints, max degree is 4
 //---------------------------------------------------------------------------//
 
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_MNT4_MILLER_LOOP_HPP
@@ -79,7 +83,7 @@ namespace nil {
             //
             // Each iteration of the Miller loop adds "doubling" row to the circuit:
             //
-            // f0 f1 f2 f3 P0 P1 T0 T1 T2 T3 Q0 Q1 Q2 Q3 L0 L1 L2 L3
+            // f0 f1 f2 f3 P0 P1 T0 T1 T2 T3 Q0 Q1 Q2 Q3 [L0] [L1] L2 L3
             // Gate 0: "doubling"
             // Constraints:
             // 0. UT = untwisted T
@@ -88,7 +92,7 @@ namespace nil {
             // 3. T_next = T + T
             //
             // If current iteration needs to add addition, then "addition" row is inserted:
-            // f0 f1 f2 f3 P0 P1 T0 T1 T2 T3 Q0 Q1 Q2 Q3 L0 L1 L2 L3
+            // f0 f1 f2 f3 P0 P1 T0 T1 T2 T3 Q0 Q1 Q2 Q3 [L0] [L1] L2 L3
             // Gate 1: "addition"
             // Constraints:
             // 0. UT = untwisted T, UQ = untwisted Q
@@ -101,18 +105,7 @@ namespace nil {
             // Q is copied only in addition rows.
             // Initial value f (1,0,0,0) is copied from constants column
             //
-            // Total number of copy constraints: 724 = 4+2*147+6*71
-            //
-            // We can reduce number of copy constraints by next trick:
-            // 1. Copy Q in doubling rows too
-            // 2. To each gate (doubling and addition) add addition 6 constraints:
-            //    w_i = w_i_rot(1), i = 2,4 (P), 9,10,11,12 (Q)
-            // 3. Leave copy constraints for P and Q on the first row
-            // Total number of copy constraints will be:
-            // 4+2+6 = 12
-            // At the expense of adding 6 additional constraints to each gate
-            //
-            // Witnesses for L0 and L1 could be removed as they are always zero
+            // Witnesses for L0 and L1 are removed as they are always zero
 
             using namespace detail;
             using detail::base;
@@ -153,7 +146,8 @@ namespace nil {
                 static manifest_type get_manifest()
                 {
                     static manifest_type manifest = manifest_type(
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(18)),
+                        std::shared_ptr<manifest_param>(
+                            new manifest_single_value_param(16)),
                         true // constant column required
                     );
                     return manifest;
@@ -239,8 +233,6 @@ namespace nil {
                 typename plonk_miller_loop<BlueprintFieldType>::input_type const& instance_input,
                 const std::uint32_t start_row_index)
             {
-                using component_type = plonk_miller_loop<BlueprintFieldType>;
-                using var = typename component_type::var;
                 using value_type = typename BlueprintFieldType::value_type;
 
                 using policy_type_fp2 = crypto3::algebra::fields::fp2<BlueprintFieldType>;
@@ -254,15 +246,22 @@ namespace nil {
                     yP = var_value(assignment, instance_input.P[1]);
 
                 std::array<value_type,2>
-                    xQ = {var_value(assignment, instance_input.Q[0]), var_value(assignment, instance_input.Q[1])},
-                    yQ = {var_value(assignment, instance_input.Q[2]), var_value(assignment, instance_input.Q[3])};
+                    xQ = {
+                        var_value(assignment, instance_input.Q[0]),
+                        var_value(assignment, instance_input.Q[1])
+                    },
+                    yQ = {
+                        var_value(assignment, instance_input.Q[2]),
+                        var_value(assignment, instance_input.Q[3])
+                    };
 
                 curve_point Q = { fp2_element(xQ[0], xQ[1]), fp2_element(yQ[0], yQ[1])};
 
                 /* Calculate point doubling on E', affine coordinates */
                 auto double_point = [](curve_point const& T) {
-                    fp2_element a(curve_type::g2_type<>::params_type::a),
-                        lambda = (3*T[0].pow(2) + a) / (2*T[1]),
+                    fp2_element
+                        a(curve_type::g2_type<>::params_type::a),
+                        lambda = (3*T[0].pow(2) + a) * (2*T[1]).inversed(),
                         xR = lambda.pow(2) - 2*T[0],
                         yR = (3*T[0])*lambda - lambda.pow(3) - T[1];
                     return curve_point({xR, yR});
@@ -271,7 +270,7 @@ namespace nil {
                 /* Calculate point addition on E', affine coordinates */
                 auto add_points = [](curve_point const& T, curve_point const& Q) {
                     fp2_element
-                        lambda = (T[1] - Q[1])/(T[0] - Q[0]),
+                        lambda = (T[1] - Q[1])*(T[0] - Q[0]).inversed(),
                         xR = lambda*lambda - T[0] - Q[0],
                         yR = (2*T[0] + Q[0])*lambda - lambda.pow(3) - T[1];
                     return curve_point({xR, yR});
@@ -338,10 +337,9 @@ namespace nil {
                         assignment.witness(component.W(13),start_row_index + row) = 0;
 
                         // lf
-                        assignment.witness(component.W(14),start_row_index + row) = lf.data[0].data[0];
-                        assignment.witness(component.W(15),start_row_index + row) = lf.data[0].data[1];
-                        assignment.witness(component.W(16),start_row_index + row) = lf.data[1].data[0];
-                        assignment.witness(component.W(17),start_row_index + row) = lf.data[1].data[1];
+                        // lf.data[0] is always zero, not inserted into witness columns
+                        assignment.witness(component.W(14),start_row_index + row) = lf.data[1].data[0];
+                        assignment.witness(component.W(15),start_row_index + row) = lf.data[1].data[1];
                         return g;
                     };
 
@@ -390,10 +388,9 @@ namespace nil {
                         assignment.witness(component.W(13),start_row_index + row) = Q[1].data[1];
 
                         // lf
-                        assignment.witness(component.W(14),start_row_index + row) = lf.data[0].data[0];
-                        assignment.witness(component.W(15),start_row_index + row) = lf.data[0].data[1];
-                        assignment.witness(component.W(16),start_row_index + row) = lf.data[1].data[0];
-                        assignment.witness(component.W(17),start_row_index + row) = lf.data[1].data[1];
+                        // lf.data[0] is always zero, not inserted into witness columns
+                        assignment.witness(component.W(14),start_row_index + row) = lf.data[1].data[0];
+                        assignment.witness(component.W(15),start_row_index + row) = lf.data[1].data[1];
                         return g;
                     };
 
@@ -462,7 +459,7 @@ namespace nil {
 
                 using value_type = typename BlueprintFieldType::value_type;
 
-                fp2_constraint C;
+                fp2_constraint C2;
                 fp4_constraint C4;
 
                 std::vector<std::size_t> gate_list = {};
@@ -470,6 +467,7 @@ namespace nil {
                 constraint_type c_g1_a = c_zero + curve_type::g1_type<>::params_type::a;
                 constraint_type c_g2_a0 = c_zero + curve_type::g2_type<>::params_type::a.data[0];
                 constraint_type c_g2_a1 = c_zero + curve_type::g2_type<>::params_type::a.data[1];
+
                 value_type nri = policy_type_fp2::extension_policy::non_residue.inversed();
 
                 /* Constraints for the doubling gate
@@ -512,23 +510,20 @@ namespace nil {
                         var(component.W(9), 0, true) * nri
                     },
                     lf = {
+                        c_zero, c_zero,
                         var(component.W(14), 0, true),
                         var(component.W(15), 0, true),
-                        var(component.W(16), 0, true),
-                        var(component.W(17), 0, true)
                     };
 
                 C4 = lf*(2*y1) - (3*x1*x1 + a4);
-                doubling_constrs.push_back(C4[0]);
-                doubling_constrs.push_back(C4[1]);
-                doubling_constrs.push_back(C4[2]);
-                doubling_constrs.push_back(C4[3]);
+                for(auto const& c: C4.x) {
+                    doubling_constrs.push_back(c);
+                }
 
                 C4 = fnext - f*f*(lf*(x - x1) - (y - y1));
-                doubling_constrs.push_back(C4[0]);
-                doubling_constrs.push_back(C4[1]);
-                doubling_constrs.push_back(C4[2]);
-                doubling_constrs.push_back(C4[3]);
+                for(auto const& c: C4.x) {
+                    doubling_constrs.push_back(c);
+                }
                 }
 
                 /* Constraints for point doubling: Tnext = T + T:
@@ -545,13 +540,13 @@ namespace nil {
                     Tnx = {var(component.W(6), 1, true), var(component.W(7), 1, true)},
                     Tny = {var(component.W(8), 1, true), var(component.W(9), 1, true)};
 
-                C = (Tnx + 2*Tx)*(2*Ty)*(2*Ty) - (3*Tx*Tx + a)*(3*Tx*Tx + a);
-                doubling_constrs.push_back(C[0]);
-                doubling_constrs.push_back(C[1]);
+                C2 = (Tnx + 2*Tx)*(2*Ty)*(2*Ty) - (3*Tx*Tx + a)*(3*Tx*Tx + a);
+                doubling_constrs.push_back(C2[0]);
+                doubling_constrs.push_back(C2[1]);
 
-                C = (Tny + Ty)*(2*Ty) - (3*Tx*Tx + a)*(Tx - Tnx);
-                doubling_constrs.push_back(C[0]);
-                doubling_constrs.push_back(C[1]);
+                C2 = (Tny + Ty)*(2*Ty) - (3*Tx*Tx + a)*(Tx - Tnx);
+                doubling_constrs.push_back(C2[0]);
+                doubling_constrs.push_back(C2[1]);
 
                 gate_list.push_back(bp.add_gate(doubling_constrs));
 
@@ -603,23 +598,21 @@ namespace nil {
                         var(component.W(13), 0, true) * nri
                     },
                     lf = {
+                        c_zero, c_zero,
                         var(component.W(14), 0, true),
                         var(component.W(15), 0, true),
-                        var(component.W(16), 0, true),
-                        var(component.W(17), 0, true)
                     };
 
                 C4 = lf*(x2 - x1) - (y2 - y1);
-                adding_constrs.push_back(C4[0]);
-                adding_constrs.push_back(C4[1]);
-                adding_constrs.push_back(C4[2]);
-                adding_constrs.push_back(C4[3]);
+                for(auto const& c: C4.x) {
+                    adding_constrs.push_back(c);
+                }
 
                 C4 = fnext - f*(lf*(x-x1) - (y-y1));
-                adding_constrs.push_back(C4[0]);
-                adding_constrs.push_back(C4[1]);
-                adding_constrs.push_back(C4[2]);
-                adding_constrs.push_back(C4[3]);
+                for(auto const& c: C4.x) {
+                    adding_constrs.push_back(c);
+                }
+
                 }
 
                 /* Constraints for point addition: Tnext = T + Q:
@@ -633,13 +626,13 @@ namespace nil {
                     Qx  = {var(component.W(10), 0, true), var(component.W(11), 0, true)},
                     Qy  = {var(component.W(12), 0, true), var(component.W(13), 0, true)};
 
-                C = (Tnx + Tx + Qx)*(Qx - Tx)*(Qx - Tx) - (Qy - Ty)*(Qy - Ty);
-                adding_constrs.push_back(C[0]);
-                adding_constrs.push_back(C[1]);
+                C2 = (Tnx + Tx + Qx)*(Qx - Tx)*(Qx - Tx) - (Qy - Ty)*(Qy - Ty);
+                adding_constrs.push_back(C2[0]);
+                adding_constrs.push_back(C2[1]);
 
-                C = (Tny + Ty)*(Qx - Tx) - (Qy - Ty)*(Tx - Tnx);
-                adding_constrs.push_back(C[0]);
-                adding_constrs.push_back(C[1]);
+                C2 = (Tny + Ty)*(Qx - Tx) - (Qy - Ty)*(Tx - Tnx);
+                adding_constrs.push_back(C2[0]);
+                adding_constrs.push_back(C2[1]);
 
                 gate_list.push_back(bp.add_gate(adding_constrs));
 
@@ -710,9 +703,6 @@ namespace nil {
                 const typename plonk_miller_loop<BlueprintFieldType>::input_type &instance_input,
                 const std::size_t start_row_index)
             {
-                using component_type = plonk_miller_loop<BlueprintFieldType>;
-                using var = typename component_type::var;
-
                 std::vector<std::size_t> selector_index = generate_gates(component, bp, assignment, instance_input);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);

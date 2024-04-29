@@ -54,7 +54,7 @@ template <typename FieldType, std::size_t WitnessColumns>
 void test_mnt4_298_exponentiation(std::vector<typename FieldType::value_type> public_input,
                             std::vector<typename FieldType::value_type> expected_res) {
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 1;
+    constexpr std::size_t ConstantColumns = 0;
     constexpr std::size_t SelectorColumns = 8;
 
     zk::snark::plonk_table_description<FieldType> desc(
@@ -110,7 +110,6 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_pairing_test) {
     using curve_type = crypto3::algebra::curves::mnt4_298;
     using gt_group_type = typename curve_type::gt_type;
-    using base_field_value = curve_type::base_field_type::value_type;
     using field_type = typename curve_type::gt_type::base_field_type;
 
     nil::crypto3::random::algebraic_engine<field_type> generate_random;
@@ -133,6 +132,30 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_pairing_test) {
 
      std::cout << "MNT4-298 Final exponentiation test\n";
      test_mnt4_298_exponentiation<field_type, 4>(AB_ML, AB_FE);
+
+    for(std::size_t i = 0; i < random_tests_amount; ++i) {
+        typename gt_group_type::value_type 
+            A = crypto3::algebra::random_element<gt_group_type>(),
+            A_FE = final_exponentiation<curve_type>(A);
+
+        std::vector<field_type::value_type>
+            input = {
+                A.data[0].data[0],
+                A.data[0].data[1],
+                A.data[1].data[0],
+                A.data[1].data[1],
+            },
+            result = {
+                A_FE.data[0].data[0],
+                A_FE.data[0].data[1],
+                A_FE.data[1].data[0],
+                A_FE.data[1].data[1],
+            };
+
+        std::cout << "mnt4-298 Final exponentiation random test " << i << std::endl;
+        test_mnt4_298_exponentiation<field_type, 4>(input, result);
+
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

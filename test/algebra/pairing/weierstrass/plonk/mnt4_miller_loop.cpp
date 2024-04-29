@@ -36,7 +36,6 @@
 #include <nil/crypto3/algebra/fields/fp4.hpp>
 
 #include <nil/crypto3/hash/keccak.hpp>
-#include <nil/crypto3/random/algebraic_engine.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
@@ -55,7 +54,7 @@ void test_mnt4_298_miller_loop(std::vector<typename FieldType::value_type> publi
                             std::vector<typename FieldType::value_type> expected_res) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? (4 + 8) : (4 + 9);
+    constexpr std::size_t SelectorColumns = 2;
 
     zk::snark::plonk_table_description<FieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
@@ -70,13 +69,17 @@ void test_mnt4_298_miller_loop(std::vector<typename FieldType::value_type> publi
     using component_type = blueprint::components::mnt4_miller_loop<ArithmetizationType>;
 
     typename component_type::input_type instance_input = {
-        var(0,0, false, var::column_type::public_input), // xP
-        var(0,1, false, var::column_type::public_input), // yP
-        var(0,2, false, var::column_type::public_input), // xQ[0]
-        var(0,3, false, var::column_type::public_input), // xQ[1]
-        var(0,4, false, var::column_type::public_input), // yQ[0]
-        var(0,5, false, var::column_type::public_input)  // yQ[1]
-      };
+        {
+            var(0,0, false, var::column_type::public_input), // xP
+            var(0,1, false, var::column_type::public_input), // yP
+        },
+        {
+            var(0,2, false, var::column_type::public_input), // xQ[0]
+            var(0,3, false, var::column_type::public_input), // xQ[1]
+            var(0,4, false, var::column_type::public_input), // yQ[0]
+            var(0,5, false, var::column_type::public_input)  // yQ[1]
+        }
+    };
 
     auto result_check = [&expected_res](AssignmentType const& assignment,
         typename component_type::result_type const& real_res) {
@@ -105,19 +108,11 @@ void test_mnt4_298_miller_loop(std::vector<typename FieldType::value_type> publi
            component_instance, desc, public_input, result_check, instance_input);
 }
 
-static const std::size_t random_tests_amount = 5;
-
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_miller_loop_test) {
     using curve_type = crypto3::algebra::curves::mnt4_298;
-    using g2_group_type = typename curve_type::g2_type<>;
-    using base_field_value = curve_type::base_field_type::value_type;
     using field_type = typename curve_type::g2_type<>::field_type::base_field_type;
-
-    nil::crypto3::random::algebraic_engine<field_type> generate_random;
-    boost::random::mt19937 seed_seq;
-    generate_random.seed(seed_seq);
 
     std::vector<field_type::value_type>
         AB = {
@@ -127,11 +122,11 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_miller_loop_test) {
             // ]
             
             // B :[ [
-                0x012212f4ac5a2b6262dcd15a0fb4e54d276d734d80e3868dc93a074b3a9ebeb598641aa2310d_cppui298,
-                0x017600e8757679e06b66de2c48b3370e582443d4c0091ef1e6d96dadb92150ff642709dd806b_cppui298,
-                0x02a1135b45f576b0988c2f5e852def5e829508beddae07427cc68929ffbeaa49de4d370cfa69_cppui298,
-                0x0246c479956c92096a1dfa7cdb992b53ecb05f96d581fcb755045898fb459fd569753da2c2a7_cppui298
-                // ]]
+            0x012212f4ac5a2b6262dcd15a0fb4e54d276d734d80e3868dc93a074b3a9ebeb598641aa2310d_cppui298,
+            0x017600e8757679e06b66de2c48b3370e582443d4c0091ef1e6d96dadb92150ff642709dd806b_cppui298,
+            0x02a1135b45f576b0988c2f5e852def5e829508beddae07427cc68929ffbeaa49de4d370cfa69_cppui298,
+            0x0246c479956c92096a1dfa7cdb992b53ecb05f96d581fcb755045898fb459fd569753da2c2a7_cppui298
+            // ]]
         },
         AB_ML = {
             0x01f3f02a39499cca91c7c3a108cc0721047455bc2def95bcb613a1749c1bbe0fb0d88088699b_cppui298,
@@ -141,7 +136,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt4_miller_loop_test) {
         };
 
      std::cout << "MNT4-298 Miller loop test\n";
-     test_mnt4_298_miller_loop<field_type,18>(AB, AB_ML);
+     test_mnt4_298_miller_loop<field_type,16>(AB, AB_ML);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -252,7 +252,8 @@ namespace nil {
                     variable.get() = assignment.get_batch_variable_map().at(variable);
                 }
             }
-#if 1
+
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
             std::ofstream fass("circuit.tbl");
             assignment.export_table(fass);
             fass.close();
@@ -261,6 +262,7 @@ namespace nil {
             bp.export_circuit(fcirc);
             fcirc.close();
 #endif
+
             result_check(assignment, component_result);
 
             if constexpr (!PrivateInput) {
@@ -283,8 +285,8 @@ namespace nil {
                 // blueprint::detail::export_connectedness_zones(
                 //      zones, assignment, instance_input.all_vars(), start_row, rows_after_batching - start_row, std::cout);
 
-                // BOOST_ASSERT_MSG(is_connected,
-                //   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                BOOST_ASSERT_MSG(is_connected,
+                   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
             desc.usable_rows_amount = assignment.rows_amount();
 

@@ -40,7 +40,6 @@
 #include <nil/crypto3/algebra/fields/fp6_2over3.hpp>
 
 #include <nil/crypto3/hash/keccak.hpp>
-#include <nil/crypto3/random/algebraic_engine.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
@@ -59,7 +58,7 @@ void test_mnt6_298_miller_loop(std::vector<typename FieldType::value_type> publi
                             std::vector<typename FieldType::value_type> expected_res) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
-    constexpr std::size_t SelectorColumns = (WitnessColumns == 12)? (4 + 8) : (4 + 9);
+    constexpr std::size_t SelectorColumns = 2;
 
     zk::snark::plonk_table_description<FieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
@@ -74,15 +73,19 @@ void test_mnt6_298_miller_loop(std::vector<typename FieldType::value_type> publi
     using component_type = blueprint::components::mnt6_miller_loop<ArithmetizationType>;
 
     typename component_type::input_type instance_input = {
-        var(0,0, false, var::column_type::public_input), // xP
-        var(0,1, false, var::column_type::public_input), // yP
-        var(0,2, false, var::column_type::public_input), // xQ[0]
-        var(0,3, false, var::column_type::public_input), // xQ[1]
-        var(0,4, false, var::column_type::public_input), // xQ[2]
-        var(0,5, false, var::column_type::public_input), // yQ[0]
-        var(0,6, false, var::column_type::public_input), // yQ[1]
-        var(0,7, false, var::column_type::public_input)  // yQ[2]
-      };
+        {
+            var(0,0, false, var::column_type::public_input), // xP
+            var(0,1, false, var::column_type::public_input), // yP
+        },
+        {
+            var(0,2, false, var::column_type::public_input), // xQ[0]
+            var(0,3, false, var::column_type::public_input), // xQ[1]
+            var(0,4, false, var::column_type::public_input), // xQ[2]
+            var(0,5, false, var::column_type::public_input), // yQ[0]
+            var(0,6, false, var::column_type::public_input), // yQ[1]
+            var(0,7, false, var::column_type::public_input)  // yQ[2]
+        }
+    };
 
     auto result_check = [&expected_res](AssignmentType const& assignment,
         typename component_type::result_type const& real_res) {
@@ -111,19 +114,11 @@ void test_mnt6_298_miller_loop(std::vector<typename FieldType::value_type> publi
            component_instance, desc, public_input, result_check, instance_input);
 }
 
-static const std::size_t random_tests_amount = 5;
-
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt6_miller_loop_test) {
     using curve_type = crypto3::algebra::curves::mnt6_298;
-    using g2_group_type = typename curve_type::g2_type<>;
-    using base_field_value = curve_type::base_field_type::value_type;
-    using field_type = typename curve_type::g2_type<>::field_type::base_field_type;
-
-    nil::crypto3::random::algebraic_engine<field_type> generate_random;
-    boost::random::mt19937 seed_seq;
-    generate_random.seed(seed_seq);
+    using field_type = typename curve_type::base_field_type;
 
     std::vector<field_type::value_type>
         AB = {
@@ -139,7 +134,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt6_miller_loop_test) {
             0x0243124387533c863787fbaa1d58a942fe571660b77d80f3df036874309c7f1fcaef47611977_cppui298,
             0x00b5be310d4b9f76606e3206c435d1bee679ff0e1efe668e437e720d0e6e31965db04109f38c_cppui298,
             0x001638d3b614667d3bb2c0c2e6e2e8b675d5453cdf3dd15810e4b06fde235f90d7b48f4676c0_cppui298,
-
             // ]]
         },
         AB_ML = {
@@ -151,8 +145,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_mnt6_miller_loop_test) {
             0x016b1fef1c14c52e7f400545f8b548aed78670a0a47d7681b36ec686f504975ad26df1201fdc_cppui298
         };
 
-     std::cout << "mnt6-298 Miller loop test\n";
-     test_mnt6_298_miller_loop<field_type,26>(AB, AB_ML);
+    std::cout << "mnt6-298 Miller loop test\n";
+    test_mnt6_298_miller_loop<field_type, 23>(AB, AB_ML);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

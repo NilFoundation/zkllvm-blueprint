@@ -99,7 +99,7 @@ namespace nil {
             public:
                 using manifest_type = plonk_component_manifest;
 
-                const integral_type power/* = pairing::detail::pairing_params<curve_type>::final_exponent_last_chunk_abs_of_w0*/;
+                const integral_type power;
 
                 const std::vector<std::uint8_t> exp_plan, exp_precompute;
                 const std::size_t rows_amount;
@@ -259,7 +259,6 @@ namespace nil {
             {
 
                 using value_type = typename BlueprintFieldType::value_type;
-                using policy_type = typename component_type<BlueprintFieldType>::policy_type;
 
                 const std::vector<std::uint8_t>
                     exp_plan = component.exp_plan,
