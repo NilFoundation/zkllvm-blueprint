@@ -286,9 +286,9 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_to_fail) {
     // test with no result_check asserts
-    // using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
+    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
 
-    // test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(10, false);
+    test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(10, false);
     // test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(16, false, false);
     // test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(11, false, false, false);
     // test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(100, true);

@@ -673,7 +673,7 @@ namespace nil {
                                                              static_cast<int>(conf.constraints[0][i].row))}});
                     }
                     selector_indexes.push_back(bp.add_gate({constraint_0, constraint_1}));
-                    selector_indexes.push_back(bp.add_gate({constraint_2}));
+                    selector_indexes.push_back(bp.add_gate({constraint_2, constraint_3}));
                     selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_0));
                     selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_1));
                 }

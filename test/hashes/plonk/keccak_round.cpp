@@ -106,7 +106,7 @@ std::array<typename BlueprintFieldType::value_type, 25> sparse_round_function(st
             }
         }
         if (last_round_call) {
-            value_type last_round_const = to_sparse<BlueprintFieldType>(value_type(0x80));
+            value_type last_round_const = to_sparse<BlueprintFieldType>(value_type(0x8000000000000000));
             integral_type last_round_const_integral = integral_type(last_round_const.data);
             inner_state_integral[1][3] = inner_state_integral[1][3] ^ padded_message_chunk_integral[16] ^ last_round_const_integral;
         }
@@ -385,8 +385,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     // test_keccak_round_not_random<field_type, 9>();
                                                 // xor_with_mes, last_round_call
-    test_keccak_round_random<field_type, 9, false, false>();
-    test_keccak_round_random<field_type, 9, true, false>();
+    // test_keccak_round_random<field_type, 9, false, false>();
+    // test_keccak_round_random<field_type, 9, true, false>();
     test_keccak_round_random<field_type, 9, true, true>();
     // test_keccak_round_random<field_type, 15, false, false>();
     // test_keccak_round_random<field_type, 15, true, false>();

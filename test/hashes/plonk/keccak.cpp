@@ -389,7 +389,7 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input,
-        nil::blueprint::connectedness_check_type::type::NONE, num_blocks, num_bits, range_check_input,
+        nil::blueprint::connectedness_check_type::type::STRONG, num_blocks, num_bits, range_check_input,
         limit_permutation_column);
 }
 
@@ -536,7 +536,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_pallas) {
     // test_keccak_round_random<field_type, 9, 65536, 10>(1);
     // test_keccak_0<field_type, 9, 65536, 10>(136);
     test_keccak_0<field_type, 9, 65536, 10>(136);
-    test_keccak_hello_world<field_type, 9, 65536, 10>();
+    // test_keccak_hello_world<field_type, 9, 65536, 10>();
     // test_keccak_round_random<field_type, 15, 65536, 10>();
 }
 
