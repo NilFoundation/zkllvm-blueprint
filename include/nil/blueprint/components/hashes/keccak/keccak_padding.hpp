@@ -586,7 +586,9 @@ namespace nil {
                                 c.first_coordinate = {cur_row, 0};
                                 ++cur_constr;
                             }
-                            cur_row = pairs[cur_constr].first;
+                            if (cur_constr < pairs.size()) {
+                                cur_row = pairs[cur_constr].first;
+                            }
                             cur_result.push_back(c);
                         }
                         result.push_back(cur_result);

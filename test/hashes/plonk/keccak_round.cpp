@@ -161,8 +161,8 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
                              typename BlueprintFieldType::value_type RC,
                              std::array<typename BlueprintFieldType::value_type, 25> expected_result) {
     constexpr std::size_t PublicInputColumns = 1;
-    constexpr std::size_t ConstantColumns = 3;
-    constexpr std::size_t SelectorColumns = 30;
+    constexpr std::size_t ConstantColumns = 30;
+    constexpr std::size_t SelectorColumns = 50;
     nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType> desc(
         WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
@@ -215,7 +215,7 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         boost::get<component_type>(component_instance), desc, public_input, result_check, instance_input,
-                                nil::blueprint::connectedness_check_type::type::NONE,
+                                xor_with_mes ? nil::blueprint::connectedness_check_type::type::STRONG :  nil::blueprint::connectedness_check_type::type::NONE,
                                 xor_with_mes, last_round_call, last_perm_col);
 }
 
@@ -383,25 +383,24 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_not_random<field_type, 9>();
-                                                // xor_with_mes, last_round_call
-    // test_keccak_round_random<field_type, 9, false, false>();
-    // test_keccak_round_random<field_type, 9, true, false>();
+    test_keccak_round_not_random<field_type, 9>();
+    test_keccak_round_random<field_type, 9, false, false>();
+    test_keccak_round_random<field_type, 9, true, false>();
     test_keccak_round_random<field_type, 9, true, true>();
-    // test_keccak_round_random<field_type, 15, false, false>();
-    // test_keccak_round_random<field_type, 15, true, false>();
-    // test_keccak_round_random<field_type, 15, true, true>();
+    test_keccak_round_random<field_type, 15, false, false>();
+    test_keccak_round_random<field_type, 15, true, false>();
+    test_keccak_round_random<field_type, 15, true, true>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_diff_perm_cols) {
-    // using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-    // test_keccak_round_not_random<field_type, 15>();
-    // test_keccak_round_random<field_type, 9, false, false, 5>();
-    // test_keccak_round_random<field_type, 9, true, false, 6>();
-    // test_keccak_round_random<field_type, 9, true, true, 7>();
-    // test_keccak_round_random<field_type, 15, false, false, 5>();
-    // test_keccak_round_random<field_type, 15, true, false, 6>();
-    // test_keccak_round_random<field_type, 15, true, true, 9>();
+    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
+    test_keccak_round_not_random<field_type, 15>();
+    test_keccak_round_random<field_type, 9, false, false, 5>();
+    test_keccak_round_random<field_type, 9, true, false, 6>();
+    test_keccak_round_random<field_type, 9, true, true, 7>();
+    test_keccak_round_random<field_type, 15, false, false, 5>();
+    test_keccak_round_random<field_type, 15, true, false, 6>();
+    test_keccak_round_random<field_type, 15, true, true, 9>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

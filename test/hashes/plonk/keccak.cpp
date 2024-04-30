@@ -389,7 +389,8 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input,
-        nil::blueprint::connectedness_check_type::type::STRONG, num_blocks, num_bits, range_check_input,
+        {nil::blueprint::connectedness_check_type::type::STRONG,
+         nil::blueprint::connectedness_check_type::island_type::NONE}, num_blocks, num_bits, range_check_input,
         limit_permutation_column);
 }
 

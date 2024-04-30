@@ -370,9 +370,12 @@ namespace nil {
                     return {result, normalized_result};
                 }
             public:
-                normalize_base8_table_type(std::size_t base_): lookup_table_definition("keccak_normalize" + std::to_string(base_) + "_table"), base(base_) {
-                    this->subtables["full"] = {{0,1}, 0, 65536};
+                normalize_base8_table_type(std::size_t base_)
+                    : lookup_table_definition("keccak_normalize" + std::to_string(base_) + "_table"), base(base_) {
+
+                    this->subtables["full"] = {{0,1}, 0, 65535};
                 }
+
                 virtual void generate(){
                     this->_table.resize(2);
                     std::vector<std::size_t> value_sizes = {8};
@@ -407,7 +410,7 @@ namespace nil {
                 }
             public:
                 chi_table_type(): lookup_table_definition("keccak_chi_table") {
-                    this->subtables["full"] = {{0,1}, 0, 65536};
+                    this->subtables["full"] = {{0,1}, 0, 65535};
                 }
                 virtual void generate(){
                     this->_table.resize(2);
