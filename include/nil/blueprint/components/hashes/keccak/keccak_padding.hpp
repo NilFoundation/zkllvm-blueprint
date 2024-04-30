@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2023 Polina Chernyshova <pockvokhbtra@nil.foundation>
+//               2024 Valeh Farzaliyev <estoniaa@nil.foundation>
 //
 // MIT License
 //
@@ -49,6 +50,7 @@ namespace nil {
 
                 using component_type = plonk_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
+                using integral_type = typename BlueprintFieldType::integral_type;
 
             public:
                 struct coordinates {
@@ -170,7 +172,9 @@ namespace nil {
                 const std::size_t num_blocks;
                 const std::size_t num_bits;
                 std::size_t shift = calculate_shift(num_blocks, num_bits);
-                std::size_t num_padding_zeros = calculate_num_padding_zeros(num_blocks);
+                std::size_t num_padding_zeros = calculate_num_padding_zeros(num_blocks, shift);
+
+                const integral_type padding_delimiter = integral_type(1) << 56;
 
                 const std::size_t num_cells = calculate_num_cells(num_blocks, num_bits, range_check_input);
                 const std::size_t buff = calculate_buff(this->witness_amount(), range_check_input);
@@ -212,7 +216,11 @@ namespace nil {
                             padded_message[i] = var(component.W(config.copy_to.back().column),
                                                     config.copy_to.back().row + start_row_index, false);
                         }
-                        for (std::size_t i = size; i < size + component.num_padding_zeros; ++i) {
+                        if(component.shift == 0){
+                            padded_message[size] = var(component.C(0), start_row_index + 3, false, var::column_type::constant);
+                        }
+
+                        for (std::size_t i = size + (component.shift == 0); i < size + component.num_padding_zeros; ++i) {
                             padded_message[i] = var(component.C(0), start_row_index, false, var::column_type::constant);
                         }
                     }
@@ -226,8 +234,11 @@ namespace nil {
                     // assert(num_blocks * 64 >= num_bits);
                     return num_blocks * 64 - num_bits;
                 }
-                static std::size_t calculate_num_padding_zeros(std::size_t num_blocks) {
+                static std::size_t calculate_num_padding_zeros(std::size_t num_blocks, std::size_t shift) {
                     if (num_blocks % 17 == 0){
+                        if(shift == 0 ){
+                            return 17;
+                        }
                         return 0;
                     }
                     return 17 - num_blocks % 17;
@@ -625,7 +636,7 @@ namespace nil {
                                                    std::size_t limit_permutation_column) {
                     auto confs = configure_all(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
                     auto res = confs.back().last_coordinate.row + 1 * (confs.back().last_coordinate.column != 0);
-                    if (res < 3) res = 3;
+                    if (res < 4) res = 4;
                     return res;
                 }
 
@@ -840,7 +851,7 @@ namespace nil {
                 }
                 if (component.shift != 0) {
                     auto config = component.full_configuration[config_index++];
-                    bp.add_copy_constraint({var(component.C(0), start_row_index, false, var::column_type::constant),
+                    bp.add_copy_constraint({var(component.C(0), start_row_index + 3, false, var::column_type::constant),
                                             var(component.W(config.copy_to[conf_index_for_input].column),
                                                 config.copy_to[conf_index_for_input].row + strow, false)});
                 } else {
@@ -934,7 +945,7 @@ namespace nil {
                 if (component.shift != 0) {
                     integral_type relay_chunk = integral_type(var_value(assignment, instance_input.message[0]).data);
                     for (std::size_t index = 1; index < component.num_blocks + 1; ++index) {
-                        value_type chunk = 0;
+                        value_type chunk = value_type(component.padding_delimiter);
                         if (index < component.num_blocks) {
                             chunk = var_value(assignment, instance_input.message[index]);
                         }
@@ -1019,10 +1030,12 @@ namespace nil {
                 const std::uint32_t start_row_index) {
 
                 using component_type = padding_component<BlueprintFieldType>;
+                using value_type = typename BlueprintFieldType::value_type;
 
-                assignment.constant(component.C(0), start_row_index) = 0;
+                assignment.constant(component.C(0), start_row_index) =  0;
                 assignment.constant(component.C(0), start_row_index + 1) = component.num_blocks;
                 assignment.constant(component.C(0), start_row_index + 2) = component.num_bits;
+                assignment.constant(component.C(0), start_row_index + 3) =  value_type(component.padding_delimiter);
             }
 
         }    // namespace components

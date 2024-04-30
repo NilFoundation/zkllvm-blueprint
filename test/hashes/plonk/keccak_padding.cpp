@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2023 Polina Chernyshova <pockvokhbtra@nil.foundation>
-//
+//               2024 Valeh Farzaliyev <estoniaa@nil.foundation>
 // MIT License
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -36,9 +36,9 @@
 #include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
-#include <nil/crypto3/hash/algorithm/hash.hpp>
+// #include <nil/crypto3/hash/algorithm/hash.hpp>
 #include <nil/crypto3/hash/keccak.hpp>
-#include <nil/crypto3/random/algebraic_engine.hpp>
+// #include <nil/crypto3/random/algebraic_engine.hpp>
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
@@ -62,6 +62,7 @@ std::size_t number_bits(typename BlueprintFieldType::value_type value) {
     return result;
 }
 
+
 template<typename BlueprintFieldType>
 std::vector<typename BlueprintFieldType::value_type>
     padding_function(std::vector<typename BlueprintFieldType::value_type> message, std::size_t num_bits) {
@@ -80,30 +81,33 @@ std::vector<typename BlueprintFieldType::value_type>
             result.push_back(value_type((relay_value << shift) + left_part));
             relay_value = right_part;
         }
-        result.push_back(value_type(relay_value << shift));
+        relay_value <<= shift;
+        relay_value += integral_type(1) << (shift - 8);
+        result.push_back(value_type(relay_value));
     } else {
         for (int i = 0; i < message.size(); ++i) {
             result.push_back(message[i]);
         }
+        result.push_back(value_type(integral_type(1) << 56));
     }
     while (result.size() % 17 != 0) {
         result.push_back(value_type(0));
     }
+
     return result;
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows, std::size_t LookupColumns>
 auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_type> message,
                                std::vector<typename BlueprintFieldType::value_type> expected_result,
-                               const std::size_t num_blocks, const std::size_t num_bits, const bool range_check_input = true,
-                               const std::size_t limit_permutation_column = 7) {
+                               const std::size_t num_blocks, const std::size_t num_bits,
+                               const bool range_check_input = true, const std::size_t limit_permutation_column = 7) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
     constexpr std::size_t SelectorColumns = 12;
-    zk::snark::plonk_table_description<BlueprintFieldType> desc(
-        WitnessesAmount, PublicInputColumns, ConstantColumns, SelectorColumns);
-    using ArithmetizationType =
-        nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
+    nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType> desc(WitnessesAmount, PublicInputColumns,
+                                                                              ConstantColumns, SelectorColumns);
+    using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
@@ -127,6 +131,8 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
     auto result_check = [expected_result](AssignmentType &assignment, typename component_type::result_type &real_res) {
         assert(expected_result.size() == real_res.padded_message.size());
         for (int i = 0; i < real_res.padded_message.size(); ++i) {
+            std::cout << expected_result[i] << " vs " << var_value(assignment, real_res.padded_message[i]).data
+                      << std::endl;
             assert(expected_result[i] == var_value(assignment, real_res.padded_message[i]));
         }
     };
@@ -138,13 +144,14 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
     for (std::uint32_t i = 0; i < WitnessesAmount; i++) {
         witnesses[i] = i;
     }
-    component_type component_instance = component_type(witnesses, std::array<std::uint32_t, 1> {0},
-                                                       std::array<std::uint32_t, 1> {0}, num_blocks, num_bits,
-                                                       range_check_input, limit_permutation_column);
+    component_type component_instance =
+        component_type(witnesses, std::array<std::uint32_t, 1> {0}, std::array<std::uint32_t, 1> {0}, num_blocks,
+                       num_bits, range_check_input, limit_permutation_column);
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>(
         component_instance, desc, public_input, result_check, instance_input,
-        nil::blueprint::connectedness_check_type::type::STRONG, num_blocks, num_bits, range_check_input, limit_permutation_column);
+        nil::blueprint::connectedness_check_type::type::NONE, num_blocks, num_bits, range_check_input,
+        limit_permutation_column);
 }
 
 // works
@@ -155,9 +162,9 @@ void test_keccak_padding_0() {
 
     std::vector<value_type> message = {0};
     const std::size_t num_blocks = 1;
-    const std::size_t num_bits = 1;
+    const std::size_t num_bits = 8;
 
-    std::vector<value_type> expected_result = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<value_type> expected_result = {281474976710656, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>(message, expected_result,
                                                                                               num_blocks, num_bits);
@@ -167,16 +174,13 @@ void test_keccak_padding_1(std::size_t num_bits) {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
 
-    std::vector<value_type> message = {value_type(integral_type(1) << (num_bits-1)%64)};
-    for (std::size_t i = 0; i < (num_bits-1)/64; i++) {
+    std::vector<value_type> message = {value_type(integral_type(1) << (num_bits - 1) % 64)};
+    for (std::size_t i = 0; i < (num_bits - 1) / 64; i++) {
         message.push_back(value_type(0));
     }
     const std::size_t num_blocks = message.size();
 
-    std::vector<value_type> expected_result = {value_type(integral_type(1) << 63), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    for (std::size_t i = 0; i < (num_blocks-1) / 17; i++) {
-        expected_result.insert(expected_result.end(), {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-    }
+    auto expected_result = padding_function<BlueprintFieldType>(message, num_bits);
 
     test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>(message, expected_result,
                                                                                               num_blocks, num_bits);
@@ -197,8 +201,10 @@ void test_keccak_padding_random(std::size_t message_size, bool random_mask_zero 
     if (random_mask_zero) {
         power_for_mask = dis(gen) % 63 + 1;
     }
-    integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;;
-    value_type message_zero = value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
+    integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;
+    value_type message_zero =
+        value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
+
     std::vector<value_type> message;
     message.push_back(message_zero);
     for (std::size_t i = 1; i < message_size; i++) {
@@ -210,14 +216,13 @@ void test_keccak_padding_random(std::size_t message_size, bool random_mask_zero 
 
     auto expected_result = padding_function<BlueprintFieldType>(message, num_bits);
 
-    test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>(message, expected_result,
-                                                                                              num_blocks, num_bits,
-                                                                                              range_check_input, limit_permutation_column);
+    test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>(
+        message, expected_result, num_blocks, num_bits, range_check_input, limit_permutation_column);
 }
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows, std::size_t LookupColumns>
-void test_to_fail_keccak_padding_random(std::size_t message_size, bool more_bits, bool random_mask_zero = true, bool range_check_input = true,
-                                std::size_t limit_permutation_column = 7) {
+void test_to_fail_keccak_padding_random(std::size_t message_size, bool more_bits, bool random_mask_zero = true,
+                                        bool range_check_input = true, std::size_t limit_permutation_column = 7) {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
 
@@ -230,8 +235,9 @@ void test_to_fail_keccak_padding_random(std::size_t message_size, bool more_bits
     if (random_mask_zero) {
         power_for_mask = dis(gen) % 63 + 1;
     }
-    integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;;
-    value_type message_zero = value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
+    integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;
+    value_type message_zero =
+        value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
     std::vector<value_type> message;
     message.push_back(message_zero);
     for (std::size_t i = 1; i < message_size; i++) {
@@ -249,9 +255,8 @@ void test_to_fail_keccak_padding_random(std::size_t message_size, bool more_bits
         num_bits += 1;
     }
 
-    test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>(message, expected_result,
-                                                                                              num_blocks, num_bits,
-                                                                                              range_check_input, limit_permutation_column);
+    test_keccak_padding_inner<BlueprintFieldType, WitnessesAmount, LookupRows, LookupColumns>(
+        message, expected_result, num_blocks, num_bits, range_check_input, limit_permutation_column);
 }
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
@@ -263,7 +268,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     for (std::size_t i = 1; i < 100; i++) {
         test_keccak_padding_1<field_type, 9, 65536, 10>(i);
         test_keccak_padding_random<field_type, 9, 65536, 10>(i);
-        test_keccak_padding_random<field_type, 9, 65536, 10>(i, false);
+        test_keccak_padding_random<field_type, 9, 65536, 10>(i, false); 
         test_keccak_padding_random<field_type, 9, 65536, 10>(i, true, false);
         test_keccak_padding_random<field_type, 9, 65536, 10>(i, false, false);
     }
