@@ -60,13 +60,9 @@ namespace nil {
 
                 using round_component_type =
                     keccak_round<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
-                round_component_type round_tt;
-                round_component_type round_tf;
-                round_component_type round_ff;
 
                 using padding_component_type =
                     keccak_padding<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
-                padding_component_type padding;
 
                 using manifest_type = nil::blueprint::plonk_component_manifest;
                 class gate_manifest_type : public component_gate_manifest {
@@ -92,18 +88,16 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount,
                                                        std::size_t num_blocks,
                                                        std::size_t num_bits,
                                                        bool range_check_input,
                                                        std::size_t limit_permutation_column) {
-                    std::size_t num_round_calls = calculate_num_round_calls(num_blocks);
                     gate_manifest manifest = gate_manifest(gate_manifest_type(
                         witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column));
 
                     manifest.merge_with(padding_component_type::get_gate_manifest(
-                        witness_amount, lookup_column_amount, num_blocks, num_bits, range_check_input));
-                    manifest.merge_with(round_component_type::get_gate_manifest(witness_amount, lookup_column_amount,
+                        witness_amount, num_blocks, num_bits, range_check_input));
+                    manifest.merge_with(round_component_type::get_gate_manifest(witness_amount,
                                                                                 true, true, limit_permutation_column));
                     // manifest.merge_with(round_component_type::get_gate_manifest(
                     //     witness_amount, lookup_column_amount, true, false, limit_permutation_column));
@@ -113,11 +107,14 @@ namespace nil {
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
+                static manifest_type get_manifest(
+                       std::size_t num_blocks, std::size_t num_bits,
+                       bool range_check_input, std::size_t lpc = 7
+                ) {
                     static manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(9, 15)), false)
-                            .merge_with(padding_component_type::get_manifest())
-                            .merge_with(round_component_type::get_manifest());
+                            .merge_with(padding_component_type::get_manifest(num_blocks, num_bits, range_check_input, lpc))
+                            .merge_with(round_component_type::get_manifest(num_blocks, num_bits, range_check_input, lpc));
                     return manifest;
                 }
 
@@ -148,6 +145,11 @@ namespace nil {
                 const std::size_t pack_cells = 2 * (pack_num_chunks + 1);
                 const std::size_t pack_buff = (this->witness_amount() == 15) * 2;
 
+                padding_component_type padding;
+                round_component_type round_tt;
+                round_component_type round_tf;
+                round_component_type round_ff;
+
                 std::vector<configuration> full_configuration =
                     configure_all(this->witness_amount(), num_configs, num_round_calls, limit_permutation_column);
                 const std::map<std::size_t, std::vector<std::size_t>> gates_configuration_map = configure_map(
@@ -155,7 +157,7 @@ namespace nil {
                 const std::vector<std::vector<configuration>> gates_configuration = configure_gates(
                     this->witness_amount(), num_blocks, num_bits, range_check_input, limit_permutation_column);
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0, num_blocks, num_bits,
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), num_blocks, num_bits,
                                                                 range_check_input, limit_permutation_column);
                 const std::size_t gates_amount = get_gates_amount(this->witness_amount(), num_blocks, num_bits,
                                                                   range_check_input, limit_permutation_column);
@@ -212,7 +214,7 @@ namespace nil {
                                     false);
                         }
                     }
-                    std::vector<var> all_vars() const {
+                    std::vector<std::reference_wrapper<var>> all_vars() {
                         return {final_inner_state[0], final_inner_state[1], final_inner_state[2], final_inner_state[3],
                                 final_inner_state[4]};
                     }
@@ -353,13 +355,13 @@ namespace nil {
                     // for (std::size_t index = 0; index < num_round_calls; ++index) {
                     //     for (std::size_t i = 0; i < 24; ++i) {
                     //         if (index == num_round_calls - 1 && i == 0) {
-                    //             row += round_component_type::get_rows_amount(witness_amount, 0, true, true,
+                    //             row += round_component_type::get_rows_amount(witness_amount, true, true,
                     //                                                          limit_permutation_column);
                     //         } else if (i == 0) {
-                    //             row += round_component_type::get_rows_amount(witness_amount, 0, true, false,
+                    //             row += round_component_type::get_rows_amount(witness_amount, true, false,
                     //                                                          limit_permutation_column);
                     //         } else {
-                    //             row += round_component_type::get_rows_amount(witness_amount, 0, false, false,
+                    //             row += round_component_type::get_rows_amount(witness_amount, false, false,
                     //                                                          limit_permutation_column);
                     //         }
                     //     }
@@ -508,24 +510,24 @@ namespace nil {
                     return result;
                 }
 
-                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount,
+                static std::size_t get_rows_amount(std::size_t witness_amount,
                                                    std::size_t num_blocks, std::size_t num_bits, bool range_check_input,
                                                    std::size_t limit_permutation_column) {
                     std::size_t num_round_calls = calculate_num_round_calls(num_blocks);
                     std::size_t res =
-                        padding_component_type::get_rows_amount(witness_amount, lookup_column_amount, num_blocks,
+                        padding_component_type::get_rows_amount(witness_amount, num_blocks,
                                                                 num_bits, range_check_input, limit_permutation_column);
                     // + round_tt_rows
                     for (std::size_t i = 0; i < num_round_calls; i++) {
                         if (i == num_round_calls - 1) {
-                            res += round_component_type::get_rows_amount(witness_amount, lookup_column_amount, true,
+                            res += round_component_type::get_rows_amount(witness_amount, true,
                                                                          true, limit_permutation_column);
                         } else {
-                            res += round_component_type::get_rows_amount(witness_amount, lookup_column_amount, true,
+                            res += round_component_type::get_rows_amount(witness_amount, true,
                                                                          false, limit_permutation_column);
                         }
                         for (std::size_t j = 1; j < 24; ++j) {
-                            res += round_component_type::get_rows_amount(witness_amount, lookup_column_amount, false,
+                            res += round_component_type::get_rows_amount(witness_amount, false,
                                                                          false, limit_permutation_column);
                         }
                     }
@@ -570,11 +572,12 @@ namespace nil {
                 keccak(WitnessContainerType witness, ConstantContainerType constant,
                        PublicInputContainerType public_input, std::size_t num_blocks_, std::size_t num_bits_,
                        bool range_check_input_, std::size_t lpc_ = 7) :
-                    component_type(witness, constant, public_input, get_manifest()),
+                    component_type(witness, constant, public_input,
+                                   get_manifest(num_blocks_, num_bits_, range_check_input_, lpc_)),
                     num_blocks(num_blocks_), num_bits(num_bits_), range_check_input(range_check_input_),
                     limit_permutation_column(lpc_),
-                    padding(witness, constant, public_input, num_blocks_, num_bits_, range_check_input_, lpc_),
                     num_round_calls(calculate_num_round_calls(num_blocks_)),
+                    padding(witness, constant, public_input, num_blocks_, num_bits_, range_check_input_, lpc_),
                     round_tt(witness, constant, public_input, true, true, lpc_),
                     round_tf(witness, constant, public_input, true, false, lpc_),
                     round_ff(witness, constant, public_input, false, false, lpc_) {
@@ -624,17 +627,11 @@ namespace nil {
                 using component_type = keccak_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-                using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
                 using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-                using lookup_gate_type =
-                    typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
-                using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::vector<std::size_t> selector_indexes;
                 auto gates_configuration = component.gates_configuration;
-                std::size_t gate_index = 0;
-                std::size_t lookup_gate_index = 0;
 
                 for (auto config : gates_configuration) {
                     std::vector<lookup_constraint_type> lookup_constraints_0;
@@ -677,10 +674,8 @@ namespace nil {
                     }
                     selector_indexes.push_back(bp.add_gate({constraint_0, constraint_1}));
                     selector_indexes.push_back(bp.add_gate({constraint_2}));
-                    gate_index++;
                     selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_0));
                     selector_indexes.push_back(bp.add_lookup_gate(lookup_constraints_1));
-                    lookup_gate_index += 2;
                 }
 
                 return selector_indexes;
@@ -701,7 +696,6 @@ namespace nil {
                 std::uint32_t cur_row = start_row_index;
 
                 std::size_t config_index = 0;
-                std::size_t prev_index = 0;
                 auto config = component.full_configuration;
 
                 auto padded_message =
@@ -719,7 +713,6 @@ namespace nil {
                            (config[config_index - 1].last_coordinate.column > 0);
 
                 std::array<var, 25> inner_state;
-                auto prev_row = cur_row;
 
                 auto gate_map_tf = component.round_tf.gates_configuration_map;
                 std::vector<std::size_t> rotate_rows_tf;
@@ -930,7 +923,6 @@ namespace nil {
                     std::vector<integral_type> integral_chunks;
                     std::vector<integral_type> integral_sparse_chunks;
                     integral_type mask = (integral_type(1) << chunk_size) - 1;
-                    integral_type sparse_mask = (integral_type(1) << (chunk_size * 3)) - 1;
                     integral_type power = 1;
 
                     for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -1060,9 +1052,6 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
                 const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
-
-                using component_type = keccak_component<BlueprintFieldType>;
-                using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::size_t row = start_row_index + 4;
                 for (std::size_t i = 0; i < 24; ++i) {

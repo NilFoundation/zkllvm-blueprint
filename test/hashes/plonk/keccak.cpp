@@ -59,7 +59,6 @@ const int r[5][5] = {{0, 36, 3, 41, 18},
 
 template<typename BlueprintFieldType>
 std::size_t number_bits(typename BlueprintFieldType::value_type value) {
-    using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
 
     integral_type integral_value = integral_type(value.data);
@@ -303,7 +302,7 @@ std::array<typename BlueprintFieldType::value_type, 5>
                                                                         value_type(0x80000001),
                                                                         value_type(0x8000000080008008)};
 
-    std::size_t i = 0, j, x, y;
+    std::size_t i = 0, j;
     std::array<typename BlueprintFieldType::value_type, 17> padded_message_chunk;
     // Absorbing
     for (i = 0; i < padded_message.size(); i++) {
@@ -350,8 +349,6 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using value_type = typename BlueprintFieldType::value_type;
-    using integral_type = typename BlueprintFieldType::integral_type;
     using component_type = nil::blueprint::components::keccak<ArithmetizationType>;
     using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
@@ -486,7 +483,7 @@ void test_keccak_random(std::size_t message_size = 1, bool random_mask_zero = tr
     integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;
     ;
     value_type message_zero =
-        value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
+        value_type((integral_type(dis(gen)) & mask_zero) | (integral_type(1) << (power_for_mask - 1)));
     std::vector<value_type> message;
     message.push_back(message_zero);
     for (std::size_t i = 1; i < message_size; i++) {

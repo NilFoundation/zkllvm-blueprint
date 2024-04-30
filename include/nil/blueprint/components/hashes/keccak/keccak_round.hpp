@@ -158,7 +158,6 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount,
                                                        bool xor_with_mes,
                                                        bool last_round_call,
                                                        std::size_t limit_permutation_column) {
@@ -167,7 +166,12 @@ namespace nil {
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
+                static manifest_type get_manifest(
+                    bool xor_with_mes,
+                    bool last_round_call,
+                    std::size_t limit_permutation_column,
+                    std::size_t lpc_ = 7
+                ) {
                     static manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(9, 15)), false);
                     return manifest;
@@ -285,7 +289,7 @@ namespace nil {
                 const std::size_t rotate_buff = calculate_buff(this->witness_amount(), lookup_rows);
 
                 const std::size_t rows_amount =
-                    get_rows_amount(this->witness_amount(), 0, xor_with_mes, last_round_call, limit_permutation_column);
+                    get_rows_amount(this->witness_amount(), xor_with_mes, last_round_call, limit_permutation_column);
 
                 // full configuration is precalculated, then used in other functions
                 const std::size_t full_configuration_size = 17 * xor_with_mes + 85;
@@ -340,8 +344,8 @@ namespace nil {
                         }
                     }
 
-                    std::vector<var> all_vars() const {
-                        std::vector<var> result;
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> result;
                         result.insert(result.end(), inner_state.begin(), inner_state.end());
                         return result;
                     }
@@ -899,7 +903,6 @@ namespace nil {
                                            std::size_t limit_permutation_column) {
                     auto full_configuration =
                         configure_all(witness_amount, xor_with_mes, last_round_call, limit_permutation_column);
-                    auto rows_amount = full_configuration.back().last_coordinate.row + 1;
                     std::vector<std::vector<configuration>> result;
                     auto gates_configuration_map =
                         configure_map(witness_amount, xor_with_mes, last_round_call, limit_permutation_column);
@@ -996,7 +999,6 @@ namespace nil {
                 }
 
                 static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                   std::size_t lookup_column_amount,
                                                    bool xor_with_mes,
                                                    bool last_round_call,
                                                    std::size_t limit_permutation_column) {
@@ -1051,7 +1053,8 @@ namespace nil {
                 keccak_round(WitnessContainerType witness, ConstantContainerType constant,
                              PublicInputContainerType public_input, bool xor_with_mes_ = false,
                              bool last_round_call_ = false, std::size_t lpc_ = 7) :
-                    component_type(witness, constant, public_input, get_manifest()),
+                    component_type(witness, constant, public_input,
+                                   get_manifest(xor_with_mes_, last_round_call_, lpc_)),
                     xor_with_mes(xor_with_mes_), last_round_call(last_round_call_), limit_permutation_column(lpc_) {
                                                                                         // check_params();
                                                                                     };
@@ -1065,7 +1068,8 @@ namespace nil {
                              bool xor_with_mes_ = false,
                              bool last_round_call_ = false,
                              std::size_t lpc_ = 7) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()),
+                    component_type(witnesses, constants, public_inputs,
+                                   get_manifest(xor_with_mes_, last_round_call_, lpc_)),
                     xor_with_mes(xor_with_mes_), last_round_call(last_round_call_), limit_permutation_column(lpc_) {
                                                                                         // check_params();
                                                                                     };
@@ -1086,19 +1090,13 @@ namespace nil {
                 using component_type = keccak_round_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-                using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
                 using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-                using lookup_gate_type =
-                    typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
-                using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
                 using configuration = typename component_type::configuration;
 
                 auto gate_map = component.gates_configuration_map;
                 auto gate_config = component.gates_configuration;
                 auto lookup_gate_config = component.lookup_gates_configuration;
-                std::size_t gate_index = 0;
-                std::size_t lookup_gate_index = 0;
 
                 std::vector<std::size_t> selector_indexes;
                 std::vector<constraint_type> constraints;
@@ -1602,8 +1600,6 @@ namespace nil {
                 std::size_t prev_index = 0;
                 auto config = component.full_configuration;
 
-                std::size_t num_copy_constr = 0;
-
                 if (component.xor_with_mes) {
                     // inner_state ^ chunk
                     for (int i = 0; i < 17 - component.last_round_call; ++i) {
@@ -1615,7 +1611,6 @@ namespace nil {
                             {instance_input.padded_message_chunk[i],
                              var(component.W(config[i].copy_to[1].column),
                                  static_cast<int>(config[i].copy_to[1].row + start_row_index), false)});
-                        num_copy_constr += 2;
                     }
                     config_index += 16;
                     if (component.last_round_call) {
@@ -1632,7 +1627,6 @@ namespace nil {
                                  var::column_type::constant),
                              var(component.W(config[config_index].copy_to[2].column),
                                  static_cast<int>(config[config_index].copy_to[2].row + start_row_index), false)});
-                        num_copy_constr += 3;
                     }
                     config_index += 1;
 
@@ -1644,7 +1638,6 @@ namespace nil {
                              {component.W(config[config_index + i % 5].copy_to[i / 5].column),
                               static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index),
                               false}});
-                        num_copy_constr += 1;
                     }
                     for (int i = 17; i < 25; ++i) {
                         bp.add_copy_constraint(
@@ -1652,7 +1645,6 @@ namespace nil {
                              {component.W(config[config_index + i % 5].copy_to[i / 5].column),
                               static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index),
                               false}});
-                        num_copy_constr += 1;
                     }
                     config_index += 5;
                     prev_index += 17;
@@ -1663,7 +1655,6 @@ namespace nil {
                              {component.W(config[config_index + i % 5].copy_to[i / 5].column),
                               static_cast<int>(config[config_index + i % 5].copy_to[i / 5].row + start_row_index),
                               false}});
-                        num_copy_constr += 1;
                     }
                     config_index += 5;
                 }
@@ -1679,7 +1670,6 @@ namespace nil {
                          var(component.C(0),
                              static_cast<int>(config[config_index + i].first_coordinate.row + start_row_index), false,
                              var::column_type::constant)});
-                    num_copy_constr += 2;
                 }
                 config_index += 5;
                 prev_index += 5;
@@ -1701,7 +1691,6 @@ namespace nil {
                           static_cast<int>(config[prev_index + (x + 4) % 5].copy_to[0].row + start_row_index), false},
                          {component.W(config[config_index + i].copy_to[2].column),
                           static_cast<int>(config[config_index + i].copy_to[2].row + start_row_index), false}});
-                    num_copy_constr += 3;
                 }
                 config_index += 25;
                 prev_index += 5;
@@ -1868,7 +1857,6 @@ namespace nil {
                 using component_type = keccak_round_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                using var = typename component_type::var;
                 std::size_t strow = start_row_index;
 
                 int config_index = 0;
@@ -2106,7 +2094,6 @@ namespace nil {
                 std::array<value_type, 25> A_2;
                 for (int index = 0; index < 25; ++index) {
                     int x = index % 5;
-                    int y = index / 5;
                     value_type sum = A_1[index] + C_rot[(x + 1) % 5] + C[(x + 4) % 5];
                     integral_type integral_sum = integral_type(sum.data);
                     auto chunk_size = component.normalize4_chunk_size;
@@ -2158,8 +2145,6 @@ namespace nil {
                                         15, 23, 19, 13, 12, 2,  20, 14, 22, 9, 6,  1};
                 B[0] = A_2[0];
                 for (int index = 1; index < 25; ++index) {
-                    int x = index % 5;
-                    int y = index / 5;
                     int r = 3 * component.rho_offsets[index];
                     int minus_r = 192 - r;
                     integral_type integral_A = integral_type(A_2[perm[index - 1]].data);

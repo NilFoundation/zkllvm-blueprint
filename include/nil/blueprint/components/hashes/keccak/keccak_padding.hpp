@@ -145,7 +145,6 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount,
                                                        std::size_t num_blocks,
                                                        std::size_t num_bits,
                                                        bool range_check_input,
@@ -155,7 +154,12 @@ namespace nil {
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
+                static manifest_type get_manifest(
+                    std::size_t num_blocks,
+                    std::size_t num_bits,
+                    bool range_check_input,
+                    std::size_t limit_permutation_column = 7
+                ) {
                     static manifest_type manifest =
                         manifest_type(std::shared_ptr<nil::blueprint::manifest_param>(
                                           new nil::blueprint::manifest_single_value_param(9)),
@@ -166,13 +170,13 @@ namespace nil {
                 static const std::size_t lookup_rows = 65536;
                 static const std::size_t num_chunks = 8;
 
-                const std::size_t limit_permutation_column = 7;
-                const bool range_check_input;
-
                 const std::size_t num_blocks;
                 const std::size_t num_bits;
-                std::size_t shift = calculate_shift(num_blocks, num_bits);
-                std::size_t num_padding_zeros = calculate_num_padding_zeros(num_blocks, shift);
+                const bool range_check_input;
+                const std::size_t limit_permutation_column = 7;
+
+                const std::size_t shift = calculate_shift(num_blocks, num_bits);
+                const std::size_t num_padding_zeros = calculate_num_padding_zeros(num_blocks, shift);
 
                 const integral_type padding_delimiter = integral_type(1) << 56;
 
@@ -189,7 +193,7 @@ namespace nil {
                 std::vector<std::size_t> gates_rows = calculate_gates_rows(this->witness_amount());
 
                 const std::size_t rows_amount =
-                    get_rows_amount(this->witness_amount(), 0, num_blocks, num_bits, range_check_input, limit_permutation_column);
+                    get_rows_amount(this->witness_amount(), num_blocks, num_bits, range_check_input, limit_permutation_column);
                 const std::size_t gates_amount = get_gates_amount(this->witness_amount(), num_blocks, num_bits, range_check_input);
 
                 struct input_type {
@@ -225,8 +229,11 @@ namespace nil {
                         }
                     }
 
-                    std::vector<var> all_vars() const {
-                        return padded_message;
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        std::vector<std::reference_wrapper<var>> res;
+                        res.reserve(padded_message.size());
+                        res.insert(res.end(), padded_message.begin(), padded_message.end());
+                        return res;
                     }
                 };
 
@@ -628,8 +635,8 @@ namespace nil {
                     auto map = configure_map(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
                     return map.size() * 2 + range_check_input + 2;
                 }
+
                 static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                   std::size_t lookup_column_amount,
                                                    std::size_t num_blocks,
                                                    std::size_t num_bits,
                                                    bool range_check_input,
@@ -653,7 +660,8 @@ namespace nil {
                 keccak_padding(WitnessContainerType witness, ConstantContainerType constant,
                                PublicInputContainerType public_input, std::size_t num_blocks_, std::size_t num_bits_,
                                bool range_check_input_ = true, std::size_t limit_permutation_column_ = 7) :
-                    component_type(witness, constant, public_input, get_manifest()),
+                    component_type(witness, constant, public_input,
+                                   get_manifest(num_blocks_, num_bits_, range_check_input_, limit_permutation_column_)),
                     num_blocks(num_blocks_), num_bits(num_bits_), range_check_input(range_check_input_),
                     limit_permutation_column(limit_permutation_column_) {};
 
@@ -663,7 +671,8 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t num_blocks_, std::size_t num_bits_, bool range_check_input_ = true, std::size_t limit_permutation_column_ = 7) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()),
+                    component_type(witnesses, constants, public_inputs,
+                                   get_manifest(num_blocks_, num_bits_, range_check_input_, limit_permutation_column_)),
                     num_blocks(num_blocks_), num_bits(num_bits_), range_check_input(range_check_input_),
                     limit_permutation_column(limit_permutation_column_) {};
 
@@ -688,15 +697,11 @@ namespace nil {
                 using component_type = padding_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-                using gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, constraint_type>;
                 using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-                using lookup_gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
-                using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::vector<std::size_t> selector_indexes;
                 auto gates_configuration = component.gates_configuration;
-                std::size_t config_index = 0;
                 std::size_t gate_index = 0;
                 std::size_t lookup_gate_index = 0;
                 int32_t row_shift = (component.shift == 0 || component.witness_amount() == 15) ? 0 : 1;
@@ -827,7 +832,6 @@ namespace nil {
                 std::size_t strow = start_row_index;
                 std::size_t config_index = 0;
                 std::size_t input_index = 0;
-                std::size_t witness_amount = component.witness_amount();
 
                 std::size_t conf_index_for_input = 0;
                 if (component.shift != 0) {
@@ -872,7 +876,6 @@ namespace nil {
                 const std::uint32_t start_row_index) {
 
                 using component_type = padding_component<BlueprintFieldType>;
-                using var = typename component_type::var;
 
                 auto selector_indexes = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
                 assignment.enable_selector(selector_indexes[0], start_row_index + 1);
@@ -927,7 +930,6 @@ namespace nil {
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 std::size_t config_index = 0;
-                std::size_t witness_amount = component.witness_amount();
                 // range_check shift
                 integral_type mask_range_check = (integral_type(1) << 8) - 1;
                 integral_type shift = component.shift;
@@ -1029,7 +1031,6 @@ namespace nil {
                 const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = padding_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
 
                 assignment.constant(component.C(0), start_row_index) =  0;

@@ -221,6 +221,9 @@ auto test_keccak_round_inner(std::array<typename BlueprintFieldType::value_type,
 
 template<typename BlueprintFieldType, std::size_t WitnessesAmount>
 void test_keccak_round_not_random() {
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wimplicitly-unsigned-literal"
+
     using value_type = typename BlueprintFieldType::value_type;
     std::array<value_type, 17> padded_message_chunk = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -334,6 +337,9 @@ void test_keccak_round_not_random() {
                         16959053435453822517, 12224711289652453635, 9342009439668884831, 4879704952849025062, 140226327413610143,
                         424854978622500449, 7259519967065370866, 7004910057750291985, 13293599522548616907, 10105770293752443592,
                         10668034807192757780, 1747952066141424100, 1654286879329379778, 8500057116360352059, 16929593379567477321};
+
+    #pragma clang diagnostic pop
+
     for (int i = 0; i < 25; ++i) {
         expected_result[i] = to_sparse<BlueprintFieldType>(expected_result[i]);
     }
@@ -388,7 +394,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_diff_perm_cols) {
-    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
+    // using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     // test_keccak_round_not_random<field_type, 15>();
     // test_keccak_round_random<field_type, 9, false, false, 5>();
     // test_keccak_round_random<field_type, 9, true, false, 6>();

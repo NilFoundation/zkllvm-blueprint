@@ -112,8 +112,6 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using value_type = typename BlueprintFieldType::value_type;
-    using integral_type = typename BlueprintFieldType::integral_type;
     using component_type = nil::blueprint::components::keccak_padding<ArithmetizationType>;
     using var = typename component_type::var;
 
@@ -158,7 +156,6 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
 template<typename BlueprintFieldType, std::size_t WitnessesAmount, std::size_t LookupRows, std::size_t LookupColumns>
 void test_keccak_padding_0() {
     using value_type = typename BlueprintFieldType::value_type;
-    using integral_type = typename BlueprintFieldType::integral_type;
 
     std::vector<value_type> message = {0};
     const std::size_t num_blocks = 1;
@@ -203,7 +200,7 @@ void test_keccak_padding_random(std::size_t message_size, bool random_mask_zero 
     }
     integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;
     value_type message_zero =
-        value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
+        value_type((integral_type(dis(gen)) & mask_zero) | (integral_type(1) << (power_for_mask - 1)));
 
     std::vector<value_type> message;
     message.push_back(message_zero);
@@ -237,7 +234,7 @@ void test_to_fail_keccak_padding_random(std::size_t message_size, bool more_bits
     }
     integral_type mask_zero = (integral_type(1) << power_for_mask) - 1;
     value_type message_zero =
-        value_type(integral_type(dis(gen)) & mask_zero | (integral_type(1) << (power_for_mask - 1)));
+        value_type((integral_type(dis(gen)) & mask_zero) | (integral_type(1) << (power_for_mask - 1)));
     std::vector<value_type> message;
     message.push_back(message_zero);
     for (std::size_t i = 1; i < message_size; i++) {
@@ -268,7 +265,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     for (std::size_t i = 1; i < 100; i++) {
         test_keccak_padding_1<field_type, 9, 65536, 10>(i);
         test_keccak_padding_random<field_type, 9, 65536, 10>(i);
-        test_keccak_padding_random<field_type, 9, 65536, 10>(i, false); 
+        test_keccak_padding_random<field_type, 9, 65536, 10>(i, false);
         test_keccak_padding_random<field_type, 9, 65536, 10>(i, true, false);
         test_keccak_padding_random<field_type, 9, 65536, 10>(i, false, false);
     }
@@ -288,8 +285,8 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_to_fail) {
-    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     // test with no result_check asserts
+    // using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
 
     // test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(10, false);
     // test_to_fail_keccak_padding_random<field_type, 9, 65536, 10>(16, false, false);
