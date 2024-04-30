@@ -882,12 +882,14 @@ namespace nil {
                         while (cur_constr < pairs.size()) {
                             configuration c;
                             while (cur_constr < pairs.size() && pairs[cur_constr].second <= cur_row + 2 &&
-                                   pairs[cur_constr].first >= cur_row) {
+                                    pairs[cur_constr].first >= cur_row) {
                                 c.constraints.push_back(cur_config.constraints[cur_constr]);
                                 c.first_coordinate = {cur_row, 0};
                                 ++cur_constr;
                             }
-                            cur_row = pairs[cur_constr].first;
+                            if (cur_constr < pairs.size()) {
+                                cur_row = pairs[cur_constr].first;
+                            }
                             cur_result.push_back(c);
                         }
                         result.push_back(cur_result);
@@ -958,7 +960,9 @@ namespace nil {
                                 ++cur_constr;
                                 found = true;
                             }
-                            cur_row = pairs[cur_constr].first;
+                            if (cur_constr < pairs.size()) {
+                                cur_row = pairs[cur_constr].first;
+                            }
                             if (found) {
                                 cur_result.push_back(c);
                             }
@@ -1024,19 +1028,6 @@ namespace nil {
                         xor2_cells;                                                             // iota
                     return num_cells / witness_amount + bool(num_cells % witness_amount);
                 }
-
-                // std::vector<std::shared_ptr<lookup_table_definition>> component_custom_lookup_tables(){
-                //     std::vector<std::shared_ptr<lookup_table_definition>> result = {};
-                //     normalize3_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(3));
-                //     normalize4_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(4));
-                //     normalize6_table = std::shared_ptr<lookup_table_definition>(new normalize_table_type(6));
-                //     chi_table = std::shared_ptr<lookup_table_definition>(new chi_table_type());
-                //     result.push_back(normalize3_table);
-                //     result.push_back(normalize4_table);
-                //     result.push_back(normalize6_table);
-                //     result.push_back(chi_table);
-                //     return result;
-                // }
 
                 std::map<std::string, std::size_t> component_lookup_tables() {
                     std::map<std::string, std::size_t> lookup_tables;
