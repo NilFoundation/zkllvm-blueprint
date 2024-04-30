@@ -34,6 +34,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/lookup_library.hpp>
+#include <nil/blueprint/configuration.hpp>
 
 #include <nil/crypto3/random/algebraic_engine.hpp>
 
@@ -176,76 +177,6 @@ namespace nil {
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(9, 15)), false);
                     return manifest;
                 }
-
-                struct configuration {
-                    struct coordinates {
-                        std::size_t row;
-                        std::size_t column;
-
-                        coordinates() = default;
-                        coordinates(std::size_t row_, std::size_t column_) : row(row_), column(column_) {};
-                        coordinates(std::pair<std::size_t, std::size_t> pair) : row(pair.first), column(pair.second) {};
-                        bool operator==(const coordinates &other) const {
-                            return row == other.row && column == other.column;
-                        }
-                        bool operator<(const coordinates &other) const {
-                            return row < other.row || (row == other.row && column < other.column);
-                        }
-                    };
-
-                    // In constraints we use such notation: constr[0] - result,
-                    // constr[1]... - arguments for lookup, linear elements for regular constraints in correct order.
-                    coordinates first_coordinate;
-                    coordinates last_coordinate;
-                    std::vector<coordinates> copy_to;
-                    std::vector<std::vector<coordinates>> constraints;
-                    std::vector<std::vector<coordinates>> lookups;
-                    coordinates copy_from;
-                    std::string name;
-
-                    configuration() = default;
-                    configuration(std::pair<std::size_t, std::size_t> first_coordinate_,
-                                  std::pair<std::size_t, std::size_t>
-                                      last_coordinate_,
-                                  std::vector<std::pair<std::size_t, std::size_t>>
-                                      copy_to_,
-                                  std::vector<std::vector<std::pair<std::size_t, std::size_t>>>
-                                      constraints_,
-                                  std::vector<std::vector<std::pair<std::size_t, std::size_t>>>
-                                      lookups_,
-                                  std::pair<std::size_t, std::size_t>
-                                      copy_from_) {
-                        first_coordinate = coordinates(first_coordinate_);
-                        last_coordinate = coordinates(last_coordinate_);
-                        for (std::size_t i = 0; i < copy_to_.size(); ++i) {
-                            copy_to.push_back(coordinates(copy_to_[i]));
-                        }
-                        for (std::size_t i = 0; i < constraints_.size(); ++i) {
-                            std::vector<coordinates> constr;
-                            for (std::size_t j = 0; j < constraints_[i].size(); ++j) {
-                                constr.push_back(coordinates(constraints_[i][j]));
-                            }
-                            constraints.push_back(constr);
-                        }
-                        for (std::size_t i = 0; i < lookups_.size(); ++i) {
-                            std::vector<coordinates> lookup;
-                            for (std::size_t j = 0; j < lookups_[i].size(); ++j) {
-                                lookup.push_back(coordinates(lookups_[i][j]));
-                            }
-                            lookups.push_back(lookup);
-                        }
-                        copy_from = coordinates(copy_from_);
-                    };
-                    bool operator==(const configuration &other) const {
-                        return first_coordinate == other.first_coordinate && last_coordinate == other.last_coordinate &&
-                               copy_to == other.copy_to && constraints == other.constraints &&
-                               lookups == other.lookups && copy_from == other.copy_from;
-                    }
-                    bool operator<(const configuration &other) const {
-                        return first_coordinate < other.first_coordinate ||
-                               (first_coordinate == other.first_coordinate && last_coordinate < other.last_coordinate);
-                    }
-                };
 
                 using var = typename component_type::var;
 
@@ -873,7 +804,7 @@ namespace nil {
                                 min = std::min(min, constr[j].row);
                                 max = std::max(max, constr[j].row);
                             }
-                            BOOST_ASSERT(max - min <= 2);
+                            BOOST_ASSERT(max <= 2 + min);
                             pairs.push_back({min, max});
                         }
                         std::vector<configuration> cur_result;
@@ -942,7 +873,7 @@ namespace nil {
                                 min = std::min(min, constr[j].row);
                                 max = std::max(max, constr[j].row);
                             }
-                            BOOST_ASSERT(max - min <= 2);
+                            BOOST_ASSERT(max <= 2 + min);
                             pairs.push_back({min, max});
                         }
 
@@ -1083,7 +1014,6 @@ namespace nil {
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                using configuration = typename component_type::configuration;
 
                 auto gate_map = component.gates_configuration_map;
                 auto gate_config = component.gates_configuration;
@@ -1848,7 +1778,7 @@ namespace nil {
                 using component_type = keccak_round_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                std::size_t strow = start_row_index;
+                const std::size_t strow = start_row_index;
 
                 int config_index = 0;
 
