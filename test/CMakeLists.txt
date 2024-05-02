@@ -161,6 +161,7 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/verifier"
     "detail/choice_function"
     "detail/range_check"
+    "detail/carry_on_addition"
     )
 
 set(FIELDS_TESTS_FILES
