@@ -64,6 +64,11 @@ namespace nil {
             };
         }   // namespace detail
 
+        static std::size_t store_counter = 0;
+        static std::size_t write_counter = 0;
+        static std::size_t miss_counter = 0;
+        static std::size_t match_counter = 0;
+
         template<typename ArithmetizationType>
         class assignment;
 
@@ -97,6 +102,114 @@ namespace nil {
         struct _input_type : boost::type_erasure::placeholder {};
         struct _result_type : boost::type_erasure::placeholder {};
         struct _variadics : boost::type_erasure::placeholder {};
+
+        template<typename ColumnType>
+        class accessor {
+        public:
+            using Endianness = nil::marshalling::option::big_endian;
+            using TTypeBase = nil::marshalling::field_type<Endianness>;
+            using value_type = typename ColumnType::value_type;
+
+            accessor(size_t max_rows) : m_max_rows(max_rows), m_allocated_rows(max_rows) {
+                m_index_map.resize(max_rows);
+                std::iota(m_index_map.begin(), m_index_map.end(), 0);
+            }
+            accessor(const accessor& other) :
+                m_max_rows(other.m_max_rows),
+                m_index_map(other.m_index_map),
+                m_allocated_rows(other.m_allocated_rows) {}
+            accessor(const accessor&& other) :
+                m_max_rows(other.m_max_rows),
+                m_index_map(other.m_index_map),
+                m_allocated_rows(other.m_allocated_rows) {}
+            ~accessor() {
+                m_swap_file_out.close();
+            }
+
+            std::size_t get_max_rows() {
+                return m_max_rows;
+            }
+
+            std::size_t get_row_index(std::size_t row_index) const {
+                return row_index % m_max_rows;
+            }
+
+            void update_line(std::vector<ColumnType> &columns, std::size_t row_index) {
+                if (!m_swap_file_out.is_open()) {
+                    m_swap_file_out.open("witness_swap", std::ios_base::binary | std::ios_base::out);
+                }
+                write_counter++;
+                if (row_index >= m_allocated_rows && row_index >= m_max_rows) {
+                    store_counter++;
+                    //std::cout << "update line " << row_index << " from " << m_allocated_rows - 1 << "\n";
+                    const std::size_t num_rows = row_index - m_allocated_rows + 1;
+                    const std::size_t value_size = nil::crypto3::marshalling::types::field_element<TTypeBase, value_type>::length();
+                    const std::size_t line_size = value_size * columns.size();
+                    const auto write_pos = line_size * (m_allocated_rows - m_max_rows);
+                    //std::cout << "write file to " << write_pos << ", value_size = " << value_size << "\n";
+                    m_swap_file_out.seekp(write_pos);
+
+                    for (std::size_t i = 0; i < num_rows; i++) {
+                        for(auto &col : columns) {
+                            auto &e = col[get_row_index(i + m_allocated_rows)];
+                            //std::cout << "value = " << e << "\n";
+                            auto field_container = nil::crypto3::marshalling::types::field_element<TTypeBase, value_type>(e);
+                            std::array<std::uint8_t, field_container.length()> char_array{};
+                            auto write_iter = char_array.begin();
+                            if(field_container.write(write_iter, char_array.size()) != nil::marshalling::status_type::success) {
+                                std::cout << "can't marshal element\n";
+                            }
+                            m_swap_file_out.write(reinterpret_cast<char*>(char_array.data()), char_array.size());
+                            e = value_type(0);
+                        }
+                    }
+                    m_swap_file_out.flush();
+
+                    m_allocated_rows += num_rows;
+                }
+            }
+
+            value_type load_value(const std::vector<ColumnType> &columns, std::size_t index, std::size_t row_index) const {
+                BLUEPRINT_RELEASE_ASSERT(m_allocated_rows > row_index);
+                std::size_t shift = (m_allocated_rows - 1) / m_max_rows;
+                std::size_t offset = (m_allocated_rows - 1) % m_max_rows;
+                //std::cout << "load value: " << index << ", " << row_index << ", m_allocated_rows = " << m_allocated_rows << "\n";
+                if ((row_index / m_max_rows) == shift ||
+                    ((row_index / m_max_rows) == (shift - 1) && (row_index % m_max_rows) > offset)) {
+                    //std::cout << "  MATCH\n";
+                    match_counter++;
+                    return columns[index][get_row_index(row_index)];
+                } else { // load rom file
+                    miss_counter++;
+                    static std::ifstream swap_file_in;
+                    if (!swap_file_in.is_open()) {
+                        swap_file_in.open("witness_swap", std::ios_base::binary | std::ios_base::in);
+                    }
+                    //std::cout << "  MISS\n";
+                    const std::size_t value_size = nil::crypto3::marshalling::types::field_element<TTypeBase, value_type>::length();
+                    const std::size_t line_size = value_size * columns.size();
+                    const auto read_pos = line_size * (row_index) + value_size * index;
+                    //std::cout << "read file from " << read_pos << ", value_size = " << value_size << "\n";
+                    swap_file_in.seekg(read_pos);
+
+                    nil::crypto3::marshalling::types::field_element<TTypeBase, value_type> field_container;
+                    std::array<std::uint8_t, field_container.length()> char_array{};
+                    swap_file_in.read(reinterpret_cast<char*>(char_array.data()), char_array.size());
+                    auto read_iter = char_array.begin();
+                    if(field_container.read(read_iter, char_array.size()) != nil::marshalling::status_type::success) {
+                        std::cout << "can't marshal element\n";
+                    }
+                    return field_container.value();
+                }
+            }
+
+
+        private:
+            std::size_t m_max_rows;
+            std::vector<std::size_t> m_index_map;
+            std::size_t m_allocated_rows;
+            std::ofstream m_swap_file_out;
+        };
 
         template<typename BlueprintFieldType>
         class assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
@@ -144,6 +257,8 @@ namespace nil {
             shared_container_type shared_storage; // results of the previously prover
             std::set<std::uint32_t> lookup_constant_cols;
             std::set<std::uint32_t> lookup_selector_cols;
+
+            accessor<column_type> witness_accessor;
         public:
             static constexpr const std::size_t private_storage_index = std::numeric_limits<std::size_t>::max();
             static constexpr const std::size_t batch_private_storage_index = std::numeric_limits<std::size_t>::max() - 1;
@@ -151,12 +266,18 @@ namespace nil {
 
             assignment(std::size_t witness_amount, std::size_t public_input_amount,
                        std::size_t constant_amount, std::size_t selector_amount)
-                : zk_type(witness_amount, public_input_amount, constant_amount, selector_amount) {
+                : zk_type(witness_amount, public_input_amount, constant_amount, selector_amount), witness_accessor(10) {
+                    for(std::size_t i = 0; i < witness_amount; i++) {
+                        this->_private_table._witnesses[i].resize(witness_accessor.get_max_rows());
+                    }
             }
 
             assignment(const crypto3::zk::snark::plonk_table_description<BlueprintFieldType> &desc)
                 : zk_type(desc.witness_columns, desc.public_input_columns,
-                          desc.constant_columns, desc.selector_columns) {
+                          desc.constant_columns, desc.selector_columns), witness_accessor(10) {
+                    for(std::size_t i = 0; i < desc.witness_columns; i++) {
+                        this->_private_table._witnesses[i].resize(witness_accessor.get_max_rows());
+                    }
             }
 
             template<typename ComponentType, typename... ComponentParams>
@@ -410,18 +531,22 @@ namespace nil {
             virtual value_type &witness(std::uint32_t witness_index, std::uint32_t row_index) {
                 BLUEPRINT_ASSERT(witness_index < this->_private_table._witnesses.size());
 
-                if (this->_private_table._witnesses[witness_index].size() <= row_index)
-                    this->_private_table._witnesses[witness_index].resize(row_index + 1);
+                //std::cout << "write witness " << row_index << "\n";
+                witness_accessor.update_line(this->_private_table._witnesses, row_index);
 
                 assignment_allocated_rows = std::max(assignment_allocated_rows, row_index + 1);
-                return this->_private_table._witnesses[witness_index][row_index];
+                return this->_private_table._witnesses[witness_index][witness_accessor.get_row_index(row_index)];
             }
 
             virtual value_type witness(std::uint32_t witness_index, std::uint32_t row_index) const {
-                BLUEPRINT_RELEASE_ASSERT(witness_index < this->_private_table._witnesses.size());
-                BLUEPRINT_RELEASE_ASSERT(row_index < this->_private_table._witnesses[witness_index].size());
+                //std::cout << "read witness " << row_index <<  ", " << witness_index << "\n";
 
-                return this->_private_table._witnesses[witness_index][row_index];
+                BLUEPRINT_RELEASE_ASSERT(witness_index < this->_private_table._witnesses.size());
+                //BLUEPRINT_RELEASE_ASSERT(row_index < this->_private_table._witnesses[witness_index].size());
+
+                auto res = witness_accessor.load_value(this->_private_table._witnesses, witness_index, row_index);
+                //std::cout << " " << res << "\n";
+                return res;
             }
 
             virtual std::uint32_t witness_column_size(std::uint32_t col_idx) const {
