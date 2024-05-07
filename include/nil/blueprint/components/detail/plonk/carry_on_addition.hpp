@@ -34,23 +34,21 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-std::size_t bit_size = 16;
-
 namespace nil {
     namespace blueprint {
         namespace components {
-            // Carry-on-addition 
+            // Carry-on-addition
             // operates on k-chunked x,y,carry
-            // Parameters: num_chunks = k
+            // Parameters: num_chunks = k, bit_size_chunk = b
             // Input: x[0], ..., x[k-1], y[0], ..., y[k-1]
             // Intemmediate values: carry[0], ..., carry[k-1]
             // Output: z[0] = x[0] + y[0], ..., z[k-1] = x[k-1] + y[k-1]
             //
-            template<typename ArithmetizationType, typename BlueprintFieldType, std::size_t num_chunks>
+            template<typename ArithmetizationType, typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
             class carry_on_addition;
 
-            template<typename BlueprintFieldType, std::size_t num_chunks>
-            class carry_on_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType, num_chunks>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            class carry_on_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType, num_chunks, bit_size_chunk>
                 : public plonk_component<BlueprintFieldType> {
 
             public:
@@ -103,7 +101,7 @@ namespace nil {
                 };
 
             struct result_type {
-		    var z[num_chunks];
+		    var z[num_chunks], ck;
 
                     result_type(const carry_on_addition &component, std::uint32_t start_row_index) {
                         const std::size_t WA = component.witness_amount();
@@ -112,10 +110,11 @@ namespace nil {
                             std::size_t col = (3*num_chunks + i) % WA;
                             z[i] = var(component.W(col), row, false, var::column_type::witness);
                         }
+                        ck = var(component.W((3*num_chunks - 1) % WA), (3*num_chunks - 1) / WA, false, var::column_type::witness);
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
-                        std::vector<std::reference_wrapper<var>> res = {};
+                        std::vector<std::reference_wrapper<var>> res = {ck};
                         for(std::size_t i = 0; i < num_chunks; i++) {
                             res.push_back(z[i]);
                         }
@@ -142,27 +141,29 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()) {};
             };
 
-            template<typename BlueprintFieldType, std::size_t num_chunks>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
             using plonk_carry_on_addition =
                 carry_on_addition<
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                     BlueprintFieldType,
-                    num_chunks>;
+                    num_chunks,
+                    bit_size_chunk>;
 
-            template<typename BlueprintFieldType, std::size_t num_chunks>
-            typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::result_type generate_assignments(
-                const plonk_carry_on_addition<BlueprintFieldType,num_chunks> &component,
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::result_type generate_assignments(
+                const plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::input_type
+                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
                 using value_type = typename BlueprintFieldType::value_type;
+                using integral_type = typename BlueprintFieldType::integral_type;
 
                 const std::size_t WA = component.witness_amount();
 
-                value_type x[num_chunks], y[num_chunks], carry[num_chunks]; 
+                value_type x[num_chunks], y[num_chunks], carry[num_chunks];
 
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     x[i] = var_value(assignment, instance_input.x[i]);
@@ -172,51 +173,52 @@ namespace nil {
                     assignment.witness(component.W((num_chunks + i) % WA), start_row_index + (num_chunks + i)/WA) = y[i];
 
                     if (i == 0){
-                        if ((x[i] + y[i]) < (1 << bit_size)){
+                        if ((x[i] + y[i]) < (integral_type(1) << bit_size_chunk)){
                             carry[i] = 0;
                         }
                         else{
                             carry[i] = 1;
                         }
                         assignment.witness(component.W((2*num_chunks + i) % WA), start_row_index + (2*num_chunks + i)/WA) = carry[i];
-                        assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) = 
-                        x[i] + y[i] - carry[i]*(1 << bit_size);
+                        assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) =
+                        x[i] + y[i] - carry[i]*(integral_type(1) << bit_size_chunk);
                     }
                     else{
-                        if ((x[i] + y[i]) < (1 << bit_size)){
+                        if ((x[i] + y[i]) < (integral_type(1) << bit_size_chunk)){
                             carry[i] = 0;
                         }
                         else{
                             carry[i] = 1;
                         }
                         assignment.witness(component.W((2*num_chunks + i) % WA), start_row_index + (2*num_chunks + i)/WA) = carry[i];
-                        assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) = 
-                        x[i] + y[i] + carry[i-1] - carry[i]*(1 << bit_size);
+                        assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) =
+                        x[i] + y[i] + carry[i-1] - carry[i]*(integral_type(1) << bit_size_chunk);
                     }
                 }
 
-                return typename plonk_carry_on_addition<BlueprintFieldType, num_chunks>::result_type(
+                return typename plonk_carry_on_addition<BlueprintFieldType, num_chunks, bit_size_chunk>::result_type(
                     component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, std::size_t num_chunks>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
             std::size_t generate_gates(
-                const plonk_carry_on_addition<BlueprintFieldType,num_chunks> &component,
+                const plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::input_type
+                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type
                     &instance_input) {
 
-                using var = typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::var;
+                using var = typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
+                using integral_type = typename BlueprintFieldType::integral_type;
 
                 const std::size_t WA = component.witness_amount();
                 const std::size_t row_shift = -(4*num_chunks > 2*WA);
 
-                var X, Y, C_, C, Z; 
+                var X, Y, C_, C, Z;
 
-                std::vector<constraint_type> carry_on_constraints = { }; // Q(1-Q) = 0
+                std::vector<constraint_type> carry_on_constraints = { };
 
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     C = var(component.W((i+2*num_chunks) % WA), (i+2*num_chunks)/WA + row_shift, true);
@@ -230,28 +232,28 @@ namespace nil {
                     Z = var(component.W((i+3*num_chunks) % WA), (i+3*num_chunks)/WA + row_shift, true);
 
                     if (i == 0){
-                        carry_on_constraints.push_back(X + Y - C*(1 << bit_size) - Z);
+                        carry_on_constraints.push_back(X + Y - C*(integral_type(1) << bit_size_chunk) - Z);
                     }
                     else{
                         C_ = var(component.W((i+2*num_chunks - 1) % WA), (i+2*num_chunks - 1)/WA + row_shift, true);
-                        carry_on_constraints.push_back(X + Y + C_ - C*(1 << bit_size) - Z);
+                        carry_on_constraints.push_back(X + Y + C_ - C*(integral_type(1) << bit_size_chunk) - Z);
                     }
                 }
                 return bp.add_gate(carry_on_constraints);
             }
 
-            template<typename BlueprintFieldType, std::size_t num_chunks>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
             void generate_copy_constraints(
-                const plonk_carry_on_addition<BlueprintFieldType, num_chunks> &component,
+                const plonk_carry_on_addition<BlueprintFieldType, num_chunks, bit_size_chunk> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::input_type &instance_input,
+                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 const std::size_t WA = component.witness_amount();
 
-                using var = typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::var;
+                using var = typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::var;
 
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     bp.add_copy_constraint({var(component.W((i) % WA), start_row_index + (i)/WA,false), instance_input.x[i]});
@@ -259,13 +261,13 @@ namespace nil {
                 }
             }
 
-            template<typename BlueprintFieldType, std::size_t num_chunks>
-            typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::result_type generate_circuit(
-                const plonk_carry_on_addition<BlueprintFieldType,num_chunks> &component,
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::result_type generate_circuit(
+                const plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::input_type &instance_input,
+                const typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 const std::size_t WA = component.witness_amount();
@@ -275,7 +277,7 @@ namespace nil {
                 assignment.enable_selector(selector_index, start_row_index + row_shift);
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename plonk_carry_on_addition<BlueprintFieldType,num_chunks>::result_type(component, start_row_index);
+                return typename plonk_carry_on_addition<BlueprintFieldType,num_chunks,bit_size_chunk>::result_type(component, start_row_index);
             }
 
         }    // namespace components
