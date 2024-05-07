@@ -1057,7 +1057,7 @@ namespace nil {
                             constraint_type constraint_1 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.normalize3_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.normalize3_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1077,7 +1077,7 @@ namespace nil {
                             constraint_type constraint_2 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.normalize3_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.normalize3_num_chunks; ++k) {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1115,7 +1115,7 @@ namespace nil {
                             constraint_type constraint_1 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.normalize4_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.normalize4_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1135,7 +1135,7 @@ namespace nil {
                             constraint_type constraint_2 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.normalize4_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.normalize4_num_chunks; ++k) {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1179,7 +1179,7 @@ namespace nil {
                             constraint_type constraint_1 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.normalize6_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.normalize6_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1199,7 +1199,7 @@ namespace nil {
                             constraint_type constraint_2 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.normalize6_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.normalize6_num_chunks; ++k) {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1281,7 +1281,7 @@ namespace nil {
                             constraint_type constraint_1 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.rotate_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.rotate_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1321,7 +1321,7 @@ namespace nil {
                             constraint_type constraint_2 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.rotate_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.rotate_num_chunks; ++k) {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1379,7 +1379,7 @@ namespace nil {
                             constraint_type constraint_1 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.chi_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.chi_num_chunks; ++k) {
                                 constraint_1 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1399,7 +1399,7 @@ namespace nil {
                             constraint_type constraint_2 = var(cur_config_vec[i].constraints[j][0].column,
                                                                cur_config_vec[i].constraints[j][0].row -
                                                                    cur_config_vec[i].first_coordinate.row - 1);
-                            for (int k = 0; k < component.chi_num_chunks; ++k) {
+                            for (std::size_t k = 0; k < component.chi_num_chunks; ++k) {
                                 constraint_2 -= var(cur_config_vec[i].constraints[j][k + 1].column,
                                                     cur_config_vec[i].constraints[j][k + 1].row -
                                                         cur_config_vec[i].first_coordinate.row - 1) *
@@ -1414,7 +1414,7 @@ namespace nil {
                     }
                     if (gm.first.first == 7) {
                         for (std::size_t i = 0; i < cur_lookup_config_vec.size(); ++i) {
-                            for (int j = 0; j < cur_lookup_config_vec[i].lookups.size(); ++j) {
+                            for (std::size_t j = 0; j < cur_lookup_config_vec[i].lookups.size(); ++j) {
                                 lookup_constraint_type lookup_constraint = {
                                     lookup_tables_indices.at(cur_lookup_table_name),
                                     {var(component.W(cur_lookup_config_vec[i].lookups[j][0].column),
@@ -1429,7 +1429,7 @@ namespace nil {
                         continue;
                     }
                     for (std::size_t i = 0; i < cur_lookup_config_vec.size(); ++i) {
-                        for (int j = 0; j < cur_lookup_config_vec[i].lookups.size(); ++j) {
+                        for (std::size_t j = 0; j < cur_lookup_config_vec[i].lookups.size(); ++j) {
                             lookup_constraint_type lookup_constraint = {
                                 lookup_tables_indices.at(cur_lookup_table_name),
                                 {var(component.W(cur_lookup_config_vec[i].lookups[j][0].column),
@@ -1816,7 +1816,7 @@ namespace nil {
                         assignment.witness(component.W(cur_config.constraints[2][0].column),
                                            cur_config.constraints[2][0].row + strow) =
                             value_type(integral_normalized_sum);
-                        for (int j = 1; j < num_chunks + 1; ++j) {
+                        for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                             assignment.witness(component.W(cur_config.constraints[1][j].column),
                                                cur_config.constraints[1][j].row + strow) =
                                 value_type(integral_chunks[j - 1]);
@@ -1859,7 +1859,7 @@ namespace nil {
                         assignment.witness(component.W(cur_config.constraints[2][0].column),
                                            cur_config.constraints[2][0].row + strow) =
                             value_type(integral_normalized_sum);
-                        for (int j = 1; j < num_chunks + 1; ++j) {
+                        for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                             assignment.witness(component.W(cur_config.constraints[1][j].column),
                                                cur_config.constraints[1][j].row + strow) =
                                 value_type(integral_chunks[j - 1]);
@@ -1922,7 +1922,7 @@ namespace nil {
                                        cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column),
                                        cur_config.constraints[2][0].row + strow) = value_type(integral_normalized_sum);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].column),
                                            cur_config.constraints[1][j].row + strow) =
                             value_type(integral_chunks[j - 1]);
@@ -1992,7 +1992,7 @@ namespace nil {
                                        cur_config.constraints[3][0].row + strow) = value_type(copy_bound_smaller);
                     assignment.witness(component.W(cur_config.constraints[5][0].column),
                                        cur_config.constraints[5][0].row + strow) = value_type(copy_bound_bigger);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[3][j].column),
                                            cur_config.constraints[3][j].row + strow) =
                             value_type(integral_small_chunks[j - 1]);
@@ -2044,7 +2044,7 @@ namespace nil {
                                        cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column),
                                        cur_config.constraints[2][0].row + strow) = A_2[index];
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].column),
                                            cur_config.constraints[1][j].row + strow) =
                             value_type(integral_chunks[j - 1]);
@@ -2109,7 +2109,7 @@ namespace nil {
                                        cur_config.constraints[3][0].row + strow) = value_type(copy_bound_smaller);
                     assignment.witness(component.W(cur_config.constraints[5][0].column),
                                        cur_config.constraints[5][0].row + strow) = value_type(copy_bound_bigger);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[3][j].column),
                                            cur_config.constraints[3][j].row + strow) =
                             value_type(integral_small_chunks[j - 1]);
@@ -2160,7 +2160,7 @@ namespace nil {
                                        cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column),
                                        cur_config.constraints[2][0].row + strow) = value_type(integral_chi_sum);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].column),
                                            cur_config.constraints[1][j].row + strow) =
                             value_type(integral_chunks[j - 1]);
@@ -2202,7 +2202,7 @@ namespace nil {
                                        cur_config.constraints[1][0].row + strow) = sum;
                     assignment.witness(component.W(cur_config.constraints[2][0].column),
                                        cur_config.constraints[2][0].row + strow) = value_type(integral_normalized_sum);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[1][j].column),
                                            cur_config.constraints[1][j].row + strow) =
                             value_type(integral_chunks[j - 1]);

@@ -51,10 +51,6 @@ namespace nil {
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
-                static std::size_t calculate_num_round_calls(std::size_t num_blocks) {
-                    return (num_blocks + (17 - num_blocks % 17)) / 17;
-                }
-
             public:
                 using var = typename component_type::var;
 
@@ -95,10 +91,10 @@ namespace nil {
                     gate_manifest manifest = gate_manifest(gate_manifest_type(
                         witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column));
 
-                    manifest.merge_with(padding_component_type::get_gate_manifest(
-                        witness_amount, num_blocks, num_bits, range_check_input));
-                    manifest.merge_with(round_component_type::get_gate_manifest(witness_amount,
-                                                                                true, true, limit_permutation_column));
+                    manifest.merge_with(padding_component_type::get_gate_manifest(witness_amount, num_blocks, num_bits,
+                                                                                  range_check_input));
+                    manifest.merge_with(
+                        round_component_type::get_gate_manifest(witness_amount, true, true, limit_permutation_column));
                     // manifest.merge_with(round_component_type::get_gate_manifest(
                     //     witness_amount, lookup_column_amount, true, false, limit_permutation_column));
                     // manifest.merge_with(round_component_type::get_gate_manifest(
@@ -107,18 +103,16 @@ namespace nil {
                     return manifest;
                 }
 
-                static manifest_type get_manifest(
-                       std::size_t num_blocks, std::size_t num_bits,
-                       bool range_check_input, std::size_t lpc = 7
-                ) {
+                static manifest_type get_manifest(std::size_t num_blocks, std::size_t num_bits, bool range_check_input,
+                                                  std::size_t lpc = 7) {
                     static manifest_type manifest =
                         manifest_type(std::shared_ptr<manifest_param>(new manifest_range_param(9, 15)), false)
-                            .merge_with(padding_component_type::get_manifest(num_blocks, num_bits, range_check_input, lpc))
-                            .merge_with(round_component_type::get_manifest(num_blocks, num_bits, range_check_input, lpc));
+                            .merge_with(
+                                padding_component_type::get_manifest(num_blocks, num_bits, range_check_input, lpc))
+                            .merge_with(
+                                round_component_type::get_manifest(num_blocks, num_bits, range_check_input, lpc));
                     return manifest;
                 }
-
-                using configuration = typename padding_component_type::configuration;
 
                 const std::size_t lookup_rows = 65536;
                 const std::size_t witnesses = this->witness_amount();
@@ -128,15 +122,8 @@ namespace nil {
                 const bool range_check_input;
                 const std::size_t limit_permutation_column = 7;
 
-                std::size_t round_tt_rows = 0;
-                std::size_t round_tf_rows = 0;
-                std::size_t round_ff_rows = 0;
-                std::size_t round_tt_gates = 0;
-                std::size_t round_tf_gates = 0;
-                std::size_t round_ff_gates = 0;
-
-                const std::size_t num_round_calls = calculate_num_round_calls(num_blocks);
-                const std::size_t num_configs = 5 + num_blocks + (17 - num_blocks % 17);
+                const std::size_t num_round_calls = calculate_num_round_calls(num_blocks, num_bits);
+                const std::size_t num_configs = 4 + calculate_padded_length(num_blocks, num_bits);
 
                 const std::size_t pack_chunk_size = 8;
                 const std::size_t pack_num_chunks = 8;
@@ -199,28 +186,33 @@ namespace nil {
                 };
 
                 struct result_type {
-                    std::array<var, 5> final_inner_state;
+                    std::array<var, 4> final_inner_state;
 
                     result_type(const keccak &component, std::size_t start_row_index) {
                         auto offset =
                             component.full_configuration[component.num_configs - 1].last_coordinate.row +
                             (component.full_configuration[component.num_configs - 1].last_coordinate.column > 0);
-                        for (std::size_t i = 0; i < 5; ++i) {
+                        for (std::size_t i = 0; i < 4; ++i) {
                             final_inner_state[i] =
                                 var(component.W(
-                                        component.full_configuration[component.num_configs - 5 + i].copy_from.column),
+                                        component.full_configuration[component.num_configs - 4 + i].copy_from.column),
                                     start_row_index + component.rows_amount - offset +
-                                        component.full_configuration[component.num_configs - 5 + i].copy_from.row,
+                                        component.full_configuration[component.num_configs - 4 + i].copy_from.row,
                                     false);
                         }
                     }
                     std::vector<std::reference_wrapper<var>> all_vars() {
-                        return {final_inner_state[0], final_inner_state[1], final_inner_state[2], final_inner_state[3],
-                                final_inner_state[4]};
+                        return {final_inner_state[0], final_inner_state[1], final_inner_state[2], final_inner_state[3]};
                     }
                 };
-                static std::size_t get_rows_amount_round_tt() {
-                    return 0;
+
+                static std::size_t calculate_padded_length(std::size_t num_blocks, std::size_t num_bits){
+                    std::size_t shift = padding_component_type::calculate_shift(num_blocks, num_bits);
+                    return num_blocks + padding_component_type::calculate_num_padding_zeros(num_blocks, shift);
+                }
+
+                static std::size_t calculate_num_round_calls(std::size_t num_blocks, std::size_t num_bits) {
+                    return (calculate_padded_length(num_blocks, num_bits)) / 17;
                 }
 
                 integral_type pack(const integral_type &const_input) const {
@@ -351,25 +343,9 @@ namespace nil {
                         row++;
                     }
 
-                    // rounds
-                    // for (std::size_t index = 0; index < num_round_calls; ++index) {
-                    //     for (std::size_t i = 0; i < 24; ++i) {
-                    //         if (index == num_round_calls - 1 && i == 0) {
-                    //             row += round_component_type::get_rows_amount(witness_amount, true, true,
-                    //                                                          limit_permutation_column);
-                    //         } else if (i == 0) {
-                    //             row += round_component_type::get_rows_amount(witness_amount, true, false,
-                    //                                                          limit_permutation_column);
-                    //         } else {
-                    //             row += round_component_type::get_rows_amount(witness_amount, false, false,
-                    //                                                          limit_permutation_column);
-                    //         }
-                    //     }
-                    // }
-
                     row = 0;
                     // from sparse representation
-                    for (std::size_t i = 0; i < 5; ++i) {
+                    for (std::size_t i = 0; i < 4; ++i) {
                         result.push_back(configure_pack_unpack(witness_amount, row, column, pack_cells, pack_num_chunks,
                                                                pack_buff, limit_permutation_column));
                         row = result.back().last_coordinate.row;
@@ -406,32 +382,29 @@ namespace nil {
                                   bool range_check_input,
                                   std::size_t limit_permutation_column) {
 
-                    std::size_t num_configs = 5 + num_blocks + (17 - num_blocks % 17);
-                    std::size_t num_round_calls = calculate_num_round_calls(num_blocks);
+                    std::size_t num_configs = 4 + calculate_padded_length(num_blocks, num_bits);
+                    std::size_t num_round_calls = calculate_num_round_calls(num_blocks, num_bits);
                     auto config = configure_all(witness_amount, num_configs, num_round_calls, limit_permutation_column);
                     std::size_t row = 0, column = 0;
-                    std::size_t row_shift = 0;    // padding_component_type::get_rows_amount(
-                    //     witness_amount, 0, num_blocks, num_bits, range_check_input, limit_permutation_column);
-
                     std::map<std::size_t, std::vector<std::size_t>> config_map;
 
-                    for (std::size_t i = 0; i < config.size() - 5; ++i) {
+                    for (std::size_t i = 0; i < config.size() - 4; ++i) {
                         row = config[i].first_coordinate.row;
                         column = config[i].first_coordinate.column;
                         if (config_map.find(column) != config_map.end()) {
-                            config_map[column].push_back(row + row_shift);
+                            config_map[column].push_back(row);
                         } else {
-                            config_map[column] = {row + row_shift};
+                            config_map[column] = {row};
                         }
                     }
-                    // row_shift += config[config.size() - 6].last_coordinate.row;
-                    for (std::size_t i = config.size() - 5; i < config.size(); ++i) {
+
+                    for (std::size_t i = config.size() - 4; i < config.size(); ++i) {
                         row = config[i].first_coordinate.row;
                         column = config[i].first_coordinate.column + 10 * witness_amount;
                         if (config_map.find(column) != config_map.end()) {
-                            config_map[column].push_back(row + row_shift);
+                            config_map[column].push_back(row);
                         } else {
-                            config_map[column] = {row + row_shift};
+                            config_map[column] = {row};
                         }
                     }
 
@@ -512,32 +485,35 @@ namespace nil {
                     return result;
                 }
 
-                static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                   std::size_t num_blocks, std::size_t num_bits, bool range_check_input,
+                static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t num_blocks,
+                                                   std::size_t num_bits, bool range_check_input,
                                                    std::size_t limit_permutation_column) {
-                    std::size_t num_round_calls = calculate_num_round_calls(num_blocks);
-                    std::size_t res =
-                        padding_component_type::get_rows_amount(witness_amount, num_blocks,
-                                                                num_bits, range_check_input, limit_permutation_column);
-                    // + round_tt_rows
+                    std::size_t num_round_calls = calculate_num_round_calls(num_blocks, num_bits);
+                    std::size_t res = padding_component_type::get_rows_amount(
+                        witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column);
+
+                    auto round_tt_rows =
+                        round_component_type::get_rows_amount(witness_amount, true, true, limit_permutation_column);
+                    auto round_tf_rows =
+                        round_component_type::get_rows_amount(witness_amount, true, false, limit_permutation_column);
+                    auto round_ff_rows =
+                        round_component_type::get_rows_amount(witness_amount, false, false, limit_permutation_column);
+
                     for (std::size_t i = 0; i < num_round_calls; i++) {
                         if (i == num_round_calls - 1) {
-                            res += round_component_type::get_rows_amount(witness_amount, true,
-                                                                         true, limit_permutation_column);
+                            res += round_tt_rows;
                         } else {
-                            res += round_component_type::get_rows_amount(witness_amount, true,
-                                                                         false, limit_permutation_column);
+                            res += round_tf_rows;
                         }
                         for (std::size_t j = 1; j < 24; ++j) {
-                            res += round_component_type::get_rows_amount(witness_amount, false,
-                                                                         false, limit_permutation_column);
+                            res += round_ff_rows;
                         }
                     }
 
                     auto config = configure_all(witness_amount, num_blocks, num_round_calls, limit_permutation_column);
                     auto index = config.size() - 1;
                     res += config[index].last_coordinate.row + (config[index].last_coordinate.column > 0);
-                    res += config[index - 5].last_coordinate.row + (config[index - 5].last_coordinate.column > 0);
+                    res += config[index - 4].last_coordinate.row + (config[index - 4].last_coordinate.column > 0);
                     return res;
                 }
                 static std::size_t get_gates_amount(std::size_t witness_amount, std::size_t num_blocks,
@@ -547,10 +523,7 @@ namespace nil {
                     auto config = configure_map(witness_amount, num_blocks, num_bits, range_check_input,
                                                 limit_permutation_column);
                     for (auto c : config) {
-                        if (c.first >= 10 * witness_amount)
-                            res += 2;
-                        else
-                            res += 2;
+                        res += 2;
                     }
                     return res;
                 }
@@ -577,20 +550,11 @@ namespace nil {
                     component_type(witness, constant, public_input,
                                    get_manifest(num_blocks_, num_bits_, range_check_input_, lpc_)),
                     num_blocks(num_blocks_), num_bits(num_bits_), range_check_input(range_check_input_),
-                    limit_permutation_column(lpc_),
-                    num_round_calls(calculate_num_round_calls(num_blocks_)),
+                    limit_permutation_column(lpc_), num_round_calls(calculate_num_round_calls(num_blocks_, num_bits_)),
                     padding(witness, constant, public_input, num_blocks_, num_bits_, range_check_input_, lpc_),
                     round_tt(witness, constant, public_input, true, true, lpc_),
                     round_tf(witness, constant, public_input, true, false, lpc_),
-                    round_ff(witness, constant, public_input, false, false, lpc_) {
-
-                    round_tt_rows = round_tt.rows_amount;
-                    round_tf_rows = round_tf.rows_amount;
-                    round_ff_rows = round_ff.rows_amount;
-                    round_tt_gates = round_tt.gates_amount;
-                    round_tf_gates = round_tf.gates_amount;
-                    round_ff_gates = round_ff.gates_amount;
-                };
+                    round_ff(witness, constant, public_input, false, false, lpc_) {};
 
                 keccak(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                        std::initializer_list<typename component_type::constant_container_type::value_type> constants,
@@ -601,18 +565,10 @@ namespace nil {
                     num_blocks(num_blocks_), num_bits(num_bits_), range_check_input(range_check_input_),
                     limit_permutation_column(lpc_),
                     padding(witnesses, constants, public_inputs, num_blocks_, num_bits_, range_check_input_, lpc_),
-                    num_round_calls(calculate_num_round_calls(num_blocks_)),
+                    num_round_calls(calculate_num_round_calls(num_blocks_, num_bits_)),
                     round_tt(witnesses, constants, public_inputs, true, true, lpc_),
                     round_tf(witnesses, constants, public_inputs, true, false, lpc_),
-                    round_ff(witnesses, constants, public_inputs, false, false, lpc_) {
-
-                    round_tt_rows = round_tt.rows_amount;
-                    round_tf_rows = round_tf.rows_amount;
-                    round_ff_rows = round_ff.rows_amount;
-                    round_tt_gates = round_tt.gates_amount;
-                    round_tf_gates = round_tf.gates_amount;
-                    round_ff_gates = round_ff.gates_amount;
-                };
+                    round_ff(witnesses, constants, public_inputs, false, false, lpc_) {};
             };
 
             template<typename BlueprintFieldType>
@@ -716,23 +672,23 @@ namespace nil {
 
                 std::array<var, 25> inner_state;
 
-                auto gate_map_tf = component.round_tf.gates_configuration_map;
-                std::vector<std::size_t> rotate_rows_tf;
-                for (auto g : gate_map_tf) {
-                    if (g.first.first == 7) {
-                        rotate_rows_tf.insert(rotate_rows_tf.end(), g.second.begin(), g.second.end());
-                    }
-                }
-                std::sort(rotate_rows_tf.begin(), rotate_rows_tf.end());
+                // auto gate_map_tf = component.round_tf.gates_configuration_map;
+                // std::vector<std::size_t> rotate_rows_tf;
+                // for (auto g : gate_map_tf) {
+                //     if (g.first.first == 7) {
+                //         rotate_rows_tf.insert(rotate_rows_tf.end(), g.second.begin(), g.second.end());
+                //     }
+                // }
+                // std::sort(rotate_rows_tf.begin(), rotate_rows_tf.end());
 
-                auto gate_map_ff = component.round_ff.gates_configuration_map;
-                std::vector<std::size_t> rotate_rows_ff;
-                for (auto g : gate_map_ff) {
-                    if (g.first.first == 7) {
-                        rotate_rows_ff.insert(rotate_rows_ff.end(), g.second.begin(), g.second.end());
-                    }
-                }
-                std::sort(rotate_rows_ff.begin(), rotate_rows_ff.end());
+                // auto gate_map_ff = component.round_ff.gates_configuration_map;
+                // std::vector<std::size_t> rotate_rows_ff;
+                // for (auto g : gate_map_ff) {
+                //     if (g.first.first == 7) {
+                //         rotate_rows_ff.insert(rotate_rows_ff.end(), g.second.begin(), g.second.end());
+                //     }
+                // }
+                // std::sort(rotate_rows_ff.begin(), rotate_rows_ff.end());
 
                 for (int i = 0; i < component.num_round_calls; i++) {
                     for (int j = 0; j < 24; j++) {
@@ -763,7 +719,7 @@ namespace nil {
                     }
                 }
 
-                for (std::size_t i = 0; i < 5; i++) {
+                for (std::size_t i = 0; i < 4; i++) {
                     bp.add_copy_constraint(
                         {inner_state[i], var(component.W(config[config_index].copy_to[0].column),
                                              static_cast<int>(config[config_index].copy_to[0].row + cur_row), false)});
@@ -773,7 +729,7 @@ namespace nil {
                 cur_row += config[config_index - 1].last_coordinate.row +
                            (config[config_index - 1].last_coordinate.column > 0);
 
-                // BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);
+                BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);
             }
 
             template<typename BlueprintFieldType>
@@ -784,6 +740,8 @@ namespace nil {
                 const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
+                BOOST_ASSERT(instance_input.message.size() == component.num_blocks);
+
                 using component_type = keccak_component<BlueprintFieldType>;
                 using padding_type = typename component_type::padding_component_type;
                 using round_type = typename component_type::round_component_type;
@@ -792,19 +750,10 @@ namespace nil {
                 generate_assignments_constant(component, bp, assignment, instance_input, start_row_index);
                 std::size_t row = start_row_index;
 
-                std::vector<std::uint32_t> witnesses;
-                for (std::size_t i = 0; i < component.witnesses; ++i) {
-                    witnesses.push_back(i);
-                }
-                std::vector<std::uint32_t> zero_column = {0};
-
-                padding_type padding_component_instance(witnesses, zero_column, zero_column, component.num_blocks,
-                                                        component.num_bits, component.range_check_input,
-                                                        component.limit_permutation_column);
                 typename padding_type::input_type padding_input = {instance_input.message};
                 typename padding_type::result_type padding_result =
-                    generate_circuit(padding_component_instance, bp, assignment, padding_input, row);
-                row += padding_component_instance.rows_amount;
+                    generate_circuit(component.padding, bp, assignment, padding_input, row);
+                row += component.padding.rows_amount;
 
                 auto selector_indexes =
                     generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
@@ -850,7 +799,7 @@ namespace nil {
                     for (std::size_t j = 0; j < 24; ++j) {
                         typename round_type::input_type round_input = {
                             inner_state, pmc,
-                            var(component.C(0), start_row_index + j + 4, false, var::column_type::constant)};
+                            var(component.C(0), start_row_index + j + 2, false, var::column_type::constant)};
                         if (i == component.num_round_calls - 1 && j == 0) {
                             typename round_type::result_type round_result =
                                 generate_circuit(component.round_tt, bp, assignment, round_input, row);
@@ -871,7 +820,6 @@ namespace nil {
                     offset += 17;
                 }
 
-                std::cout << "after rounds row: " << row << std::endl;
                 // sel_ind = 0;
                 for (auto config : config_map) {
                     if (config.first >= 10 * component.witnesses) {
@@ -897,6 +845,8 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
                 const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
+
+                BOOST_ASSERT(instance_input.message.size() == component.num_blocks);
 
                 std::size_t cur_row = start_row_index;
 
@@ -950,7 +900,7 @@ namespace nil {
                     // cur_row << std::endl;
                     sparse_padded_message_coords[index] = var(component.W(cur_config.constraints[1][0].column),
                                                               cur_config.constraints[1][0].row + cur_row, false);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[0][j].column),
                                            cur_config.constraints[0][j].row + cur_row) =
                             value_type(integral_chunks[j - 1]);
@@ -974,6 +924,7 @@ namespace nil {
                 for (std::size_t i = 0; i < component.num_round_calls; ++i) {
                     std::copy(sparse_padded_message_coords.begin() + offset,
                               sparse_padded_message_coords.begin() + offset + 17, pmc.begin());
+
                     for (auto &el : pmc) {
                         std::cout << component.unpack(integral_type(var_value(assignment, el).data)) << ",";
                     }
@@ -982,7 +933,7 @@ namespace nil {
                     for (std::size_t j = 0; j < 24; ++j) {
                         typename round_type::input_type round_input = {
                             inner_state, pmc,
-                            var(component.C(0), start_row_index + j + 4, false, var::column_type::constant)};
+                            var(component.C(0), start_row_index + j + 2, false, var::column_type::constant)};
                         if (i == component.num_round_calls - 1 && j == 0) {
                             typename round_type::result_type round_result =
                                 generate_assignments(component.round_tt, assignment, round_input, cur_row);
@@ -1004,7 +955,7 @@ namespace nil {
                 }
 
                 // from sparse
-                for (std::size_t index = 0; index < 5; ++index) {
+                for (std::size_t index = 0; index < 4; ++index) {
                     value_type sparse_value = var_value(assignment, inner_state[index]);
                     integral_type sparse = integral_type(sparse_value.data);
                     integral_type regular = component.unpack(sparse);
@@ -1027,7 +978,7 @@ namespace nil {
                                        cur_config.constraints[0][0].row + cur_row) = sparse_value;
                     assignment.witness(component.W(cur_config.constraints[1][0].column),
                                        cur_config.constraints[1][0].row + cur_row) = value_type(regular);
-                    for (int j = 1; j < num_chunks + 1; ++j) {
+                    for (std::size_t j = 1; j < num_chunks + 1; ++j) {
                         assignment.witness(component.W(cur_config.constraints[0][j].column),
                                            cur_config.constraints[0][j].row + cur_row) =
                             value_type(integral_chunks[j - 1]);
@@ -1041,8 +992,7 @@ namespace nil {
                 cur_row += component.full_configuration[config_index - 1].last_coordinate.row +
                            (component.full_configuration[config_index - 1].last_coordinate.column > 0);
 
-                // BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);
-                std::cout << cur_row << " vs " << component.rows_amount << std::endl;
+                BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);
 
                 return typename component_type::result_type(component, start_row_index);
             }
@@ -1055,7 +1005,7 @@ namespace nil {
                 const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
-                std::size_t row = start_row_index + 4;
+                std::size_t row = start_row_index + 2;
                 for (std::size_t i = 0; i < 24; ++i) {
                     assignment.constant(component.C(0), row + i) = component.pack(component.round_constant[i]);
                 }
