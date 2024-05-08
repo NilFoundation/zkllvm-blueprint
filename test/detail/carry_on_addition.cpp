@@ -71,33 +71,22 @@ void test_carry_on_addition(const std::vector<typename BlueprintFieldType::value
         instance_input.y[i] = var(0, num_chunks + i, false, var::column_type::public_input);
     }
 
+    integral_type B = integral_type(1) << bit_size_chunk; // the representation base
     value_type expected_res[num_chunks], carry[num_chunks];
     for(std::size_t i = 0; i < num_chunks; i++) {
         expected_res[i] = public_input[i] + public_input[num_chunks + i];
-        if (i == 0){
-            if (expected_res[i] < (integral_type(1) << bit_size_chunk)){
-                carry[i] = 0;
-            }
-            else{
-                carry[i] = 1;
-            }
-            expected_res[i] = expected_res[i] - carry[i]*(integral_type(1) << bit_size_chunk);
+        if (i > 0) {
+            expected_res[i] += carry[i-1];
         }
-        else{
-            if (expected_res[i] < (integral_type(1) << bit_size_chunk)){
-                carry[i] = 0;
-            }
-            else{
-                carry[i] = 1;
-            }
-            expected_res[i] = expected_res[i] + carry[i - 1] - carry[i]*(integral_type(1) << bit_size_chunk);
-        }
+        carry[i] = (expected_res[i] >= B);
+        expected_res[i] -= carry[i]*B;
     }
 
-    auto result_check = [&expected_res, &public_input](AssignmentType &assignment, typename component_type::result_type &real_res) {
+    auto result_check = [&expected_res, &carry, &public_input](AssignmentType &assignment, typename component_type::result_type &real_res) {
         for(std::size_t i = 0; i < num_chunks; i++) {
             BOOST_ASSERT(var_value(assignment, real_res.z[i]) == expected_res[i]);
         }
+        BOOST_ASSERT(var_value(assignment, real_res.ck) == carry[num_chunks-1]);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -111,8 +100,7 @@ void test_carry_on_addition(const std::vector<typename BlueprintFieldType::value
                                      );
 
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>
-        (component_instance, desc, public_input, result_check, instance_input, nil::blueprint::connectedness_check_type::type::NONE);
-    // NB: turning off connectedness_check is a TEMPORARY solution. It needs to be reverted as soon as possible!
+        (component_instance, desc, public_input, result_check, instance_input);
 }
 
 template <typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t WitnessColumns, std::size_t RandomTestsAmount>

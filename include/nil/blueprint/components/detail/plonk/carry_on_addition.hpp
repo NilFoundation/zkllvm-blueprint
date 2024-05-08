@@ -110,7 +110,8 @@ namespace nil {
                             std::size_t col = (3*num_chunks + i) % WA;
                             z[i] = var(component.W(col), row, false, var::column_type::witness);
                         }
-                        ck = var(component.W((3*num_chunks - 1) % WA), (3*num_chunks - 1) / WA, false, var::column_type::witness);
+                        ck = var(component.W((3*num_chunks - 1) % WA),
+                                 start_row_index + (3*num_chunks - 1) / WA, false, var::column_type::witness);
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
@@ -163,7 +164,8 @@ namespace nil {
 
                 const std::size_t WA = component.witness_amount();
 
-                value_type x[num_chunks], y[num_chunks], carry[num_chunks];
+                value_type x[num_chunks], y[num_chunks], z[num_chunks], carry[num_chunks];
+                integral_type B = integral_type(1) << bit_size_chunk;
 
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     x[i] = var_value(assignment, instance_input.x[i]);
@@ -172,28 +174,13 @@ namespace nil {
                     assignment.witness(component.W((i) % WA), start_row_index + (i)/WA) = x[i];
                     assignment.witness(component.W((num_chunks + i) % WA), start_row_index + (num_chunks + i)/WA) = y[i];
 
-                    if (i == 0){
-                        if ((x[i] + y[i]) < (integral_type(1) << bit_size_chunk)){
-                            carry[i] = 0;
-                        }
-                        else{
-                            carry[i] = 1;
-                        }
-                        assignment.witness(component.W((2*num_chunks + i) % WA), start_row_index + (2*num_chunks + i)/WA) = carry[i];
-                        assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) =
-                        x[i] + y[i] - carry[i]*(integral_type(1) << bit_size_chunk);
+                    z[i] = x[i] + y[i];
+                    if (i > 0) {
+                        z[i] += carry[i-1];
                     }
-                    else{
-                        if ((x[i] + y[i]) < (integral_type(1) << bit_size_chunk)){
-                            carry[i] = 0;
-                        }
-                        else{
-                            carry[i] = 1;
-                        }
-                        assignment.witness(component.W((2*num_chunks + i) % WA), start_row_index + (2*num_chunks + i)/WA) = carry[i];
-                        assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) =
-                        x[i] + y[i] + carry[i-1] - carry[i]*(integral_type(1) << bit_size_chunk);
-                    }
+                    carry[i] = (z[i] >= B);
+                    assignment.witness(component.W((2*num_chunks + i) % WA), start_row_index + (2*num_chunks + i)/WA) = carry[i];
+                    assignment.witness(component.W((3*num_chunks + i) % WA), start_row_index + (3*num_chunks + i)/WA) = z[i] - carry[i]*B;
                 }
 
                 return typename plonk_carry_on_addition<BlueprintFieldType, num_chunks, bit_size_chunk>::result_type(

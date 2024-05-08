@@ -85,13 +85,12 @@ void test_mod_p_check(const std::vector<typename BlueprintFieldType::value_type>
                                      );
     if (to_pass) {
         nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>
-            (component_instance, desc, public_input, result_check, instance_input, nil::blueprint::connectedness_check_type::type::NONE);
+            (component_instance, desc, public_input, result_check, instance_input);
     } else {
         std::cout << "Testing to fail" << std::endl;
         nil::crypto3::test_component_to_fail<component_type, BlueprintFieldType, hash_type, Lambda>
-            (component_instance, desc, public_input, result_check, instance_input, nil::blueprint::connectedness_check_type::type::NONE);
+            (component_instance, desc, public_input, result_check, instance_input);
     }
-    // NB: turning off connectedness_check is a TEMPORARY solution. It needs to be reverted as soon as possible!
 }
 
 template <typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk,
