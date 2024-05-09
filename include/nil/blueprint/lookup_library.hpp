@@ -244,14 +244,31 @@ namespace nil {
                 virtual std::size_t get_columns_number(){return 2;}
                 virtual std::size_t get_rows_number(){return 5764801;}
             };
+
+            class chunk_16_bits_table: public lookup_table_definition{
+            public:
+                chunk_16_bits_table(): lookup_table_definition("chunk_16_bits"){
+                    this->subtables["full"] = {{0}, 0, 65535};
+                };
+                virtual void generate(){
+                    this->_table.resize(1);
+                    for (std::size_t i = 0; i < 65536; i++) {
+                        this->_table[0].push_back(i);
+                    }
+                }
+
+                virtual std::size_t get_columns_number(){return 1;}
+                virtual std::size_t get_rows_number(){return 65536;}
+            };
         public:
             using bimap_type = boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::set_of<std::size_t>>;
             using left_reserved_type = typename bimap_type::left_map;
             using right_reserved_type = typename bimap_type::right_map;
 
-            lookup_library(){
+            lookup_library() {
                 tables = {};
                 reserved_all = false;
+                tables["chunk_16_bits"] = std::shared_ptr<lookup_table_definition>(new chunk_16_bits_table());
                 tables["binary_xor_table"] = std::shared_ptr<lookup_table_definition>(new binary_xor_table_type());
                 tables["binary_and_table"] = std::shared_ptr<lookup_table_definition>(new binary_and_table_type());
                 tables["sha256_sparse_base4"] = std::shared_ptr<lookup_table_definition>(new sparse_values_base4_table());

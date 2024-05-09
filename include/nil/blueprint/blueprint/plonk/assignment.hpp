@@ -110,10 +110,8 @@ namespace nil {
             using value_type = typename BlueprintFieldType::value_type;
             using column_type = typename crypto3::zk::snark::plonk_column<BlueprintFieldType>;
             using shared_container_type = typename std::array<column_type, 1>;
-
             using constant_set_compare_type = detail::constant_batch_ref_compare<BlueprintFieldType>;
 
-            std::size_t next_selector_index = 0;
             std::uint32_t assignment_allocated_rows = 0;
             std::vector<value_type> assignment_private_storage;
             // for variables used in component batching

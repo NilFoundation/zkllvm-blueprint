@@ -174,6 +174,16 @@ set(FIELDS_TESTS_FILES
     #"algebra/fields/r1cs/exponentiation"
     )
 
+set(ZKEVM_TESTS_FILES
+    "zkevm/state_selector"
+    "zkevm/zkevm_word"
+    "zkevm/state_transition"
+    "zkevm/opcodes/iszero"
+    "zkevm/opcodes/add_sub"
+    "zkevm/opcodes/mul"
+    "zkevm/opcodes/div"
+    )
+
 set(CURVES_TESTS_FILES
     "algebra/curves/r1cs/montgomery"
     "algebra/curves/r1cs/twisted_edwards"
@@ -220,6 +230,7 @@ SET(ALL_TESTS_FILES
     ${NON_NATIVE_TESTS_FILES}
     ${PLONK_TESTS_FILES}
     ${ALGEBRA_TESTS_FILES}
+    ${ZKEVM_TESTS_FILES}
     ${HASHES_TESTS_FILES}
     ${ROUTING_TESTS_FILES}
     ${SCHEMES_TESTS_FILES}
