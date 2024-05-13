@@ -21,11 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //---------------------------------------------------------------------------//
-// @file Declaration of interfaces for FRI verification array swapping component.
-//---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ZKEVM_CIRCUITS_BYTECODE_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ZKEVM_CIRCUITS_BYTECODE_HPP
+#pragma once
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
@@ -193,9 +190,6 @@ namespace nil {
                 static constexpr std::size_t HASH_LO = component_type::HASH_LO;
                 static constexpr std::size_t VALUE_RLC = component_type::VALUE_RLC;
                 static constexpr std::size_t RLC_CHALLENGE = component_type::RLC_CHALLENGE;
-
-                const std::size_t witness_amount = component.witness_amount();
-                const std::size_t rows_amount = component.rows_amount;
 
                 value_type rlc_challenge = var_value(assignment, instance_input.rlc_challenge);
 
@@ -366,5 +360,3 @@ namespace nil {
         }    // namespace components
     }        // namespace blueprint
 }    // namespace nil
-
-#endif    // CRYPTO3_BLUEPRINT_COMPONENTS_PLONK_ZKEVM_CIRCUITS_BYTECODE_HPP
