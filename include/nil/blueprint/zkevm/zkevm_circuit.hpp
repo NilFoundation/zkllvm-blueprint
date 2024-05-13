@@ -116,7 +116,7 @@ namespace nil {
             }
 
             zkevm_circuit(assignment_type &assignment_, circuit_type &circuit_, std::size_t start_row_index_ = 1)
-                :assignment(assignment_), circuit(circuit_),
+                :assignment(assignment_), circuit(circuit_), opcodes_info_instance(opcodes_info::instance()),
                  selector_manager(assignment_, circuit_),
                  curr_row(start_row_index_), start_row_index(start_row_index_) {
 
@@ -162,9 +162,10 @@ namespace nil {
             void advance_rows(const zkevm_opcode opcode, std::size_t rows) {
                 assignment.enable_selector(middle_selector, curr_row, curr_row + rows - 1);
                 // TODO: figure out what is going to happen on state change
+                value_type opcode_val = opcodes_info_instance.get_opcode_value(opcode);
                 for (std::size_t i = 0; i < rows; i++) {
                     // TODO: switch to real bytecode
-                    assignment.witness(state_selector->W(0), curr_row) = value_type(std::size_t(opcode));
+                    assignment.witness(state_selector->W(0), curr_row) = opcode_val;
                     components::generate_assignments(
                         *state_selector, assignment,
                         {var(state_selector->W(0), curr_row, false, var::column_type::witness)}, curr_row);
@@ -176,7 +177,7 @@ namespace nil {
                     if (i == 0) {
                         state.step_selection.value = 0;
                     }
-                    assignment.witness(state_selector->W(0), curr_row) = value_type(std::size_t(opcode));
+                    assignment.witness(state_selector->W(0), curr_row) = opcode_val;
                     state.rows_until_next_op.value = state.rows_until_next_op.value - 1;
                     state.rows_until_next_op_inv.value = state.rows_until_next_op.value == 0 ?
                         0 : 1 / state.rows_until_next_op.value;
@@ -309,8 +310,8 @@ namespace nil {
                 start_selector = selector_manager.add_gate(first_constraints);
                 // TODO: proper end constraints
                 end_selector = circuit.add_gate(last_constraints);
-                // TODO: proper calculation
-                const std::size_t opcodes_amount = LAST_ZKEVM_OPCODE + 1;
+
+                const std::size_t opcodes_amount = opcodes_info_instance.get_opcodes_amount();
                 const std::size_t state_selector_cols_amount =
                     state_selector_type::get_manifest(opcodes_amount).witness_amount->max_value_if_sat();
                 for (std::size_t i = 0; i < state_selector_cols_amount; i++) {
@@ -350,8 +351,8 @@ namespace nil {
                     if (opcode_height > max_opcode_height) {
                         BOOST_ASSERT("Opcode height exceeds maximum, please update max_opcode_height constant.");
                     }
-                    // TODO: proper opcode table instead
-                    std::size_t opcode_num = opcode_it.first;
+
+                    std::size_t opcode_num = opcodes_info_instance.get_opcode_value(opcode_it.first);
                     auto curr_opt_constraint = state_selector->option_constraint(opcode_num);
                     // force current height to be proper value at the start of the opcode
                     if (opcode_height == 1) {
@@ -414,6 +415,8 @@ namespace nil {
             // reference to the assignment/circuit objects
             assignment_type &assignment;
             circuit_type &circuit;
+            // information about opcode metadata (mapping, etc.)
+            const opcodes_info &opcodes_info_instance;
             selector_manager_type selector_manager;
             std::shared_ptr<state_selector_type> state_selector;
             std::shared_ptr<state_selector_type> opcode_row_selector;
