@@ -42,7 +42,7 @@ namespace nil {
             // Parameters: num_chunks = k, bit_size_chunk = b
             // Input: x[0], ..., x[k-1], y[0], ..., y[k-1]
             // Intemmediate values: carry[0], ..., carry[k-1]
-            // Output: z[0] = x[0] + y[0], ..., z[k-1] = x[k-1] + y[k-1]
+            // Output: z[0] = (x + y)[0], ..., z[k-1] = (x + y)[k-1], ck = carry[k-1]
             //
             template<typename ArithmetizationType, typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
             class carry_on_addition;

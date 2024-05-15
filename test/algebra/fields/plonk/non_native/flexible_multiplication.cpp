@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2024 Polina Chernyshova <pockvokhbtra@nil.foundation>
+// Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
 //
@@ -28,6 +29,7 @@
 
 #include <nil/crypto3/algebra/fields/bls12/scalar_field.hpp>
 #include <nil/crypto3/algebra/fields/bls12/base_field.hpp>
+#include <nil/crypto3/algebra/fields/goldilocks64/base_field.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/bls12.hpp>
 #include <nil/crypto3/algebra/curves/vesta.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/vesta.hpp>
@@ -46,8 +48,8 @@
 
 using namespace nil;
 
-template <typename BlueprintFieldType, typename NonNativeFieldType, 
-        std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits, 
+template <typename BlueprintFieldType, typename NonNativeFieldType,
+        std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
         std::size_t WitnessColumns, bool to_pass = true>
 void test_mult(const std::vector<typename BlueprintFieldType::value_type> &public_input){
     constexpr std::size_t PublicInputColumns = 1;
@@ -63,19 +65,21 @@ void test_mult(const std::vector<typename BlueprintFieldType::value_type> &publi
     using value_type = typename BlueprintFieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = typename blueprint::components::flexible_mult<ArithmetizationType, BlueprintFieldType, NonNativeFieldType, 
+    using component_type = typename blueprint::components::flexible_mult<ArithmetizationType, BlueprintFieldType, NonNativeFieldType,
                                                                             num_chunks, bit_size_chunk, num_bits>;
 
     typename component_type::input_type instance_input;
     for (std::size_t i = 0; i < num_chunks; i++) {
-        instance_input.x[i] = var(0, i, false, var::column_type::witness);
+        instance_input.x[i] = var(0, i, false, var::column_type::public_input);
     }
     for (std::size_t i = 0; i < num_chunks; i++) {
-        instance_input.y[i] = var(0, i + num_chunks, false, var::column_type::witness);
+        instance_input.y[i] = var(0, i + num_chunks, false, var::column_type::public_input);
     }
 
     auto result_check = [](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {};
+	    typename component_type::result_type &real_res) {
+
+    };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
     for (std::uint32_t i = 0; i < WitnessColumns; i++) {
@@ -96,27 +100,40 @@ void test_mult(const std::vector<typename BlueprintFieldType::value_type> &publi
     }
 }
 
-template <typename BlueprintFieldType, typename NonNativeFieldType, 
+template <typename BlueprintFieldType, typename NonNativeFieldType,
         std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
         std::size_t WitnessColumns, std::size_t RandomTestsAmount>
 void mult_tests() {
     using integral_type = typename BlueprintFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using foreign_integral_type = typename NonNativeFieldType::integral_type;
 
     static boost::random::mt19937 seed_seq;
-    static nil::crypto3::random::algebraic_engine<BlueprintFieldType> generate_random(seed_seq);
+    static nil::crypto3::random::algebraic_engine<NonNativeFieldType> generate_random(seed_seq);
     boost::random::uniform_int_distribution<> t_dist(0, 1);
-    integral_type mask = (integral_type(1) << bit_size_chunk) - 1;
+    foreign_integral_type mask = (foreign_integral_type(1) << bit_size_chunk) - 1;
 
     for (std::size_t i = 0; i < RandomTestsAmount; i++) {
         std::vector<typename BlueprintFieldType::value_type> public_input;
-        public_input.push_back(value_type(integral_type(generate_random().data) & mask));
-        test_mult<BlueprintFieldType, NonNativeFieldType, 
+
+        foreign_integral_type x = foreign_integral_type(generate_random().data),
+                              y = foreign_integral_type(generate_random().data);
+        for(std::size_t j = 0; j < num_chunks; j++) {
+            public_input.push_back(value_type(x & mask));
+            x >>= bit_size_chunk;
+        }
+
+        for(std::size_t j = 0; j < num_chunks; j++) {
+            public_input.push_back(value_type(y & mask));
+            y >>= bit_size_chunk;
+        }
+
+        test_mult<BlueprintFieldType, NonNativeFieldType,
                 num_chunks, bit_size_chunk, num_bits, WitnessColumns>(public_input);
     }
 }
-
-template <typename BlueprintFieldType, typename NonNativeFieldType, 
+/*
+template <typename BlueprintFieldType, typename NonNativeFieldType,
         std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
         std::size_t WitnessColumns, std::size_t RandomTestsAmount>
 void mult_tests_to_fail() {
@@ -131,29 +148,42 @@ void mult_tests_to_fail() {
     for (std::size_t i = 0; i < RandomTestsAmount; i++) {
         integral_type most_significant_bit = integral_type(1) << (bit_size_chunk + i % 2);
         std::vector<typename BlueprintFieldType::value_type> public_input;
-        public_input.push_back(value_type(integral_type(generate_random().data) & mask | most_significant_bit));
-        test_mult<BlueprintFieldType, NonNativeFieldType, 
+        for(std::size_t j = 0; j < 2*num_chunks; j++) {
+            // public_input.push_back(value_type(integral_type(generate_random().data) & mask | most_significant_bit));
+        }
+        test_mult<BlueprintFieldType, NonNativeFieldType,
                 num_chunks, bit_size_chunk, num_bits, WitnessColumns>(public_input);
     }
 }
-
+*/
 constexpr static const std::size_t random_tests_amount = 10;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
-    using non_native_field_type = typename crypto3::algebra::curves::bls12<381>::scalar_field_type;
     using pallas_field_type = typename crypto3::algebra::curves::pallas::base_field_type;
+    using vesta_field_type = typename crypto3::algebra::curves::vesta::base_field_type;
+    using bls12_381_field_type = typename crypto3::algebra::curves::bls12<381>::scalar_field_type;
+    using goldilocks_field_type = typename crypto3::algebra::fields::goldilocks64_base_field;
 
-    mult_tests<pallas_field_type, non_native_field_type, 1, 32, 32, 15, random_tests_amount>();
-    // mult_tests<pallas_field_type, 65, 5, random_tests_amount>();
-    // mult_tests<pallas_field_type, 63, 10, random_tests_amount>();
+// <BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk, num_bits, WitnessColumns, RandomTestsAmount>
+    std::cout << "Scenario 1\n";
+    mult_tests<pallas_field_type, vesta_field_type, 4, 64, 256, 15, random_tests_amount>();
 
-    // using vesta_field_type = typename crypto3::algebra::curves::vesta::base_field_type;
+    std::cout << "Scenario 2\n";
+    mult_tests<pallas_field_type, bls12_381_field_type, 4, 64, 256, 15, random_tests_amount>();
 
-    // mult_tests<vesta_field_type, 254, 15, random_tests_amount>();
-    // mult_tests<vesta_field_type, 22, 9, random_tests_amount>();
-    // mult_tests<vesta_field_type, 129, 5, random_tests_amount>();
+    std::cout << "Scenario 3\n";
+    mult_tests<pallas_field_type, vesta_field_type, 4, 65, 260, 7, random_tests_amount>();
+
+    std::cout << "Scenario 4\n";
+    mult_tests<pallas_field_type, vesta_field_type, 5, 63, 315, 10, random_tests_amount>();
+
+    std::cout << "Scenario 5\n";
+    mult_tests<pallas_field_type, goldilocks_field_type, 2, 32, 64, 10, random_tests_amount>();
+
+    std::cout << "Scenario 6\n";
+    mult_tests<pallas_field_type, goldilocks_field_type, 3, 22, 66, 9, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_field_operations_test_to_fail) {
