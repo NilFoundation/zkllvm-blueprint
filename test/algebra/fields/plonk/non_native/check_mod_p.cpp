@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
     mod_p_check_tests<pallas_field_type, 4, 65, 5, random_tests_amount,true>();
     mod_p_check_tests<pallas_field_type, 5, 63, 10, random_tests_amount,true>();
 
-    mod_p_check_tests<vesta_field_type, 2, 254, 15, random_tests_amount,true>();
+    mod_p_check_tests<vesta_field_type, 2, 252, 15, random_tests_amount,true>();
     mod_p_check_tests<vesta_field_type, 12, 22, 13, random_tests_amount,true>();
     mod_p_check_tests<vesta_field_type, 2, 129, 5, random_tests_amount,true>();
 }

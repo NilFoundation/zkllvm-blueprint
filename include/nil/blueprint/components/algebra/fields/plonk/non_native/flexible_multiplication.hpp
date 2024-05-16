@@ -271,6 +271,7 @@ namespace nil {
 
                 template<typename ContainerType>
                 explicit flexible_mult(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {
+                    static_assert(num_chunks * bit_size_chunk >= NonNativeFieldType::modulus_bits,"non-native field should fit into chunks");
                     static_assert(2*bit_size_chunk < BlueprintFieldType::modulus_bits,"chunk products should fit into native field");
                     static_assert(num_bits % bit_size_chunk == 0,"num_bits should be divisible by bit_size_chunk");
                     static_assert(num_bits + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
@@ -282,6 +283,7 @@ namespace nil {
                 flexible_mult(WitnessContainerType witness, ConstantContainerType constant,
                          PublicInputContainerType public_input) :
                     component_type(witness, constant, public_input, get_manifest()) {
+                    static_assert(num_chunks * bit_size_chunk >= NonNativeFieldType::modulus_bits,"non-native field should fit into chunks");
                     static_assert(2*bit_size_chunk < BlueprintFieldType::modulus_bits,"chunk products should fit into native field");
                     static_assert(num_bits % bit_size_chunk == 0,"num_bits should be divisible by bit_size_chunk");
                     static_assert(num_bits + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
@@ -296,6 +298,7 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs) :
                     component_type(witnesses, constants, public_inputs, get_manifest()) {
+                    static_assert(num_chunks * bit_size_chunk >= NonNativeFieldType::modulus_bits,"non-native field should fit into chunks");
                     static_assert(2*bit_size_chunk < BlueprintFieldType::modulus_bits,"chunk products should fit into native field");
                     static_assert(num_bits % bit_size_chunk == 0,"num_bits should be divisible by bit_size_chunk");
                     static_assert(num_bits + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,

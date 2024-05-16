@@ -233,9 +233,9 @@ namespace nil {
 
                 for(std::size_t i = num_chunks; i > 0; i--) {
                     xQ *= B;
-                    xQ += integral_type(var_value(assignment, instance_input.xQ[i-1]));
+                    xQ += non_native_integral_type(var_value(assignment, instance_input.xQ[i-1]).data);
                     yQ *= B;
-                    yQ += integral_type(var_value(assignment, instance_input.yQ[i-1]));
+                    yQ += non_native_integral_type(var_value(assignment, instance_input.yQ[i-1]).data);
                 }
 
                 non_native_value_type lambda = 3*xQ*xQ / (2*yQ), // if yQ = 0, lambda = 0

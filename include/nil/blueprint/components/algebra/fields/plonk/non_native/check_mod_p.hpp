@@ -126,13 +126,17 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit check_mod_p(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {};
+                explicit check_mod_p(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {
+                    static_assert(bit_size_chunk + 1 < BlueprintFieldType::modulus_bits,"double chunk should fit into circuit field");
+                };
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
                 check_mod_p(WitnessContainerType witness, ConstantContainerType constant,
                          PublicInputContainerType public_input) :
-                    component_type(witness, constant, public_input, get_manifest()) {};
+                    component_type(witness, constant, public_input, get_manifest()) {
+                    static_assert(bit_size_chunk + 1 < BlueprintFieldType::modulus_bits,"double chunk should fit into circuit field");
+                };
 
                 check_mod_p(
                     std::initializer_list<typename component_type::witness_container_type::value_type>
@@ -141,7 +145,9 @@ namespace nil {
                         constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs) :
-                    component_type(witnesses, constants, public_inputs, get_manifest()) {};
+                    component_type(witnesses, constants, public_inputs, get_manifest()) {
+                    static_assert(bit_size_chunk + 1 < BlueprintFieldType::modulus_bits,"double chunk should fit into circuit field");
+                };
 
                 std::map<std::string, std::size_t> component_lookup_tables(){
                     std::map<std::string, std::size_t> lookup_tables;
