@@ -71,9 +71,9 @@ void test_mult(const std::vector<typename BlueprintFieldType::value_type> &publi
     typename component_type::input_type instance_input;
     for (std::size_t i = 0; i < num_chunks; i++) {
         instance_input.x[i] = var(0, i, false, var::column_type::public_input);
-    }
-    for (std::size_t i = 0; i < num_chunks; i++) {
         instance_input.y[i] = var(0, i + num_chunks, false, var::column_type::public_input);
+        instance_input.p[i] = var(0, i + 2*num_chunks, false, var::column_type::public_input);
+        instance_input.pp[i] = var(0, i + 3*num_chunks, false, var::column_type::public_input);
     }
 
     auto result_check = [](AssignmentType &assignment,
@@ -107,6 +107,7 @@ void mult_tests() {
     using integral_type = typename BlueprintFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
     using foreign_integral_type = typename NonNativeFieldType::integral_type;
+    using foreign_extended_integral_type = typename NonNativeFieldType::extended_integral_type;
 
     static boost::random::mt19937 seed_seq;
     static nil::crypto3::random::algebraic_engine<NonNativeFieldType> generate_random(seed_seq);
@@ -118,14 +119,25 @@ void mult_tests() {
 
         foreign_integral_type x = foreign_integral_type(generate_random().data),
                               y = foreign_integral_type(generate_random().data);
-        for(std::size_t j = 0; j < num_chunks; j++) {
-            public_input.push_back(value_type(x & mask));
-            x >>= bit_size_chunk;
-        }
+        foreign_extended_integral_type extended_base = 1,
+                                       ext_pow = extended_base << num_bits,
+                                       p = NonNativeFieldType::modulus,
+                                       pp = ext_pow - p;
+
+        public_input.resize(4*num_chunks); // public_input should contain x,y,p,pp
 
         for(std::size_t j = 0; j < num_chunks; j++) {
-            public_input.push_back(value_type(y & mask));
+            public_input[j] = value_type(x & mask);
+            x >>= bit_size_chunk;
+
+            public_input[num_chunks + j] = value_type(y & mask);
             y >>= bit_size_chunk;
+
+            public_input[2*num_chunks + j] = value_type(p & mask);
+            p >>= bit_size_chunk;
+
+            public_input[3*num_chunks + j] = value_type(pp & mask);
+            pp >>= bit_size_chunk;
         }
 
         test_mult<BlueprintFieldType, NonNativeFieldType,
@@ -174,10 +186,10 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
     mult_tests<pallas_field_type, bls12_381_field_type, 4, 64, 256, 15, random_tests_amount>();
 
     std::cout << "Scenario 3\n";
-    mult_tests<pallas_field_type, vesta_field_type, 4, 65, 260, 7, random_tests_amount>();
+    mult_tests<pallas_field_type, vesta_field_type, 4, 65, 260, 10, random_tests_amount>();
 
     std::cout << "Scenario 4\n";
-    mult_tests<pallas_field_type, vesta_field_type, 5, 63, 315, 10, random_tests_amount>();
+    mult_tests<pallas_field_type, vesta_field_type, 5, 63, 315, 13, random_tests_amount>();
 
     std::cout << "Scenario 5\n";
     mult_tests<pallas_field_type, goldilocks_field_type, 2, 32, 64, 10, random_tests_amount>();

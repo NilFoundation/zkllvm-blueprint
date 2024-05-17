@@ -44,11 +44,10 @@ namespace nil {
         namespace components {
             // Multiplication in non-native field with k-chunks and p > n, x * y - p * q - r = 0
             // Parameters: num_chunks = k, bit_size_chunk = b, num_bits = T
-            // native field module = n, non native field module = p, pp = 2^T - p
+            // native field module = n, non-native field module = p, pp = 2^T - p
             // NB: 2^T * n > p^2 + p
-            // p = p[0], ..., p[k-1], pp = pp[0],...,p[k-1]
-            // Input: x[0], ..., x[k-1], y[0], ..., y[k-1]
-            // Output: r[0], ..., r[k-1]
+            // Input: x[0],..., x[k-1], y[0],..., y[k-1], p[0],..., p[k-1], pp[0],...,p[k-1]
+            // Output: r[0],..., r[k-1]
             //
             template<typename ArithmetizationType, typename BlueprintFieldType, typename NonNativeFieldType,
             std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
@@ -75,19 +74,14 @@ namespace nil {
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
-                    std::size_t witness_amount;
-
-                    gate_manifest_type(std::size_t witness_amount_) :
-                        witness_amount(witness_amount_) {};
-
                     std::uint32_t gates_amount() const override {
-                        return flexible_mult::get_gates_amount(witness_amount);
+                        return flexible_mult::gates_amount;
                     }
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
                                                        std::size_t lookup_column_amount) {
-                    gate_manifest manifest = gate_manifest(gate_manifest_type(witness_amount));
+                    gate_manifest manifest = gate_manifest(gate_manifest_type());
                         // .merge_with(range_check_type::get_gate_manifest(witness_amount, lookup_column_amount))
                         // .merge_with(check_mod_p_type::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
@@ -95,10 +89,9 @@ namespace nil {
 
                 static manifest_type get_manifest() {
                     static manifest_type manifest = manifest_type(
-                        // Ready to use any number of columns that fit 5*num_chunks cells into less than 3 rows.
-                        // Our big maximum is 6*num_chunks, i.e. everything is in one row
-                        std::shared_ptr<manifest_param>(new manifest_range_param((5 * num_chunks) / 3 + ((5*num_chunks) % 3 > 0),
-                                                                                 6 * num_chunks, 1)),
+                        // we need 8k-2 cells to fit into 3 rows, i.e. 8k-2 <= 3w, hence w >= ceil((8k-2)/3)
+                        std::shared_ptr<manifest_param>(new manifest_range_param((8 * num_chunks - 2) / 3 + ((8*num_chunks - 2) % 3 > 0),
+                                                                                 8 * num_chunks - 2, 1)),
                         false // constant column not needed
                     );
                     // .merge_with(check_mod_p_type::get_manifest())
@@ -106,70 +99,26 @@ namespace nil {
                     return manifest;
                 }
 
-                static std::size_t get_gates_amount(std::size_t witness_amount) {
-                    auto nc = get_num_cells(witness_amount);
-                    return (nc > 3 * witness_amount) ? 2 : 1;
-                }
                 static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    auto nc = get_num_cells(witness_amount);
+                    auto nc = 8*num_chunks - 2;
                     return nc / witness_amount + (nc % witness_amount > 0);
                 }
 
-                const std::size_t gates_amount = get_gates_amount(this->witness_amount());
+                constexpr static const std::size_t gates_amount = 1;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
                 const std::string component_name = "flexible non-native multiplication";
 
-                const std::size_t num_cells = get_num_cells(this->witness_amount());
-                std::vector<std::size_t> rows_for_gates = get_rows_for_gates(this->witness_amount());
-
-                static std::size_t get_num_cells(std::size_t witness_amount) {
-                    // x, y, q, r use k chunks of each; b_2i, b_2i+1 for i=0..k-3; a_k-2, a_k-1
-                    std::size_t res = num_chunks * 6 - 2;
-                    if (res / witness_amount + (res % witness_amount > 0) > 3) {
-                        // additional z uses k chunks
-                        res += num_chunks;
-                    }
-                    return res;
-                }
-
-                std::vector<std::size_t> get_rows_for_gates(std::size_t witness_amount) {
-                    if (gates_amount == 1) {
-                        if (rows_amount == 1) {
-                            return {0};
-                        } else {
-                            return {1};
-                        }
-                    }
-                    std::vector<std::size_t> rows;
-                    coords_class coords(0, 0, witness_amount);
-                    coords += 5 * num_chunks - 1;
-                    if (coords.row == 1) { // first five chunk groups fit into 2 rows
-                        rows.push_back(0);
-                    } else {               // they get into the 3rd row
-                        rows.push_back(1);
-                    }
-                    coords = coords_class(0, 0, witness_amount);
-                    coords += 4 * num_chunks;  // where the 5th chunk group starts
-                    // we probably don't need the second case of this
-                    // if (rows_amount - coords.row == 0) {
-                        rows.push_back(coords.row);
-                    // } else {
-                    //    rows.push_back(coords.row + 1);
-                    // }
-                    return rows;
-                }
-
                 struct input_type {
-                    var x[num_chunks], y[num_chunks];
+                    var x[num_chunks], y[num_chunks], p[num_chunks], pp[num_chunks];
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> res;
                         for(std::size_t i = 0; i < num_chunks; i++) {
                             res.push_back(x[i]);
-                        }
-                        for(std::size_t i = 0; i < num_chunks; i++) {
                             res.push_back(y[i]);
+                            res.push_back(p[i]);
+                            res.push_back(pp[i]);
                         }
                         return res;
                     }
@@ -180,12 +129,11 @@ namespace nil {
 
                     result_type(const flexible_mult &component, std::uint32_t start_row_index) {
                         const std::size_t WA = component.witness_amount();
-                        //TODO
+
                         for(std::size_t i = 0; i < num_chunks; i++) {
                             std::size_t row = start_row_index + (1 + 2*num_chunks + i)/WA;
                             std::size_t col = (1 + 2*num_chunks + i) % WA;
 			    r[i] = var(component.W(col), row, false, var::column_type::witness);
-                            // r.push_back(var(component.W(col), row, false, var::column_type::witness));
                         }
                     }
 
@@ -231,43 +179,6 @@ namespace nil {
                         return *this;
                     }
                 };
-                std::vector<coords_class> r_cells = get_r_coords(this->witness_amount());
-                std::vector<coords_class> q_cells = get_q_coords(this->witness_amount());
-                std::vector<coords_class> b_cells = get_b_coords(this->witness_amount());
-
-                std::vector<coords_class> get_r_coords(std::size_t witness_amount) {
-                    std::vector<coords_class> res;
-                    coords_class coords(0, 0, witness_amount);
-                    coords += 2*num_chunks;
-                    for(std::size_t i = 0; i < num_chunks; i++) {
-                        res.push_back(coords);
-                        ++coords;
-                    }
-                    return res;
-                }
-                std::vector<coords_class> get_q_coords(std::size_t witness_amount) {
-                    std::vector<coords_class> res;
-                    coords_class coords(0, 0, witness_amount);
-                    coords += 3*num_chunks;
-                    for(std::size_t i = 0; i < num_chunks; i++) {
-                        res.push_back(coords);
-                        ++coords;
-                    }
-                    return res;
-                }
-                std::vector<coords_class> get_b_coords(std::size_t witness_amount) {
-                    std::vector<coords_class> res;
-                    coords_class coords(0, 0, witness_amount);
-                    coords += 4*num_chunks;
-                    if (num_cells > 3 * witness_amount) {
-                        coords += num_chunks;
-                    }
-                    for(std::size_t i = 0; i < 2 * (num_chunks - 2); i++) {
-                        res.push_back(coords);
-                        ++coords;
-                    }
-                    return res;
-                }
 
                 template<typename ContainerType>
                 explicit flexible_mult(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {
@@ -335,58 +246,47 @@ namespace nil {
                 using var = typename component_type::var;
                 using native_value_type = typename BlueprintFieldType::value_type;
                 using native_integral_type = typename BlueprintFieldType::integral_type;
-                using foreign_value_type = typename NonNativeFieldType::value_type;
-                using foreign_integral_type = typename NonNativeFieldType::integral_type;
                 using foreign_extended_integral_type = typename NonNativeFieldType::extended_integral_type;
 
                 const std::size_t WA = component.witness_amount();
 
-                std::vector<native_value_type> x, y;
+                std::vector<native_value_type> x,  // chunks of x
+                                               y,  // chunks of y
+                                               p,  // chunks of p
+                                               pp; // chunks of 2^T - p
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     x.push_back(var_value(assignment, instance_input.x[j]));
                     y.push_back(var_value(assignment, instance_input.y[j]));
+                    p.push_back(var_value(assignment, instance_input.p[j]));
+                    pp.push_back(var_value(assignment, instance_input.pp[j]));
                 }
 
                 //calculation
-                foreign_value_type foreign_x = 0,
-                                   foreign_y = 0;
+                foreign_extended_integral_type foreign_p = 0,
+                                               foreign_x = 0,
+                                               foreign_y = 0,
+                                               pow = 1;
 
-                foreign_integral_type pow = 1;
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    foreign_x += foreign_integral_type(x[j].data) * pow;
-                    foreign_y += foreign_integral_type(y[j].data) * pow;
+                    foreign_x += foreign_extended_integral_type(x[j].data) * pow;
+                    foreign_y += foreign_extended_integral_type(y[j].data) * pow;
+                    foreign_p += foreign_extended_integral_type(p[j].data) * pow;
                     pow <<= bit_size_chunk;
                 }
 
-                foreign_value_type foreign_r = foreign_x * foreign_y; // r = x*y mod p
+                foreign_extended_integral_type foreign_r = (foreign_x * foreign_y) % foreign_p, // r = x*y % p
+                                               foreign_q = (foreign_x * foreign_y - foreign_r) / foreign_p; // q = (x*y - r)/p
 
-                foreign_integral_type integral_foreign_r = foreign_integral_type(foreign_r.data);
-
-                foreign_extended_integral_type integral_foreign_p = NonNativeFieldType::modulus;
-
-                foreign_extended_integral_type integral_foreign_q =
-                    (foreign_extended_integral_type(foreign_x.data) * foreign_extended_integral_type(foreign_y.data) -
-                     foreign_extended_integral_type(foreign_r.data)) / integral_foreign_p; // q = (x*y - r)/p
-
-                foreign_extended_integral_type ext_pow = foreign_extended_integral_type(1) << num_bits;
-                foreign_extended_integral_type minus_foreign_p = ext_pow - integral_foreign_p;
-
-                std::vector<native_value_type> p;  // chunks of p
-                std::vector<native_value_type> pp; // chunks of 2^T - p
                 std::vector<native_value_type> q;  // chunks of q
                 std::vector<native_value_type> r;  // chunks of r
                 native_integral_type mask = (native_integral_type(1) << bit_size_chunk) - 1;
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    p.push_back(native_value_type(integral_foreign_p & mask));
-                    pp.push_back(native_value_type(minus_foreign_p & mask));
-                    q.push_back(native_value_type(integral_foreign_q & mask));
-                    r.push_back(native_value_type(integral_foreign_r & mask));
+                    q.push_back(native_value_type(foreign_q & mask));
+                    r.push_back(native_value_type(foreign_r & mask));
 
-                    integral_foreign_p >>= bit_size_chunk;
-                    minus_foreign_p    >>= bit_size_chunk;
-                    integral_foreign_q >>= bit_size_chunk;
-                    integral_foreign_r >>= bit_size_chunk;
+                    foreign_q >>= bit_size_chunk;
+                    foreign_r >>= bit_size_chunk;
                 }
 
                 // computation mod 2^T
@@ -417,6 +317,7 @@ namespace nil {
                 // assignment
                 std::vector<var> r_var, q_var, b_var;
                 typename component_type::coords_class coords(start_row_index, 0, WA);
+
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     assignment.witness(component.W(coords.column), coords.row) = x[j];
                     ++coords;
@@ -439,13 +340,6 @@ namespace nil {
                     ++coords;
                 }
 
-                if (component.gates_amount == 2) {
-                    for (std::size_t j = 0; j < num_chunks; ++j) {
-                        assignment.witness(component.W(coords.column), coords.row) = z[j];
-                        ++coords;
-                    }
-                }
-
                 for (std::size_t j = 0; j < 2 * (num_chunks - 2); ++j) {
                     assignment.witness(component.W(coords.column), coords.row) = b[j];
                     b_var.push_back({component.W(coords.column), coords.row});
@@ -456,8 +350,19 @@ namespace nil {
                     assignment.witness(component.W(coords.column), coords.row) = a[num_chunks - 2 + j];
                     ++coords;
                 }
+
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    assignment.witness(component.W(coords.column), coords.row) = p[j];
+                    ++coords;
+                }
+
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    assignment.witness(component.W(coords.column), coords.row) = pp[j];
+                    ++coords;
+                }
+
                 //TODO
-                // range_check b_var
+                // range_check b_var, q_var, r_var
                 // check_mod_p for q_var, r_var
 
                 return typename component_type::result_type(component, start_row_index);
@@ -465,7 +370,7 @@ namespace nil {
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
             std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
-            std::vector<std::size_t> generate_gates(
+            std::size_t generate_gates(
                 const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
                     num_chunks, bit_size_chunk, num_bits> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
@@ -480,77 +385,47 @@ namespace nil {
                                         num_chunks, bit_size_chunk, num_bits>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
-                using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
-                using lookup_gate_type = typename crypto3::zk::snark::plonk_gate<BlueprintFieldType, lookup_constraint_type>;
                 using integral_type = typename BlueprintFieldType::integral_type;
-
-                using native_value_type = typename BlueprintFieldType::value_type;
-                using native_integral_type = typename BlueprintFieldType::integral_type;
-                using foreign_extended_integral_type = typename NonNativeFieldType::extended_integral_type;
-
-                native_integral_type base = 1;
-                foreign_extended_integral_type extended_base = 1;
-
-                foreign_extended_integral_type foreign_p = NonNativeFieldType::modulus;
-                foreign_extended_integral_type ext_pow = extended_base << num_bits;
-                foreign_extended_integral_type minus_foreign_p = ext_pow - foreign_p;
-
-                std::vector<native_value_type> p, pp; // p and its complement pp = 2^T - p
-                native_integral_type mask = (base << bit_size_chunk) - 1;
-
-                for (std::size_t j = 0; j < num_chunks; ++j) {
-                    p.push_back(native_value_type(foreign_p & mask));
-                    pp.push_back(native_value_type(minus_foreign_p & mask));
-
-                    foreign_p       >>= bit_size_chunk;
-                    minus_foreign_p >>= bit_size_chunk;
-                }
-                std::vector<std::size_t> selector_indexes;
 
                 const std::size_t WA = component.witness_amount();
                 const std::size_t num_rows = component.get_rows_amount(WA, 0);
 
-                int row_shift0 = component.rows_for_gates[0];
-                int row_shift1 = row_shift0;
-                if (component.gates_amount == 2) {
-                    row_shift1 = component.rows_for_gates[1];
-                }
+                int row_shift = (num_rows > 1);
 
                 std::vector<constraint_type> constraints;
                 typename component_type::coords_class coords(0, 0, WA);
-                std::vector<var> x, y, r, r1, q, z0, z1, b, a;
+                std::vector<var> x, y, r, q, b, a, p, pp;
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    x.push_back(var(component.W(coords.column), coords.row - row_shift0, true));
+                    x.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
                 }
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    y.push_back(var(component.W(coords.column), coords.row - row_shift0, true));
+                    y.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
                 }
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    r.push_back(var(component.W(coords.column), coords.row - row_shift0, true));
-                    r1.push_back(var(component.W(coords.column), coords.row - row_shift1, true)); // second gate needs other coords for r
+                    r.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
                 }
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    q.push_back(var(component.W(coords.column), coords.row - row_shift0, true));
+                    q.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
-                }
-                if (component.gates_amount == 2) {
-                    for (std::size_t j = 0; j < num_chunks; ++j) {
-                        z0.push_back(var(component.W(coords.column), coords.row - row_shift0, true));
-                        z1.push_back(var(component.W(coords.column), coords.row - row_shift1, true));
-                        ++coords;
-                    }
-
                 }
                 for (std::size_t j = 0; j < 2 * (num_chunks - 2); ++j) {
-                    b.push_back(var(component.W(coords.column), coords.row - row_shift1, true));
+                    b.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
                 }
                 for (std::size_t j = 0; j < 2; ++j) {
-                    a.push_back(var(component.W(coords.column), coords.row - row_shift1, true));
+                    a.push_back(var(component.W(coords.column), coords.row - row_shift, true));
+                    ++coords;
+                }
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    p.push_back(var(component.W(coords.column), coords.row - row_shift, true));
+                    ++coords;
+                }
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    pp.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
                 }
 
@@ -579,40 +454,23 @@ namespace nil {
                 std::vector<constraint_type> a_constr;
                 integral_type b_shift = integral_type(1) << bit_size_chunk;
                 if (num_chunks > 2) {
-                    a_constr.push_back(r1[0] + (b[0] + b[1] * b_shift) * b_shift);
+                    a_constr.push_back(r[0] + (b[0] + b[1] * b_shift) * b_shift);
                 }
                 for (std::size_t i = 1; i < num_chunks - 2; ++i) {
-                    a_constr.push_back(r1[i] +
+                    a_constr.push_back(r[i] +
                                        (num_chunks > 2 ? (b[2 * i] + b[2 * i + 1]*b_shift)*b_shift - (b[2 * i - 2] + b[2 * i - 1]*b_shift)
                                                       : 0));
                 }
-                a_constr.push_back(r1[num_chunks - 2] + a[0] * b_shift -
+                a_constr.push_back(r[num_chunks - 2] + a[0] * b_shift -
                                      (num_chunks > 2 ? (b[2 * (num_chunks-2) - 2] + b[2 * (num_chunks-2) - 1] * b_shift) : 0));
-                a_constr.push_back(r1[num_chunks - 1] + a[1] * b_shift - a[0]);
+                a_constr.push_back(r[num_chunks - 1] + a[1] * b_shift - a[0]);
 
-                if (component.gates_amount == 1) {
-                    constraints.push_back(constr_0);
-                    for (std::size_t i = 0; i < num_chunks; ++i) {
-                        constraints.push_back(a_constr[i] - z_constr[i]);
-                    }
-                    selector_indexes.push_back(bp.add_gate(constraints));
-                } else {
-                    // this is Gate #1
-                    constraints.push_back(constr_0);
-                    for (std::size_t i = 0; i < num_chunks; ++i) {
-                        constraints.push_back(z_constr[i] - z0[i]);
-                    }
-                    selector_indexes.push_back(bp.add_gate(constraints));
-
-                    // this is Gate #2
-                    constraints.clear();
-                    for (std::size_t i = 0; i < num_chunks; ++i) {
-                        constraints.push_back(a_constr[i] - z1[i]);
-                    }
-                    selector_indexes.push_back(bp.add_gate(constraints));
+                constraints.push_back(constr_0);
+                for (std::size_t i = 0; i < num_chunks; ++i) {
+                    constraints.push_back(a_constr[i] - z_constr[i]);
                 }
 
-                return selector_indexes;
+                return bp.add_gate(constraints);
             }
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
@@ -641,6 +499,17 @@ namespace nil {
                     bp.add_copy_constraint({var(component.W(coords.column), coords.row, false), instance_input.y[j]});
                     ++coords;
                 }
+
+                coords += 4*num_chunks - 2; // skip q,r,b,a
+
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    bp.add_copy_constraint({var(component.W(coords.column), coords.row, false), instance_input.p[j]});
+                    ++coords;
+                }
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    bp.add_copy_constraint({var(component.W(coords.column), coords.row, false), instance_input.pp[j]});
+                    ++coords;
+                }
             }
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
@@ -662,17 +531,14 @@ namespace nil {
                 const std::size_t WA = component.witness_amount();
                 const std::size_t num_rows = component.get_rows_amount(WA, 0);
 
-                std::vector<std::size_t> selector_index =
-                    generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
+                std::size_t selector_index = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
 
-                assignment.enable_selector(selector_index[0], start_row_index + component.rows_for_gates[0]);
-                if (component.gates_amount == 2) {
-                    assignment.enable_selector(selector_index[1], start_row_index + component.rows_for_gates[1]);
-                }
+                assignment.enable_selector(selector_index, start_row_index + (num_rows > 1));
+
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 // TODO generate circuits
-                // range_check b_var
+                // range_check b_var, q_var, r_var
                 // check_mod_p for q_var, r_var
                 // use r/q/b_cells to call for appropriate cells
 
