@@ -98,7 +98,7 @@ namespace nil {
                     var x = var(0, 0, false);
                     var y = var(0, 0, false);
 
-                    input_type(var _x, var _y) : x(_x), y(_x) {};
+                    input_type(var _x, var _y) : x(_x), y(_y) {};
 
                     input_type(const std::vector<var>& input_vect) {
                         if (input_vect.size() != 2) {
