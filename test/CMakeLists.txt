@@ -77,6 +77,7 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/check_mod_p"
     "algebra/fields/plonk/non_native/flexible_multiplication"
     "algebra/fields/plonk/non_native/negation_mod_p"
+    "algebra/fields/plonk/non_native/addition_mod_p"
     "non_native/plonk/bool_scalar_multiplication"
     #"non_native/plonk/add_mul_zkllvm_compatible"
     "non_native/plonk/scalar_non_native_range"
