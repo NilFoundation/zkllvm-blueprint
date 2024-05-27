@@ -246,7 +246,7 @@ namespace nil {
 
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                using foreign_integral_type = typename NonNativeFieldType::integral_type;
+                using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
                 using var = typename component_type::var;
 
                 std::uint32_t row = start_row_index;
@@ -264,13 +264,12 @@ namespace nil {
                     y_full += foreign_integral_type(var_value(assignment, instance_input.y[i - 1]).data);
                     p_full += foreign_integral_type(var_value(assignment, instance_input.p[i - 1]).data);
                 }
-                
+
                 z_full = x_full + y_full;   // x + y = z + qp
                 if (z_full >= p_full) {
                     z_full -= p_full;
                     q = value_type::one();
                 }
-
                 assignment.witness(component.W(0), row) = q;
                 for (std::size_t i = 0; i < num_chunks; i++) {
                     assignment.witness(component.W((1 + i) % WA), row + (1 + i) / WA) = value_type(z_full % B);
@@ -318,9 +317,9 @@ namespace nil {
 
                 // carry_on_addition component (z + qp)
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    carry_on_addition_input.x[i] = choice_function_result.z[i];
+                    carry_on_addition_input.x[i] = choice_function_result.z[i]; // qp
                     carry_on_addition_input.y[i] =
-                        var(component.W((1 + i) % WA), start_row_index + (1 + i) / WA, false);
+                        var(component.W((1 + i) % WA), start_row_index + (1 + i) / WA, false); // z[i]
                 }
 
                 typename carry_on_addition_type::result_type second_carry_on_addition_result =
@@ -370,7 +369,7 @@ namespace nil {
                                                     NonNativeFieldType,
                                                     num_chunks,
                                                     bit_size_chunk>::input_type &instance_input) {
-                // never actually called                                
+                // never actually called
                 return {};
             }
 
@@ -421,7 +420,6 @@ namespace nil {
                 using var = typename component_type::var;
 
                 std::uint32_t row = start_row_index;
-
                 const std::size_t WA = component.witness_amount();
                 row += (num_chunks + 1) / WA + ((num_chunks + 1) % WA > 0);
 

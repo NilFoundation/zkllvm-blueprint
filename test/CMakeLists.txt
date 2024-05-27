@@ -93,6 +93,7 @@ set(PLONK_TESTS_FILES
     "algebra/curves/plonk/unified_addition"
     "algebra/curves/plonk/variable_base_endo_scalar_mul"
     "algebra/curves/plonk/endo_scalar"
+    "algebra/curves/plonk/ec_over_non_native"
     "hashes/plonk/poseidon"
     "hashes/plonk/sha256"
     "hashes/plonk/sha512"

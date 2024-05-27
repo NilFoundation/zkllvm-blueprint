@@ -43,24 +43,23 @@ namespace nil {
     namespace blueprint {
         namespace components {
             // Multiplication in non-native field with k-chunks and p > n, x * y - p * q - r = 0
-            // Parameters: num_chunks = k, bit_size_chunk = b, num_bits = T
+            // Parameters: num_chunks = k, bit_size_chunk = b, T = k*b
             // native field module = n, non-native field module = p, pp = 2^T - p
             // NB: 2^T * n > p^2 + p
             // Input: x[0],..., x[k-1], y[0],..., y[k-1], p[0],..., p[k-1], pp[0],...,p[k-1]
             // Output: r[0],..., r[k-1]
             //
             template<typename ArithmetizationType, typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             class flexible_mult;
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             class flexible_mult<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                            BlueprintFieldType,
                            NonNativeFieldType,
                            num_chunks,
-                           bit_size_chunk,
-                           num_bits>
+                           bit_size_chunk>
                 : public plonk_component<BlueprintFieldType> {
 
             public:
@@ -131,8 +130,8 @@ namespace nil {
                         const std::size_t WA = component.witness_amount();
 
                         for(std::size_t i = 0; i < num_chunks; i++) {
-                            std::size_t row = start_row_index + (1 + 2*num_chunks + i)/WA;
-                            std::size_t col = (1 + 2*num_chunks + i) % WA;
+                            std::size_t row = start_row_index + (2*num_chunks + i)/WA;
+                            std::size_t col = (2*num_chunks + i) % WA;
 			    r[i] = var(component.W(col), row, false, var::column_type::witness);
                         }
                     }
@@ -184,8 +183,7 @@ namespace nil {
                 explicit flexible_mult(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {
                     static_assert(num_chunks * bit_size_chunk >= NonNativeFieldType::modulus_bits,"non-native field should fit into chunks");
                     static_assert(2*bit_size_chunk < BlueprintFieldType::modulus_bits,"chunk products should fit into native field");
-                    static_assert(num_bits % bit_size_chunk == 0,"num_bits should be divisible by bit_size_chunk");
-                    static_assert(num_bits + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
+                    static_assert(num_chunks*bit_size_chunk + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
                                   "we need 2^num_bits * native_module > non_native_module^2");
                 };
 
@@ -196,8 +194,7 @@ namespace nil {
                     component_type(witness, constant, public_input, get_manifest()) {
                     static_assert(num_chunks * bit_size_chunk >= NonNativeFieldType::modulus_bits,"non-native field should fit into chunks");
                     static_assert(2*bit_size_chunk < BlueprintFieldType::modulus_bits,"chunk products should fit into native field");
-                    static_assert(num_bits % bit_size_chunk == 0,"num_bits should be divisible by bit_size_chunk");
-                    static_assert(num_bits + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
+                    static_assert(num_chunks*bit_size_chunk + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
                                   "we need 2^num_bits * native_module > non_native_module^2");
                 };
 
@@ -211,38 +208,36 @@ namespace nil {
                     component_type(witnesses, constants, public_inputs, get_manifest()) {
                     static_assert(num_chunks * bit_size_chunk >= NonNativeFieldType::modulus_bits,"non-native field should fit into chunks");
                     static_assert(2*bit_size_chunk < BlueprintFieldType::modulus_bits,"chunk products should fit into native field");
-                    static_assert(num_bits % bit_size_chunk == 0,"num_bits should be divisible by bit_size_chunk");
-                    static_assert(num_bits + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
+                    static_assert(num_chunks*bit_size_chunk + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
                                   "we need 2^num_bits * native_module > non_native_module^2");
                 };
             };
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             using plonk_flexible_multiplication =
                 flexible_mult<
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                     BlueprintFieldType,
                     NonNativeFieldType,
                     num_chunks,
-                    bit_size_chunk,
-                    num_bits>;
+                    bit_size_chunk>;
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits>::result_type generate_assignments(
+                    num_chunks, bit_size_chunk>::result_type generate_assignments(
                 const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits> &component,
+                    num_chunks, bit_size_chunk> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits>::input_type
+                    num_chunks, bit_size_chunk>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                                        num_chunks, bit_size_chunk, num_bits>;
+                                        num_chunks, bit_size_chunk>;
                 using var = typename component_type::var;
                 using native_value_type = typename BlueprintFieldType::value_type;
                 using native_integral_type = typename BlueprintFieldType::integral_type;
@@ -279,7 +274,8 @@ namespace nil {
 
                 std::vector<native_value_type> q;  // chunks of q
                 std::vector<native_value_type> r;  // chunks of r
-                native_integral_type mask = (native_integral_type(1) << bit_size_chunk) - 1;
+                //native_integral_type mask = (native_integral_type(1) << bit_size_chunk) - 1;
+                foreign_extended_integral_type mask = (foreign_extended_integral_type(1) << bit_size_chunk) - 1;
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     q.push_back(native_value_type(foreign_q & mask));
@@ -369,20 +365,20 @@ namespace nil {
 	    }
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             std::size_t generate_gates(
                 const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits> &component,
+                    num_chunks, bit_size_chunk> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                                num_chunks, bit_size_chunk, num_bits>::input_type
+                                num_chunks, bit_size_chunk>::input_type
                     &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                                        num_chunks, bit_size_chunk, num_bits>;
+                                        num_chunks, bit_size_chunk>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using integral_type = typename BlueprintFieldType::integral_type;
@@ -474,20 +470,20 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             void generate_copy_constraints(
                 const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits> &component,
+                    num_chunks, bit_size_chunk> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits>::input_type &instance_input,
+                    num_chunks, bit_size_chunk>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 const std::size_t WA = component.witness_amount();
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                                        num_chunks, bit_size_chunk, num_bits>;
+                                        num_chunks, bit_size_chunk>;
                 using var = typename component_type::var;
 
                 typename component_type::coords_class coords(start_row_index, 0, WA);
@@ -513,20 +509,20 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits>
+            std::size_t num_chunks, std::size_t bit_size_chunk>
             typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits>::result_type generate_circuit(
+                    num_chunks, bit_size_chunk>::result_type generate_circuit(
                 const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits> &component,
+                    num_chunks, bit_size_chunk> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
                 const typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits>::input_type &instance_input,
+                    num_chunks, bit_size_chunk>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk, num_bits>;
+                    num_chunks, bit_size_chunk>;
 
                 const std::size_t WA = component.witness_amount();
                 const std::size_t num_rows = component.get_rows_amount(WA, 0);

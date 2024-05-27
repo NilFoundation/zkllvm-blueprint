@@ -49,7 +49,7 @@
 using namespace nil;
 
 template <typename BlueprintFieldType, typename NonNativeFieldType,
-        std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
+        std::size_t num_chunks, std::size_t bit_size_chunk,
         std::size_t WitnessColumns, bool to_pass = true>
 void test_mult(const std::vector<typename BlueprintFieldType::value_type> &public_input){
     constexpr std::size_t PublicInputColumns = 1;
@@ -66,7 +66,7 @@ void test_mult(const std::vector<typename BlueprintFieldType::value_type> &publi
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
     using component_type = typename blueprint::components::flexible_mult<ArithmetizationType, BlueprintFieldType, NonNativeFieldType,
-                                                                            num_chunks, bit_size_chunk, num_bits>;
+                                                                            num_chunks, bit_size_chunk>;
 
     typename component_type::input_type instance_input;
     for (std::size_t i = 0; i < num_chunks; i++) {
@@ -101,7 +101,7 @@ void test_mult(const std::vector<typename BlueprintFieldType::value_type> &publi
 }
 
 template <typename BlueprintFieldType, typename NonNativeFieldType,
-        std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
+        std::size_t num_chunks, std::size_t bit_size_chunk,
         std::size_t WitnessColumns, std::size_t RandomTestsAmount>
 void mult_tests() {
     using integral_type = typename BlueprintFieldType::integral_type;
@@ -120,7 +120,7 @@ void mult_tests() {
         foreign_integral_type x = foreign_integral_type(generate_random().data),
                               y = foreign_integral_type(generate_random().data);
         foreign_extended_integral_type extended_base = 1,
-                                       ext_pow = extended_base << num_bits,
+                                       ext_pow = extended_base << (num_chunks*bit_size_chunk),
                                        p = NonNativeFieldType::modulus,
                                        pp = ext_pow - p;
 
@@ -141,12 +141,12 @@ void mult_tests() {
         }
 
         test_mult<BlueprintFieldType, NonNativeFieldType,
-                num_chunks, bit_size_chunk, num_bits, WitnessColumns>(public_input);
+                num_chunks, bit_size_chunk, WitnessColumns>(public_input);
     }
 }
 /*
 template <typename BlueprintFieldType, typename NonNativeFieldType,
-        std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t num_bits,
+        std::size_t num_chunks, std::size_t bit_size_chunk,
         std::size_t WitnessColumns, std::size_t RandomTestsAmount>
 void mult_tests_to_fail() {
     using integral_type = typename BlueprintFieldType::integral_type;
@@ -164,7 +164,7 @@ void mult_tests_to_fail() {
             // public_input.push_back(value_type(integral_type(generate_random().data) & mask | most_significant_bit));
         }
         test_mult<BlueprintFieldType, NonNativeFieldType,
-                num_chunks, bit_size_chunk, num_bits, WitnessColumns>(public_input);
+                num_chunks, bit_size_chunk, WitnessColumns>(public_input);
     }
 }
 */
@@ -178,24 +178,24 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
     using bls12_381_field_type = typename crypto3::algebra::curves::bls12<381>::scalar_field_type;
     using goldilocks_field_type = typename crypto3::algebra::fields::goldilocks64_base_field;
 
-// <BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk, num_bits, WitnessColumns, RandomTestsAmount>
+// <BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk, WitnessColumns, RandomTestsAmount>
     std::cout << "Scenario 1\n";
-    mult_tests<pallas_field_type, vesta_field_type, 4, 64, 256, 15, random_tests_amount>();
+    mult_tests<pallas_field_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
 
     std::cout << "Scenario 2\n";
-    mult_tests<pallas_field_type, bls12_381_field_type, 4, 64, 256, 15, random_tests_amount>();
+    mult_tests<pallas_field_type, bls12_381_field_type, 4, 64, 15, random_tests_amount>();
 
     std::cout << "Scenario 3\n";
-    mult_tests<pallas_field_type, vesta_field_type, 4, 65, 260, 10, random_tests_amount>();
+    mult_tests<pallas_field_type, vesta_field_type, 4, 65, 10, random_tests_amount>();
 
     std::cout << "Scenario 4\n";
-    mult_tests<pallas_field_type, vesta_field_type, 5, 63, 315, 13, random_tests_amount>();
+    mult_tests<pallas_field_type, vesta_field_type, 5, 63, 13, random_tests_amount>();
 
     std::cout << "Scenario 5\n";
-    mult_tests<pallas_field_type, goldilocks_field_type, 2, 32, 64, 10, random_tests_amount>();
+    mult_tests<pallas_field_type, goldilocks_field_type, 2, 32, 10, random_tests_amount>();
 
     std::cout << "Scenario 6\n";
-    mult_tests<pallas_field_type, goldilocks_field_type, 3, 22, 66, 9, random_tests_amount>();
+    mult_tests<pallas_field_type, goldilocks_field_type, 3, 22, 9, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_field_operations_test_to_fail) {

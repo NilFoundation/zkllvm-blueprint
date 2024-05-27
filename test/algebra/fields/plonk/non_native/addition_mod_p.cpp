@@ -60,7 +60,7 @@ void test_addition_mod_p(const std::vector<typename BlueprintFieldType::value_ty
 
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
-    using foreign_integral_type = typename NonNativeFieldType::integral_type;
+    using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
 
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
@@ -92,7 +92,7 @@ void test_addition_mod_p(const std::vector<typename BlueprintFieldType::value_ty
         p_full += foreign_integral_type(public_input[2*num_chunks + i - 1].data);
     }
 
-    z_full = x_full + y_full; 
+    z_full = x_full + y_full;
     if(z_full >= p_full) {
         z_full -= p_full;
     }
@@ -184,20 +184,20 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
     std::cout << "Seq 1\n";
     addition_mod_p_tests<pallas_field_type, vesta_field_type, 8, 32, 15, random_tests_amount>();
 
-    // std::cout << "Seq 2\n";
-    // addition_mod_p_tests<pallas_field_type, bls12_381_field_type, 4, 65, 5, random_tests_amount>();
+    std::cout << "Seq 2\n";
+    addition_mod_p_tests<pallas_field_type, bls12_381_field_type, 4, 65, 5, random_tests_amount>();
 
     std::cout << "Seq 3\n";
-    // addition_mod_p_tests<pallas_field_type, goldilocks_field_type, 2, 32, 10, random_tests_amount>();
+    addition_mod_p_tests<pallas_field_type, goldilocks_field_type, 2, 32, 10, random_tests_amount>();
 
-    // std::cout << "Seq 4\n";
+    std::cout << "Seq 4\n";
     addition_mod_p_tests<vesta_field_type, pallas_field_type, 2, 253, 15, random_tests_amount>();
 
-    // std::cout << "Seq 5\n";
-    // addition_mod_p_tests<vesta_field_type, bls12_381_field_type, 12, 22, 13, random_tests_amount>();
+    std::cout << "Seq 5\n";
+    addition_mod_p_tests<vesta_field_type, bls12_381_field_type, 12, 22, 13, random_tests_amount>();
 
     std::cout << "Seq 6\n";
-    // addition_mod_p_tests<vesta_field_type, goldilocks_field_type, 4, 16, 5, random_tests_amount>();
+    addition_mod_p_tests<vesta_field_type, goldilocks_field_type, 4, 16, 5, random_tests_amount>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
