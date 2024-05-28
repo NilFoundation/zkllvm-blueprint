@@ -5,16 +5,17 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1712603294,
-        "narHash": "sha256-0L7ir0E+jFv9dxmLV6Vxlf+st6BNaJrhRXyNCK3xPsY=",
+        "lastModified": 1715686756,
+        "narHash": "sha256-HnXJbO+0VBXaMFk9HJgHfRHdJ3eZy02vcO7FijIOMzw=",
         "ref": "refs/heads/master",
-        "rev": "13909af052a998c92d2a6a96e0bcfd21156aed72",
-        "revCount": 701,
+        "rev": "3de0775395bf06c0e4969ff7f921cc7523904269",
+        "revCount": 716,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/NilFoundation/crypto3"
       },
       "original": {
+        "rev": "3de0775395bf06c0e4969ff7f921cc7523904269",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/NilFoundation/crypto3"

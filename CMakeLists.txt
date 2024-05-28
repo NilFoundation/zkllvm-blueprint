@@ -18,6 +18,7 @@ if(NOT CMAKE_WORKSPACE_NAME OR NOT ("${CMAKE_WORKSPACE_NAME}" STREQUAL "crypto3"
     cm_workspace(crypto3)
 endif()
 
+option(BLUEPRINT_LEGACY_BUILD "Build with crypto3 component libraries" FALSE)
 option(ZK_PLACEHOLDER_PROFILING "Build with placeholder profiling" FALSE)
 option(ZK_PLACEHOLDER_DEBUG "Build with placeholder debug output" FALSE)
 
@@ -64,6 +65,10 @@ cm_project(blueprint WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES C CXX)
 cm_find_package(CM)
 include(CMDeploy)
 include(FindPkgConfig)
+
+if (NOT ${BLUEPRINT_LEGACY_BUILD})
+    find_package(crypto3 REQUIRED)
+endif()
 
 option(BUILD_WITH_CCACHE "Build with ccache usage" TRUE)
 option(BUILD_TESTS "Build unit tests" FALSE)
@@ -140,17 +145,23 @@ target_include_directories(${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME} INTER
 
                            ${Boost_INCLUDE_DIRS})
 
+if (BLUEPRINT_LEGACY_BUILD)
+    set(CRYPTO3_LIB ${CMAKE_WORKSPACE_NAME}::algebra
+                    ${CMAKE_WORKSPACE_NAME}::math
+                    ${CMAKE_WORKSPACE_NAME}::hash
+                    ${CMAKE_WORKSPACE_NAME}::multiprecision
+                    ${CMAKE_WORKSPACE_NAME}::random
+                    ${CMAKE_WORKSPACE_NAME}::zk
+                    ${CMAKE_WORKSPACE_NAME}::containers)
+else()
+    set(CRYPTO3_LIB ${CMAKE_WORKSPACE_NAME}::all)
+endif()
+
 target_link_libraries(${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME} INTERFACE
 
                       ${Boost_LIBRARIES}
 
-                      ${CMAKE_WORKSPACE_NAME}::algebra
-                      ${CMAKE_WORKSPACE_NAME}::math
-                      ${CMAKE_WORKSPACE_NAME}::hash
-                      ${CMAKE_WORKSPACE_NAME}::multiprecision
-                      ${CMAKE_WORKSPACE_NAME}::random
-                      ${CMAKE_WORKSPACE_NAME}::zk
-                      ${CMAKE_WORKSPACE_NAME}::containers)
+                      ${CRYPTO3_LIB})
 
 cm_deploy(TARGETS ${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME}
           INCLUDE include
