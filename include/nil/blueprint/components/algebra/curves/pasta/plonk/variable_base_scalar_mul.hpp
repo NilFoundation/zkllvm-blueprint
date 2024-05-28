@@ -173,7 +173,7 @@ namespace nil {
                     input_type(var_ec_point _T, var _b, var _b_high): T(_T), b(_b), b_high(_b_high) {};
 
                     input_type(const std::vector<var>& input_vect) {
-                        if (input_vect.size() != 3 || input_vect.size() != 4) {
+                        if (input_vect.size() != 3 && input_vect.size() != 4) {
                             throw std::out_of_range("Vector size does not match input size");
                         }
                         if (input_vect.size() == 3) {
