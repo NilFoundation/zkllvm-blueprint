@@ -177,8 +177,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
     using vesta_field_type = typename crypto3::algebra::curves::vesta::base_field_type;
     using bls12_381_field_type = typename crypto3::algebra::curves::bls12<381>::scalar_field_type;
     using goldilocks_field_type = typename crypto3::algebra::fields::goldilocks64_base_field;
+    using bls12_381_base_field_type = typename crypto3::algebra::curves::bls12<381>::base_field_type;
 
 // <BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk, WitnessColumns, RandomTestsAmount>
+//    std::cout << "Scenario 0\n";
+//    mult_tests<pallas_field_type, bls12_381_base_field_type, 6, 96, 16, random_tests_amount>();
+
     std::cout << "Scenario 1\n";
     mult_tests<pallas_field_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
 
