@@ -355,6 +355,7 @@ namespace nil {
             virtual void enable_selector(const std::size_t selector_index, const std::size_t row_index) {
 
                 selector(selector_index, row_index) = BlueprintFieldType::value_type::one();
+                assignment_allocated_rows = std::uint32_t(std::max(std::size_t(assignment_allocated_rows), row_index + 1));
             }
 
             virtual void enable_selector(const std::size_t selector_index,
@@ -363,9 +364,9 @@ namespace nil {
                                  const std::size_t index_step = 1) {
 
                 for (std::size_t row_index = begin_row_index; row_index <= end_row_index; row_index += index_step) {
-
                     enable_selector(selector_index, row_index);
                 }
+                assignment_allocated_rows = std::uint32_t(std::max(std::size_t(assignment_allocated_rows), end_row_index));
             }
 
             void fill_selector(std::uint32_t index, const column_type& column) override {
