@@ -35,7 +35,7 @@
 #include <nil/blueprint/manifest.hpp>
 
 #include <nil/blueprint/components/detail/plonk/carry_on_addition.hpp>
-#include <nil/blueprint/components/detail/plonk/range_check.hpp>
+#include <nil/blueprint/components/detail/plonk/range_check_multi.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -63,7 +63,7 @@ namespace nil {
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
                 using carry_on_addition_component = carry_on_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType, num_chunks, bit_size_chunk>;
-                using range_check_component = range_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType, bit_size_chunk>;
+                using range_check_component = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType, num_chunks, bit_size_chunk>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -94,8 +94,7 @@ namespace nil {
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
                     return carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
-                           + range_check_component::get_rows_amount(witness_amount,lookup_column_amount)*num_chunks;
-                    // NB: awaiting a batched version of range_check to get rid of the *num_chunks here.
+                           + range_check_component::get_rows_amount(witness_amount,lookup_column_amount);
                 }
 
                 constexpr static const std::size_t gates_amount = 0;
@@ -191,11 +190,12 @@ namespace nil {
                     generate_assignments(carry_on_addition_instance, assignment, carry_on_addition_input, start_row_index);
 
                 // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                typename range_check_type::input_type range_check_input;
                 for(std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {carry_on_addition_result.z[i]};
-                    generate_assignments(range_check_instance, assignment, range_check_input,
-                        start_row_index + carry_on_addition_instance.rows_amount + range_check_instance.rows_amount*i);
+                    range_check_input.x[i] = carry_on_addition_result.z[i];
                 }
+                generate_assignments(range_check_instance, assignment, range_check_input,
+                    start_row_index + carry_on_addition_instance.rows_amount);
 
                 return typename plonk_check_mod_p<BlueprintFieldType, num_chunks, bit_size_chunk>::result_type(component, start_row_index);
 	    }
@@ -250,11 +250,13 @@ namespace nil {
                 bp.add_copy_constraint({carry_on_addition_result.ck, instance_input.zero}); // ck = zero, zero comes in component input
                 // perform num_chunks range checks. To be replaced by a single batched range check in the future
 
+                typename range_check_type::input_type range_check_input;
                 for(std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {carry_on_addition_result.z[i]};
-                    generate_circuit(range_check_instance, bp, assignment, range_check_input,
-                        start_row_index + carry_on_addition_instance.rows_amount + range_check_instance.rows_amount*i);
+                    range_check_input.x[i] = carry_on_addition_result.z[i];
                 }
+                generate_circuit(range_check_instance, bp, assignment, range_check_input,
+                    start_row_index + carry_on_addition_instance.rows_amount);
+
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index); // does nothing, may be skipped?
 
                 return typename component_type::result_type(component, start_row_index);

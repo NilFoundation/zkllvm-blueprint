@@ -34,7 +34,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/detail/plonk/range_check.hpp>
+#include <nil/blueprint/components/detail/plonk/range_check_multi.hpp>
 #include <nil/blueprint/components/detail/plonk/carry_on_addition.hpp>
 #include <nil/blueprint/components/detail/plonk/choice_function.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/negation_mod_p.hpp>
@@ -73,8 +73,8 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
-                using range_check_component = range_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                      BlueprintFieldType, bit_size_chunk>;
+                using range_check_component = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                      BlueprintFieldType, num_chunks, bit_size_chunk>;
                 using carry_on_addition_component = carry_on_addition<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                       BlueprintFieldType, num_chunks, bit_size_chunk>;
                 using choice_function_component = choice_function<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
@@ -139,14 +139,15 @@ namespace nil {
                     // L = bit_size_chunk*num_chunks + (bit_size_chunk*num_chunks % 2) : to store the used scalar bit decomposition
                     std::size_t total_cells = (bit_size_chunk+3)*num_chunks + (bit_size_chunk*num_chunks % 2);
                     std::size_t num_rows = total_cells/witness_amount + (total_cells % witness_amount > 0)
-                           + (5*Q-2)*range_check_component::get_rows_amount(witness_amount,lookup_column_amount)*num_chunks
-                           + (5*Q-1)*carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
+                           + (4*Q-1)*range_check_component::get_rows_amount(witness_amount,lookup_column_amount)
+                           + (4*Q)*carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + 6*Q*choice_function_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + 2*neg_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + Q*ec_double_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + 3*ec_incomplete_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + (Q-1)*ec_two_t_plus_q_component::get_rows_amount(witness_amount,lookup_column_amount)
                            ;
+std::cout << "Rows amount = " << num_rows << "\n";
                     return num_rows;
                 }
 
@@ -335,12 +336,12 @@ namespace nil {
                 // assignment generation lambda expressions
                 auto RangeCheck = [&assignment, &instance_input, &range_check_instance, &start_row_index, &current_row_shift]
                                   (var x[num_chunks]) {
+                    typename range_check_type::input_type range_check_input;
                     for(std::size_t i = 0; i < num_chunks; i++) {
-                        typename range_check_type::input_type range_check_input = { x[i] };
-                        generate_assignments(range_check_instance, assignment, range_check_input,
-                            start_row_index + current_row_shift); // range_check. When it is batched, this will move outside the cycle
-                        current_row_shift += range_check_instance.rows_amount;
+                        range_check_input.x[i] = x[i];
                     }
+                    generate_assignments(range_check_instance, assignment, range_check_input, start_row_index + current_row_shift);
+                    current_row_shift += range_check_instance.rows_amount;
                 };
                 auto CarryOnAddition = [&carry_on_addition_instance, &assignment, &start_row_index, &current_row_shift]
                                        (var x[num_chunks], var y[num_chunks]) {
@@ -447,7 +448,7 @@ namespace nil {
                 var d_var[num_chunks], dp_var[num_chunks], C_var[Q][num_chunks],
                     X_var[Q][num_chunks], Y_var[Q][num_chunks],
                     Xp_var[Q][num_chunks], Yp_var[Q][num_chunks];
-/*
+
 auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
     non_native_integral_type X = 0;
     for(std::size_t i = num_chunks; i > 0; i--) {
@@ -456,7 +457,7 @@ auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
     }
     std::cout << X << "\n";
 };
-*/
+
                 // Part I : adjusting the scalar and the point
                 auto t = CarryOnAddition(s_var,mp_var);
                 RangeCheck(t.z);
@@ -484,28 +485,28 @@ auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
                 //
                 // the loop
                 for(std::size_t i = Q-1; i > 0; i--) {
-                    extend_bit_array[0] = cp_var[i];
-                    auto d_temp = CarryOnAddition(extend_bit_array,extend_bit_array);
-                    CopyChunks(d_temp.z,d_var);
-                    RangeCheck(d_var);
-                    extend_bit_array[0] = cpp_var[i];
-                    auto dp_temp = CarryOnAddition(d_var,extend_bit_array);
-                    CopyChunks(dp_temp.z,dp_var);
-                    RangeCheck(dp_var);
                     if (i < Q-1) {
-                        auto C_pre = CarryOnAddition(C_var[i+1],C_var[i+1]);
-                        RangeCheck(C_pre.z);
-                        auto C_ppre = CarryOnAddition(C_pre.z,C_pre.z);
-                        RangeCheck(C_ppre.z);
-                        auto C_temp = CarryOnAddition(C_ppre.z,dp_var);
-                        CopyChunks(C_temp.z,C_var[i]);
-                        RangeCheck(C_var[i]);
                         auto Pp_temp = ECDouble(X_var[i+1],Y_var[i+1]);
                         CopyChunks(Pp_temp.xR, Xp_var[i+1]);
                         CopyChunks(Pp_temp.yR, Yp_var[i+1]);
+
+                        auto C_p = CarryOnAddition(C_var[i+1],C_var[i+1]);
+                        RangeCheck(C_p.z);
+
+                        extend_bit_array[0] = cp_var[i];
+                        auto C_pp = CarryOnAddition(C_p.z,extend_bit_array);
+                        RangeCheck(C_pp.z);
+                        CopyChunks(C_pp.z,C_var[i]);
                     } else {
-                        CopyChunks(dp_var,C_var[i]);
+                        extend_bit_array[0] = cp_var[i];
+                        CopyChunks(extend_bit_array,C_var[i]);
                     }
+                    auto C_ppp = CarryOnAddition(C_var[i],C_var[i]);
+                    RangeCheck(C_ppp.z);
+                    extend_bit_array[0] = cpp_var[i];
+                    auto C_temp = CarryOnAddition(C_ppp.z,extend_bit_array);
+                    CopyChunks(C_temp.z,C_var[i]);
+                    RangeCheck(C_var[i]);
                     auto xi_p = ChoiceFunction(cp_var[i],p3.xR,x_var);
                     auto xi_pp = ChoiceFunction(cp_var[i],x_var,p3.xR);
                     auto xi = ChoiceFunction(cpp_var[i],xi_p.z,xi_pp.z);
@@ -517,19 +518,19 @@ auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
                     CopyChunks(P_temp.yR,Y_var[i]);
                 }
                 // post-loop computations
+                auto C_p = CarryOnAddition(C_var[1],C_var[1]);
+                RangeCheck(C_p.z);
+
                 extend_bit_array[0] = cp_var[0];
-                auto d_temp = CarryOnAddition(extend_bit_array,extend_bit_array);
-                CopyChunks(d_temp.z,d_var);
-                RangeCheck(d_var);
+                auto C_pp = CarryOnAddition(C_p.z,extend_bit_array);
+                RangeCheck(C_pp.z);
+
+                auto C_ppp = CarryOnAddition(C_pp.z,C_pp.z);
+                RangeCheck(C_ppp.z);
+
                 extend_bit_array[0] = cpp_var[0];
-                auto dp_temp = CarryOnAddition(d_var,extend_bit_array);
-                CopyChunks(dp_temp.z,dp_var);
-                RangeCheck(dp_var);
-                auto C_pre = CarryOnAddition(C_var[1],C_var[1]);
-                RangeCheck(C_pre.z);
-                auto C_ppre = CarryOnAddition(C_pre.z,C_pre.z);
-                RangeCheck(C_ppre.z);
-                auto C_temp = CarryOnAddition(C_ppre.z,dp_var); // copy constrain result to be equal to total_C_var
+                auto C_temp = CarryOnAddition(C_ppp.z,extend_bit_array); // copy constrain result to be equal to total_C_var
+
                 auto eta = ChoiceFunction(cp_var[0],y_minus1.z,y1.z);
                 auto Pp_pre = ECDouble(X_var[1],Y_var[1]);
                 auto Pp_temp = ECIncompleteAdd(Pp_pre.xR,Pp_pre.yR,x_var,eta.z);
@@ -635,12 +636,12 @@ auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
                 // assignment generation lambda expressions
                 auto RangeCheck = [&instance_input, &range_check_instance, &bp, &assignment, &start_row_index, &current_row_shift]
                                   (var x[num_chunks]) {
+                    typename range_check_type::input_type range_check_input;
                     for(std::size_t i = 0; i < num_chunks; i++) {
-                        typename range_check_type::input_type range_check_input = { x[i] };
-                        generate_circuit(range_check_instance, bp, assignment, range_check_input,
-                            start_row_index + current_row_shift); // range_check. When it is batched, this will move outside the cycle
-                        current_row_shift += range_check_instance.rows_amount;
+                        range_check_input.x[i] = x[i];
                     }
+                    generate_circuit(range_check_instance, bp, assignment, range_check_input, start_row_index + current_row_shift);
+                    current_row_shift += range_check_instance.rows_amount;
                 };
                 auto CarryOnAddition = [&carry_on_addition_instance, &bp, &assignment, &start_row_index, &current_row_shift]
                                        (var x[num_chunks], var y[num_chunks]) {
@@ -776,33 +777,34 @@ auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
                 auto y_minus3 = NegModP(p3.yR);
                 // Part III : the main loop
                 for(std::size_t i = Q-1; i > 0; i--) {
-                    extend_bit_array[0] = cp_var[i];
-                    auto d_temp = CarryOnAddition(extend_bit_array,extend_bit_array);
-                    SingleCopyConstrain(d_temp.ck,instance_input.zero);
-                    CopyChunks(d_temp.z,d_var);
-                    RangeCheck(d_var);
-                    extend_bit_array[0] = cpp_var[i];
-                    auto dp_temp = CarryOnAddition(d_var,extend_bit_array);
-                    SingleCopyConstrain(dp_temp.ck,instance_input.zero);
-                    CopyChunks(dp_temp.z,dp_var);
-                    RangeCheck(dp_var);
                     if (i < Q-1) {
-                        auto C_pre = CarryOnAddition(C_var[i+1],C_var[i+1]);
-                        RangeCheck(C_pre.z);
-                        SingleCopyConstrain(C_pre.ck,instance_input.zero);
-                        auto C_ppre = CarryOnAddition(C_pre.z,C_pre.z);
-                        RangeCheck(C_ppre.z);
-                        SingleCopyConstrain(C_ppre.ck,instance_input.zero);
-                        auto C_temp = CarryOnAddition(C_ppre.z,dp_var);
-                        SingleCopyConstrain(C_temp.ck,instance_input.zero);
-                        CopyChunks(C_temp.z,C_var[i]);
-                        RangeCheck(C_var[i]);
                         auto Pp_temp = ECDouble(X_var[i+1],Y_var[i+1]);
                         CopyChunks(Pp_temp.xR, Xp_var[i+1]);
                         CopyChunks(Pp_temp.yR, Yp_var[i+1]);
+
+                        auto C_p = CarryOnAddition(C_var[i+1],C_var[i+1]);
+                        RangeCheck(C_p.z);
+                        SingleCopyConstrain(C_p.ck,instance_input.zero);
+
+                        extend_bit_array[0] = cp_var[i];
+                        auto C_pp = CarryOnAddition(C_p.z,extend_bit_array);
+                        RangeCheck(C_pp.z);
+                        SingleCopyConstrain(C_pp.ck,instance_input.zero);
+                        CopyChunks(C_pp.z,C_var[i]);
                     } else {
-                        CopyChunks(dp_var,C_var[i]);
+                        extend_bit_array[0] = cp_var[i];
+                        CopyChunks(extend_bit_array,C_var[i]);
                     }
+                    auto C_ppp = CarryOnAddition(C_var[i],C_var[i]);
+                    RangeCheck(C_ppp.z);
+                    SingleCopyConstrain(C_ppp.ck,instance_input.zero);
+
+                    extend_bit_array[0] = cpp_var[i];
+                    auto C_temp = CarryOnAddition(C_ppp.z,extend_bit_array);
+                    SingleCopyConstrain(C_temp.ck,instance_input.zero);
+                    CopyChunks(C_temp.z,C_var[i]);
+                    RangeCheck(C_var[i]);
+
                     auto xi_p = ChoiceFunction(cp_var[i],p3.xR,x_var);
                     auto xi_pp = ChoiceFunction(cp_var[i],x_var,p3.xR);
                     auto xi = ChoiceFunction(cpp_var[i],xi_p.z,xi_pp.z);
@@ -814,23 +816,22 @@ auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
                     CopyChunks(P_temp.yR,Y_var[i]);
                 }
                 // post-loop computations
+                auto C_p = CarryOnAddition(C_var[1],C_var[1]);
+                RangeCheck(C_p.z);
+                SingleCopyConstrain(C_p.ck,instance_input.zero);
+
                 extend_bit_array[0] = cp_var[0];
-                auto d_temp = CarryOnAddition(extend_bit_array,extend_bit_array);
-                SingleCopyConstrain(d_temp.ck,instance_input.zero);
-                CopyChunks(d_temp.z,d_var);
-                RangeCheck(d_var);
+                auto C_pp = CarryOnAddition(C_p.z,extend_bit_array);
+                RangeCheck(C_pp.z);
+                SingleCopyConstrain(C_pp.ck,instance_input.zero);
+
+                auto C_ppp = CarryOnAddition(C_pp.z,C_pp.z);
+                RangeCheck(C_ppp.z);
+                SingleCopyConstrain(C_ppp.ck,instance_input.zero);
+
                 extend_bit_array[0] = cpp_var[0];
-                auto dp_temp = CarryOnAddition(d_var,extend_bit_array);
-                SingleCopyConstrain(dp_temp.ck,instance_input.zero);
-                CopyChunks(dp_temp.z,dp_var);
-                RangeCheck(dp_var);
-                auto C_pre = CarryOnAddition(C_var[1],C_var[1]);
-                RangeCheck(C_pre.z);
-                SingleCopyConstrain(C_pre.ck,instance_input.zero);
-                auto C_ppre = CarryOnAddition(C_pre.z,C_pre.z);
-                RangeCheck(C_ppre.z);
-                SingleCopyConstrain(C_ppre.ck,instance_input.zero);
-                auto C_temp = CarryOnAddition(C_ppre.z,dp_var);
+                auto C_temp = CarryOnAddition(C_ppp.z,extend_bit_array);
+
                 CopyConstrain(total_C_var.z,C_temp.z);
                 SingleCopyConstrain(C_temp.ck,instance_input.zero);
                 auto eta = ChoiceFunction(cp_var[0],y_minus1.z,y1.z);

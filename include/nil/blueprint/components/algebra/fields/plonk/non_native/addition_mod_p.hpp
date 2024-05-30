@@ -35,7 +35,7 @@
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/components/detail/plonk/carry_on_addition.hpp>
 #include <nil/blueprint/components/detail/plonk/choice_function.hpp>
-#include <nil/blueprint/components/detail/plonk/range_check.hpp>
+#include <nil/blueprint/components/detail/plonk/range_check_multi.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/check_mod_p.hpp>
 
 namespace nil {
@@ -73,8 +73,9 @@ namespace nil {
                                       num_chunks,
                                       bit_size_chunk>;
                 using range_check_component =
-                    range_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                    range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                                 BlueprintFieldType,
+                                num_chunks,
                                 bit_size_chunk>;
                 using choice_component =
                     choice_function<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
@@ -119,11 +120,11 @@ namespace nil {
                                                              std::size_t lookup_column_amount) {
                     std::size_t rows = (num_chunks + 1) / witness_amount + ((num_chunks + 1) % witness_amount > 0);
                     rows += carry_on_addition_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += num_chunks * range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
+                    rows += range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
                     rows += choice_component::get_rows_amount(witness_amount, lookup_column_amount);
                     rows += carry_on_addition_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += num_chunks * range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += num_chunks * range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
+                    rows += range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
+                    rows += range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
                     rows += check_mod_p_component::get_rows_amount(witness_amount, lookup_column_amount);
 
                     return rows;
@@ -295,12 +296,13 @@ namespace nil {
 
                 row += carry_on_addition_instance.rows_amount;
 
-                // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                // perform range check
+                typename range_check_type::input_type range_check_input_0;
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {first_carry_on_addition_result.z[i]};
-                    generate_assignments(range_check_instance, assignment, range_check_input, row);
-                    row += range_check_instance.rows_amount;
+                    range_check_input_0.x[i] = first_carry_on_addition_result.z[i];
                 }
+                generate_assignments(range_check_instance, assignment, range_check_input_0, row);
+                row += range_check_instance.rows_amount;
 
                 // choice-function component  (qp = 0 or p)
                 typename choice_function_type::input_type choice_function_input;
@@ -327,17 +329,20 @@ namespace nil {
 
                 row += carry_on_addition_instance.rows_amount;
 
-                // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                // perform range check
+                typename range_check_type::input_type range_check_input_1;
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {second_carry_on_addition_result.z[i]};
-                    generate_assignments(range_check_instance, assignment, range_check_input, row);
-                    row += range_check_instance.rows_amount;
+                    range_check_input_1.x[i] = second_carry_on_addition_result.z[i];
                 }
+                generate_assignments(range_check_instance, assignment, range_check_input_1, row);
+                row += range_check_instance.rows_amount;
+
+                typename range_check_type::input_type range_check_input_2;
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {carry_on_addition_input.y[i]};
-                    generate_assignments(range_check_instance, assignment, range_check_input, row);
-                    row += range_check_instance.rows_amount;
+                    range_check_input_2.x[i] = carry_on_addition_input.y[i];
                 }
+                generate_assignments(range_check_instance, assignment, range_check_input_2, row);
+                row += range_check_instance.rows_amount;
 
                 // check_mod_p component
                 typename check_mod_p_type::input_type check_mod_p_input;
@@ -440,12 +445,13 @@ namespace nil {
 
                 row += carry_on_addition_instance.rows_amount;
 
-                // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                // perform range check
+                typename range_check_type::input_type range_check_input_0;
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {first_carry_on_addition_result.z[i]};
-                    generate_circuit(range_check_instance, bp, assignment, range_check_input, row);
-                    row += range_check_instance.rows_amount;
+                    range_check_input_0.x[i] = first_carry_on_addition_result.z[i];
                 }
+                generate_circuit(range_check_instance, bp, assignment, range_check_input_0, row);
+                row += range_check_instance.rows_amount;
 
                 // choice-function component  (qp = 0 or p)
                 typename choice_function_type::input_type choice_function_input;
@@ -477,17 +483,20 @@ namespace nil {
                 bp.add_copy_constraint({first_carry_on_addition_result.ck, second_carry_on_addition_result.ck});
                 row += carry_on_addition_instance.rows_amount;
 
-                // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                // perform range check
+                typename range_check_type::input_type range_check_input_1;
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {second_carry_on_addition_result.z[i]};
-                    generate_circuit(range_check_instance, bp, assignment, range_check_input, row);
-                    row += range_check_instance.rows_amount;
+                    range_check_input_1.x[i] = second_carry_on_addition_result.z[i];
                 }
+                generate_circuit(range_check_instance, bp, assignment, range_check_input_1, row);
+                row += range_check_instance.rows_amount;
+
+                typename range_check_type::input_type range_check_input_2;
                 for (std::size_t i = 0; i < num_chunks; i++) {
-                    typename range_check_type::input_type range_check_input = {carry_on_addition_input.y[i]};
-                    generate_circuit(range_check_instance, bp, assignment, range_check_input, row);
-                    row += range_check_instance.rows_amount;
+                    range_check_input_2.x[i] = carry_on_addition_input.y[i];
                 }
+                generate_circuit(range_check_instance, bp, assignment, range_check_input_2, row);
+                row += range_check_instance.rows_amount;
 
                 // check_mod_p component
                 typename check_mod_p_type::input_type check_mod_p_input;

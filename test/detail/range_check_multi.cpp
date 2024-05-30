@@ -65,7 +65,7 @@ void test_range_check(const std::vector<typename BlueprintFieldType::value_type>
 
     typename component_type::input_type instance_input;
     for (std::size_t i = 0; i < num_chunks; i++) {
-        instance_input.x.push_back(var(0, i, false, var::column_type::public_input));
+        instance_input.x[i] = var(0, i, false, var::column_type::public_input);
     }
 
     auto result_check = [](AssignmentType &assignment,

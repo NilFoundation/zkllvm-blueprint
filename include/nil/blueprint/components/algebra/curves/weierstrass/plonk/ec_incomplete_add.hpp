@@ -34,7 +34,7 @@
 #include <nil/blueprint/component.hpp>
 #include <nil/blueprint/manifest.hpp>
 
-#include <nil/blueprint/components/detail/plonk/range_check.hpp>
+#include <nil/blueprint/components/detail/plonk/range_check_multi.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/check_mod_p.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/flexible_multiplication.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/negation_mod_p.hpp>
@@ -70,8 +70,8 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
-                using range_check_component = range_check<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
-                      BlueprintFieldType, bit_size_chunk>;
+                using range_check_component = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                      BlueprintFieldType, num_chunks, bit_size_chunk>;
                 using check_mod_p_component = check_mod_p<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                       BlueprintFieldType, num_chunks, bit_size_chunk>;
                 using mult_mod_p_component = flexible_mult<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
@@ -118,8 +118,7 @@ namespace nil {
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
                     return (3*num_chunks)/witness_amount + ((3*num_chunks) % witness_amount > 0) // to store 3k variables
-                           + 3*range_check_component::get_rows_amount(witness_amount,lookup_column_amount)*num_chunks
-                           // NB: awaiting a batched version of range_check to get rid of the *num_chunks here ^^^
+                           + 3*range_check_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + 3*check_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + 3*mult_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + 6*add_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
@@ -297,12 +296,13 @@ namespace nil {
 
                 auto check_chunked_var = [&assignment, &instance_input, &range_check_instance, &check_mod_p_instance,
                                            &start_row_index, &current_row_shift ] (var x[num_chunks]) {
+                    typename range_check_type::input_type range_check_input;
                     for(std::size_t i = 0; i < num_chunks; i++) {
-                        typename range_check_type::input_type range_check_input = { x[i] };
-                        generate_assignments(range_check_instance, assignment, range_check_input,
-                            start_row_index + current_row_shift); // range_check. When it is batched, this will move outside the cycle
-                        current_row_shift += range_check_instance.rows_amount;
+                        range_check_input.x[i] = x[i];
                     }
+                    generate_assignments(range_check_instance, assignment, range_check_input, start_row_index + current_row_shift);
+                    current_row_shift += range_check_instance.rows_amount;
+
                     typename check_mod_p_type::input_type mod_p_check_input;
                     for(std::size_t i = 0; i < num_chunks; i++) {
                         mod_p_check_input.x[i] = x[i];
@@ -451,12 +451,13 @@ namespace nil {
 
                 auto check_chunked_var = [&bp, &assignment, &instance_input, &range_check_instance, &check_mod_p_instance,
                                            &start_row_index, &current_row_shift ] (var x[num_chunks]) {
+                    typename range_check_type::input_type range_check_input;
                     for(std::size_t i = 0; i < num_chunks; i++) {
-                        typename range_check_type::input_type range_check_input = { x[i] };
-                        generate_circuit(range_check_instance, bp, assignment, range_check_input,
-                            start_row_index + current_row_shift); // range_check. When it is batched, this will move outside the cycle
-                        current_row_shift += range_check_instance.rows_amount;
+                        range_check_input.x[i] = x[i];
                     }
+                    generate_circuit(range_check_instance, bp, assignment, range_check_input, start_row_index + current_row_shift);
+                    current_row_shift += range_check_instance.rows_amount;
+
                     typename check_mod_p_type::input_type mod_p_check_input;
                     for(std::size_t i = 0; i < num_chunks; i++) {
                         mod_p_check_input.x[i] = x[i];

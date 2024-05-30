@@ -42,7 +42,7 @@ namespace nil {
     namespace blueprint {
         namespace components {
             // Constraints value to be of a certain bit size at most
-            // Parameters: bit_size_chunk
+            // Parameters: num_chunks, bit_size_chunk
             // Input: x
             // Output: none
             //
@@ -72,7 +72,7 @@ namespace nil {
                 const std::size_t chunks_per_gate = get_chunks_per_gate(this->witness_amount());
                 const std::size_t single_gate_cells = chunks_per_gate * (num_rc_chunks + (first_chunk_size != 0) + 1);
                 const std::size_t single_gate_rows = single_gate_cells / this->witness_amount() + (single_gate_cells % this->witness_amount() > 0);
-                
+
                 static std::size_t get_chunks_per_gate(std::size_t witness_amount) {
                     auto num_cells = num_rc_chunks + (first_chunk_size != 0) + 1;
                     if (num_cells > witness_amount) {
@@ -119,7 +119,8 @@ namespace nil {
                 const std::string component_name = "range check multi";
 
                 struct input_type {
-                    std::vector<var> x;
+                    var x[num_chunks];
+                    //std::vector<var> x;
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> res;
@@ -144,7 +145,7 @@ namespace nil {
                     std::size_t column;
                     std::size_t witness_amount;
 
-                    coordinates(std::size_t row, std::size_t column, std::size_t witness_amount) : 
+                    coordinates(std::size_t row, std::size_t column, std::size_t witness_amount) :
                                 row(row), column(column), witness_amount(witness_amount) {}
                     coordinates() : row(0), column(0), witness_amount(1) {}
 

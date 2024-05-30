@@ -515,14 +515,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_non_native_ec_pallas) {
     using vesta_field_type = typename crypto3::algebra::curves::vesta::base_field_type;
     using curve_type = crypto3::algebra::curves::pallas;
     std::cout << "Vesta base field\n";
-/*
+
     std::cout << "Doubling\n";
     multi_test_doubling<curve_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
     std::cout << "Incomplete addition\n";
     multi_test_incomplete_add<curve_type, vesta_field_type, 4, 64, 10, random_tests_amount>();
     std::cout << "Two T plus Q\n";
     multi_test_two_t_plus_q<curve_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
-*/
     std::cout << "Scalar multiplication\n";
     multi_test_scalar_mult<curve_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
 }
@@ -531,14 +530,13 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_non_native_ec_vesta) {
     using pallas_field_type = typename crypto3::algebra::curves::pallas::base_field_type;
     using curve_type = crypto3::algebra::curves::vesta;
     std::cout << "Pallas base field\n";
-/*
+
     std::cout << "Doubling\n";
     multi_test_doubling<curve_type, pallas_field_type, 4, 64, 10, random_tests_amount>();
     std::cout << "Incomplete addition\n";
     multi_test_incomplete_add<curve_type, pallas_field_type, 4, 64, 15, random_tests_amount>();
     std::cout << "Two T plus Q\n";
     multi_test_two_t_plus_q<curve_type, pallas_field_type, 4, 64, 10, random_tests_amount>();
-*/
     std::cout << "Scalar multiplication\n";
     multi_test_scalar_mult<curve_type, pallas_field_type, 4, 64, 10, random_tests_amount>();
 }
