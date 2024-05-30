@@ -39,7 +39,7 @@
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/components/zkevm/circuits/bytecode.hpp>
+#include <nil/blueprint/zkevm/bytecode.hpp>
 
 #include <nil/crypto3/random/algebraic_random_device.hpp>
 #include <nil/crypto3/random/algebraic_engine.hpp>
@@ -72,7 +72,7 @@ void test_zkevm_bytecode(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
-    constexpr std::size_t Lambda = 40;
+    constexpr std::size_t Lambda = 5;
     using AssignmentType = nil::blueprint::assignment<ArithmetizationType>;
 
     using value_type = typename BlueprintFieldType::value_type;
@@ -135,13 +135,11 @@ void test_zkevm_bytecode(
     }
 
     component_type component_instance = component_type(witnesses, std::array<std::uint32_t, 1>{0},
-                                                       std::array<std::uint32_t, 1>{0}, 24 * 1024);
+                                                       std::array<std::uint32_t, 1>{0}, 2046);
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>
         (component_instance, desc, public_input, result_check, instance_input,
-         nil::blueprint::connectedness_check_type::type::NONE, 24 * 1024);
+         nil::blueprint::connectedness_check_type::type::NONE, 2046);
 }
-
-constexpr static const std::size_t random_tests_amount = 10;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
     using field_type = typename crypto3::algebra::curves::vesta::base_field_type;

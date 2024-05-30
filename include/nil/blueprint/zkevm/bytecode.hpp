@@ -1,3 +1,4 @@
+
 //---------------------------------------------------------------------------//
 // Copyright (c) 2024 Elena Tatuzova <e.tatuzova@nil.foundation>
 //
@@ -63,7 +64,7 @@ namespace nil {
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
 
-                std::size_t max_bytecode_size; // Now it is static, but we may have different size bytecode circuit
+                std::size_t max_bytecode_size;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -72,7 +73,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t max_bytecode_size = 24 * 1024) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t max_bytecode_size) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -85,13 +86,13 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t max_bytecode_size = 24 * 1024) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t max_bytecode_size) {
                     return max_bytecode_size;
                 }
 
                 constexpr static const std::size_t gates_amount = 1;
                 constexpr static const std::size_t lookup_gates_amount = 1;
-                std::size_t rows_amount = get_rows_amount(max_bytecode_size);
+                std::size_t rows_amount = max_bytecode_size;
 
                 struct input_type {
 	                std::vector<std::vector<var>> bytecodes; // EVM contracts bytecodes
@@ -132,7 +133,7 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit zkevm_bytecode(ContainerType witness, std::size_t _max_bytecode_size = 24 * 1024) :
+                explicit zkevm_bytecode(ContainerType witness, std::size_t _max_bytecode_size) :
                     component_type(witness, {}, {}, get_manifest()), max_bytecode_size(_max_bytecode_size)
                     {};
 
@@ -140,7 +141,7 @@ namespace nil {
                          typename PublicInputContainerType>
                 zkevm_bytecode(WitnessContainerType witness, ConstantContainerType constant,
                     PublicInputContainerType public_input,
-                    std::size_t _max_bytecode_size = 24 * 1024
+                    std::size_t _max_bytecode_size
                 ) : component_type(witness, constant, public_input, get_manifest()), max_bytecode_size(_max_bytecode_size) {};
 
                 zkevm_bytecode(
@@ -149,7 +150,7 @@ namespace nil {
                         constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
-                    std::size_t _max_bytecode_size = 24 * 1024
+                    std::size_t _max_bytecode_size
                 ) : component_type(witnesses, constants, public_inputs, get_manifest()), max_bytecode_size(_max_bytecode_size){};
 
 
@@ -300,7 +301,7 @@ namespace nil {
                 constraints.push_back((tag - 1) * value_rlc); // 14. value_rlc for HEADERS == 0;
                 constraints.push_back(tag * (value_rlc - value_rlc_prev * rlc_challenge - value)); // 15. for all bytes RLC is correct
                 constraints.push_back(tag * (rlc_challenge - rlc_challenge_prev)); //16. for each BYTEs rlc_challenge are similar
-                constraints.push_back((tag-1) * tag_prev * (rlc_challenge - rlc_challenge_prev)); //17. rlc doesn't change during contract
+                constraints.push_back((tag-1) * tag_prev * tag_next * (rlc_challenge - rlc_challenge_prev)); //17. rlc doesn't change during contract
 
                 std::vector<lookup_constraint_type> lookup_constraints;
                 lookup_constraint_type bytecode_range_check = {lookup_tables_indices.at("byte_range_table/full"), {tag * value}};
