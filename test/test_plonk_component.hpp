@@ -57,7 +57,7 @@
 
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 
-// #include "profiling_plonk_circuit.hpp"
+//#include "profiling_plonk_circuit.hpp"
 
 #include <nil/marshalling/status_type.hpp>
 #include <nil/marshalling/field_type.hpp>
@@ -254,6 +254,16 @@ namespace nil {
                 }
             }
 
+#ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+            std::ofstream fass("circuit.tbl");
+            assignment.export_table(fass);
+            fass.close();
+
+            std::ofstream fcirc("circuit.crt");
+            bp.export_circuit(fcirc);
+            fcirc.close();
+#endif
+
             result_check(assignment, component_result);
 
             if constexpr (!PrivateInput) {
@@ -276,8 +286,8 @@ namespace nil {
                 // blueprint::detail::export_connectedness_zones(
                 //      zones, assignment, instance_input.all_vars(), start_row, rows_after_batching - start_row, std::cout);
 
-                // BOOST_ASSERT_MSG(is_connected,
-                //   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
+                BOOST_ASSERT_MSG(is_connected,
+                   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
             desc.usable_rows_amount = assignment.rows_amount();
 
@@ -314,10 +324,11 @@ namespace nil {
             std::cout << "Usable rows: " << desc.usable_rows_amount << std::endl;
             std::cout << "Padded rows: " << desc.rows_amount << std::endl;
 
-            profiling(assignment);
+//            profiling(assignment);
 #endif
             //assignment.export_table(std::cout);
             //bp.export_circuit(std::cout);
+
 
             assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
 
