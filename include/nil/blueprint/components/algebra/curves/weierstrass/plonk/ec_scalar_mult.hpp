@@ -449,15 +449,6 @@ std::cout << "Rows amount = " << num_rows << "\n";
                     X_var[Q][num_chunks], Y_var[Q][num_chunks],
                     Xp_var[Q][num_chunks], Yp_var[Q][num_chunks];
 
-auto PrintNumber = [&assignment, &B](var x[num_chunks]) {
-    non_native_integral_type X = 0;
-    for(std::size_t i = num_chunks; i > 0; i--) {
-        X *= B;
-        X += non_native_integral_type(var_value(assignment, x[i-1]).data);
-    }
-    std::cout << X << "\n";
-};
-
                 // Part I : adjusting the scalar and the point
                 auto t = CarryOnAddition(s_var,mp_var);
                 RangeCheck(t.z);
