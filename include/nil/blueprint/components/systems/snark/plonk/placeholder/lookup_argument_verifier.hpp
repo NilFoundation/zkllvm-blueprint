@@ -198,6 +198,72 @@ namespace nil {
 
                     std::vector<var> sorted;
 
+                    input_type (
+                        var theta_,
+                        var beta_,
+                        var gamma_,
+                        std::vector<var> alphas_,
+                        std::array<var, 2> V_L_values_,
+                        std::array<var, 2> q_last_,
+                        std::array<var, 2> q_blind_,
+                        var L0_,
+                        std::vector<var> lookup_gate_selectors_,
+                        std::vector<var> lookup_gate_constraints_table_ids_,
+                        std::vector<var> lookup_gate_constraints_lookup_inputs_,
+                        std::vector<var> lookup_table_selectors_,
+                        std::vector<var> lookup_table_lookup_options_,
+                        std::vector<var> shifted_lookup_table_selectors_,
+                        std::vector<var> shifted_lookup_table_lookup_options_,
+                        std::vector<var> sorted_
+                    ) :
+                        theta(theta_), beta(beta_), gamma(gamma_), alphas(alphas_),
+                        V_L_values(V_L_values_), q_last(q_last_), q_blind(q_blind_), L0(L0_),
+                        lookup_gate_selectors(lookup_gate_selectors_),
+                        lookup_gate_constraints_table_ids(lookup_gate_constraints_table_ids_),
+                        lookup_gate_constraints_lookup_inputs(lookup_gate_constraints_lookup_inputs_),
+                        lookup_table_selectors(lookup_table_selectors_), lookup_table_lookup_options(lookup_table_lookup_options_),
+                        shifted_lookup_table_selectors(shifted_lookup_table_selectors_),
+                        shifted_lookup_table_lookup_options(shifted_lookup_table_lookup_options_), sorted(sorted_) {};
+
+                    input_type (std::vector<var> inp, std::vector<std::size_t> sizes) {
+
+                        std::size_t idx = 0;
+                        std::size_t sizes_idx = 0;
+
+                        theta = inp[idx++];
+                        beta = inp[idx++];
+                        gamma = inp[idx++];
+
+
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {alphas.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+
+                        V_L_values = {inp[idx++], inp[idx++]};
+                        q_last = {inp[idx++], inp[idx++]};
+                        q_blind = {inp[idx++], inp[idx++]};
+                        L0 = inp[idx++];
+
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {lookup_gate_selectors.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {lookup_gate_constraints_table_ids.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {lookup_gate_constraints_lookup_inputs.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {lookup_table_selectors.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {lookup_table_lookup_options.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {shifted_lookup_table_selectors.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {shifted_lookup_table_lookup_options.emplace_back(inp[idx++]);}
+                        sizes_idx++;
+
+                        for (std::size_t i = 0; i < sizes[sizes_idx]; i++) {sorted.emplace_back(inp[idx++]);}
+
+                    };
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
 
                         std::vector<std::reference_wrapper<var>> vars;
