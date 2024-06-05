@@ -96,6 +96,35 @@ namespace nil {
                     var q_pad;
                     std::array<var, 2> thetas;
 
+                    input_type(
+                        std::vector<var> f_,
+                        std::vector<var> Se_,
+                        std::vector<var> Ssigma_,
+                        var L0_,
+                        var V_,
+                        var V_zeta_,
+                        var q_last_,
+                        var q_pad_,
+                        std::array<var, 2> thetas_
+                    ) : f(f_), Se(Se_), Ssigma(Ssigma_), L0(L0_), V(V_), V_zeta(V_zeta_), q_last(q_last_), q_pad(q_pad_), thetas(thetas_) {};
+
+                    input_type(const std::vector<var>& inp) {
+                        std::size_t idx = inp.size() - 1;
+                        thetas = {inp[idx--], inp[idx--]};
+                        q_pad = inp[idx--];
+                        q_last = inp[idx--];
+                        V_zeta = inp[idx--];
+                        V = inp[idx--];
+                        L0 = inp[idx--];
+
+                        std::size_t vect_size = (idx + 1) / 3;
+                        for (std::size_t i = 0; i < vect_size; i++) {
+                            f.emplace_back(inp[i]);
+                            Se.emplace_back(inp[i + vect_size]);
+                            Ssigma.emplace_back(inp[i + 2*vect_size]);
+                        }
+                    }
+
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> vars;
                         vars.insert(vars.end(), f.begin(), f.end());
