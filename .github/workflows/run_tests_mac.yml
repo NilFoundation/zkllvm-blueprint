@@ -35,11 +35,13 @@ jobs:
             ${{ github.workspace }}/**
             !${{ github.workspace }}/
             !${{ github.workspace }}/**/.git/**
-      
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
       # nix is taken from the cloud-init template, no need to install it.
       - name: Build and run tests
         run: |
-          nix build -L .?submodules=1#checks.aarch64-darwin.$check_name
+          nix build -L .?submodules=1#checks.aarch64-darwin.default
           results_dir="./results"
           mkdir -p "$results_dir"
           cp -r ./result/* "$results_dir/all-checks"
