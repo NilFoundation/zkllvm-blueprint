@@ -36,8 +36,8 @@
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/component_stretcher.hpp>
 
-// #include <nil/blueprint/components/detail/plonk/range_check.hpp>
-// #include <nil/blueprint/components/fields/plonk/non_native/check_mod_p.hpp>
+#include <nil/blueprint/components/detail/plonk/range_check_multi.hpp>
+#include <nil/blueprint/components/algebra/fields/plonk/non_native/check_mod_p.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -68,8 +68,9 @@ namespace nil {
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
-                // using range_check_type = range_check<ArithmetizationType, BlueprintFieldType, bit_size_chunk>;
-                // using check_mod_p_type = check_mod_p<ArithmetizationType, BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using range_check_type = range_check_multi<ArithmetizationType, BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using check_mod_p_type = check_mod_p<ArithmetizationType, BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using range_check_for_b_type = range_check_multi<ArithmetizationType, BlueprintFieldType, 2 * (num_chunks - 2), bit_size_chunk>;
 
                 class gate_manifest_type : public component_gate_manifest {
                 public:
@@ -80,29 +81,46 @@ namespace nil {
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
                                                        std::size_t lookup_column_amount) {
-                    gate_manifest manifest = gate_manifest(gate_manifest_type());
-                        // .merge_with(range_check_type::get_gate_manifest(witness_amount, lookup_column_amount))
-                        // .merge_with(check_mod_p_type::get_gate_manifest(witness_amount, lookup_column_amount));
+                    gate_manifest manifest = gate_manifest(gate_manifest_type())
+                        .merge_with(check_mod_p_type::get_gate_manifest(witness_amount, lookup_column_amount))
+                        .merge_with(range_check_type::get_gate_manifest(witness_amount, lookup_column_amount))
+                        .merge_with(range_check_for_b_type::get_gate_manifest(witness_amount, lookup_column_amount));
                     return manifest;
                 }
 
                 static manifest_type get_manifest() {
-                    static manifest_type manifest = manifest_type(
+                    manifest_type manifest = manifest_type(
                         // we need 8k-2 cells to fit into 3 rows, i.e. 8k-2 <= 3w, hence w >= ceil((8k-2)/3)
                         std::shared_ptr<manifest_param>(new manifest_range_param((8 * num_chunks - 2) / 3 + ((8*num_chunks - 2) % 3 > 0),
                                                                                  8 * num_chunks - 2, 1)),
                         false // constant column not needed
-                    );
-                    // .merge_with(check_mod_p_type::get_manifest())
-                    // .merge_with(range_check_type::get_manifest());
+                    )
+                    .merge_with(check_mod_p_type::get_manifest())
+                    .merge_with(range_check_type::get_manifest())
+                    .merge_with(range_check_for_b_type::get_manifest());
                     return manifest;
                 }
 
-                static std::size_t get_rows_amount(std::size_t witness_amount,
+                static std::size_t get_inner_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
                     auto nc = 8*num_chunks - 2;
                     return nc / witness_amount + (nc % witness_amount > 0);
                 }
+                static std::size_t get_rows_amount(std::size_t witness_amount,
+                                                             std::size_t lookup_column_amount) {
+                    auto inner_rows = get_inner_rows_amount(witness_amount, lookup_column_amount);
+                    auto check_mod_p_rows = check_mod_p_type::get_rows_amount(witness_amount, lookup_column_amount);
+                    auto range_check_rows = range_check_type::get_rows_amount(witness_amount, lookup_column_amount);
+                    auto range_check_for_b_rows = 0;
+                    if (num_chunks > 2) {
+                        range_check_for_b_rows = range_check_for_b_type::get_rows_amount(witness_amount, lookup_column_amount);
+                    }
+                    std::cout << "rows: " << inner_rows << ' ' << check_mod_p_rows << ' ' << range_check_rows << ' ' << range_check_for_b_rows << std::endl;
+                    // return inner_rows + (check_mod_p_rows + range_check_rows) * 2 + range_check_for_b_rows;
+                    return inner_rows + (check_mod_p_rows + range_check_rows * (1 + (num_chunks > 2))) * 2;
+                }
+                
+                const std::size_t inner_rows_amount = get_inner_rows_amount(this->witness_amount(), 0);
 
                 constexpr static const std::size_t gates_amount = 1;
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
@@ -132,7 +150,7 @@ namespace nil {
                         for(std::size_t i = 0; i < num_chunks; i++) {
                             std::size_t row = start_row_index + (2*num_chunks + i)/WA;
                             std::size_t col = (2*num_chunks + i) % WA;
-			    r[i] = var(component.W(col), row, false, var::column_type::witness);
+                            r[i] = var(component.W(col), row, false, var::column_type::witness);
                         }
                     }
 
@@ -177,7 +195,43 @@ namespace nil {
                         }
                         return *this;
                     }
-                };
+                };                
+                
+                std::vector<coords_class> r_cells = get_r_coords(this->witness_amount());
+                std::vector<coords_class> q_cells = get_q_coords(this->witness_amount());
+                std::vector<coords_class> b_cells = get_b_coords(this->witness_amount());
+
+                std::vector<coords_class> get_r_coords(std::size_t witness_amount) {
+                    std::vector<coords_class> res;
+                    coords_class coords(0, 0, witness_amount);
+                    coords += 2*num_chunks;
+                    for(std::size_t i = 0; i < num_chunks; i++) {
+                        res.push_back(coords);
+                        ++coords;
+                    }
+                    return res;
+                }
+                std::vector<coords_class> get_q_coords(std::size_t witness_amount) {
+                    std::vector<coords_class> res;
+                    coords_class coords(0, 0, witness_amount);
+                    coords += 3*num_chunks;
+                    for(std::size_t i = 0; i < num_chunks; i++) {
+                        res.push_back(coords);
+                        ++coords;
+                    }
+                    return res;
+                }
+                std::vector<coords_class> get_b_coords(std::size_t witness_amount) {
+                    std::vector<coords_class> res;
+                    coords_class coords(0, 0, witness_amount);
+                    coords += 4*num_chunks;
+                    for(std::size_t i = 0; i < 2 * (num_chunks - 2); i++) {
+                        res.push_back(coords);
+                        std::cout << "theory b var: " << coords.column << " " << coords.row << std::endl;
+                        ++coords;
+                    }
+                    return res;
+                }
 
                 template<typename ContainerType>
                 explicit flexible_mult(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {
@@ -211,6 +265,13 @@ namespace nil {
                     static_assert(num_chunks*bit_size_chunk + BlueprintFieldType::modulus_bits > 2*NonNativeFieldType::modulus_bits,
                                   "we need 2^num_bits * native_module > non_native_module^2");
                 };
+
+                std::map<std::string, std::size_t> component_lookup_tables(){
+                    std::map<std::string, std::size_t> lookup_tables;
+                    lookup_tables["range_16bit/full"] = 0;
+
+                    return lookup_tables;
+                }
             };
 
             template<typename BlueprintFieldType, typename NonNativeFieldType,
@@ -235,9 +296,21 @@ namespace nil {
                     num_chunks, bit_size_chunk>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
+                std::cout << "Start generating assignment for flexible multiplication\n";
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
                                         num_chunks, bit_size_chunk>;
+                using check_mod_p_type = check_mod_p<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                                     BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using range_check_multi_type = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                                                 BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using range_check_multi_for_b_type = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                                                 BlueprintFieldType, 2 * (num_chunks-2), bit_size_chunk>;
+
+                check_mod_p_type check_mod_p_instance( component._W, component._C, component._PI);
+                range_check_multi_type range_check_instance( component._W, component._C, component._PI);
+                range_check_multi_for_b_type range_check_for_b_instance( component._W, component._C, component._PI);
+
                 using var = typename component_type::var;
                 using native_value_type = typename BlueprintFieldType::value_type;
                 using native_integral_type = typename BlueprintFieldType::integral_type;
@@ -311,8 +384,11 @@ namespace nil {
                 }
 
                 // assignment
-                std::vector<var> r_var, q_var, b_var;
+                std::vector<var> r_var;
+                std::vector<var> q_var;
+                std::vector<var> b_var;
                 typename component_type::coords_class coords(start_row_index, 0, WA);
+                std::cout << "Start coords: " << coords.row << ' ' << coords.column << std::endl;
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     assignment.witness(component.W(coords.column), coords.row) = x[j];
@@ -326,19 +402,20 @@ namespace nil {
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     assignment.witness(component.W(coords.column), coords.row) = r[j];
-                    r_var.push_back({component.W(coords.column), coords.row});
+                    r_var.push_back(var(component.W(coords.column), coords.row, false));
                     ++coords;
                 }
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     assignment.witness(component.W(coords.column), coords.row) = q[j];
-                    q_var.push_back({component.W(coords.column), coords.row});
+                    q_var.push_back(var(component.W(coords.column), coords.row, false));
                     ++coords;
                 }
 
                 for (std::size_t j = 0; j < 2 * (num_chunks - 2); ++j) {
                     assignment.witness(component.W(coords.column), coords.row) = b[j];
-                    b_var.push_back({component.W(coords.column), coords.row});
+                    b_var.push_back(var(component.W(coords.column), coords.row, false));
+                    std::cout << "b var: " << coords.column << " " << coords.row << "; " << b_var.back().index << ' ' << b_var.back().rotation << std::endl;
                     ++coords;
                 }
 
@@ -356,10 +433,88 @@ namespace nil {
                     assignment.witness(component.W(coords.column), coords.row) = pp[j];
                     ++coords;
                 }
+                std::cout << " coords: " << coords.row << ' ' << coords.column << std::endl;
+                if (coords.column != 0) {
+                    coords.row++;
+                    coords.column = 0;
+                }
+                std::cout << "Finish coords: " << coords.row << ' ' << coords.column << std::endl;
+                std::size_t current_row_index = coords.row;
+
+                typename check_mod_p_type::input_type check_mod_p_input_r;
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    check_mod_p_input_r.x[j] = r_var[j];
+                    check_mod_p_input_r.pp[j] = var(0, j + 3 * num_chunks, false, var::column_type::public_input);
+                }
+                check_mod_p_input_r.zero = var(0, start_row_index, false, var::column_type::constant);
+                typename check_mod_p_type::result_type check_mod_p_result =
+                    generate_assignments(check_mod_p_instance, assignment, check_mod_p_input_r, current_row_index);
+                current_row_index += check_mod_p_instance.rows_amount;
+
+                typename check_mod_p_type::input_type check_mod_p_input_q;
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    check_mod_p_input_q.x[j] = q_var[j];
+                    check_mod_p_input_q.pp[j] = var(0, j + 3 * num_chunks, false, var::column_type::public_input);
+                }
+                check_mod_p_input_q.zero = var(0, start_row_index, false, var::column_type::constant);
+                check_mod_p_result = generate_assignments(check_mod_p_instance, assignment, check_mod_p_input_q, current_row_index);
+                current_row_index += check_mod_p_instance.rows_amount;
+
+                typename range_check_multi_type::input_type range_check_input_r;
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    range_check_input_r.x[j] = r_var[j];
+                }
+                typename range_check_multi_type::result_type range_check_result =
+                    generate_assignments(range_check_instance, assignment, range_check_input_r, current_row_index);
+                current_row_index += range_check_instance.rows_amount;
+
+                typename range_check_multi_type::input_type range_check_input_q;
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    range_check_input_q.x[j] = r_var[j];
+                }
+                range_check_result = generate_assignments(range_check_instance, assignment, range_check_input_q, current_row_index);
+                current_row_index += range_check_instance.rows_amount;
+
+                std::cout << "Starting b\n";
+                for (int i = 0; i < 2 * (num_chunks > 2); i++) {
+                    typename range_check_multi_type::input_type range_check_input_b;
+                    std::cout << b_var.size() << ' ' << num_chunks << std::endl;
+                    for (std::size_t j = 0; j < num_chunks - 2; ++j) {
+                        std::cout << j + i * (num_chunks - 2) << "; ";
+                    }
+                    std::cout << "\n";
+                    for (std::size_t j = 0; j < num_chunks - 2; ++j) {
+                        range_check_input_b.x[j] = b_var[j + i * (num_chunks - 2)];
+                        std::cout << b_var[j + i * (num_chunks - 2)].index << ' ' << b_var[j + i * (num_chunks - 2)].rotation << "; ";
+                    }
+                    std::cout << "\nруку50\n";
+                    range_check_input_b.x[num_chunks - 2] = range_check_input_b.x[num_chunks - 3];
+                    range_check_input_b.x[num_chunks - 1] = range_check_input_b.x[num_chunks - 3];
+                    std::cout << "руку60\n";
+                    range_check_result = generate_assignments(range_check_instance, assignment, range_check_input_b, current_row_index);
+                    std::cout << "руку70\n";
+                    current_row_index += range_check_instance.rows_amount;
+                    std::cout << "руку80\n";
+                }
+
+                // std::cout << "Starting b\n";
+                // typename range_check_multi_for_b_type::input_type range_check_input_b;
+                // std::cout << b_var.size() << ' ' << num_chunks << std::endl;
+                // for (std::size_t j = 0; j < 2 * (num_chunks - 2); ++j) {
+                //     range_check_input_b.x[j] = b_var[j];
+                //     std::cout << b_var[j].index << ' ' << b_var[j].rotation << "; ";
+                // }
+                // std::cout << "руку60\n";
+                // typename range_check_multi_for_b_type::result_type range_check_for_b_result = 
+                //             generate_assignments(range_check_for_b_instance, assignment, range_check_input_b, current_row_index);
+                // std::cout << "руку70\n";
+                // current_row_index += range_check_for_b_instance.rows_amount;
+                // std::cout << "руку80\n";
 
                 //TODO
                 // range_check b_var, q_var, r_var
                 // check_mod_p for q_var, r_var
+                std::cout << "Assignment for flexible multiplication is done\n";
 
                 return typename component_type::result_type(component, start_row_index);
 	    }
@@ -376,6 +531,7 @@ namespace nil {
                                 num_chunks, bit_size_chunk>::input_type
                     &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
+                std::cout << "Start generating gates for flexible multiplication\n";
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
                                         num_chunks, bit_size_chunk>;
@@ -424,6 +580,7 @@ namespace nil {
                     pp.push_back(var(component.W(coords.column), coords.row - row_shift, true));
                     ++coords;
                 }
+                std::cout << "руку0\n";
 
                 // computation mod n
                 constraint_type constr_0, x_n, y_n, q_n, r_n, p_n;
@@ -437,6 +594,7 @@ namespace nil {
                     pow <<= bit_size_chunk;
                 }
                 constr_0 = x_n * y_n - q_n * p_n - r_n;
+                std::cout << "руку1\n";
 
                 // computation mod 2^T
                 std::vector<constraint_type> z_constr;
@@ -465,6 +623,7 @@ namespace nil {
                 for (std::size_t i = 0; i < num_chunks; ++i) {
                     constraints.push_back(a_constr[i] - z_constr[i]);
                 }
+                std::cout << "руку2\n";
 
                 return bp.add_gate(constraints);
             }
@@ -523,6 +682,18 @@ namespace nil {
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
                     num_chunks, bit_size_chunk>;
+                using var = typename component_type::var;
+                using check_mod_p_type = check_mod_p<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                                     BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using range_check_multi_type = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                                                 BlueprintFieldType, num_chunks, bit_size_chunk>;
+                using range_check_multi_for_b_type = range_check_multi<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
+                                                                 BlueprintFieldType, 2 * (num_chunks-2), bit_size_chunk>;
+                check_mod_p_type check_mod_p_instance( component._W, component._C, component._PI);
+                range_check_multi_type range_check_instance( component._W, component._C, component._PI);
+                range_check_multi_for_b_type range_check_for_b_instance( component._W, component._C, component._PI);
+
+                std::size_t current_row_index = start_row_index;
 
                 const std::size_t WA = component.witness_amount();
                 const std::size_t num_rows = component.get_rows_amount(WA, 0);
@@ -532,13 +703,84 @@ namespace nil {
                 assignment.enable_selector(selector_index, start_row_index + (num_rows > 1));
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
+                current_row_index += component.inner_rows_amount;
 
-                // TODO generate circuits
-                // range_check b_var, q_var, r_var
-                // check_mod_p for q_var, r_var
-                // use r/q/b_cells to call for appropriate cells
+                typename check_mod_p_type::input_type check_mod_p_input_r;
+                check_mod_p_input_r.zero = var(0, start_row_index, false, var::column_type::constant);
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    check_mod_p_input_r.x[j] = var(component.r_cells[j].column, component.r_cells[j].row + start_row_index, false);
+                    check_mod_p_input_r.pp[j] = var(0, j + 3 * num_chunks, false, var::column_type::public_input);
+                }
+                typename check_mod_p_type::result_type check_mod_p_result =
+                    generate_circuit(check_mod_p_instance, bp, assignment, check_mod_p_input_r, current_row_index);
+                current_row_index += check_mod_p_instance.rows_amount;
+
+                typename check_mod_p_type::input_type check_mod_p_input_q;
+                check_mod_p_input_q.zero = var(0, start_row_index, false, var::column_type::constant);
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    check_mod_p_input_q.x[j] = var(component.q_cells[j].column, component.q_cells[j].row + start_row_index, false);
+                    check_mod_p_input_q.pp[j] = var(0, j + 3 * num_chunks, false, var::column_type::public_input);
+                }
+                check_mod_p_result = generate_circuit(check_mod_p_instance, bp, assignment, check_mod_p_input_q, current_row_index);
+                current_row_index += check_mod_p_instance.rows_amount;
+
+                typename range_check_multi_type::input_type range_check_input_r;
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    range_check_input_r.x[j] = var(component.r_cells[j].column, component.r_cells[j].row + start_row_index, false);
+                }
+                typename range_check_multi_type::result_type range_check_result =
+                    generate_circuit(range_check_instance, bp, assignment, range_check_input_r, current_row_index);
+                current_row_index += range_check_instance.rows_amount;
+
+                typename range_check_multi_type::input_type range_check_input_q;
+                for (std::size_t j = 0; j < num_chunks; ++j) {
+                    range_check_input_q.x[j] = var(component.r_cells[j].column, component.r_cells[j].row + start_row_index, false);
+                }
+                range_check_result = generate_circuit(range_check_instance, bp, assignment, range_check_input_q, current_row_index);
+                current_row_index += range_check_instance.rows_amount;
+                std::cout << "руку00\n";
+
+                for (int i = 0; i < 2 * (num_chunks > 2); i++) {
+                    typename range_check_multi_type::input_type range_check_input_b;
+                    std::cout << num_chunks << ' ' << component.b_cells.size() << '\n';
+                    for (std::size_t j = 0; j < num_chunks - 2; ++j) {
+                        range_check_input_b.x[j] = var(component.b_cells[j + i * (num_chunks - 2)].column, component.b_cells[j + i * (num_chunks - 2)].row + start_row_index, false);
+                    }
+                    std::cout << "руку5\n";
+                    range_check_input_b.x[num_chunks - 2] = range_check_input_b.x[num_chunks - 3];
+                    range_check_input_b.x[num_chunks - 1] = range_check_input_b.x[num_chunks - 3];
+                    std::cout << "руку6\n";
+                    range_check_result = generate_circuit(range_check_instance, bp, assignment, range_check_input_b, current_row_index);
+                    current_row_index += range_check_instance.rows_amount;
+                }
+                std::cout << "руку01\n";
+
+                // typename range_check_multi_for_b_type::input_type range_check_input_b;
+                // std::cout << num_chunks << ' ' << component.b_cells.size() << '\n';
+                // for (std::size_t j = 0; j < 2* (num_chunks - 2); ++j) {
+                //     range_check_input_b.x[j] = var(component.b_cells[j].column, component.b_cells[j].row + start_row_index, false);
+                // }
+                // std::cout << "руку6\n";
+                // typename range_check_multi_for_b_type::result_type range_check_for_b_result = 
+                //             generate_circuit(range_check_for_b_instance, bp, assignment, range_check_input_b, current_row_index);
+                // current_row_index += range_check_for_b_instance.rows_amount;
+                // std::cout << "руку01\n";
 
                 return typename component_type::result_type(component, start_row_index);
+            }
+
+            template<typename BlueprintFieldType, typename NonNativeFieldType,
+            std::size_t num_chunks, std::size_t bit_size_chunk>
+            void generate_constants(
+                const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
+                    num_chunks, bit_size_chunk> &component,
+                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
+                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+                    &assignment,
+                const typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
+                    num_chunks, bit_size_chunk>::input_type &instance_input,
+                const std::size_t start_row_index) {
+                assignment.constant(component.C(0), start_row_index) = 0;
             }
 
         }    // namespace components
