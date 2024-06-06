@@ -107,6 +107,14 @@
             "blueprint_verifiers_flexible_multiplications_test"
             "blueprint_verifiers_flexible_poseidon_test"
             "blueprint_verifiers_flexible_constant_pow_test"
+            "blueprint_verifiers_placeholder_verifier_test"
+            "blueprint_zkevm_bytecode_test"
+            "blueprint_zkevm_state_selector_test"
+            "blueprint_zkevm_state_transition_test"
+            "blueprint_zkevm_opcodes_iszero_test"
+            "blueprint_zkevm_opcodes_add_sub_test"
+            "blueprint_zkevm_opcodes_mul_test"
+            "blueprint_zkevm_opcodes_div_test"
         ];
 
         checks = {
