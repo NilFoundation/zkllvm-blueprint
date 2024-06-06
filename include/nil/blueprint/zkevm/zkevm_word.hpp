@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <nil/crypto3/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 
 #include <nil/crypto3/algebra/fields/goldilocks64/base_field.hpp>
 #include <nil/crypto3/algebra/fields/bls12/base_field.hpp>
@@ -32,7 +32,7 @@
 namespace nil {
     namespace blueprint {
 
-        typedef crypto3::multiprecision::uint256_t zkevm_word_type;
+        typedef boost::multiprecision::uint256_t zkevm_word_type;
 
         template<typename BlueprintFieldType>
         std::vector<typename BlueprintFieldType::value_type> zkevm_word_to_field_element(const zkevm_word_type &word) {
@@ -54,7 +54,7 @@ namespace nil {
             const typename BlueprintFieldType::value_type &value
         ) {
             using value_type = typename BlueprintFieldType::value_type;
-            using integral_type = crypto3::multiprecision::uint256_t;
+            using integral_type = boost::multiprecision::uint256_t;
             std::vector<value_type> chunks;
             constexpr const std::size_t chunk_size = 16;
             constexpr const std::size_t num_chunks = 4;
