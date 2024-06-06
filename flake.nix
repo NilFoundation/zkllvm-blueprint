@@ -2,10 +2,10 @@
   description = "Nix flake for zkllvm-blueprint";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     nil_crypto3 = {
       url =
-        "git+https://github.com/NilFoundation/crypto3?submodules=1&rev=66096ae733cabc99a763e00e803d710493318563";
+        "git+https://github.com/NilFoundation/crypto3?submodules=1&rev=73ded556ea77147ce7afd3dbeed8e21f5f4d81db";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
@@ -174,6 +174,15 @@
             ];
 
             shellHook = ''
+              export NO_AT_BRIDGE="1"
+              function nil_test_runner() {
+                clear
+                filename=$(cat Makefile | grep "$2" | awk 'NR==1{print $NF}')
+                make -j$(nproc) "$filename" && ./test/$filename
+              }
+              function ctcmp() {
+                nil_test_runner blueprint $1
+              }
               echo "zkllvm-blueprint dev environment activated"
             '';
           };
