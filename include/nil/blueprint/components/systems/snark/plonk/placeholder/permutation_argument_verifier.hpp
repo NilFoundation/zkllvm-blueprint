@@ -110,7 +110,8 @@ namespace nil {
 
                     input_type(const std::vector<var>& inp) {
                         std::size_t idx = inp.size() - 1;
-                        thetas = {inp[idx--], inp[idx--]};
+                        thetas[1] = inp[idx--];
+                        thetas[0] = inp[idx--];
                         q_pad = inp[idx--];
                         q_last = inp[idx--];
                         V_zeta = inp[idx--];
