@@ -27,7 +27,7 @@
       "locked": {
         "lastModified": 1717692372,
         "narHash": "sha256-SvjnIGOXXvzJkA7Wcamr4D3lHLKryP862uNFzICA9Vw=",
-        "ref": "refs/heads/master",
+        "ref": "12a9320d108d810605fe474354540b28cbb66f19",
         "rev": "bed4b7cf5d86904699090ba84a473b6bced94c27",
         "revCount": 9120,
         "submodules": true,

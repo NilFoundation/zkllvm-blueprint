@@ -155,7 +155,7 @@ namespace nil {
                 state.step_selection.value = 1;
                 state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1;
                 state.rows_until_next_op_inv.value =
-                    state.rows_until_next_op.value == 0 ? 0 : 1 / state.rows_until_next_op.value;
+                    state.rows_until_next_op.value == 0 ? 0 : state.rows_until_next_op.value.inversed();
                 advance_rows(opcode, opcode_it->second->rows_amount());
             }
 
@@ -180,7 +180,7 @@ namespace nil {
                     assignment.witness(state_selector->W(0), curr_row) = opcode_val;
                     state.rows_until_next_op.value = state.rows_until_next_op.value - 1;
                     state.rows_until_next_op_inv.value = state.rows_until_next_op.value == 0 ?
-                        0 : 1 / state.rows_until_next_op.value;
+                        0 : state.rows_until_next_op.value.inversed();
                     curr_row++;
                 }
             }

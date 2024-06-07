@@ -35,7 +35,7 @@ namespace nil {
         public:
             using word_type = zkevm_word_type;
 
-            void push(word_type word) {
+            void push(const word_type& word) {
                 stack.push(word);
             }
 

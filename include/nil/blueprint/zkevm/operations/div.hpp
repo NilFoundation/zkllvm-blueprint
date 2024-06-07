@@ -218,8 +218,11 @@ namespace nil {
                 zkevm_stack &stack = machine.stack;
                 word_type a = stack.pop();
                 word_type b = stack.pop();
-                word_type result = b != 0 ? a / b : 0;
-                word_type q = b != 0 ? a % b : a;
+                using integral_type = boost::multiprecision::number<
+                    boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+                integral_type result_integral = b != 0u ? integral_type(a) / integral_type(b) : 0u;
+                word_type result = word_type::backend_type(result_integral.backend());
+                word_type q = b != 0u ? a % b : a;
 
                 const std::vector<value_type> a_chunks = zkevm_word_to_field_element<BlueprintFieldType>(a);
                 const std::vector<value_type> b_chunks = zkevm_word_to_field_element<BlueprintFieldType>(b);
@@ -270,7 +273,7 @@ namespace nil {
                 }
                 assignment.witness(witness_cols[4 + chunk_amount], curr_row + 1) = c_4;
                 assignment.witness(witness_cols[5 + chunk_amount], curr_row + 1) =
-                    b_sum == 0 ? 0 : 1 / b_sum;
+                    b_sum == 0 ? 0 : b_sum.inversed();
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 2) = r_chunks[i];
@@ -288,7 +291,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i + chunk_amount], curr_row + 3) =
                         (b_chunks[i] - q_chunks[i]) != 0 ?
-                            1 / (b_chunks[i] - q_chunks[i])
+                            1 * (b_chunks[i] - q_chunks[i]).inversed()
                             : 0;
                 }
 

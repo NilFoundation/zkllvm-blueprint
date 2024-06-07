@@ -32,7 +32,27 @@
 namespace nil {
     namespace blueprint {
 
-        typedef boost::multiprecision::uint256_t zkevm_word_type;
+        constexpr static const
+            boost::multiprecision::number<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>> zkevm_modulus =
+                        0x10000000000000000000000000000000000000000000000000000000000000000_cppui_modular257;
+
+        constexpr static const boost::multiprecision::backends::modular_params<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>>
+                    zkevm_modular_params = zkevm_modulus.backend();
+
+        typedef boost::multiprecision::number<
+            boost::multiprecision::backends::modular_adaptor<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>,
+                boost::multiprecision::backends::modular_params_ct<
+                    boost::multiprecision::backends::cpp_int_modular_backend<257>,
+                    zkevm_modular_params>>>
+            zkevm_word_type;
+
+        template<typename T>
+        constexpr zkevm_word_type zwordc(const T &value) {
+            return zkevm_word_type::backend_type(value.backend());
+        }
 
         template<typename BlueprintFieldType>
         std::vector<typename BlueprintFieldType::value_type> zkevm_word_to_field_element(const zkevm_word_type &word) {
@@ -40,10 +60,13 @@ namespace nil {
             std::vector<value_type> chunks;
             constexpr const std::size_t chunk_size = 16;
             constexpr const std::size_t num_chunks = 256 / chunk_size;
-            constexpr const zkevm_word_type mask = (zkevm_word_type(1) << chunk_size) - 1;
-            zkevm_word_type word_copy = word;
+            using integral_type = boost::multiprecision::number<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+            constexpr const integral_type mask =
+                integral_type((zkevm_word_type(1) << chunk_size) - 1);
+            integral_type word_copy = integral_type(word);
             for (std::size_t i = 0; i < num_chunks; ++i) {
-                chunks.push_back(static_cast<value_type>(word_copy & mask));
+                chunks.push_back(word_copy & mask);
                 word_copy >>= chunk_size;
             }
             return chunks;
@@ -54,7 +77,7 @@ namespace nil {
             const typename BlueprintFieldType::value_type &value
         ) {
             using value_type = typename BlueprintFieldType::value_type;
-            using integral_type = boost::multiprecision::uint256_t;
+            using integral_type = typename BlueprintFieldType::integral_type;
             std::vector<value_type> chunks;
             constexpr const std::size_t chunk_size = 16;
             constexpr const std::size_t num_chunks = 4;

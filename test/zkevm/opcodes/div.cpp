@@ -54,16 +54,16 @@ BOOST_AUTO_TEST_CASE(zkevm_mul_test) {
     zkevm_machine_type machine = get_empty_machine();
     // incorrect test logic, but we have no memory operations so
     // check all overflows for chunks
-    machine.stack.push(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui256);
-    machine.stack.push(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui256);
+    machine.stack.push(zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257));
+    machine.stack.push(zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::DIV, machine);
     machine.stack.push(1234567890);
-    machine.stack.push(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
+    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::DIV, machine);
-    machine.stack.push(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
-    machine.stack.push(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
+    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::DIV, machine);
-    machine.stack.push(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
+    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     machine.stack.push(1234567890);
     zkevm_circuit.assign_opcode(zkevm_opcode::DIV, machine);
     machine.stack.push(0);
