@@ -108,6 +108,7 @@
             "blueprint_verifiers_flexible_poseidon_test"
             "blueprint_verifiers_flexible_constant_pow_test"
             "blueprint_verifiers_placeholder_verifier_test"
+            "blueprint_zkevm_zkevm_word_test"
             "blueprint_zkevm_bytecode_test"
             "blueprint_zkevm_state_selector_test"
             "blueprint_zkevm_state_transition_test"
