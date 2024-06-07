@@ -47,14 +47,15 @@ namespace nil {
             // (expects zero constant as input)
             // Output: none
             //
-            template<typename ArithmetizationType, typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            template<typename ArithmetizationType, typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output = false>
             class check_mod_p;
 
-            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output>
             class check_mod_p<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                            BlueprintFieldType,
                            num_chunks,
-                           bit_size_chunk>
+                           bit_size_chunk,
+                           expect_output>
                 : public plonk_component<BlueprintFieldType> {
 
             public:
@@ -84,7 +85,7 @@ namespace nil {
                 static manifest_type get_manifest() {
                     static manifest_type manifest = manifest_type(
                         // all requirements come from sub-components, the component itself has no personal requirements
-                        std::shared_ptr<manifest_param>(new manifest_single_value_param(0)),
+                        std::shared_ptr<manifest_param>(new manifest_single_value_param(expect_output)),
                         false // constant column not needed
                     ).merge_with(carry_on_addition_component::get_manifest())
                      .merge_with(range_check_component::get_manifest());
@@ -93,7 +94,7 @@ namespace nil {
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
                                                              std::size_t lookup_column_amount) {
-                    return carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
+                    return expect_output + carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + range_check_component::get_rows_amount(witness_amount,lookup_column_amount);
                 }
 
@@ -114,15 +115,25 @@ namespace nil {
                     }
                 };
 
-                struct result_type {
-
-                    result_type(const check_mod_p &component, std::uint32_t start_row_index) { }
+                struct result_type_no_output {
+                    result_type_no_output(const check_mod_p &component, std::uint32_t start_row_index) { }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         std::vector<std::reference_wrapper<var>> res = {};
                         return res;
                     }
                 };
+                struct result_type_with_output {
+                    var q;
+                    result_type_with_output(const check_mod_p &component, std::uint32_t start_row_index) {
+                       q = var(component.W(0), start_row_index, false, var::column_type::witness);
+                    }
+
+                    std::vector<std::reference_wrapper<var>> all_vars() {
+                        return {q};
+                    }
+                };
+                using result_type = typename std::conditional<expect_output,result_type_with_output,result_type_no_output>::type;
 
                 template<typename ContainerType>
                 explicit check_mod_p(ContainerType witness) : component_type(witness, {}, {}, get_manifest()) {
@@ -156,24 +167,25 @@ namespace nil {
                 }
            };
 
-            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output>
             using plonk_check_mod_p =
                 check_mod_p<
                     crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                     BlueprintFieldType,
                     num_chunks,
-                    bit_size_chunk>;
+                    bit_size_chunk,
+                    expect_output>;
 
-            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
-            typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>::result_type generate_assignments(
-                const plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk> &component,
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output>
+            typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>::result_type generate_assignments(
+                const plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type
+                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>;
+                using component_type = plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>;
                 using carry_on_addition_type = typename component_type::carry_on_addition_component;
                 using range_check_type = typename component_type::range_check_component;
 
@@ -187,55 +199,60 @@ namespace nil {
                 }
 
                 typename carry_on_addition_type::result_type carry_on_addition_result =
-                    generate_assignments(carry_on_addition_instance, assignment, carry_on_addition_input, start_row_index);
+                    generate_assignments(carry_on_addition_instance, assignment, carry_on_addition_input, start_row_index + expect_output);
+                if (expect_output) {
+                    assignment.witness(component.W(0), start_row_index) = var_value(assignment, carry_on_addition_result.ck);
+                }
 
-                // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                // perform range check
                 typename range_check_type::input_type range_check_input;
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     range_check_input.x[i] = carry_on_addition_result.z[i];
                 }
                 generate_assignments(range_check_instance, assignment, range_check_input,
-                    start_row_index + carry_on_addition_instance.rows_amount);
+                    start_row_index + expect_output + carry_on_addition_instance.rows_amount);
 
-                return typename plonk_check_mod_p<BlueprintFieldType, num_chunks, bit_size_chunk>::result_type(component, start_row_index);
+                return typename plonk_check_mod_p<BlueprintFieldType, num_chunks, bit_size_chunk,expect_output>::result_type(component, start_row_index);
 	    }
 
-            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output>
             std::vector<std::size_t> generate_gates(
-                const plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk> &component,
+                const plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type
+                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>::input_type
                     &instance_input) {
 
                 // never actually called
                 return {};
             }
 
-            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output>
             void generate_copy_constraints(
-                const plonk_check_mod_p<BlueprintFieldType, num_chunks, bit_size_chunk> &component,
+                const plonk_check_mod_p<BlueprintFieldType, num_chunks, bit_size_chunk,expect_output> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type &instance_input,
+                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>::input_type &instance_input,
                 const std::size_t start_row_index) {
 
                 // all copy constraints are moved to generate_circuit
             }
 
-            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk>
-            typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>::result_type generate_circuit(
-                const plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk> &component,
+            template<typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, bool expect_output>
+            typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>::result_type generate_circuit(
+                const plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                     &assignment,
-                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>::input_type &instance_input,
+                const typename plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>::input_type &instance_input,
                 const std::size_t start_row_index) {
-                using component_type = plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk>;
+                using component_type = plonk_check_mod_p<BlueprintFieldType,num_chunks,bit_size_chunk,expect_output>;
                 using carry_on_addition_type = typename component_type::carry_on_addition_component;
                 using range_check_type = typename component_type::range_check_component;
+
+                using var = typename component_type::var;
 
                 carry_on_addition_type carry_on_addition_instance( component._W, component._C, component._PI);
                 range_check_type range_check_instance( component._W, component._C, component._PI);
@@ -246,16 +263,18 @@ namespace nil {
                     carry_on_addition_input.y[i] = instance_input.pp[i];
                 }
                 typename carry_on_addition_type::result_type carry_on_addition_result =
-                    generate_circuit(carry_on_addition_instance, bp, assignment, carry_on_addition_input, start_row_index);
-                bp.add_copy_constraint({carry_on_addition_result.ck, instance_input.zero}); // ck = zero, zero comes in component input
-                // perform num_chunks range checks. To be replaced by a single batched range check in the future
+                    generate_circuit(carry_on_addition_instance, bp, assignment, carry_on_addition_input, start_row_index + expect_output);
 
+                bp.add_copy_constraint({carry_on_addition_result.ck,
+                                        (expect_output ? var(component.W(0),start_row_index,false) : instance_input.zero)});
+
+                // perform range check
                 typename range_check_type::input_type range_check_input;
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     range_check_input.x[i] = carry_on_addition_result.z[i];
                 }
                 generate_circuit(range_check_instance, bp, assignment, range_check_input,
-                    start_row_index + carry_on_addition_instance.rows_amount);
+                    start_row_index + expect_output + carry_on_addition_instance.rows_amount);
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index); // does nothing, may be skipped?
 

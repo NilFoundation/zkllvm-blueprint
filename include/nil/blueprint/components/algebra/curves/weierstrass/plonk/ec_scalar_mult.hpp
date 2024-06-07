@@ -147,7 +147,7 @@ namespace nil {
                            + 3*ec_incomplete_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
                            + (Q-1)*ec_two_t_plus_q_component::get_rows_amount(witness_amount,lookup_column_amount)
                            ;
-std::cout << "Rows amount = " << num_rows << "\n";
+//std::cout << "Rows amount = " << num_rows << "\n";
                     return num_rows;
                 }
 

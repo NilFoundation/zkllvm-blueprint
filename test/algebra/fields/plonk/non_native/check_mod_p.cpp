@@ -45,7 +45,7 @@
 
 using namespace nil;
 
-template <typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t WitnessColumns, bool to_pass>
+template <typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t WitnessColumns, bool to_pass, bool with_output = false>
 void test_mod_p_check(const std::vector<typename BlueprintFieldType::value_type> &public_input){
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 2;
@@ -60,7 +60,7 @@ void test_mod_p_check(const std::vector<typename BlueprintFieldType::value_type>
     using value_type = typename BlueprintFieldType::value_type;
     using var = crypto3::zk::snark::plonk_variable<value_type>;
 
-    using component_type = blueprint::components::check_mod_p<ArithmetizationType, BlueprintFieldType, num_chunks, bit_size_chunk>;
+    using component_type = blueprint::components::check_mod_p<ArithmetizationType, BlueprintFieldType, num_chunks, bit_size_chunk, with_output>;
 
     typename component_type::input_type instance_input;
 
@@ -70,8 +70,10 @@ void test_mod_p_check(const std::vector<typename BlueprintFieldType::value_type>
     }
     instance_input.zero = var(0, 2*num_chunks, false, var::column_type::public_input);
 
-    auto result_check = [](AssignmentType &assignment,
-	    typename component_type::result_type &real_res) {
+    auto result_check = [](AssignmentType &assignment, typename component_type::result_type &real_res) {
+        if constexpr(with_output) {
+            BOOST_ASSERT(var_value(assignment, real_res.q) == !to_pass);
+        }
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -121,7 +123,12 @@ void mod_p_check_tests() {
         }
         public_input.push_back(value_type(0)); // the zero
 
-        test_mod_p_check<BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns,to_pass>(public_input);
+        // without output
+        test_mod_p_check<BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns,to_pass,false>(public_input);
+        // with output
+        if (to_pass) {
+           test_mod_p_check<BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns,to_pass,true>(public_input);
+        }
     }
 }
 

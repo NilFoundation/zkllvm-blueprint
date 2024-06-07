@@ -102,6 +102,7 @@ set(PLONK_TESTS_FILES
     "hashes/plonk/decomposition"
     "hashes/plonk/detail/sha_table_generators_base4"
     "hashes/plonk/detail/sha_table_generators_base7"
+    "pubkey/plonk/ecdsa"
     "verifiers/kimchi/base_field"
     "verifiers/kimchi/prepare_batch_scalar"
     "verifiers/kimchi/verify_scalar"

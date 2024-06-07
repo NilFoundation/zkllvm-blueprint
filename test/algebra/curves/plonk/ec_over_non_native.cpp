@@ -464,7 +464,7 @@ void test_scalar_mult(typename CurveType::template g1_type<crypto3::algebra::cur
     scalar_integral_type BS = scalar_integral_type(1) << bit_size_chunk,
                          s = scalar_integral_type(scalar.data),
                          n = ScalarFieldType::modulus,
-                         m = (n-1)/2,
+                         m = (n-1)/2 + 1,
                          s_ext_pow = scalar_integral_type(1) << num_chunks*bit_size_chunk,
                          mp = s_ext_pow - m;
 
