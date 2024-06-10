@@ -97,12 +97,12 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest =
                         gate_manifest(gate_manifest_type())
-                            .merge_with(choice_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                            .merge_with(carry_on_addition_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                            .merge_with(range_check_component::get_gate_manifest(witness_amount, lookup_column_amount));
+                            .merge_with(choice_component::get_gate_manifest(witness_amount))
+                            .merge_with(carry_on_addition_component::get_gate_manifest(witness_amount))
+                            .merge_with(range_check_component::get_gate_manifest(witness_amount));
                     return manifest;
                 }
 
@@ -116,22 +116,21 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     std::size_t rows = (num_chunks + 1) / witness_amount + ((num_chunks + 1) % witness_amount > 0);
-                    rows += carry_on_addition_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += choice_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += carry_on_addition_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += range_check_component::get_rows_amount(witness_amount, lookup_column_amount);
-                    rows += check_mod_p_component::get_rows_amount(witness_amount, lookup_column_amount);
+                    rows += carry_on_addition_component::get_rows_amount(witness_amount);
+                    rows += range_check_component::get_rows_amount(witness_amount);
+                    rows += choice_component::get_rows_amount(witness_amount);
+                    rows += carry_on_addition_component::get_rows_amount(witness_amount);
+                    rows += range_check_component::get_rows_amount(witness_amount);
+                    rows += range_check_component::get_rows_amount(witness_amount);
+                    rows += check_mod_p_component::get_rows_amount(witness_amount);
 
                     return rows;
                 }
 
                 constexpr static const std::size_t gates_amount = 0;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "multichunk binary addition mod p";
 
                 struct input_type {
@@ -261,9 +260,9 @@ namespace nil {
                     x_full *= B;
                     y_full *= B;
                     p_full *= B;
-                    x_full += foreign_integral_type(var_value(assignment, instance_input.x[i - 1]).data);
-                    y_full += foreign_integral_type(var_value(assignment, instance_input.y[i - 1]).data);
-                    p_full += foreign_integral_type(var_value(assignment, instance_input.p[i - 1]).data);
+                    x_full += foreign_integral_type(integral_type(var_value(assignment, instance_input.x[i - 1]).data));
+                    y_full += foreign_integral_type(integral_type(var_value(assignment, instance_input.y[i - 1]).data));
+                    p_full += foreign_integral_type(integral_type(var_value(assignment, instance_input.p[i - 1]).data));
                 }
 
                 z_full = x_full + y_full;   // x + y = z + qp

@@ -73,12 +73,11 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest =
                         gate_manifest(gate_manifest_type())
-                        .merge_with(carry_on_addition_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(range_check_component::get_gate_manifest(witness_amount, lookup_column_amount));
+                        .merge_with(carry_on_addition_component::get_gate_manifest(witness_amount))
+                        .merge_with(range_check_component::get_gate_manifest(witness_amount));
                     return manifest;
                 }
 
@@ -92,14 +91,13 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
-                    return expect_output + carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
-                           + range_check_component::get_rows_amount(witness_amount,lookup_column_amount);
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
+                    return expect_output + carry_on_addition_component::get_rows_amount(witness_amount)
+                           + range_check_component::get_rows_amount(witness_amount);
                 }
 
                 constexpr static const std::size_t gates_amount = 0;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "multichunk interval checking function";
 
                 struct input_type {
@@ -200,7 +198,7 @@ namespace nil {
 
                 typename carry_on_addition_type::result_type carry_on_addition_result =
                     generate_assignments(carry_on_addition_instance, assignment, carry_on_addition_input, start_row_index + expect_output);
-                if (expect_output) {
+                if constexpr(expect_output) {
                     assignment.witness(component.W(0), start_row_index) = var_value(assignment, carry_on_addition_result.ck);
                 }
 

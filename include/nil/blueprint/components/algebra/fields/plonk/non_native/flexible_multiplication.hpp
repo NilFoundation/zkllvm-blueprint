@@ -79,12 +79,11 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type())
-                        .merge_with(check_mod_p_type::get_gate_manifest(witness_amount, lookup_column_amount))
-                       // .merge_with(range_check_type::get_gate_manifest(witness_amount, lookup_column_amount))
-                       // .merge_with(range_check_for_b_type::get_gate_manifest(witness_amount, lookup_column_amount))
+                        .merge_with(check_mod_p_type::get_gate_manifest(witness_amount))
+                       // .merge_with(range_check_type::get_gate_manifest(witness_amount))
+                       // .merge_with(range_check_for_b_type::get_gate_manifest(witness_amount))
                        ;
                     return manifest;
                 }
@@ -103,16 +102,14 @@ namespace nil {
                     return manifest;
                 }
 
-                static std::size_t get_inner_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                static std::size_t get_inner_rows_amount(std::size_t witness_amount) {
                     auto nc = 8*num_chunks - 2;
                     return nc / witness_amount + (nc % witness_amount > 0);
                 }
-                static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
-                    auto inner_rows = get_inner_rows_amount(witness_amount, lookup_column_amount);
-                    auto check_mod_p_rows = check_mod_p_type::get_rows_amount(witness_amount, lookup_column_amount);
-                    auto range_check_rows = range_check_type::get_rows_amount(witness_amount, lookup_column_amount);
+                static std::size_t get_rows_amount(std::size_t witness_amount) {
+                    auto inner_rows = get_inner_rows_amount(witness_amount);
+                    auto check_mod_p_rows = check_mod_p_type::get_rows_amount(witness_amount);
+                    auto range_check_rows = range_check_type::get_rows_amount(witness_amount);
 /*
                     auto range_check_for_b_rows = 0;
                     if (num_chunks > 2) {
@@ -124,10 +121,10 @@ namespace nil {
                     return inner_rows + (check_mod_p_rows + range_check_rows * (1 + (num_chunks > 2))) * 2;
                 }
 
-                const std::size_t inner_rows_amount = get_inner_rows_amount(this->witness_amount(), 0);
+                const std::size_t inner_rows_amount = get_inner_rows_amount(this->witness_amount());
 
                 constexpr static const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "flexible non-native multiplication";
 
                 struct input_type {
@@ -300,7 +297,6 @@ namespace nil {
                     num_chunks, bit_size_chunk>::input_type
                     &instance_input,
                 const std::uint32_t start_row_index) {
-//                std::cout << "Start generating assignment for flexible multiplication\n";
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
                                         num_chunks, bit_size_chunk>;
@@ -318,6 +314,7 @@ namespace nil {
                 using var = typename component_type::var;
                 using native_value_type = typename BlueprintFieldType::value_type;
                 using native_integral_type = typename BlueprintFieldType::integral_type;
+                using foreign_value_type = typename NonNativeFieldType::value_type;
                 using foreign_extended_integral_type = typename NonNativeFieldType::extended_integral_type;
 
                 const std::size_t WA = component.witness_amount();
@@ -340,22 +337,15 @@ namespace nil {
                                                pow = 1;
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
-                    foreign_x += foreign_extended_integral_type(x[j].data) * pow;
-                    foreign_y += foreign_extended_integral_type(y[j].data) * pow;
-                    foreign_p += foreign_extended_integral_type(p[j].data) * pow;
+                    foreign_x += foreign_extended_integral_type(native_integral_type(x[j].data)) * pow;
+                    foreign_y += foreign_extended_integral_type(native_integral_type(y[j].data)) * pow;
+                    foreign_p += foreign_extended_integral_type(native_integral_type(p[j].data)) * pow;
                     pow <<= bit_size_chunk;
                 }
-std::cout << "GA x = " << foreign_x << std::endl;
-std::cout << "GA y = " << foreign_y << std::endl;
-std::cout << "GA p = " << foreign_p << std::endl;
                 foreign_extended_integral_type foreign_r = (foreign_x * foreign_y) % foreign_p, // r = x*y % p
                                                foreign_q = (foreign_x * foreign_y - foreign_r) / foreign_p; // q = (x*y - r)/p
-std::cout << "GA r = " << foreign_r << std::endl;
-std::cout << "GA x*y  = " << (foreign_x * foreign_y) << std::endl;
-std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                 std::vector<native_value_type> q;  // chunks of q
                 std::vector<native_value_type> r;  // chunks of r
-                //native_integral_type mask = (native_integral_type(1) << bit_size_chunk) - 1;
                 foreign_extended_integral_type mask = (foreign_extended_integral_type(1) << bit_size_chunk) - 1;
 
                 for (std::size_t j = 0; j < num_chunks; ++j) {
@@ -452,9 +442,9 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                 typename check_mod_p_type::input_type check_mod_p_input_r;
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     check_mod_p_input_r.x[j] = r_var[j];
-                    check_mod_p_input_r.pp[j] = instance_input.pp[j]; // var(0, j + 3 * num_chunks, false, var::column_type::public_input);
+                    check_mod_p_input_r.pp[j] = instance_input.pp[j];
                 }
-                check_mod_p_input_r.zero = instance_input.zero; // var(0, start_row_index, false, var::column_type::constant);
+                check_mod_p_input_r.zero = instance_input.zero;
                 typename check_mod_p_type::result_type check_mod_p_result =
                     generate_assignments(check_mod_p_instance, assignment, check_mod_p_input_r, current_row_index);
                 current_row_index += check_mod_p_instance.rows_amount;
@@ -462,9 +452,9 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                 typename check_mod_p_type::input_type check_mod_p_input_q;
                 for (std::size_t j = 0; j < num_chunks; ++j) {
                     check_mod_p_input_q.x[j] = q_var[j];
-                    check_mod_p_input_q.pp[j] = instance_input.pp[j]; // var(0, j + 3 * num_chunks, false, var::column_type::public_input);
+                    check_mod_p_input_q.pp[j] = instance_input.pp[j];
                 }
-                check_mod_p_input_q.zero = instance_input.zero; // var(0, start_row_index, false, var::column_type::constant);
+                check_mod_p_input_q.zero = instance_input.zero;
                 check_mod_p_result = generate_assignments(check_mod_p_instance, assignment, check_mod_p_input_q, current_row_index);
                 current_row_index += check_mod_p_instance.rows_amount;
 
@@ -521,11 +511,6 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                 // current_row_index += range_check_for_b_instance.rows_amount;
                 // std::cout << "руку80\n";
 
-                //TODO
-                // range_check b_var, q_var, r_var
-                // check_mod_p for q_var, r_var
-//                std::cout << "Assignment for flexible multiplication is done\n";
-
                 return typename component_type::result_type(component, start_row_index);
 	    }
 
@@ -541,7 +526,6 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                                 num_chunks, bit_size_chunk>::input_type
                     &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
-//                std::cout << "Start generating gates for flexible multiplication\n";
 
                 using component_type = plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
                                         num_chunks, bit_size_chunk>;
@@ -550,7 +534,7 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                 using integral_type = typename BlueprintFieldType::integral_type;
 
                 const std::size_t WA = component.witness_amount();
-                const std::size_t num_rows = component.get_rows_amount(WA, 0);
+                const std::size_t num_rows = component.get_rows_amount(WA);
 
                 int row_shift = (num_rows > 1);
 
@@ -705,7 +689,7 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
                 std::size_t current_row_index = start_row_index;
 
                 const std::size_t WA = component.witness_amount();
-                const std::size_t num_rows = component.get_rows_amount(WA, 0);
+                const std::size_t num_rows = component.get_rows_amount(WA);
 
                 std::size_t selector_index = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
 
@@ -776,21 +760,6 @@ std::cout << "GA qp+r = " << (foreign_p * foreign_q + foreign_r) << std::endl;
 
                 return typename component_type::result_type(component, start_row_index);
             }
-/*
-            template<typename BlueprintFieldType, typename NonNativeFieldType,
-            std::size_t num_chunks, std::size_t bit_size_chunk>
-            void generate_constants(
-                const plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk> &component,
-                circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
-                assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
-                    &assignment,
-                const typename plonk_flexible_multiplication<BlueprintFieldType,NonNativeFieldType,
-                    num_chunks, bit_size_chunk>::input_type &instance_input,
-                const std::size_t start_row_index) {
-                assignment.constant(component.C(0), start_row_index) = 0;
-            }
-*/
         }    // namespace components
     }        // namespace blueprint
 }    // namespace nil

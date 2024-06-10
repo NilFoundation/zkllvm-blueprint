@@ -87,9 +87,9 @@ void test_addition_mod_p(const std::vector<typename BlueprintFieldType::value_ty
         x_full *= B;
         y_full *= B;
         p_full *= B;
-        x_full += foreign_integral_type(public_input[i - 1].data);
-        y_full += foreign_integral_type(public_input[num_chunks + i - 1].data);
-        p_full += foreign_integral_type(public_input[2*num_chunks + i - 1].data);
+        x_full += foreign_integral_type(integral_type(public_input[i - 1].data));
+        y_full += foreign_integral_type(integral_type(public_input[num_chunks + i - 1].data));
+        p_full += foreign_integral_type(integral_type(public_input[2*num_chunks + i - 1].data));
     }
 
     z_full = x_full + y_full;
@@ -130,7 +130,8 @@ template <typename BlueprintFieldType, typename NonNativeFieldType, std::size_t 
 void addition_mod_p_tests() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
-    using foreign_integral_type = typename NonNativeFieldType::integral_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
+    using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
 
     std::cout << num_chunks << "  " << bit_size_chunk << " " << WitnessColumns << std::endl;
 
@@ -146,8 +147,8 @@ void addition_mod_p_tests() {
                               ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                               pp = ext_pow - p;
 
-        foreign_integral_type x = foreign_integral_type(generate_random().data);
-        foreign_integral_type y = foreign_integral_type(generate_random().data);
+        foreign_integral_type x = foreign_integral_type(foreign_basic_integral_type(generate_random().data));
+        foreign_integral_type y = foreign_integral_type(foreign_basic_integral_type(generate_random().data));
 
         for(std::size_t j = 0; j < num_chunks; j++) { // the x's
             public_input.push_back(value_type(x % B));

@@ -73,8 +73,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -88,15 +87,14 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     std::size_t num_cells = num_rc_chunks + 1;
                     num_cells += (first_chunk_size > 0) ? 1 : 0;
                     return num_cells / witness_amount + (num_cells % witness_amount > 0);
                 }
 
                 constexpr static const std::size_t gates_amount = 2;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "range check";
 
                 struct input_type {
@@ -122,7 +120,7 @@ namespace nil {
                     std::size_t column;
                     std::size_t witness_amount;
 
-                    coordinates(std::size_t row, std::size_t column, std::size_t witness_amount) : 
+                    coordinates(std::size_t row, std::size_t column, std::size_t witness_amount) :
                                 row(row), column(column), witness_amount(witness_amount) {}
                     coordinates() : row(0), column(0), witness_amount(1) {}
 
@@ -246,7 +244,7 @@ namespace nil {
                 std::vector<std::size_t> selector_indexes;
 
                 const std::size_t WA = component.witness_amount();
-                const std::size_t num_rows = component.get_rows_amount(WA, 0);
+                const std::size_t num_rows = component.get_rows_amount(WA);
                 const int row_shift = num_rows == 3 ? -1 : 0;
                 integral_type power = 1;
 
@@ -307,7 +305,7 @@ namespace nil {
                 using component_type = plonk_range_check<BlueprintFieldType, bit_size_chunk>;
 
                 const std::size_t WA = component.witness_amount();
-                const std::size_t num_rows = component.get_rows_amount(WA, 0);
+                const std::size_t num_rows = component.get_rows_amount(WA);
                 const std::size_t row_shift = num_rows == 3 ? 1 : 0;
 
                 std::vector<std::size_t> selector_index = generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());

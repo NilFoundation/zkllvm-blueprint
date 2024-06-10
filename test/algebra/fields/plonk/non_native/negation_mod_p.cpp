@@ -84,8 +84,8 @@ void test_negation_mod_p(const std::vector<typename BlueprintFieldType::value_ty
     for(std::size_t i = num_chunks; i > 0; i--) {
         x_full *= B;
         p_full *= B;
-        x_full += foreign_integral_type(public_input[i - 1].data);
-        p_full += foreign_integral_type(public_input[num_chunks + i - 1].data);
+        x_full += foreign_integral_type(integral_type(public_input[i - 1].data));
+        p_full += foreign_integral_type(integral_type(public_input[num_chunks + i - 1].data));
     }
 
     y_full = (x_full == 0) ? 0 : p_full - x_full; // if x = 0, then y = 0
@@ -122,7 +122,8 @@ template <typename BlueprintFieldType, typename NonNativeFieldType, std::size_t 
 void negation_mod_p_tests() {
     using value_type = typename BlueprintFieldType::value_type;
     using integral_type = typename BlueprintFieldType::integral_type;
-    using foreign_integral_type = typename NonNativeFieldType::integral_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
+    using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
 
     static boost::random::mt19937 seed_seq;
     nil::crypto3::random::algebraic_engine<NonNativeFieldType> generate_random(seed_seq);
@@ -136,7 +137,7 @@ void negation_mod_p_tests() {
                               ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                               pp = ext_pow - p;
 
-        foreign_integral_type x = foreign_integral_type(generate_random().data);
+        foreign_integral_type x = foreign_integral_type(foreign_basic_integral_type(generate_random().data));
 
         for(std::size_t j = 0; j < num_chunks; j++) { // the x's
             public_input.push_back(value_type(x % B));

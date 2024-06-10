@@ -80,14 +80,14 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type())
-                        .merge_with(choice_function_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(carry_on_addition_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(range_check_component::get_gate_manifest(witness_amount, lookup_column_amount))
+                        .merge_with(choice_function_component::get_gate_manifest(witness_amount))
+                        .merge_with(carry_on_addition_component::get_gate_manifest(witness_amount))
+                        .merge_with(range_check_component::get_gate_manifest(witness_amount))
                         // the following is unnecessary because check_mod_p uses only carry_on_addition and range_check,
                         // while gate_manifest cannot process intersecting gate sets correctly
-                        // .merge_with(check_mod_p_component::get_gate_manifest(witness_amount, lookup_column_amount))
+                        // .merge_with(check_mod_p_component::get_gate_manifest(witness_amount))
                         ;
                     return manifest;
                 }
@@ -105,18 +105,18 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     const std::size_t negation_rows_amount = (num_chunks + 1)/witness_amount + ((num_chunks + 1) % witness_amount > 0);
 
                     return negation_rows_amount
-                         + choice_function_component::get_rows_amount(witness_amount,lookup_column_amount)
-                         + carry_on_addition_component::get_rows_amount(witness_amount,lookup_column_amount)
-                         + range_check_component::get_rows_amount(witness_amount,lookup_column_amount)
-                         + check_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount);
+                         + choice_function_component::get_rows_amount(witness_amount)
+                         + carry_on_addition_component::get_rows_amount(witness_amount)
+                         + range_check_component::get_rows_amount(witness_amount)
+                         + check_mod_p_component::get_rows_amount(witness_amount);
                 }
 
                 constexpr static const std::size_t gates_amount = 0;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "multichunk negation mod p function";
 
                 struct input_type {
@@ -206,7 +206,7 @@ namespace nil {
                 using var = typename component_type::var;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
-                using foreign_integral_type = typename NonNativeFieldType::integral_type;
+                using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
 
                 const std::size_t WA = component.witness_amount();
 
@@ -219,8 +219,8 @@ namespace nil {
                 for(std::size_t i = num_chunks; i > 0; i--) {
                     x_full *= B;
                     p_full *= B;
-                    x_full += foreign_integral_type(var_value(assignment, instance_input.x[i-1]).data);
-                    p_full += foreign_integral_type(var_value(assignment, instance_input.p[i-1]).data);
+                    x_full += foreign_integral_type(integral_type(var_value(assignment, instance_input.x[i-1]).data));
+                    p_full += foreign_integral_type(integral_type(var_value(assignment, instance_input.p[i-1]).data));
                 }
 
                 value_type q = (x_full == 0) ? 0 : 1;

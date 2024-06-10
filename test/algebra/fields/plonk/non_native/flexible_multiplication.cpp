@@ -72,9 +72,10 @@ void test_mult(const std::vector<typename BlueprintFieldType::value_type> &publi
     using component_type = typename blueprint::components::flexible_mult<ArithmetizationType, BlueprintFieldType, NonNativeFieldType,
                                                                             num_chunks, bit_size_chunk>;
     using foreign_value_type = typename NonNativeFieldType::value_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
     using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
 
-std::cout << "Non-native p = " << NonNativeFieldType::modulus << std::endl;
+//std::cout << "Non-native p = " << NonNativeFieldType::modulus << std::endl;
 
     typename component_type::input_type instance_input;
     for (std::size_t i = 0; i < num_chunks; i++) {
@@ -90,9 +91,9 @@ std::cout << "Non-native p = " << NonNativeFieldType::modulus << std::endl;
                        y = 0;
     for(std::size_t i = num_chunks; i > 0; i--) {
         x *= B;
-        x += integral_type(public_input[i-1].data);
+        x += foreign_integral_type(integral_type(public_input[i-1].data));
         y *= B;
-        y += integral_type(public_input[num_chunks + i-1].data);
+        y += foreign_integral_type(integral_type(public_input[num_chunks + i-1].data));
     }
     foreign_value_type r = x*y;
 
@@ -101,15 +102,15 @@ std::cout << "Non-native p = " << NonNativeFieldType::modulus << std::endl;
          foreign_integral_type R = 0;
          for(std::size_t i = num_chunks; i > 0; i--) {
              R *= B;
-             R += integral_type(var_value(assignment,real_res.r[i-1]).data);
+             R += foreign_integral_type(integral_type(var_value(assignment,real_res.r[i-1]).data));
          }
 
-//        #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
+         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
          std::cout << "Flexible multiplication test" << std::endl;
-         std::cout << "Expected res: " << std::dec << integral_type(r.data) << std::endl;
+         std::cout << "Expected res: " << std::dec << foreign_basic_integral_type(r.data) << std::endl;
          std::cout << "Real res:     " << std::dec << R  << std::endl;
-//        #endif
-         assert(integral_type(r.data) == R);
+         #endif
+         assert(foreign_integral_type(foreign_basic_integral_type(r.data)) == R);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -135,30 +136,34 @@ template <typename BlueprintFieldType, typename NonNativeFieldType,
         std::size_t num_chunks, std::size_t bit_size_chunk,
         std::size_t WitnessColumns, std::size_t RandomTestsAmount>
 void mult_tests() {
-    using integral_type = typename BlueprintFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
+    using foreign_value_type = typename NonNativeFieldType::value_type;
     using foreign_integral_type = typename NonNativeFieldType::integral_type;
     using foreign_extended_integral_type = typename NonNativeFieldType::extended_integral_type;
 
     static boost::random::mt19937 seed_seq;
     static nil::crypto3::random::algebraic_engine<NonNativeFieldType> generate_random(seed_seq);
     boost::random::uniform_int_distribution<> t_dist(0, 1);
-    foreign_integral_type mask = (foreign_integral_type(1) << bit_size_chunk) - 1;
+    foreign_extended_integral_type mask = (foreign_extended_integral_type(1) << bit_size_chunk) - 1;
 
     for (std::size_t i = 0; i < RandomTestsAmount; i++) {
         std::vector<typename BlueprintFieldType::value_type> public_input;
 
-        foreign_integral_type x = foreign_integral_type(generate_random().data),
-                              y = foreign_integral_type(generate_random().data);
-        foreign_extended_integral_type extended_base = 1,
+        foreign_value_type src_x = generate_random(),
+                           src_y = generate_random();
+
+        foreign_extended_integral_type x = foreign_extended_integral_type(foreign_integral_type(src_x.data)),
+                                       y = foreign_extended_integral_type(foreign_integral_type(src_y.data)),
+                                       extended_base = 1,
                                        ext_pow = extended_base << (num_chunks*bit_size_chunk),
                                        p = NonNativeFieldType::modulus,
                                        pp = ext_pow - p;
 
         public_input.resize(4*num_chunks+1); // public_input should contain x,y,p,pp
-std::cout << "PI x = " << x << std::endl;
-std::cout << "PI y = " << y << std::endl;
-std::cout << "PI p = " << p << std::endl;
+//std::cout << "PI x = " << x << std::endl;
+//std::cout << "PI y = " << y << std::endl;
+//std::cout << "PI p = " << p << std::endl;
         for(std::size_t j = 0; j < num_chunks; j++) {
             public_input[j] = value_type(x & mask);
             x >>= bit_size_chunk;
@@ -202,7 +207,7 @@ void mult_tests_to_fail() {
     }
 }
 */
-constexpr static const std::size_t random_tests_amount = 10;
+constexpr static const std::size_t random_tests_amount = 5;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
@@ -218,12 +223,12 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
 //    std::cout << "Scenario 0\n";
 //    mult_tests<pallas_field_type, bls12_381_base_field_type, 9, 64, 16, random_tests_amount>();
 
-//    std::cout << "Scenario 1\n";
-//    mult_tests<pallas_field_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
+    std::cout << "Scenario 1\n";
+    mult_tests<pallas_field_type, vesta_field_type, 4, 64, 15, random_tests_amount>();
 
     std::cout << "Scenario 2\n";
-    mult_tests<vesta_field_type, secp256k1_scalar_field_type, 5, 64, 15, random_tests_amount>();
-/*
+    mult_tests<vesta_field_type, secp256k1_scalar_field_type, 5, 64, 16, random_tests_amount>();
+
     std::cout << "Scenario 3\n";
     mult_tests<pallas_field_type, vesta_field_type, 4, 65, 10, random_tests_amount>();
 
@@ -235,7 +240,7 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_equality_flag_test) {
 
     std::cout << "Scenario 6\n";
     mult_tests<pallas_field_type, goldilocks_field_type, 3, 22, 9, random_tests_amount>();
-*/
+
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_field_operations_test_to_fail) {

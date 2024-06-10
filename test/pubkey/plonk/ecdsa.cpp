@@ -67,17 +67,19 @@ void test_ecdsa_recovery(
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::ecdsa_recovery<ArithmetizationType, BlueprintFieldType, CurveType, num_chunks, bit_size_chunk>;
+    using foreign_basic_integral_type = typename CurveType::scalar_field_type::integral_type;
     using foreign_integral_type = typename CurveType::scalar_field_type::extended_integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
     // transform EC point coords into chunks and put them into public input column
     std::vector<typename BlueprintFieldType::value_type> public_input;
 
     foreign_integral_type B = foreign_integral_type(1) << bit_size_chunk,
-                          zf = foreign_integral_type(z.data),
-                          rf = foreign_integral_type(r.data),
-                          sf = foreign_integral_type(s.data),
-                          vf = foreign_integral_type(v.data);
+                          zf = foreign_integral_type(foreign_basic_integral_type(z.data)),
+                          rf = foreign_integral_type(foreign_basic_integral_type(r.data)),
+                          sf = foreign_integral_type(foreign_basic_integral_type(s.data)),
+                          vf = foreign_integral_type(foreign_basic_integral_type(v.data));
 
     auto chunks_to_public_input = [&public_input, &B](foreign_integral_type &t) {
         for(std::size_t i = 0; i < num_chunks; i++) {
@@ -99,7 +101,7 @@ void test_ecdsa_recovery(
         instance_input.r[i] = var(0, num_chunks + i, false, var::column_type::public_input);
         instance_input.s[i] = var(0, 2*num_chunks + i, false, var::column_type::public_input);
     }
-    instance_input.v = var(0, 4*num_chunks, false, var::column_type::public_input);
+    instance_input.v = var(0, 3*num_chunks, false, var::column_type::public_input);
 
 /*
     using scalar_value_type = typename CurveType::scalar_field_type::value_type;
@@ -112,12 +114,11 @@ void test_ecdsa_recovery(
 
     ec_point_value_type G = ec_point_value_type::one();
 
-    scalar_value_type u1 = -z/r,
-                      u2 = s/r;
+    scalar_value_type u1 = -z*r.inversed(),
+                      u2 = s*r.inversed();
     base_integral_type a = CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::params_type::b;
     base_value_type x1 = scalar_integral_type(r.data);
     base_value_type y1 = (x1*x1*x1 + a).sqrt();
-
     if (base_integral_type(y1.data) % 2 != scalar_integral_type(v.data) % 2) {
         y1 = -y1;
     }
@@ -140,16 +141,16 @@ void test_ecdsa_recovery(
         for(std::size_t i = num_chunks; i > 0; i--) {
             xQA *= B;
             yQA *= B;
-            xQA += foreign_integral_type(var_value(assignment, real_res.xQA[i-1]).data);
-            yQA += foreign_integral_type(var_value(assignment, real_res.yQA[i-1]).data);
+            xQA += foreign_integral_type(integral_type(var_value(assignment, real_res.xQA[i-1]).data));
+            yQA += foreign_integral_type(integral_type(var_value(assignment, real_res.yQA[i-1]).data));
         }
 //        #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "ecdsa_recovery test: " << "\n";
         std::cout << "expected: " << QA.X.data << " " << QA.Y.data << "\n";
         std::cout << "real    : " << xQA << " " << yQA << "\n\n";
 //        #endif
-//        assert(foreign_integral_type(QA.X.data) == xQA);
-//        assert(foreign_integral_type(QA.Y.data) == yQA);
+        assert(foreign_integral_type(foreign_basic_integral_type(QA.X.data)) == xQA);
+        assert(foreign_integral_type(foreign_basic_integral_type(QA.Y.data)) == yQA);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -212,6 +213,6 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pubkey_non_native_ecdsa_secp256k1) {
     using curve_point = typename curve_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type;
 
     // <curve_type, base_field_type, num_chunks, bit_size_chunk, witness_amount, random_tests_amount>
-    multi_test_recovery<curve_type, vesta_field_type, 5, 64, 16, random_tests_amount>();
+    multi_test_recovery<curve_type, vesta_field_type, 3, 96, 21, random_tests_amount>();
 }
 BOOST_AUTO_TEST_SUITE_END()

@@ -57,7 +57,7 @@ void test_doubling(typename CurveType::template g1_type<crypto3::algebra::curves
 
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 2;
-    constexpr std::size_t SelectorColumns = 10; // how small can this get?
+    constexpr std::size_t SelectorColumns = 6; // how small can this get?
     zk::snark::plonk_table_description<BlueprintFieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
@@ -68,14 +68,16 @@ void test_doubling(typename CurveType::template g1_type<crypto3::algebra::curves
     using var = crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     using component_type = blueprint::components::ec_double<ArithmetizationType, BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk>;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
     using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
     // transform EC point coords into chunks and put them into public input column
     std::vector<typename BlueprintFieldType::value_type> public_input;
     foreign_integral_type B = foreign_integral_type(1) << bit_size_chunk,
-                          xQ = foreign_integral_type(point_Q.X.data),
-                          yQ = foreign_integral_type(point_Q.Y.data),
+                          xQ = foreign_integral_type(foreign_basic_integral_type(point_Q.X.data)),
+                          yQ = foreign_integral_type(foreign_basic_integral_type(point_Q.Y.data)),
                           p = NonNativeFieldType::modulus,
                           ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                           pp = ext_pow - p;
@@ -111,16 +113,16 @@ void test_doubling(typename CurveType::template g1_type<crypto3::algebra::curves
         for(std::size_t i = num_chunks; i > 0; i--) {
             xR *= B;
             yR *= B;
-            xR += foreign_integral_type(var_value(assignment, real_res.xR[i-1]).data);
-            yR += foreign_integral_type(var_value(assignment, real_res.yR[i-1]).data);
+            xR += foreign_integral_type(integral_type(var_value(assignment, real_res.xR[i-1]).data));
+            yR += foreign_integral_type(integral_type(var_value(assignment, real_res.yR[i-1]).data));
         }
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "ec_double test: " << "\n";
         std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
         std::cout << "real    : " << xR << " " << yR << "\n\n";
         #endif
-        assert(foreign_integral_type(expected_res.X.data) == xR);
-        assert(foreign_integral_type(expected_res.Y.data) == yR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.X.data)) == xR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.Y.data)) == yR);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -160,15 +162,17 @@ void test_full_add(
 
     using component_type = blueprint::components::ec_full_add<ArithmetizationType, BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk>;
     using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
     // transform EC point coords into chunks and put them into public input column
     std::vector<typename BlueprintFieldType::value_type> public_input;
     foreign_integral_type B = foreign_integral_type(1) << bit_size_chunk,
-                          xP = point_P.is_zero() ? 0 : foreign_integral_type(point_P.X.data),
-                          yP = point_P.is_zero() ? 0 : foreign_integral_type(point_P.Y.data),
-                          xQ = point_Q.is_zero() ? 0 : foreign_integral_type(point_Q.X.data),
-                          yQ = point_Q.is_zero() ? 0 : foreign_integral_type(point_Q.Y.data),
+                          xP = point_P.is_zero() ? 0 : foreign_integral_type(foreign_basic_integral_type(point_P.X.data)),
+                          yP = point_P.is_zero() ? 0 : foreign_integral_type(foreign_basic_integral_type(point_P.Y.data)),
+                          xQ = point_Q.is_zero() ? 0 : foreign_integral_type(foreign_basic_integral_type(point_Q.X.data)),
+                          yQ = point_Q.is_zero() ? 0 : foreign_integral_type(foreign_basic_integral_type(point_Q.Y.data)),
                           p = NonNativeFieldType::modulus,
                           ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                           pp = ext_pow - p;
@@ -203,23 +207,28 @@ void test_full_add(
     auto result_check = [&expected_res, &B](AssignmentType &assignment,
         typename component_type::result_type &real_res) {
         foreign_integral_type xR = 0,
-                              yR = 0;
+                              yR = 0,
+                              exR = foreign_integral_type(foreign_basic_integral_type(expected_res.X.data)),
+                              eyR = foreign_integral_type(foreign_basic_integral_type(expected_res.Y.data));
+        if (expected_res.is_zero()) {
+            // circuit encoding for the neutral point is (0,0)
+            exR = 0;
+            eyR = 0;
+        }
+
         for(std::size_t i = num_chunks; i > 0; i--) {
             xR *= B;
             yR *= B;
-            xR += foreign_integral_type(var_value(assignment, real_res.xR[i-1]).data);
-            yR += foreign_integral_type(var_value(assignment, real_res.yR[i-1]).data);
-        }
-        if (yR == 0) {
-            yR = 1; // the encoding for the neutral point outside of the circuit is (0,1)
+            xR += foreign_integral_type(integral_type(var_value(assignment, real_res.xR[i-1]).data));
+            yR += foreign_integral_type(integral_type(var_value(assignment, real_res.yR[i-1]).data));
         }
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
-        std::cout << "ec_incomplete_add test: " << "\n";
-        std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
+        std::cout << "ec_full_add test: " << "\n";
+        std::cout << "expected: " << exR << " " << eyR << "\n";
         std::cout << "real    : " << xR << " " << yR << "\n\n";
         #endif
-        assert(foreign_integral_type(expected_res.X.data) == xR);
-        assert(foreign_integral_type(expected_res.Y.data) == yR);
+        assert(exR == xR);
+        assert(eyR == yR);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -259,15 +268,17 @@ void test_incomplete_add(
 
     using component_type = blueprint::components::ec_incomplete_add<ArithmetizationType, BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk>;
     using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
     // transform EC point coords into chunks and put them into public input column
     std::vector<typename BlueprintFieldType::value_type> public_input;
     foreign_integral_type B = foreign_integral_type(1) << bit_size_chunk,
-                          xP = foreign_integral_type(point_P.X.data),
-                          yP = foreign_integral_type(point_P.Y.data),
-                          xQ = foreign_integral_type(point_Q.X.data),
-                          yQ = foreign_integral_type(point_Q.Y.data),
+                          xP = foreign_integral_type(foreign_basic_integral_type(point_P.X.data)),
+                          yP = foreign_integral_type(foreign_basic_integral_type(point_P.Y.data)),
+                          xQ = foreign_integral_type(foreign_basic_integral_type(point_Q.X.data)),
+                          yQ = foreign_integral_type(foreign_basic_integral_type(point_Q.Y.data)),
                           p = NonNativeFieldType::modulus,
                           ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                           pp = ext_pow - p;
@@ -305,16 +316,16 @@ void test_incomplete_add(
         for(std::size_t i = num_chunks; i > 0; i--) {
             xR *= B;
             yR *= B;
-            xR += foreign_integral_type(var_value(assignment, real_res.xR[i-1]).data);
-            yR += foreign_integral_type(var_value(assignment, real_res.yR[i-1]).data);
+            xR += foreign_integral_type(integral_type(var_value(assignment, real_res.xR[i-1]).data));
+            yR += foreign_integral_type(integral_type(var_value(assignment, real_res.yR[i-1]).data));
         }
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "ec_incomplete_add test: " << "\n";
         std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
         std::cout << "real    : " << xR << " " << yR << "\n\n";
         #endif
-        assert(foreign_integral_type(expected_res.X.data) == xR);
-        assert(foreign_integral_type(expected_res.Y.data) == yR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.X.data)) == xR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.Y.data)) == yR);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -342,7 +353,7 @@ void test_two_t_plus_q(
 
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 2;
-    constexpr std::size_t SelectorColumns = 10; // how small can this get?
+    constexpr std::size_t SelectorColumns = 6; // how small can this get?
     zk::snark::plonk_table_description<BlueprintFieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
@@ -354,15 +365,17 @@ void test_two_t_plus_q(
 
     using component_type = blueprint::components::ec_two_t_plus_q<ArithmetizationType, BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk>;
     using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
     // transform EC point coords into chunks and put them into public input column
     std::vector<typename BlueprintFieldType::value_type> public_input;
     foreign_integral_type B = foreign_integral_type(1) << bit_size_chunk,
-                          xT = foreign_integral_type(point_T.X.data),
-                          yT = foreign_integral_type(point_T.Y.data),
-                          xQ = foreign_integral_type(point_Q.X.data),
-                          yQ = foreign_integral_type(point_Q.Y.data),
+                          xT = foreign_integral_type(foreign_basic_integral_type(point_T.X.data)),
+                          yT = foreign_integral_type(foreign_basic_integral_type(point_T.Y.data)),
+                          xQ = foreign_integral_type(foreign_basic_integral_type(point_Q.X.data)),
+                          yQ = foreign_integral_type(foreign_basic_integral_type(point_Q.Y.data)),
                           p = NonNativeFieldType::modulus,
                           ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                           pp = ext_pow - p;
@@ -401,16 +414,16 @@ void test_two_t_plus_q(
         for(std::size_t i = num_chunks; i > 0; i--) {
             xR *= B;
             yR *= B;
-            xR += foreign_integral_type(var_value(assignment, real_res.xR[i-1]).data);
-            yR += foreign_integral_type(var_value(assignment, real_res.yR[i-1]).data);
+            xR += foreign_integral_type(integral_type(var_value(assignment, real_res.xR[i-1]).data));
+            yR += foreign_integral_type(integral_type(var_value(assignment, real_res.yR[i-1]).data));
         }
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "ec_two_t_plus_q test: " << "\n";
         std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
         std::cout << "real    : " << xR << " " << yR << "\n\n";
         #endif
-        assert(foreign_integral_type(expected_res.X.data) == xR);
-        assert(foreign_integral_type(expected_res.Y.data) == yR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.X.data)) == xR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.Y.data)) == yR);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -438,7 +451,7 @@ void test_scalar_mult(typename CurveType::template g1_type<crypto3::algebra::cur
 
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 2;
-    constexpr std::size_t SelectorColumns = 10; // how small can this get?
+    constexpr std::size_t SelectorColumns = 6; // how small can this get?
     zk::snark::plonk_table_description<BlueprintFieldType> desc(
         WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns);
     using ArithmetizationType = crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
@@ -450,19 +463,22 @@ void test_scalar_mult(typename CurveType::template g1_type<crypto3::algebra::cur
 
     using component_type = blueprint::components::ec_scalar_mult<ArithmetizationType, BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk>;
     using foreign_integral_type = typename NonNativeFieldType::extended_integral_type;
+    using foreign_basic_integral_type = typename NonNativeFieldType::integral_type;
+    using scalar_basic_integral_type = typename ScalarFieldType::integral_type;
     using scalar_integral_type = typename ScalarFieldType::extended_integral_type;
     using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
 
     // transform EC point coords into chunks and put them into public input column
     std::vector<typename BlueprintFieldType::value_type> public_input;
     foreign_integral_type B = foreign_integral_type(1) << bit_size_chunk,
-                          xP = foreign_integral_type(point_P.X.data),
-                          yP = foreign_integral_type(point_P.Y.data),
+                          xP = foreign_integral_type(foreign_basic_integral_type(point_P.X.data)),
+                          yP = foreign_integral_type(foreign_basic_integral_type(point_P.Y.data)),
                           p = NonNativeFieldType::modulus,
                           ext_pow = foreign_integral_type(1) << num_chunks*bit_size_chunk,
                           pp = ext_pow - p;
     scalar_integral_type BS = scalar_integral_type(1) << bit_size_chunk,
-                         s = scalar_integral_type(scalar.data),
+                         s = scalar_integral_type(scalar_basic_integral_type(scalar.data)),
                          n = ScalarFieldType::modulus,
                          m = (n-1)/2 + 1,
                          s_ext_pow = scalar_integral_type(1) << num_chunks*bit_size_chunk,
@@ -510,16 +526,16 @@ void test_scalar_mult(typename CurveType::template g1_type<crypto3::algebra::cur
         for(std::size_t i = num_chunks; i > 0; i--) {
             xR *= B;
             yR *= B;
-            xR += foreign_integral_type(var_value(assignment, real_res.xR[i-1]).data);
-            yR += foreign_integral_type(var_value(assignment, real_res.yR[i-1]).data);
+            xR += foreign_integral_type(integral_type(var_value(assignment, real_res.xR[i-1]).data));
+            yR += foreign_integral_type(integral_type(var_value(assignment, real_res.yR[i-1]).data));
         }
         #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "ec_scalar_mul test: " << "\n";
         std::cout << "expected: " << expected_res.X.data << " " << expected_res.Y.data << "\n";
         std::cout << "real    : " << xR << " " << yR << "\n\n";
         #endif
-        assert(foreign_integral_type(expected_res.X.data) == xR);
-        assert(foreign_integral_type(expected_res.Y.data) == yR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.X.data)) == xR);
+        assert(foreign_integral_type(foreign_basic_integral_type(expected_res.Y.data)) == yR);
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -593,8 +609,6 @@ void multi_test_full_add_with_zero() {
     boost::random::mt19937 seed_seq;
     generate_random_point.seed(seed_seq);
 
-//    typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P,
-//                                 Z = zero();
     ec_point_type P, Z = ec_point_type();
 
     std::cout << "O + O = O" << std::endl;
@@ -612,6 +626,7 @@ void multi_test_full_add_with_zero() {
         test_full_add<CurveType,BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns>(P, -P, Z);
     }
 }
+
 template<typename CurveType, typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t WitnessColumns, std::size_t RandomTestAmount>
 void multi_test_two_t_plus_q() {
     nil::crypto3::random::algebraic_engine<typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>> generate_random_point;
@@ -649,7 +664,6 @@ void multi_test_scalar_mult() {
         std::cout << "test done\n";
     }
 }
-
 
 constexpr static const std::size_t random_tests_amount = 1;
 

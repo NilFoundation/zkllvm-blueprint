@@ -35,6 +35,7 @@
 #include <nil/blueprint/manifest.hpp>
 
 #include <nil/blueprint/components/detail/plonk/range_check_multi.hpp>
+#include <nil/blueprint/components/detail/plonk/choice_function.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/check_mod_p.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/flexible_multiplication.hpp>
 #include <nil/blueprint/components/algebra/fields/plonk/non_native/negation_mod_p.hpp>
@@ -81,6 +82,10 @@ namespace nil {
                 using add_mod_p_component = addition_mod_p<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>,
                       BlueprintFieldType, NonNativeFieldType, num_chunks, bit_size_chunk>;
 
+                // needed only for gate_manifest:
+                using choice_function_component =
+                      choice_function<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>, BlueprintFieldType, num_chunks>;
+
                 class gate_manifest_type : public component_gate_manifest {
                 public:
                     std::uint32_t gates_amount() const override {
@@ -88,17 +93,18 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     // NB: this uses a workaround, as manifest cannot process intersecting sets of gates.
                     // We merge only non-intersecting sets of gates which cover all gates in the circuit.
                     static gate_manifest manifest =
                         gate_manifest(gate_manifest_type())
-                      //  .merge_with(range_check_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                      //  .merge_with(check_mod_p_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(mult_mod_p_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                      //  .merge_with(add_mod_p_component::get_gate_manifest(witness_amount, lookup_column_amount))
-                        .merge_with(neg_mod_p_component::get_gate_manifest(witness_amount, lookup_column_amount));
+                      //  .merge_with(range_check_component::get_gate_manifest(witness_amount))
+                      //  .merge_with(check_mod_p_component::get_gate_manifest(witness_amount))
+                        .merge_with(mult_mod_p_component::get_gate_manifest(witness_amount))
+                        .merge_with(choice_function_component::get_gate_manifest(witness_amount))
+                      //  .merge_with(add_mod_p_component::get_gate_manifest(witness_amount))
+                      //  .merge_with(neg_mod_p_component::get_gate_manifest(witness_amount))
+                        ;
                     return manifest;
                 }
 
@@ -115,19 +121,18 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return (7*num_chunks)/witness_amount + ((7*num_chunks) % witness_amount > 0) // to store 7k variables
-                           + 7*range_check_component::get_rows_amount(witness_amount,lookup_column_amount)
-                           + 7*check_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
-                           + 23*mult_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
-                           + 20*add_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
-                           + 6*neg_mod_p_component::get_rows_amount(witness_amount,lookup_column_amount)
+                           + 7*range_check_component::get_rows_amount(witness_amount)
+                           + 7*check_mod_p_component::get_rows_amount(witness_amount)
+                           + 23*mult_mod_p_component::get_rows_amount(witness_amount)
+                           + 20*add_mod_p_component::get_rows_amount(witness_amount)
+                           + 6*neg_mod_p_component::get_rows_amount(witness_amount)
                            ;
                 }
 
                 constexpr static const std::size_t gates_amount = 0;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::string component_name = "non-native field EC point full addition function";
 
                 struct input_type {
@@ -245,13 +250,13 @@ namespace nil {
 
                 for(std::size_t i = num_chunks; i > 0; i--) {
                     xP *= B;
-                    xP += non_native_integral_type(var_value(assignment, instance_input.xP[i-1]).data);
+                    xP += non_native_integral_type(integral_type(var_value(assignment, instance_input.xP[i-1]).data));
                     yP *= B;
-                    yP += non_native_integral_type(var_value(assignment, instance_input.yP[i-1]).data);
+                    yP += non_native_integral_type(integral_type(var_value(assignment, instance_input.yP[i-1]).data));
                     xQ *= B;
-                    xQ += non_native_integral_type(var_value(assignment, instance_input.xQ[i-1]).data);
+                    xQ += non_native_integral_type(integral_type(var_value(assignment, instance_input.xQ[i-1]).data));
                     yQ *= B;
-                    yQ += non_native_integral_type(var_value(assignment, instance_input.yQ[i-1]).data);
+                    yQ += non_native_integral_type(integral_type(var_value(assignment, instance_input.yQ[i-1]).data));
                 }
 
                 non_native_value_type lambda, xR, yR,
@@ -265,22 +270,23 @@ namespace nil {
                     xR = xQ;
                     yR = yQ;
                     // lambda doesn't matter for (xR,yR), but needs to satisfy the constraints
-                    lambda = (xP == xQ)? 0 : (yQ - yP)/(xQ - xP);
+                    lambda = (xP == xQ)? 0 : (yQ - yP)*((xQ - xP).inversed());
                 } else if (yQ == 0) {
                     xR = xP;
                     yR = yP;
                     // lambda doesn't matter for (xR,yR), but needs to satisfy the constraints
-                    lambda = (xP == xQ)? 0 : (yQ - yP)/(xQ - xP);
+                    lambda = (xP == xQ)? 0 : (yQ - yP)*((xQ - xP).inversed());
                 } else if ((xP == xQ) && (yP + yQ == 0)) {
                     xR = 0;
                     yR = 0;
                     // lambda doesn't matter for (xR,yR), but needs to satisfy the constraints
-                    lambda = 3*xP*xP/(2*yP);
+                    lambda = 3*xP*xP*((2*yP).inversed());
                 } else {
                     if (xP == xQ) { // point doubling
-                        lambda = 3*xP*xP/(2*yP);
+                        lambda = 3*xP*xP*((2*yP).inversed());
                     } else { // regular addition
-                        lambda = (yQ - yP)/(xQ - xP);
+                        non_native_value_type diff = xQ - xP;
+                        lambda = (yQ - yP)*(diff.inversed());
                     }
                     xR = lambda*lambda - xP - xQ,
                     yR = lambda*(xP - xR) - yP;
@@ -290,7 +296,7 @@ namespace nil {
                     std::array<value_type,num_chunks> res;
                     non_native_integral_type t = non_native_integral_type(x.data);
                     for(std::size_t i = 0; i < num_chunks; i++) {
-                        res[i] = t % B;
+                        res[i] = value_type(t % B);
                         t /= B;
                     }
                     return res;
@@ -377,6 +383,7 @@ namespace nil {
                         mult_input.p[i] = instance_input.p[i];
                         mult_input.pp[i] = instance_input.pp[i];
                     }
+                    mult_input.zero = instance_input.zero;
                     typename mult_mod_p_type::result_type res = generate_assignments(mult_mod_p_instance, assignment, mult_input,
                                                                start_row_index + current_row_shift);
                     current_row_shift += mult_mod_p_instance.rows_amount;
@@ -598,6 +605,7 @@ namespace nil {
                         mult_input.p[i] = instance_input.p[i];
                         mult_input.pp[i] = instance_input.pp[i];
                     }
+                    mult_input.zero = instance_input.zero;
                     typename mult_mod_p_type::result_type res = generate_circuit(mult_mod_p_instance, bp, assignment, mult_input,
                                                                start_row_index + current_row_shift);
                     current_row_shift += mult_mod_p_instance.rows_amount;
