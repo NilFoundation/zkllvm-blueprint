@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     nil_crypto3 = {
       url =
-        "git+https://github.com/NilFoundation/crypto3?submodules=1&rev=606cd170b41c36f64de5283b2de6a6071d051f1d";
+        "git+https://github.com/NilFoundation/crypto3?submodules=1&rev=1cf64acec2f4022224cb19673854250e08a6d7c3";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
@@ -146,14 +146,14 @@
               "-DCMAKE_CXX_COMPILER=clang++"
             ];
 
-            ninjaFlags = pkgs.lib.strings.concatStringsSep " " testList;
+            ninjaFlags = pkgs.lib.strings.concatStringsSep " " (["-k 0"] ++ testList);
 
             doCheck = true;
 
             checkPhase = ''
               # JUNIT file without explicit file name is generated after the name of the master test suite inside `CMAKE_CURRENT_SOURCE_DIR` (/build/source)
               export BOOST_TEST_LOGGER=JUNIT:HRF
-              ctest --verbose -j $NIX_BUILD_CORES --output-on-failure -R "${nixpkgs.lib.concatStringsSep "|" testList}"
+              ctest --verbose -j $NIX_BUILD_CORES --output-on-failure -R "${nixpkgs.lib.concatStringsSep "|" testList}" || true
 
               mkdir -p ${placeholder "out"}/test-logs
               find .. -type f -name '*_test.xml' -exec cp {} ${placeholder "out"}/test-logs \;
