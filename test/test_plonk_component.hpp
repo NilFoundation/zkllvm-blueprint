@@ -404,7 +404,7 @@ namespace nil {
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
 
-            typename fri_type::params_type fri_params(1,table_rows_log, Lambda, 2);
+            typename fri_type::params_type fri_params(1, table_rows_log, Lambda, 2);
             commitment_scheme_type lpc_scheme(fri_params);
 
             typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type

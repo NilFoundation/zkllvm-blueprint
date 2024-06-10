@@ -67,7 +67,7 @@ namespace nil {
                 column_type = var::column_type::constant;
                 random_col -= witness_amount + public_input_amount;
             }
-            return var(random_col, random_row, true, column_type);
+            return var(random_col, random_row, false, column_type);
         }
 
         template<typename BlueprintFieldType>
