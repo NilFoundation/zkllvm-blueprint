@@ -355,7 +355,8 @@ std::cout << "Rows amount = " << num_rows << "\n";
                 c[4] = (scalar_basic_integral_type(s.data) < m) ? 1 : 0;
 
                 base_value_type x1 = scalar_basic_integral_type(r.data); // should we consider r + n also?
-                base_value_type y1 = (x1*x1*x1 + a).sqrt(); // what happens if this produces an error?
+                base_value_type y1 = (x1*x1*x1 + a).is_square() ? (x1*x1*x1 + a).sqrt() : 1; // should be signaled as invalid signaure
+                // base_value_type y1 = (x1*x1*x1 + a).sqrt(); // should be signaled as invalid signaure
                 if (base_integral_type(y1.data) % 2 != scalar_basic_integral_type(v.data) % 2) {
                     y1 = -y1;
                 }
@@ -369,8 +370,8 @@ std::cout << "Rows amount = " << num_rows << "\n";
                 c[7] = ((base_integral_type(y1.data) % 2) == (scalar_basic_integral_type(v.data) % 2));
                 d2 = (base_integral_type(y1.data) + base_integral_type(scalar_basic_integral_type(v.data)))/2;
 
-                scalar_value_type u1 = -z * r.inversed(),
-                                  u2 = s * r.inversed();
+                scalar_value_type u1 = r.is_zero() ? 2 : -z * r.inversed(), // if r = 0, the signature is invalid, but we
+                                  u2 = r.is_zero() ? 2 : s * r.inversed();  // don't wanto to break the scalar multiplication
                 ec_point_value_type R = ec_point_value_type(scalar_basic_integral_type(x1.data), scalar_basic_integral_type(y1.data)),
                                     QA = G*u1 + R*u2;
                 c[8] = 1 - QA.is_zero();
@@ -678,6 +679,7 @@ std::cout << "Rows amount = " << num_rows << "\n";
                     current_row_shift += ec_scalar_mult_instance.rows_amount;
                     return res;
                 };
+/*
 auto PrintNumber = [&assignment, &sB](var x[num_chunks]) {
     scalar_integral_type X = 0;
     for(std::size_t i = num_chunks; i > 0; i--) {
@@ -686,6 +688,7 @@ auto PrintNumber = [&assignment, &sB](var x[num_chunks]) {
     }
     std::cout << X << std::endl;
 };
+*/
                 var chunked_zero[num_chunks], chunked_one[num_chunks], chunked_bit[num_chunks];
                 for(std::size_t i = 0; i < num_chunks; i++) {
                     chunked_zero[i] = zero_var;
@@ -1152,7 +1155,6 @@ auto PrintNumber = [&assignment, &sB](var x[num_chunks]) {
                 // Copy constraint generation lambda expression
                 auto CopyConstrain = [&bp](var x[num_chunks], var y[num_chunks]) {
                     for(std::size_t i = 0; i < num_chunks; i++) {
-//std::cout << x[i] << "==" << y[i] << std::endl;
                         bp.add_copy_constraint({x[i], y[i]});
                     }
                 };
@@ -1176,24 +1178,12 @@ auto PrintNumber = [&assignment, &sB](var x[num_chunks]) {
                 auto t2 = MultModN(t0.z,t1.r);
                 CopyConstrain(t0.z,t2.r); // copy constrain t0 = t2
                 chunked_bit[0] = c_var[1];
-/*
-std::cout << "c1" << std::endl;
-for(std::size_t i = 0; i < num_chunks; i++) {
-   std::cout << "cb[" << i << "] = " << chunked_bit[i] << std::endl;
-}
-*/
                 CopyConstrain(t1.r,chunked_bit); // copy constrain t1 = (0,...,0,c1)
 
                 // c2 = [r < n]
                 auto t3 = CheckModPOut(r_var,np_var); // CheckModN
                 auto t3p= ChoiceFunction(c_var[2],chunked_one,chunked_zero);
                 chunked_bit[0] = t3.q;
-/*
-std::cout << "c2" << std::endl;
-for(std::size_t i = 0; i < num_chunks; i++) {
-   std::cout << "cb[" << i << "] = " << chunked_bit[i] << std::endl;
-}
-*/
                 CopyConstrain(chunked_bit,t3p.z); // copy constrain (0,...,0,t3) = t3p
 
                 // c3 = [s != 0]
@@ -1204,26 +1194,14 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 auto t6 = MultModN(t4.z,t5.r);
                 CopyConstrain(t4.z,t6.r); // copy constrain t4 = t6
                 chunked_bit[0] = c_var[3];
-/*
-std::cout << "c3" << std::endl;
-for(std::size_t i = 0; i < num_chunks; i++) {
-   std::cout << "cb[" << i << "] = " << chunked_bit[i] << std::endl;
-}
-*/
                 CopyConstrain(t5.r,chunked_bit); // copy constrain t5 = (0,...,0,c3)
 
                 // c4 = [s < (n-1)/2+1]
                 auto t7 = CheckModPOut(s_var,mp_var); // CheckModM
                 auto t7p= ChoiceFunction(c_var[4],chunked_one,chunked_zero);
                 chunked_bit[0] = t7.q;
-/*
-std::cout << "c4" << std::endl;
-for(std::size_t i = 0; i < num_chunks; i++) {
-   std::cout << "cb[" << i << "] = " << chunked_bit[i] << std::endl;
-}
-*/
                 CopyConstrain(chunked_bit,t7p.z); // copy constrain (0,...,0,t7) = t7p
-// std::cout << "c5" << std::endl;
+
                 // c5 = [yR^2 = xR^3 + a]
                 RangeCheck(xR_var);
                 CheckModP(xR_var,pp_var);
@@ -1243,7 +1221,6 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 CopyConstrain(t13.z,t15.r); // copy constrain t13 = t15
                 CopyConstrain(t14.r,t14p.z); // copy constrain t14 = t14p
 
-//std::cout << "c6" << std::endl;
                 // c6 = [xR = r (mod n)]
                 auto t16= AddModN(xR_var,chunked_zero);
                 auto t17= NegModN(t0.z);
@@ -1257,7 +1234,6 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 CopyConstrain(t19.r,t21.z); // copy constrain t19 = t21
 
                 // c7 = [yR = v (mod 2)]
-//std::cout << "c7" << std::endl;
                 chunked_bit[0] = v_var;
                 RangeCheck(chunked_bit);
                 auto d1 = CarryOnAddition(yR_var,chunked_bit);
@@ -1272,7 +1248,6 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 CopyConstrain(t22.z,d1.z); // copy constrain t22 = d1
 
                 // u1 r = -z (mod n)
-//std::cout << "u1" << std::endl;
                 RangeCheck(u1_var);
                 CheckModP(u1_var,np_var); // CheckModN
                 auto t23= MultModN(u1_var,t0.z);
@@ -1282,7 +1257,6 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 CopyConstrain(t26.z,chunked_zero); // copy constrain t26 = 0
 
                 // u2 r = s (mod n)
-//std::cout << "u2" << std::endl;
                 RangeCheck(u2_var);
                 CheckModP(u2_var,np_var); // CheckModN
                 auto t27= MultModN(u2_var,t0.z);
@@ -1290,16 +1264,10 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 CopyConstrain(t27.r,t28.r); // copy constrain t27 = t28
 
                 // u1 * G
-//std::cout << "u1 * G" << std::endl;
-//std::cout << "row = " << (start_row_index + current_row_shift) << std::endl;
                 auto t29= ECScalarMult(u1_var,x_var,y_var);
-//std::cout << "row = " << (start_row_index + current_row_shift) << std::endl;
 
                 // u2 * R
-//std::cout << "u1 * G" << std::endl;
-//std::cout << "row = " << (start_row_index + current_row_shift) << std::endl;
                 auto t30= ECScalarMult(u2_var,xR_var,yR_var);
-//std::cout << "row = " << (start_row_index + current_row_shift) << std::endl;
 
                 // QA = u1*G + u2*R
                 auto t31= ECFullAdd(t29.xR,t29.yR,t30.xR,t30.yR);
@@ -1313,12 +1281,6 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 auto t33= MultModP(yQA_var,t32.r);
                 CopyConstrain(yQA_var,t33.r); // copy constrain yQA = t33
                 chunked_bit[0] = c_var[8];
-/*
-std::cout << "c8" << std::endl;
-for(std::size_t i = 0; i < num_chunks; i++) {
-   std::cout << "cb[" << i << "] = " << chunked_bit[i] << std::endl;
-}
-*/
                 CopyConstrain(t32.r,chunked_bit); // copy constrain t32 = (0,...,0,c8)
 
                 // c = c[1]*....*c[8]
@@ -1331,12 +1293,6 @@ for(std::size_t i = 0; i < num_chunks; i++) {
                 auto t39= ChoiceFunction(c_var[7],chunked_zero,t38.z);
                 auto t40= ChoiceFunction(c_var[8],chunked_zero,t39.z);
                 chunked_bit[0] = c_var[0];
-/*
-std::cout << "c0" << std::endl;
-for(std::size_t i = 0; i < num_chunks; i++) {
-   std::cout << "cb[" << i << "] = " << chunked_bit[i] << std::endl;
-}
-*/
                 CopyConstrain(t40.z,chunked_bit); // copy constrain t40 = (0,...,0,c)
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index); // does nothing, may be skipped?

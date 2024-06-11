@@ -259,7 +259,7 @@ namespace nil {
                     yQ += non_native_integral_type(integral_type(var_value(assignment, instance_input.yQ[i-1]).data));
                 }
 
-                non_native_value_type lambda = (yQ - yP)*((xQ - xP).inversed()),
+                non_native_value_type lambda = (xQ == xP)? 0 : (yQ - yP)*((xQ - xP).inversed()),
                                       xR = lambda*lambda - xP - xQ,
                                       yR = lambda*(xP - xR) - yP;
 

@@ -255,10 +255,10 @@ namespace nil {
                 }
 
                 non_native_value_type diff1 = xQ - xT,
-                                      lambda = (yQ - yT)*diff1.inversed(),
+                                      lambda = (diff1 == 0) ? 0 : (yQ - yT)*diff1.inversed(),
                                       xS = lambda*lambda - xT - xQ,
                                       diff2 = xS - xT,
-                                      mu = -lambda - (2*yT)*diff2.inversed(),
+                                      mu = (diff2 == 0) ? -lambda : -lambda - (2*yT)*diff2.inversed(),
                                       xR = mu*mu - xT - xS,
                                       yR = mu*(xT - xR) - yT;
 

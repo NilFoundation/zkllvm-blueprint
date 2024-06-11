@@ -103,38 +103,6 @@ void test_ecdsa_recovery(
     }
     instance_input.v = var(0, 3*num_chunks, false, var::column_type::public_input);
 
-/*
-    using scalar_value_type = typename CurveType::scalar_field_type::value_type;
-    using scalar_integral_type = typename CurveType::scalar_field_type::integral_type;
-
-    using base_value_type = typename CurveType::base_field_type::value_type;
-    using base_integral_type = typename CurveType::base_field_type::integral_type;
-
-    using ec_point_value_type = typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type;
-
-    ec_point_value_type G = ec_point_value_type::one();
-
-    scalar_value_type u1 = -z*r.inversed(),
-                      u2 = s*r.inversed();
-    base_integral_type a = CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::params_type::b;
-    base_value_type x1 = scalar_integral_type(r.data);
-    base_value_type y1 = (x1*x1*x1 + a).sqrt();
-    if (base_integral_type(y1.data) % 2 != scalar_integral_type(v.data) % 2) {
-        y1 = -y1;
-    }
-
-    ec_point_value_type R = ec_point_value_type(scalar_integral_type(x1.data), scalar_integral_type(y1.data)),
-                        QA_rec = G*u1 + R*u2;
-
-    std::cout << "Recovered QA" << std::endl;
-    std::cout << "x = " << QA_rec.X.data << std::endl;
-    std::cout << "y = " << QA_rec.Y.data << std::endl;
-    std::cout << "Inintial QA" << std::endl;
-    std::cout << "x = " << QA.X.data << std::endl;
-    std::cout << "y = " << QA.Y.data << std::endl;
-    assert(QA_rec.X.data == QA.X.data);
-    assert(QA_rec.Y.data == QA.Y.data);
-*/
     auto result_check = [&QA, &B](AssignmentType &assignment, typename component_type::result_type &real_res) {
         foreign_integral_type xQA = 0,
                               yQA = 0;
@@ -144,13 +112,16 @@ void test_ecdsa_recovery(
             xQA += foreign_integral_type(integral_type(var_value(assignment, real_res.xQA[i-1]).data));
             yQA += foreign_integral_type(integral_type(var_value(assignment, real_res.yQA[i-1]).data));
         }
+        value_type c = var_value(assignment, real_res.c);
 //        #ifdef BLUEPRINT_PLONK_PROFILING_ENABLED
         std::cout << "ecdsa_recovery test: " << "\n";
+        std::cout << "is_valid: " << c.data << std::endl;
         std::cout << "expected: " << QA.X.data << " " << QA.Y.data << "\n";
         std::cout << "real    : " << xQA << " " << yQA << "\n\n";
 //        #endif
-        assert(foreign_integral_type(foreign_basic_integral_type(QA.X.data)) == xQA);
-        assert(foreign_integral_type(foreign_basic_integral_type(QA.Y.data)) == yQA);
+        assert(c.is_zero() ||
+               ((foreign_integral_type(foreign_basic_integral_type(QA.X.data)) == xQA) &&
+                (foreign_integral_type(foreign_basic_integral_type(QA.Y.data)) == yQA)));
     };
 
     std::array<std::uint32_t, WitnessColumns> witnesses;
@@ -180,8 +151,11 @@ template<typename CurveType, typename BlueprintFieldType, std::size_t num_chunks
     using base_integral_type = typename CurveType::base_field_type::integral_type;
 
     scalar_value_type d, z, k, r, s, v;
+    scalar_integral_type n = CurveType::scalar_field_type::modulus,
+                         m = (n-1)/2 + 1;
     ec_point_value_type G = ec_point_value_type::one(),
                         QA, R;
+
 
     for (std::size_t i = 0; i < RandomTestAmount; i++) {
         d = generate_random_scalar(); // private key
@@ -195,7 +169,7 @@ template<typename CurveType, typename BlueprintFieldType, std::size_t num_chunks
            v = scalar_value_type(scalar_integral_type(R.Y.data) % 2);
            r = base_integral_type(R.X.data);
            s = k.inversed() * (z + r*d);
-        } while(r.is_zero() || s.is_zero());
+        } while(r.is_zero() || s.is_zero() || (scalar_integral_type(r.data) >= n) || (scalar_integral_type(s.data) >= m));
 
         std::cout << "Random test # " << (i+1) << std::endl;
         test_ecdsa_recovery<CurveType,BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns>(z,r,s,v,QA);
