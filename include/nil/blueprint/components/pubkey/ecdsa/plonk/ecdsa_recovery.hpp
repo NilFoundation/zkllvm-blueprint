@@ -795,6 +795,33 @@ auto PrintNumber = [&assignment, &sB](var x[num_chunks]) {
 
                 // QA = u1*G + u2*R
                 auto t31= ECFullAdd(t29.xR,t29.yR,t30.xR,t30.yR);
+                // to assure the circuit doesn't break for invalid signatures we have to place the results
+                // from t31 to (xQA, yQA)
+                for(std::size_t i = 0; i < num_chunks; i++) {
+                    assignment.witness(component.W((i+1) % WA), start_row_index + (i+1)/WA) = var_value(assignment, t31.xR[i]);
+                    assignment.witness(component.W((i+num_chunks+1) % WA), start_row_index + (i+num_chunks+1)/WA) =
+                        var_value(assignment, t31.yR[i]);
+                }
+                base_value_type new_yQA = 0;
+                for(std::size_t i = num_chunks; i > 0; i--) {
+                    new_yQA *= sB;
+                    new_yQA += integral_type(var_value(assignment, t31.yR[i-1]).data);
+                }
+                if (QA.Y != new_yQA) { // we also have to adjust I8, c8 and c0 to agree with the updated yQA
+                    base_value_type new_I8 = new_yQA.is_zero() ? 0 : new_yQA.inversed();
+                    base_integral_type new_I8_int = base_integral_type(new_I8.data);
+
+                    for(std::size_t i = 0; i < num_chunks; i++) {
+                        assignment.witness(component.W((i+10*num_chunks+9) % WA), start_row_index + (i+10*num_chunks+9)/WA) =
+                            value_type(new_I8_int % bB);
+                        new_I8_int /= bB;
+                    }
+                    // update c8
+                    assignment.witness(component.W((2*num_chunks + 8) % WA), start_row_index + (2*num_chunks + 8)/WA) =
+                        value_type(1 - new_yQA.is_zero());
+                    // update c0
+                    assignment.witness(component.W(0), start_row_index) = value_type(c[0] * (1 - new_yQA.is_zero()));
+                }
                 // copy constrain QA = t31
 
                 // c8 = [QA != O]

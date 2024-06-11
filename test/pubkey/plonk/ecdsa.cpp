@@ -176,6 +176,60 @@ template<typename CurveType, typename BlueprintFieldType, std::size_t num_chunks
     }
 }
 
+template<typename CurveType, typename BlueprintFieldType, std::size_t num_chunks, std::size_t bit_size_chunk, std::size_t WitnessColumns, std::size_t RandomTestAmount> void multi_test_recovery_invalid() {
+    nil::crypto3::random::algebraic_engine<typename CurveType::scalar_field_type> generate_random_scalar;
+
+    boost::random::mt19937 seed_seq;
+    generate_random_scalar.seed(seed_seq);
+
+    using ec_point_value_type = typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type;
+    using scalar_value_type = typename CurveType::scalar_field_type::value_type;
+    using scalar_integral_type = typename CurveType::scalar_field_type::integral_type;
+    using base_value_type = typename CurveType::base_field_type::value_type;
+    using base_integral_type = typename CurveType::base_field_type::integral_type;
+
+    scalar_value_type d, z, k, r, s, v;
+    scalar_integral_type n = CurveType::scalar_field_type::modulus,
+                         m = (n-1)/2 + 1;
+    ec_point_value_type G = ec_point_value_type::one(),
+                        QA, R;
+    base_integral_type a = CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::params_type::b;
+
+    for (std::size_t i = 0; i < RandomTestAmount; i++) {
+        std::cout << "Random test # " << (i+1) << std::endl;
+        d = generate_random_scalar(); // private key
+        QA = G*d; // public key
+
+        z = generate_random_scalar(); // instead of taking part of the hash we just generate a random number
+
+        std::cout << "Invalid with s > n/2" << std::endl;
+        do {
+           k = generate_random_scalar(); // this random generation is part of the signature procedure
+           R = G*k;
+           v = scalar_value_type(scalar_integral_type(R.Y.data) % 2);
+           r = base_integral_type(R.X.data);
+           s = k.inversed() * (z + r*d);
+        } while(r.is_zero() || s.is_zero() || (scalar_integral_type(r.data) >= n) || (scalar_integral_type(s.data) < m));
+        test_ecdsa_recovery<CurveType,BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns>(z,r,s,v,QA);
+
+        std::cout << "Invalid off elliptic curve" << std::endl;
+        do {
+           k = generate_random_scalar(); // this random generation is part of the signature procedure
+           R = G*k;
+           v = scalar_value_type(scalar_integral_type(R.Y.data) % 2);
+           r = base_integral_type(R.X.data);
+           s = k.inversed() * (z + r*d);
+        } while(r.is_zero() || s.is_zero() || (scalar_integral_type(r.data) >= n) || (scalar_integral_type(s.data) >= m));
+
+        base_value_type x1 = base_integral_type(r.data);
+        while((x1*x1*x1 + base_value_type(a)).is_square()) {
+            x1 = x1 + 1;
+        }
+        test_ecdsa_recovery<CurveType,BlueprintFieldType,num_chunks,bit_size_chunk,WitnessColumns>(
+            z,scalar_value_type(base_integral_type(x1.data)),s,v,QA);
+    }
+}
+
 constexpr static const std::size_t random_tests_amount = 1;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
@@ -188,5 +242,18 @@ BOOST_AUTO_TEST_CASE(blueprint_plonk_pubkey_non_native_ecdsa_secp256k1) {
 
     // <curve_type, base_field_type, num_chunks, bit_size_chunk, witness_amount, random_tests_amount>
     multi_test_recovery<curve_type, vesta_field_type, 3, 96, 21, random_tests_amount>();
+    multi_test_recovery_invalid<curve_type, vesta_field_type, 3, 96, 21, random_tests_amount>();
 }
+
+BOOST_AUTO_TEST_CASE(blueprint_plonk_pubkey_non_native_ecdsa_alt_bn128) {
+    using curve_type = typename crypto3::algebra::curves::alt_bn128_254;
+    using base_field_type = typename curve_type::base_field_type;
+    using vesta_field_type = typename crypto3::algebra::curves::vesta::base_field_type;
+    using curve_point = typename curve_type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type;
+
+    // <curve_type, base_field_type, num_chunks, bit_size_chunk, witness_amount, random_tests_amount>
+    multi_test_recovery<curve_type, vesta_field_type, 3, 96, 21, random_tests_amount>();
+    multi_test_recovery_invalid<curve_type, vesta_field_type, 3, 96, 21, random_tests_amount>();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
