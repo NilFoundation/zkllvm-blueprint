@@ -143,10 +143,10 @@ namespace nil {
 
                     input_type (var _t, std::vector<var> _c, std::vector<var> _s) : theta(_t), constraints(_c), selectors(_s) {};
 
-                    input_type(const std::vector<var>& input_vect) {
+                    input_type(const std::vector<var>& input_vect, std::vector<std::size_t> sizes) {
                         theta = input_vect[0];
-                        constraints.assign(input_vect.begin() + 1, input_vect.end());
-                        selectors.assign(input_vect.begin() + 1, input_vect.end()); // TODO!
+                        constraints.assign(input_vect.begin() + 1, input_vect.begin() + 1 + sizes[0]);
+                        selectors.assign(input_vect.begin() + 1 + sizes[0], input_vect.begin() + 1 + sizes[0] + sizes[1]);
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
