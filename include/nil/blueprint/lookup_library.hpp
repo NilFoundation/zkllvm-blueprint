@@ -316,6 +316,8 @@ namespace nil {
             public:
                 chunk_16_bits_table(): lookup_table_definition("chunk_16_bits"){
                     this->subtables["full"] = {{0}, 0, 65535};
+                    this->subtables["8bits"] = {{0}, 0, 255};
+                    this->subtables["10bits"] = {{0}, 0, 1023};
                 };
                 virtual void generate(){
                     this->_table.resize(1);

@@ -98,10 +98,14 @@ namespace nil {
                             if (!constraint_result.is_zero()) {
                                 std::cout << "Constraint " << j << " from gate " << i << " on row " << selector_row
                                           << " is not satisfied." << std::endl;
+                                std::cout << "Constraint: " << gates[i].constraints[j] << std::endl;
                                 std::cout << "Constraint result: " << constraint_result << std::endl;
                                 std::cout << "Offending gate:" << std::endl;
+
+                                std::size_t k = 0;
                                 for (const auto &constraint : gates[i].constraints) {
-                                    std::cout << constraint << std::endl;
+                                    k ++;
+                                    std::cout << k << ": " << constraint << std::endl;
                                 }
                                 return false;
                             }

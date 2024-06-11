@@ -34,6 +34,33 @@ namespace nil {
 
         typedef crypto3::multiprecision::uint256_t zkevm_word_type;
 
+        template <typename BlueprintFieldType>
+        typename BlueprintFieldType::value_type w_hi(const zkevm_word_type &val){
+            return (val & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000_cppui256) >> 128;
+        }
+
+        template <typename BlueprintFieldType>
+        typename BlueprintFieldType::value_type w_lo(const zkevm_word_type &val){
+            return val & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF_cppui256;
+        }
+
+        std::array<std::uint8_t, 32> w_to_8(const zkevm_word_type &val){
+            std::array<std::uint8_t, 32> result;
+            zkevm_word_type tmp = val;
+            for(std::size_t i = 0; i < 32; i++){
+                result[31-i] = std::uint8_t(tmp & 0xFF); tmp >>=  8;
+            }
+            return result;
+        }
+
+        template <typename BlueprintFieldType>
+        std::array<typename BlueprintFieldType::value_type, 2> w_to_128(const zkevm_word_type &val){
+            std::array<typename BlueprintFieldType::value_type, 2> result;
+            result[0] = w_hi;
+            result[1] = w_lo;
+            return result;
+        }
+
         template<typename BlueprintFieldType>
         std::vector<typename BlueprintFieldType::value_type> zkevm_word_to_field_element(const zkevm_word_type &word) {
             using value_type = typename BlueprintFieldType::value_type;

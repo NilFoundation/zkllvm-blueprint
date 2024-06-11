@@ -161,6 +161,7 @@ set(PLONK_TESTS_FILES
     "verifiers/flexible/pow_factor"
     "verifiers/placeholder/verifier"
     "zkevm/bytecode"
+    "zkevm/rw"
     )
 
 set(FIELDS_TESTS_FILES
