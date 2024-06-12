@@ -134,8 +134,9 @@ namespace nil {
 
                 template<typename ContainerType>
                 explicit zkevm_bytecode(ContainerType witness, std::size_t _max_bytecode_size) :
-                    component_type(witness, {}, {}, get_manifest()), max_bytecode_size(_max_bytecode_size)
-                    {};
+                    component_type(witness, ContainerType({}), ContainerType({}), get_manifest()),
+                    max_bytecode_size(_max_bytecode_size)
+                {};
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>

@@ -534,6 +534,12 @@ namespace nil {
                 return assignment_private_storage[storage_index];
             }
 
+            virtual var add_private_variable(const value_type &value) {
+                assignment_private_storage.push_back(value);
+                return var(private_storage_index, assignment_private_storage.size() - 1, false,
+                           var::column_type::public_input);
+            }
+
             // Not required to be called; private_storage calls will automatically resize
             virtual void resize_private_storage(std::uint32_t new_size) {
                 assignment_private_storage.resize(new_size);

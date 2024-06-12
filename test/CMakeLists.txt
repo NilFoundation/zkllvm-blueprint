@@ -62,6 +62,7 @@ set(COMMON_TEST_FILES
 
 set(BENCHMARK_TEST_FILES
     "benchmarks/scaling_bench"
+    "benchmarks/zkevm_increment"
     )
 
 set(NON_NATIVE_TESTS_FILES
