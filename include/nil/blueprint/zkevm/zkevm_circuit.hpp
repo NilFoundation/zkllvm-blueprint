@@ -41,6 +41,7 @@
 #include <nil/blueprint/zkevm/operations/add_sub.hpp>
 #include <nil/blueprint/zkevm/operations/mul.hpp>
 #include <nil/blueprint/zkevm/operations/div.hpp>
+#include <nil/blueprint/zkevm/operations/cmp.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -301,6 +302,11 @@ namespace nil {
                 opcodes[zkevm_opcode::SUB] = std::make_shared<zkevm_add_sub_operation<BlueprintFieldType>>(false);
                 opcodes[zkevm_opcode::MUL] = std::make_shared<zkevm_mul_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::DIV] = std::make_shared<zkevm_div_operation<BlueprintFieldType>>();
+                opcodes[zkevm_opcode::LT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_LT);
+                opcodes[zkevm_opcode::GT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_GT);
+                opcodes[zkevm_opcode::EQ] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_EQ);
+                opcodes[zkevm_opcode::SLT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_SLT);
+                opcodes[zkevm_opcode::SGT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_SGT);
 
                 std::vector<constraint_type> middle_constraints;
                 std::vector<constraint_type> first_constraints;
