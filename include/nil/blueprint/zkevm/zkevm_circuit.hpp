@@ -410,7 +410,7 @@ namespace nil {
             // columns for selecting specific rows from the opcode
             std::vector<std::size_t> opcode_row_selection_cols;
             // ---------------------------------------------------------------------------------------------
-            // |Variables below this point are internal to the object and do not go into the actual circuit|
+            // | Variables below this point are internal to the object and do not go into the actual circuit|
             // ---------------------------------------------------------------------------------------------
             // reference to the assignment/circuit objects
             assignment_type &assignment;

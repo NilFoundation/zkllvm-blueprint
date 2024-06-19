@@ -71,20 +71,31 @@ namespace nil {
                 static constexpr std::size_t INDICES_AMOUNT = 5; // index \in {0..31}
                 static constexpr std::array<std::size_t, INDICES_AMOUNT> INDICES = {14, 15, 16, 17, 18};
 
-                static constexpr std::size_t CHUNKS_AMOUNT = 32;
+                static constexpr std::size_t IS_FIRST = 19;
+
+                static constexpr std::size_t CHUNKS_AMOUNT = 30;
                 static constexpr std::array< std::size_t, CHUNKS_AMOUNT> CHUNKS = {
-                    19, 20, 21, 22, 23, 24, 25, 26,
+                        20, 21, 22, 23, 24, 25, 26,
                     27, 28, 29, 30, 31, 32, 33, 34,
                     35, 36, 37, 38, 39, 40, 41, 42,
-                    43, 44, 45, 46, 47, 48, 49, 50
+                    43, 44, 45, 46, 47, 48, 49
                 };
 
-                static constexpr std::size_t DIFFERENCE = 51;
-                static constexpr std::size_t INV_DIFFERENCE = 52;
+                static constexpr std::size_t DIFFERENCE = 50;
+                static constexpr std::size_t INV_DIFFERENCE = 51;
+                static constexpr std::size_t VALUE_BEFORE_HI = 52;          // Check, where do we need it.
+                static constexpr std::size_t VALUE_BEFORE_LO = 53;          // Check, where do we need it.
+                static constexpr std::size_t INITIAL_VALUE_HI = 54;         // Check, where do we need it.
+                static constexpr std::size_t INITIAL_VALUE_LO = 55;         // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_HI = 56;            // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_LO = 57;            // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_BEFORE_HI = 58;            // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_BEFORE_LO = 59;            // Check, where do we need it.
+                static constexpr std::size_t IS_LAST = 60;
 
                 static constexpr std::size_t SORTED_COLUMNS_AMOUNT = 32;
 
-                static constexpr std::size_t total_witness_amount = 53;
+                static constexpr std::size_t total_witness_amount = 61;
 
                 using component_type = plonk_component<BlueprintFieldType>;
 
@@ -257,6 +268,8 @@ namespace nil {
                     assignment.witness(component.W(component_type::IS_WRITE), start_row_index + i) = rw_trace[i].is_write;
                     assignment.witness(component.W(component_type::VALUE_HI), start_row_index + i) = w_hi<BlueprintFieldType>(rw_trace[i].value);
                     assignment.witness(component.W(component_type::VALUE_LO), start_row_index + i) = w_lo<BlueprintFieldType>(rw_trace[i].value);
+                    assignment.witness(component.W(component_type::VALUE_BEFORE_HI), start_row_index + i) = w_hi<BlueprintFieldType>(rw_trace[i].value_prev);
+                    assignment.witness(component.W(component_type::VALUE_BEFORE_LO), start_row_index + i) = w_lo<BlueprintFieldType>(rw_trace[i].value_prev);
 
                     // Op selectors
                     typename BlueprintFieldType::integral_type mask = (1 << component_type::OP_SELECTORS_AMOUNT);
@@ -311,10 +324,20 @@ namespace nil {
                         mask >>= 1;
                         assignment.witness(component.W(component_type::INDICES[j]), start_row_index + i) = ((mask & diff_ind) == 0? 0: 1);
                     }
+                    if( rw_trace[i].op != START_OP && diff_ind < 30){
+                        assignment.witness(component.W(component_type::IS_LAST), start_row_index + i - 1) = 1;
+                    }
+                    if( rw_trace[i].op != START_OP && rw_trace[i].op != PADDING_OP && diff_ind < 30){
+                        assignment.witness(component.W(component_type::IS_FIRST), start_row_index + i) = 1;
+                    }
+
                     assignment.witness(component.W(component_type::DIFFERENCE), start_row_index + i) =
                         assignment.witness(component.W(sorting[diff_ind]), start_row_index+i) -
                         assignment.witness(component.W(sorting[diff_ind]), start_row_index+i - 1);
-                    std::cout << "Diff index = " << diff_ind << ", " << assignment.witness(component.W(component_type::DIFFERENCE), start_row_index + i)<< " ";
+                    std::cout << "Diff index = " << diff_ind <<
+                        " is_first = " << assignment.witness(component.W(component_type::IS_FIRST), start_row_index + i) <<
+                        " is_last = " << assignment.witness(component.W(component_type::IS_LAST), start_row_index + i) <<
+                        std::endl;
 
                     if( assignment.witness(component.W(component_type::DIFFERENCE), start_row_index + i) == 0)
                         assignment.witness(component.W(component_type::INV_DIFFERENCE), start_row_index + i) = 0;
@@ -346,6 +369,7 @@ namespace nil {
 
                 var op = var(component.W(component_type::OP), 0, true);
                 var op_prev = var(component.W(component_type::OP), -1, true);
+                var op_next = var(component.W(component_type::OP), 1, true);
                 var is_write = var(component.W(component_type::IS_WRITE), 0, true);
                 var address = var(component.W(component_type::ADDRESS), 0, true);
                 var storage_key_hi = var(component.W(component_type::STORAGE_KEY_HI), 0, true);
@@ -360,6 +384,19 @@ namespace nil {
                 var value_lo_prev = var(component.W(component_type::VALUE_LO), -1, true);
                 var diff = var(component.W(component_type::DIFFERENCE), 0, true);
                 var inv_diff = var(component.W(component_type::INV_DIFFERENCE), 0, true);
+                var is_first = var(component.W(component_type::IS_FIRST), 0, true);
+                var is_first_prev = var(component.W(component_type::IS_FIRST), -1, true);
+                var is_last = var(component.W(component_type::IS_LAST), 0, true);
+                var value_before_hi = var(component.W(component_type::VALUE_BEFORE_HI), 0, true);
+                var value_before_lo = var(component.W(component_type::VALUE_BEFORE_LO), 0, true);
+                var value_before_hi_prev = var(component.W(component_type::VALUE_BEFORE_HI), -1, true);
+                var value_before_lo_prev = var(component.W(component_type::VALUE_BEFORE_LO), -1, true);
+                var initial_value_hi = var(component.W(component_type::INITIAL_VALUE_HI), 0, true);
+                var initial_value_lo = var(component.W(component_type::INITIAL_VALUE_LO), 0, true);
+                var state_root_hi = var(component.W(component_type::STATE_ROOT_HI), 0, true);
+                var state_root_lo = var(component.W(component_type::STATE_ROOT_LO), 0, true);
+                var state_root_before_hi = var(component.W(component_type::STATE_ROOT_HI), 0, true);
+                var state_root_before_lo = var(component.W(component_type::STATE_ROOT_LO), 0, true);
 
                 // op bit decomposition
                 std::vector<var> op_bits;
@@ -367,14 +404,25 @@ namespace nil {
                     op_bits.push_back(var(component.W(component_type::OP_SELECTORS[i]),0, true));
                 }
 
-                auto op_bits_constraints = bit_tag_constraints<BlueprintFieldType>(op_bits, rw_options_amount);
+                auto op_bits_constraints = bit_tag_constraints<BlueprintFieldType>(op_bits, rw_options_amount-1); // Here is maximum possible value
                 constraints.insert(constraints.end(), op_bits_constraints.begin(), op_bits_constraints.end());
                 constraints.push_back(bit_tag_composition<BlueprintFieldType>(op_bits, op));
 
                 // ordering bit decomposition
                 std::vector<var> ind_bits;
+                std::vector<var> ind_bits_next;
                 for(std::size_t i = 0; i < component_type::INDICES_AMOUNT; i++){
                     ind_bits.push_back(var(component.W(component_type::INDICES[i]),0, true));
+                    ind_bits_next.push_back(var(component.W(component_type::INDICES[i]),1, true));
+                }
+
+                auto sorting_ids = sorting_columns<component_type>(component);
+                auto ind_bits_constraints = bit_tag_constraints<BlueprintFieldType>(ind_bits, sorting_ids.size() - 1);
+                constraints.insert(constraints.end(), ind_bits_constraints.begin(), ind_bits_constraints.end());
+
+                std::vector<var> sorted;
+                for(std::size_t i = 0; i < sorting_ids.size(); i++){
+                    sorted.push_back(var(component.W(sorting_ids[i]),0, true));
                 }
 
                 std::vector<var> chunks;
@@ -382,19 +430,17 @@ namespace nil {
                     chunks.push_back(var(component.W(component_type::CHUNKS[i]),0, true));
                 }
 
-                auto ind_bits_constraints = bit_tag_constraints<BlueprintFieldType>(ind_bits, chunks.size() - 1);
-                constraints.insert(constraints.end(), ind_bits_constraints.begin(), ind_bits_constraints.end());
-
-                auto sorting_ids = sorting_columns<component_type>(component);
-                std::vector<var> sorted;
-                for(std::size_t i = 0; i < sorting_ids.size(); i++){
-                    sorted.push_back(var(component.W(sorting_ids[i]),0, true));
-                }
-
                 auto sorting_constraints = lexicographic_constraints<BlueprintFieldType>(
                     sorted, ind_bits,
                     var(component.W(component_type::DIFFERENCE), 0, true)
                 );
+                constraints.push_back(is_first * (is_first - 1));
+                constraints.push_back(is_last * (is_last - 1));
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * (1 - is_first) * (1 - ind_bits[0]));
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * (1 - is_first) * (1 - ind_bits[1]));
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * (1 - is_first) * (1 - ind_bits[2]));
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * (1 - is_first) * (1 - ind_bits[3]));
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * is_last * ind_bits_next[0] * ind_bits_next[1] * ind_bits_next[2] * ind_bits_next[3]);
 
                 constraints.push_back(chunk16_composition<BlueprintFieldType>({chunks[0], chunks[1]}, id));
                 constraints.push_back(chunk16_composition<BlueprintFieldType>({
@@ -413,14 +459,30 @@ namespace nil {
                     chunks[28], chunks[29]
                 }, rw_id));
 
+                // All chunks are 16 bits
+                for( std::size_t i = 0; i < component_type::CHUNKS_AMOUNT; i++){
+                    lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/full"), {chunks[i]}});
+                }
                 // Define possible OP column values
+
                 // Universal constraints for all rw operations
                 auto start_selector = bit_tag_selector<BlueprintFieldType>(op_bits, START_OP);
                 auto stack_selector = bit_tag_selector<BlueprintFieldType>(op_bits, STACK_OP);
                 auto memory_selector = bit_tag_selector<BlueprintFieldType>(op_bits, MEMORY_OP);
                 auto storage_selector = bit_tag_selector<BlueprintFieldType>(op_bits, STORAGE_OP);
+                auto transient_storage_selector = bit_tag_selector<BlueprintFieldType>(op_bits, TRANSIENT_STORAGE_OP);
+                auto call_context_selector = bit_tag_selector<BlueprintFieldType>(op_bits, CALL_CONTEXT_OP);
+                auto account_selector = bit_tag_selector<BlueprintFieldType>(op_bits, ACCOUNT_OP);
+                auto tx_refund_selector = bit_tag_selector<BlueprintFieldType>(op_bits, TX_REFUND_OP);
+                auto tx_access_list_account_selector = bit_tag_selector<BlueprintFieldType>(op_bits, TX_ACCESS_LIST_ACCOUNT_OP);
+                auto tx_access_list_account_storage_selector = bit_tag_selector<BlueprintFieldType>(op_bits, TX_ACCESS_LIST_ACCOUNT_STORAGE_OP);
+                auto tx_log_selector = bit_tag_selector<BlueprintFieldType>(op_bits, TX_LOG_OP);
+                auto tx_receipt_selector = bit_tag_selector<BlueprintFieldType>(op_bits, TX_RECEIPT_OP);
                 auto padding_selector = bit_tag_selector<BlueprintFieldType>(op_bits, START_OP);
-                constraints.push_back(is_write * (is_write - 1));                                    //2. is_write is either 0 or 1
+
+                constraints.push_back(is_write * (is_write - 1));                                                                                //2. is_write is either 0 or 1
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * (is_first - 1) * (is_write - 1) * (value_hi - value_hi_prev));       // 4. for read operations value is equal to previous value
+                constraints.push_back((op - START_OP) * (op - PADDING_OP) * (is_first - 1) * (is_write - 1) * (value_lo - value_lo_prev));       // 4. for read operations value is equal to previous value
 
                 // Specific constraints for START
                 constraints.push_back(start_selector * address);
@@ -430,16 +492,180 @@ namespace nil {
                 constraints.push_back(start_selector * address);
                 constraints.push_back(start_selector * field);
                 constraints.push_back(start_selector * rw_id);
+                constraints.push_back(start_selector * value_before_hi);
+                constraints.push_back(start_selector * value_before_lo);
+                constraints.push_back(start_selector * initial_value_hi);
+                constraints.push_back(start_selector * initial_value_lo);
+                constraints.push_back(start_selector * state_root_hi);
+                constraints.push_back(start_selector * state_root_lo);
+                constraints.push_back(start_selector * state_root_before_hi);
+                constraints.push_back(start_selector * state_root_before_lo);
+
                 // Specific constraints for STACK
-                constraints.push_back(stack_selector * (is_write - 1) * (value_lo - value_lo_prev));  // 4. for read operations value is equal to previous value
-                constraints.push_back(stack_selector * (is_write - 1) * (value_hi - value_hi_prev));  // 3. for read operations value is equal to previous value
+                constraints.push_back(stack_selector * field);
+
+                constraints.push_back(stack_selector * is_first * (1 - is_write));  // 4. First stack operation is obviously write
                 constraints.push_back(stack_selector * (address - address_prev) * (is_write - 1));    // 5. First operation is always write
                 constraints.push_back(stack_selector * (address - address_prev) * (address - address_prev - 1)); // 6. Stack pointer always grows and only by one
+                constraints.push_back(stack_selector * field);
+                constraints.push_back(stack_selector * storage_key_hi);
+                constraints.push_back(stack_selector * storage_key_lo);
+                constraints.push_back(stack_selector * value_before_hi);
+                constraints.push_back(stack_selector * value_before_lo);
+                constraints.push_back(stack_selector * initial_value_hi);
+                constraints.push_back(stack_selector * initial_value_lo);
+                constraints.push_back(stack_selector * (1 - is_first) * (state_root_hi - state_root_before_hi));
+                constraints.push_back(stack_selector * (1 - is_first) * (state_root_lo - state_root_before_lo));
+                lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/10bits"), {stack_selector * address}});
 
-                // Specific constraints for memory operations
-                constraints.push_back(memory_selector * (is_write - 1) * (value_hi - value_hi_prev));       // 3. for read operations value is equal to previous value
-                constraints.push_back(memory_selector * (is_write - 1) * (value_lo - value_lo_prev));       // 4. for read operations value is equal to previous value
+                // Specific constraints for MEMORY
+                // address is 32 bit
+                constraints.push_back(memory_selector * field);
+
+                constraints.push_back(memory_selector * (is_first - 1) * (is_write - 1) * (value_lo - value_lo_prev));       // 4. for read operations value is equal to previous value
                 constraints.push_back(memory_selector * value_hi);
+                constraints.push_back(memory_selector * is_first * (is_write - 1) * value_lo);
+                constraints.push_back(memory_selector * field);
+                constraints.push_back(memory_selector * storage_key_hi);
+                constraints.push_back(memory_selector * storage_key_lo);
+                constraints.push_back(memory_selector * value_before_hi);
+                constraints.push_back(memory_selector * value_before_lo);
+                constraints.push_back(memory_selector * initial_value_hi);
+                constraints.push_back(memory_selector * initial_value_lo);
+                constraints.push_back(memory_selector * (1 - is_first) * (state_root_hi - state_root_before_hi));
+                constraints.push_back(memory_selector * (1 - is_first) * (state_root_lo - state_root_before_lo));
+                lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/8bits"), {memory_selector * value_lo}});
+
+                // Specific constraints for STORAGE
+                // lookup to MPT circuit
+                // field is 0
+                constraints.push_back(storage_selector * field);
+                constraints.push_back(storage_selector * (1 - is_first) * (value_hi_prev - value_before_hi));
+                constraints.push_back(storage_selector * (1 - is_first) * (value_lo_prev - value_before_lo));
+                //lookup_constraints.push_back({"MPT table", {
+                //    storage_selector * addr,
+                //    storage_selector * field,
+                //    storage_selector * storage_key_hi,
+                //    storage_selector * storage_key_lo,
+                //    storage_selector * value_before_hi,
+                //    storage_selector * value_before_lo,
+                //    storage_selector * value_hi,
+                //    storage_selector * value_lo,
+                //    storage_selector * state_root_hi,
+                //    storage_selector * state_root_lo
+                //}});
+
+                // Specific constraints for TRANSIENT_STORAGE
+                // field is 0
+                constraints.push_back(transient_storage_selector * field);
+
+                // Specific constraints for CALL_CONTEXT
+                // address, storage_key, initial_value, value_prev are 0
+                // state_root = state_root_prev
+                // range_check for field_flag
+                constraints.push_back(call_context_selector * address);
+                constraints.push_back(call_context_selector * storage_key_hi);
+                constraints.push_back(call_context_selector * storage_key_lo);
+                constraints.push_back(call_context_selector * (1 - is_first) * (state_root_hi - state_root_before_hi));
+                constraints.push_back(call_context_selector * (1 - is_first) * (state_root_lo - state_root_before_lo));
+                constraints.push_back(call_context_selector * initial_value_hi);
+                constraints.push_back(call_context_selector * initial_value_lo);
+                constraints.push_back(call_context_selector * value_before_hi);
+                constraints.push_back(call_context_selector * value_before_lo);
+
+                // Specific constraints for ACCOUNT_OP
+                // id, storage_key 0
+                // field_tag -- Range
+                // MPT lookup for last access
+                // value and value_prev consistency
+                constraints.push_back(account_selector * id);
+                constraints.push_back(account_selector * storage_key_hi);
+                constraints.push_back(account_selector * storage_key_lo);
+                constraints.push_back(account_selector * (1 - is_first) * (value_hi_prev - value_before_hi));
+                constraints.push_back(account_selector * (1 - is_first) * (value_lo_prev - value_before_lo));
+                //lookup_constraints.push_back({"MPT table", {
+                //    storage_selector * is_last * addr,
+                //    storage_selector * is_last * field,
+                //    storage_selector * is_last * storage_key_hi,
+                //    storage_selector * is_last * storage_key_lo,
+                //    storage_selector * is_last * value_before_hi,
+                //    storage_selector * is_last * value_before_lo,
+                //    storage_selector * is_last * value_hi,
+                //    storage_selector * is_last * value_lo,
+                //    storage_selector * is_last * state_root_hi,
+                //    storage_selector * is_last * state_root_lo,
+                //    storage_selector * is_last * state_root_before_hi,
+                //    storage_selector * is_last * state_root_before_lo
+                //}});
+
+                // Specific constraints for TX_REFUND_OP
+                // address, field_tag and storage_key are 0
+                // state_root eqauls state_root_prev
+                // initial_value is 0
+                // if first access is Read then value = 0
+                constraints.push_back(tx_refund_selector * address);
+                constraints.push_back(tx_refund_selector * field);
+                constraints.push_back(tx_refund_selector * storage_key_hi);
+                constraints.push_back(tx_refund_selector * storage_key_lo);
+                constraints.push_back(tx_refund_selector * is_first * (1-is_write) * value_hi);
+                constraints.push_back(tx_refund_selector * is_first * (1-is_write) * value_lo);
+                constraints.push_back(tx_refund_selector * (state_root_hi - state_root_before_hi));
+                constraints.push_back(tx_refund_selector * (state_root_lo - state_root_before_lo));
+
+                // Specific constraints for TX_ACCESS_LIST_ACCOUNT_OP
+                // field_tag and storage_key are 0
+                // value is boolean
+                // initial_value is 0
+                // state_root eqauls state_root_prev
+                // value column at previous rotation equals value_prev at current rotation
+                constraints.push_back(tx_access_list_account_selector * field);
+                constraints.push_back(tx_access_list_account_selector * storage_key_hi);
+                constraints.push_back(tx_access_list_account_selector * storage_key_lo);
+                constraints.push_back(tx_access_list_account_selector * value_hi);
+                constraints.push_back(tx_access_list_account_selector * value_lo * (1 - value_lo));
+                constraints.push_back(tx_access_list_account_selector * (state_root_hi - state_root_before_hi));
+                constraints.push_back(tx_access_list_account_selector * (state_root_lo - state_root_before_lo));
+                constraints.push_back(tx_access_list_account_selector * (1 - is_first) * (value_hi_prev - value_before_hi));
+                constraints.push_back(tx_access_list_account_selector * (1 - is_first) * (value_lo_prev - value_before_lo));
+
+                // Specific constraints for TX_ACCESS_LIST_ACCOUNT_STORAGE_OP
+                //    field_tag is 0
+                //    value is boolean
+                //    initial_value is 0
+                //    state_root eqauls state_root_prev
+                //    value column at previous rotation equals value_prev at current rotation
+                constraints.push_back(tx_access_list_account_selector * field);
+                constraints.push_back(tx_access_list_account_selector * value_hi);
+                constraints.push_back(tx_access_list_account_selector * value_lo * (1 - value_lo));
+                constraints.push_back(tx_access_list_account_selector * (state_root_hi - state_root_before_hi));
+                constraints.push_back(tx_access_list_account_selector * (state_root_lo - state_root_before_lo));
+                constraints.push_back(tx_access_list_account_selector * (1 - is_first) * (value_hi_prev - value_before_hi));
+                constraints.push_back(tx_access_list_account_selector * (1 - is_first) * (value_lo_prev - value_before_lo));
+
+                // Specific constraints for TX_LOG_OP
+                //  is_write is true
+                //  initial_value is 0
+                //  state_root eqauls state_root_prev
+                //  value_prev equals initial_value
+                //  address 64 bits
+                constraints.push_back(tx_log_selector * (1 - is_write));
+                constraints.push_back(tx_log_selector * initial_value_hi);
+                constraints.push_back(tx_log_selector * initial_value_lo);
+                constraints.push_back(tx_log_selector * (state_root_hi - state_root_before_hi));
+                constraints.push_back(tx_log_selector * (state_root_lo - state_root_before_lo));
+                constraints.push_back(tx_log_selector * value_before_hi);
+                constraints.push_back(tx_log_selector * value_before_lo);
+
+                // Specific constraints for TX_RECEIPT_OP
+                // address and storage_key are 0
+                //  field_tag is boolean (according to EIP-658)
+                //  tx_id increases by 1 and value increases as well if tx_id changes
+                //  tx_id is 1 if it's the first row and tx_id is in 11 bits range
+                //  state root is the same
+                //  value_prev is 0 and initial_value is 0
+                constraints.push_back(tx_receipt_selector * address);
+                constraints.push_back(tx_receipt_selector * storage_key_hi);
+                constraints.push_back(tx_receipt_selector * storage_key_lo);
 
                 // Specific constraints for PADDING
                 constraints.push_back(padding_selector * address);
@@ -449,19 +675,21 @@ namespace nil {
                 constraints.push_back(padding_selector * address);
                 constraints.push_back(padding_selector * field);
                 constraints.push_back(padding_selector * rw_id);
-                //constraints.push_back((op-START_OP) * (op-PADDING_OP) * (diff * inv_diff - 1));
+                constraints.push_back(padding_selector * state_root_hi);
+                constraints.push_back(padding_selector * state_root_lo);
+                constraints.push_back(padding_selector * state_root_before_hi);
+                constraints.push_back(padding_selector * state_root_before_lo);
+                constraints.push_back(padding_selector * value_hi);
+                constraints.push_back(padding_selector * value_lo);
+                constraints.push_back(padding_selector * initial_value_hi);
+                constraints.push_back(padding_selector * initial_value_lo);
+                constraints.push_back(padding_selector * value_before_hi);
+                constraints.push_back(padding_selector * value_before_lo);
 
-                lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/8bits"), {memory_selector * value_lo}});
-                lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/8bits"), {diff}});
-
-                // All chunks are 16 bits
-                for( std::size_t i = 0; i < component_type::CHUNKS_AMOUNT; i++){
-                    lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/full"), {chunks[i]}});
-                }
+                constraints.push_back((op-START_OP) * (op-PADDING_OP) * (diff * inv_diff - 1));
+                lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/full"), {diff}});
 
                 //TODO: range check stack pointer with 1024
-                //TODO: range check rw_id with 32 bits
-                //TODO: rw_id always grows => range_check rw_id - rw_id_prev with 32 bits
                 //TODO: range check value_hi with 128 bits
                 //TODO: range check value_lo with 128 bits
 

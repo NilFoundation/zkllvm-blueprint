@@ -46,12 +46,12 @@ namespace nil {
         constexpr std::uint8_t CALL_CONTEXT_OP = 5;
         constexpr std::uint8_t ACCOUNT_OP = 6;
         constexpr std::uint8_t TX_REFUND_OP = 7;
-        constexpr std::uint8_t TX_ACCESS_LIST_COUNT_OP = 8;
+        constexpr std::uint8_t TX_ACCESS_LIST_ACCOUNT_OP = 8;
         constexpr std::uint8_t TX_ACCESS_LIST_ACCOUNT_STORAGE_OP = 9;
         constexpr std::uint8_t TX_LOG_OP = 10;
         constexpr std::uint8_t TX_RECEIPT_OP = 11;
         constexpr std::uint8_t PADDING_OP = 12;
-        constexpr std::uint8_t rw_options_amount = 12;
+        constexpr std::uint8_t rw_options_amount = 13;
 
         struct rw_operation{
             std::uint8_t op;             // described above
@@ -62,10 +62,13 @@ namespace nil {
             std::size_t rw_id;           // 32-bit
             bool is_write;               // 1 if it's write operation
             zkevm_word_type value;       // It's full 256 words for storage and stack, but it's only byte for memory.
+            zkevm_word_type value_prev;
 
             bool operator< (const rw_operation &other) const {
                 if( op != other.op ) return op < other.op;
                 if( address != other.address ) return address < other.address;
+                if( field != other.field ) return field < other.field;
+                if( storage_key != other.storage_key ) return storage_key < other.storage_key;
                 if( rw_id != other.rw_id) return rw_id < other.rw_id;
                 return false;
             }
@@ -81,12 +84,13 @@ namespace nil {
             if(obj.op == CALL_CONTEXT_OP )                    os << "CALL_CONTEXT_OP                    : ";
             if(obj.op == ACCOUNT_OP )                         os << "ACCOUNT_OP                         : ";
             if(obj.op == TX_REFUND_OP )                       os << "TX_REFUND_OP                       : ";
-            if(obj.op == TX_ACCESS_LIST_COUNT_OP )            os << "TX_ACCESS_LIST_COUNT_OP            : ";
+            if(obj.op == TX_ACCESS_LIST_ACCOUNT_OP )          os << "TX_ACCESS_LIST_ACCOUNT_OP          : ";
             if(obj.op == TX_ACCESS_LIST_ACCOUNT_STORAGE_OP )  os << "TX_ACCESS_LIST_ACCOUNT_STORAGE_OP  : ";
             if(obj.op == TX_LOG_OP )                          os << "TX_LOG_OP                          : ";
             if(obj.op == TX_RECEIPT_OP )                      os << "TX_RECEIPT_OP                      : ";
             os << obj.rw_id << ", addr =" << obj.address;
             if(obj.is_write) os << " W "; else os << " R ";
+            os << "[" << std::hex << obj.value_prev << std::dec <<"] => ";
             os << "[" << std::hex << obj.value << std::dec <<"]";
             return os;
         }
@@ -98,12 +102,24 @@ namespace nil {
         rw_operation stack_operation(std::size_t id, uint16_t address, std::size_t rw_id, bool is_write, zkevm_word_type value){
             BOOST_ASSERT(id < ( 1 << 28)); // Maximum calls amount(?)
             BOOST_ASSERT(address < 1024);
-            return rw_operation({STACK_OP, id, address, 0, 0, rw_id, is_write, value});
+            return rw_operation({STACK_OP, id, address, 0, 0, rw_id, is_write, value, 0});
         }
 
         rw_operation memory_operation(std::size_t id, zkevm_word_type address, std::size_t rw_id, bool is_write, zkevm_word_type value){
             BOOST_ASSERT(id < ( 1 << 28)); // Maximum calls amount(?)
-            return rw_operation({MEMORY_OP, id, address, 0, 0, rw_id, is_write, value});
+            return rw_operation({MEMORY_OP, id, address, 0, 0, rw_id, is_write, value, 0});
+        }
+
+        rw_operation storage_operation(
+            std::size_t id,
+            zkevm_word_type address,
+            zkevm_word_type storage_key,
+            std::size_t rw_id,
+            bool is_write,
+            zkevm_word_type value,
+            zkevm_word_type value_prev
+        ){
+            return rw_operation({STORAGE_OP, id, address, 0, storage_key, rw_id, is_write, value, value_prev});
         }
 
         rw_operation padding_operation(){
@@ -142,6 +158,16 @@ namespace nil {
                 return result;
             }
 
+            std::map<zkevm_word_type, zkevm_word_type> key_value_storage_from_ptree(const boost::property_tree::ptree &ptree){
+                std::map<zkevm_word_type, zkevm_word_type> result;
+//              std::cout << "Storage:" << std::endl;
+                for(auto it = ptree.begin(); it != ptree.end(); it++){
+                    result[zkevm_word_from_string(it->first.data())] = zkevm_word_from_string(it->second.data());
+//                    std::cout << "\t" << it->first.data() << "=>" <<  it->second.data() << std::endl;
+                }
+                return result;
+            }
+
             std::vector<std::uint8_t> byte_vector_from_ptree(const boost::property_tree::ptree &ptree){
                 std::vector<std::uint8_t> result;
 //                std::cout << "MEMORY words " << ptree.size() << ":";
@@ -160,7 +186,9 @@ namespace nil {
                 std::string opcode,
                 const std::vector<zkevm_word_type> &stack,       // Stack state before operation
                 const std::vector<zkevm_word_type> &stack_next,  // stack state after operation. We need it for correct PUSH and correct SLOAD
-                const std::vector<uint8_t> &memory      // Memory state before operation in bytes format
+                const std::vector<uint8_t> &memory ,     // Memory state before operation in bytes format
+                const std::map<zkevm_word_type, zkevm_word_type> &storage,// Storage state before operation
+                const std::map<zkevm_word_type, zkevm_word_type> &storage_next// Storage state before operation
             ){
                 // Opcode is not presented in RW lookup table. We just take it from json
                 std::cout << opcode << std::endl;
@@ -506,10 +534,33 @@ namespace nil {
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                 } else if(opcode == "SLOAD") {
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    rw_ops.push_back(storage_operation(
+                        call_id,
+                        0,
+                        stack[stack.size()-1],
+                        rw_ops.size(),
+                        false,
+                        storage_next.at(stack[stack.size()-1]),
+                        storage_next.at(stack[stack.size()-1])
+                    )); // Second parameter should be transaction_id)
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                 } else if(opcode == "SSTORE") {
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+
+                    rw_ops.push_back(storage_operation(
+                        call_id,
+                        0,
+                        stack[stack.size()-1],
+                        rw_ops.size(),
+                        true,
+                        stack[stack.size()-2],
+                        // TODO: Remove this zero value in value_before by real previous storage value.
+                        // Overwise lookup in MPT table won't be correct
+                        (storage.find(stack[stack.size()-1]) == storage.end())? 0: storage.at(stack[stack.size()-1]))
+                    ); // Second parameter should be transaction_id
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     // TODO: add storage write operations
                 } else {
@@ -530,16 +581,20 @@ namespace nil {
                 std::vector<zkevm_word_type> stack = zkevm_word_vector_from_ptree(ptrace.begin()->second.get_child("stack"));
                 std::vector<std::uint8_t> memory = byte_vector_from_ptree(ptrace.begin()->second.get_child("memory"));
                 std::vector<zkevm_word_type> stack_next;
+                std::map<zkevm_word_type, zkevm_word_type> storage = key_value_storage_from_ptree(ptrace.begin()->second.get_child("storage"));
+                std::map<zkevm_word_type, zkevm_word_type> storage_next;
 
                 rw_ops.push_back(start_operation());
                 for( auto it = ptrace.begin(); it!=ptrace.end(); it++ ){
                     if(std::distance(it, ptrace.end()) == 1)
-                        append_opcode(it->second.get_child("op").data(), stack, {}, memory);
+                        append_opcode(it->second.get_child("op").data(), stack, {}, memory, storage, storage);
                     else{
                         stack_next = zkevm_word_vector_from_ptree(std::next(it)->second.get_child("stack"));
-                        append_opcode(it->second.get_child("op").data(), stack, stack_next, memory);
+                        storage_next = key_value_storage_from_ptree(it->second.get_child("storage"));
+                        append_opcode(it->second.get_child("op").data(), stack, stack_next, memory, storage, storage_next);
                         memory = byte_vector_from_ptree(std::next(it)->second.get_child("memory"));
                     }
+                    storage = storage_next;
                     stack = stack_next;
                 }
                 std::sort(rw_ops.begin(), rw_ops.end(), [](rw_operation a, rw_operation b){
