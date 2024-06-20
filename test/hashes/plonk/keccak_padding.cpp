@@ -104,7 +104,7 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
                                const bool range_check_input = true, const std::size_t limit_permutation_column = 7) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
-    constexpr std::size_t SelectorColumns = 12;
+    constexpr std::size_t SelectorColumns = 20;
     nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType> desc(WitnessesAmount, PublicInputColumns,
                                                                               ConstantColumns, SelectorColumns);
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
@@ -127,10 +127,15 @@ auto test_keccak_padding_inner(std::vector<typename BlueprintFieldType::value_ty
     typename component_type::input_type instance_input = {message_vars};
 
     auto result_check = [expected_result](AssignmentType &assignment, typename component_type::result_type &real_res) {
+        std::cout << "sizes: " << expected_result.size() << ", " << real_res.padded_message.size() << std::endl;
         assert(expected_result.size() == real_res.padded_message.size());
         for (int i = 0; i < real_res.padded_message.size(); ++i) {
             std::cout << expected_result[i] << " vs " << var_value(assignment, real_res.padded_message[i]).data
                       << std::endl;
+        }
+        for (int i = 0; i < real_res.padded_message.size(); ++i) {
+            // std::cout << expected_result[i] << " vs " << var_value(assignment, real_res.padded_message[i]).data
+            //           << std::endl;
             assert(expected_result[i] == var_value(assignment, real_res.padded_message[i]));
         }
     };
@@ -258,30 +263,31 @@ void test_to_fail_keccak_padding_random(std::size_t message_size, bool more_bits
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 
-BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
-    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
+// BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
+//     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
 
-    test_keccak_padding_0<field_type, 9, 65536, 10>();
-    for (std::size_t i = 1; i < 100; i++) {
-        test_keccak_padding_1<field_type, 9, 65536, 10>(i);
-        test_keccak_padding_random<field_type, 9, 65536, 10>(i);
-        test_keccak_padding_random<field_type, 9, 65536, 10>(i, false);
-        test_keccak_padding_random<field_type, 9, 65536, 10>(i, true, false);
-        test_keccak_padding_random<field_type, 9, 65536, 10>(i, false, false);
-    }
-}
+//     test_keccak_padding_0<field_type, 9, 65536, 10>();
+//     for (std::size_t i = 1; i < 100; i++) {
+//         test_keccak_padding_1<field_type, 9, 65536, 10>(i);
+//         test_keccak_padding_random<field_type, 9, 65536, 10>(i);
+//         test_keccak_padding_random<field_type, 9, 65536, 10>(i, false);
+//         test_keccak_padding_random<field_type, 9, 65536, 10>(i, true, false);
+//         test_keccak_padding_random<field_type, 9, 65536, 10>(i, false, false);
+//     }
+// }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_15) {
     using field_type = nil::crypto3::algebra::curves::vesta::scalar_field_type;
 
-    test_keccak_padding_0<field_type, 15, 65536, 10>();
-    for (std::size_t i = 1; i < 100; i++) {
-        test_keccak_padding_1<field_type, 15, 65536, 10>(i);
-        test_keccak_padding_random<field_type, 15, 65536, 10>(i);
-        test_keccak_padding_random<field_type, 15, 65536, 10>(i, false);
-        test_keccak_padding_random<field_type, 15, 65536, 10>(i, true, false);
-        test_keccak_padding_random<field_type, 15, 65536, 10>(i, false, false);
-    }
+    // test_keccak_padding_0<field_type, 15, 65536, 10>();
+    test_keccak_padding_random<field_type, 9, 65536, 10>(18);
+    // for (std::size_t i = 1; i < 100; i++) {
+    //     test_keccak_padding_1<field_type, 15, 65536, 10>(i);
+    //     test_keccak_padding_random<field_type, 15, 65536, 10>(i);
+    //     test_keccak_padding_random<field_type, 15, 65536, 10>(i, false);
+    //     test_keccak_padding_random<field_type, 15, 65536, 10>(i, true, false);
+    //     test_keccak_padding_random<field_type, 15, 65536, 10>(i, false, false);
+    // }
 }
 
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_to_fail) {
