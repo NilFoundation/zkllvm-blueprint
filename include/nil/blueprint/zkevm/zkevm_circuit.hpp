@@ -42,6 +42,7 @@
 #include <nil/blueprint/zkevm/operations/add_sub.hpp>
 #include <nil/blueprint/zkevm/operations/mul.hpp>
 #include <nil/blueprint/zkevm/operations/div_mod.hpp>
+#include <nil/blueprint/zkevm/operations/sdiv_smod.hpp>
 #include <nil/blueprint/zkevm/operations/cmp.hpp>
 #include <nil/blueprint/zkevm/operations/not.hpp>
 
@@ -299,18 +300,32 @@ namespace nil {
 
             void init_opcodes() {
                 // add all the implemented opcodes here
+                // STOP
                 opcodes[zkevm_opcode::ADD] = std::make_shared<zkevm_add_sub_operation<BlueprintFieldType>>(true);
                 opcodes[zkevm_opcode::MUL] = std::make_shared<zkevm_mul_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::SUB] = std::make_shared<zkevm_add_sub_operation<BlueprintFieldType>>(false);
                 opcodes[zkevm_opcode::DIV] = std::make_shared<zkevm_div_mod_operation<BlueprintFieldType>>(true);
+                opcodes[zkevm_opcode::SDIV] = std::make_shared<zkevm_sdiv_smod_operation<BlueprintFieldType>>(true);
                 opcodes[zkevm_opcode::MOD] = std::make_shared<zkevm_div_mod_operation<BlueprintFieldType>>(false);
+                opcodes[zkevm_opcode::SMOD] = std::make_shared<zkevm_sdiv_smod_operation<BlueprintFieldType>>(false);
+                // ADDMOD
+                // MULMOD
+                // EXP
+                // SIGNEXTEND
                 opcodes[zkevm_opcode::LT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_LT);
                 opcodes[zkevm_opcode::GT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_GT);
                 opcodes[zkevm_opcode::SLT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_SLT);
                 opcodes[zkevm_opcode::SGT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_SGT);
                 opcodes[zkevm_opcode::EQ] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_EQ);
                 opcodes[zkevm_opcode::ISZERO] = std::make_shared<zkevm_iszero_operation<BlueprintFieldType>>();
+                // AND
+                // OR
+                // XOR
                 opcodes[zkevm_opcode::NOT] = std::make_shared<zkevm_not_operation<BlueprintFieldType>>();
+                // BYTE
+                // SHL
+                // SHR
+                // SAR
 
                 std::vector<constraint_type> middle_constraints;
                 std::vector<constraint_type> first_constraints;

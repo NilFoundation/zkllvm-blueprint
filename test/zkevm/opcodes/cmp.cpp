@@ -23,7 +23,7 @@
 //---------------------------------------------------------------------------//
 
 #include "nil/crypto3/algebra/fields/pallas/base_field.hpp"
-#define BOOST_TEST_MODULE zkevm_add_test
+#define BOOST_TEST_MODULE zkevm_cmp_test
 
 #include <boost/test/unit_test.hpp>
 
@@ -35,8 +35,6 @@
 
 #include <nil/blueprint/zkevm/zkevm_circuit.hpp>
 #include "../opcode_tester.hpp"
-
-#include <nil/blueprint/zkevm/operations/add_sub.hpp>
 
 using namespace nil::blueprint;
 using namespace nil::crypto3::algebra;
