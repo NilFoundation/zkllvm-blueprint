@@ -85,17 +85,15 @@ namespace nil {
                 static constexpr std::size_t INV_DIFFERENCE = 51;
                 static constexpr std::size_t VALUE_BEFORE_HI = 52;          // Check, where do we need it.
                 static constexpr std::size_t VALUE_BEFORE_LO = 53;          // Check, where do we need it.
-                static constexpr std::size_t INITIAL_VALUE_HI = 54;         // Check, where do we need it.
-                static constexpr std::size_t INITIAL_VALUE_LO = 55;         // Check, where do we need it.
-                static constexpr std::size_t STATE_ROOT_HI = 56;            // Check, where do we need it.
-                static constexpr std::size_t STATE_ROOT_LO = 57;            // Check, where do we need it.
-                static constexpr std::size_t STATE_ROOT_BEFORE_HI = 58;            // Check, where do we need it.
-                static constexpr std::size_t STATE_ROOT_BEFORE_LO = 59;            // Check, where do we need it.
-                static constexpr std::size_t IS_LAST = 60;
+                static constexpr std::size_t STATE_ROOT_HI = 54;            // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_LO = 55;            // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_BEFORE_HI = 56;            // Check, where do we need it.
+                static constexpr std::size_t STATE_ROOT_BEFORE_LO = 57;            // Check, where do we need it.
+                static constexpr std::size_t IS_LAST = 58;
 
                 static constexpr std::size_t SORTED_COLUMNS_AMOUNT = 32;
 
-                static constexpr std::size_t total_witness_amount = 61;
+                static constexpr std::size_t total_witness_amount = 60;
 
                 using component_type = plonk_component<BlueprintFieldType>;
 
@@ -257,7 +255,7 @@ namespace nil {
                 auto sorting = sorting_columns<component_type>(component);
                 auto rw_trace = instance_input.rws.get_rw_ops();
                 for( std::size_t i = 0; i < rw_trace.size(); i++ ){
-                    std::cout << i << "." << rw_trace[i] << std::endl;
+                    std::cout << i << "." << rw_trace[i] << " ";
                     // Lookup columns
                     assignment.witness(component.W(component_type::OP), start_row_index + i) = rw_trace[i].op;
                     assignment.witness(component.W(component_type::ID), start_row_index + i) = rw_trace[i].id;
@@ -268,8 +266,6 @@ namespace nil {
                     assignment.witness(component.W(component_type::IS_WRITE), start_row_index + i) = rw_trace[i].is_write;
                     assignment.witness(component.W(component_type::VALUE_HI), start_row_index + i) = w_hi<BlueprintFieldType>(rw_trace[i].value);
                     assignment.witness(component.W(component_type::VALUE_LO), start_row_index + i) = w_lo<BlueprintFieldType>(rw_trace[i].value);
-                    assignment.witness(component.W(component_type::VALUE_BEFORE_HI), start_row_index + i) = w_hi<BlueprintFieldType>(rw_trace[i].value_prev);
-                    assignment.witness(component.W(component_type::VALUE_BEFORE_LO), start_row_index + i) = w_lo<BlueprintFieldType>(rw_trace[i].value_prev);
 
                     // Op selectors
                     typename BlueprintFieldType::integral_type mask = (1 << component_type::OP_SELECTORS_AMOUNT);
@@ -319,6 +315,14 @@ namespace nil {
                             assignment.witness(component.W(sorting[diff_ind]), start_row_index+i - 1)
                         ) break;
                     }
+                    if( diff_ind < 30 ){
+                        assignment.witness(component.W(component_type::VALUE_BEFORE_HI), start_row_index + i) = w_hi<BlueprintFieldType>(rw_trace[i].value_prev);
+                        assignment.witness(component.W(component_type::VALUE_BEFORE_LO), start_row_index + i) = w_lo<BlueprintFieldType>(rw_trace[i].value_prev);
+                    } else {
+                        assignment.witness(component.W(component_type::VALUE_BEFORE_HI), start_row_index + i) = assignment.witness(component.W(component_type::VALUE_BEFORE_HI), start_row_index + i - 1);
+                        assignment.witness(component.W(component_type::VALUE_BEFORE_LO), start_row_index + i) = assignment.witness(component.W(component_type::VALUE_BEFORE_LO), start_row_index + i - 1);
+                    }
+
                     mask = (1 << component_type::INDICES_AMOUNT);
                     for(std::size_t j = 0; j < component_type::INDICES_AMOUNT; j++){
                         mask >>= 1;
@@ -343,7 +347,6 @@ namespace nil {
                         assignment.witness(component.W(component_type::INV_DIFFERENCE), start_row_index + i) = 0;
                     else
                         assignment.witness(component.W(component_type::INV_DIFFERENCE), start_row_index + i) = BlueprintFieldType::value_type::one() / assignment.witness(component_type::DIFFERENCE, start_row_index+i);
-                    std::cout << "Inversion= " << assignment.witness(component.W(component_type::INV_DIFFERENCE), start_row_index + i)<< std::endl;
                 }
 
                 return typename component_type::result_type(component, start_row_index);
@@ -391,8 +394,6 @@ namespace nil {
                 var value_before_lo = var(component.W(component_type::VALUE_BEFORE_LO), 0, true);
                 var value_before_hi_prev = var(component.W(component_type::VALUE_BEFORE_HI), -1, true);
                 var value_before_lo_prev = var(component.W(component_type::VALUE_BEFORE_LO), -1, true);
-                var initial_value_hi = var(component.W(component_type::INITIAL_VALUE_HI), 0, true);
-                var initial_value_lo = var(component.W(component_type::INITIAL_VALUE_LO), 0, true);
                 var state_root_hi = var(component.W(component_type::STATE_ROOT_HI), 0, true);
                 var state_root_lo = var(component.W(component_type::STATE_ROOT_LO), 0, true);
                 var state_root_before_hi = var(component.W(component_type::STATE_ROOT_HI), 0, true);
@@ -494,8 +495,6 @@ namespace nil {
                 constraints.push_back(start_selector * rw_id);
                 constraints.push_back(start_selector * value_before_hi);
                 constraints.push_back(start_selector * value_before_lo);
-                constraints.push_back(start_selector * initial_value_hi);
-                constraints.push_back(start_selector * initial_value_lo);
                 constraints.push_back(start_selector * state_root_hi);
                 constraints.push_back(start_selector * state_root_lo);
                 constraints.push_back(start_selector * state_root_before_hi);
@@ -512,8 +511,6 @@ namespace nil {
                 constraints.push_back(stack_selector * storage_key_lo);
                 constraints.push_back(stack_selector * value_before_hi);
                 constraints.push_back(stack_selector * value_before_lo);
-                constraints.push_back(stack_selector * initial_value_hi);
-                constraints.push_back(stack_selector * initial_value_lo);
                 constraints.push_back(stack_selector * (1 - is_first) * (state_root_hi - state_root_before_hi));
                 constraints.push_back(stack_selector * (1 - is_first) * (state_root_lo - state_root_before_lo));
                 lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/10bits"), {stack_selector * address}});
@@ -530,8 +527,6 @@ namespace nil {
                 constraints.push_back(memory_selector * storage_key_lo);
                 constraints.push_back(memory_selector * value_before_hi);
                 constraints.push_back(memory_selector * value_before_lo);
-                constraints.push_back(memory_selector * initial_value_hi);
-                constraints.push_back(memory_selector * initial_value_lo);
                 constraints.push_back(memory_selector * (1 - is_first) * (state_root_hi - state_root_before_hi));
                 constraints.push_back(memory_selector * (1 - is_first) * (state_root_lo - state_root_before_lo));
                 lookup_constraints.push_back({lookup_tables_indices.at("chunk_16_bits/8bits"), {memory_selector * value_lo}});
@@ -540,8 +535,8 @@ namespace nil {
                 // lookup to MPT circuit
                 // field is 0
                 constraints.push_back(storage_selector * field);
-                constraints.push_back(storage_selector * (1 - is_first) * (value_hi_prev - value_before_hi));
-                constraints.push_back(storage_selector * (1 - is_first) * (value_lo_prev - value_before_lo));
+                constraints.push_back(storage_selector * (1 - is_first) * (value_before_hi_prev - value_before_hi));
+                constraints.push_back(storage_selector * (1 - is_first) * (value_before_lo_prev - value_before_lo));
                 //lookup_constraints.push_back({"MPT table", {
                 //    storage_selector * addr,
                 //    storage_selector * field,
@@ -568,8 +563,6 @@ namespace nil {
                 constraints.push_back(call_context_selector * storage_key_lo);
                 constraints.push_back(call_context_selector * (1 - is_first) * (state_root_hi - state_root_before_hi));
                 constraints.push_back(call_context_selector * (1 - is_first) * (state_root_lo - state_root_before_lo));
-                constraints.push_back(call_context_selector * initial_value_hi);
-                constraints.push_back(call_context_selector * initial_value_lo);
                 constraints.push_back(call_context_selector * value_before_hi);
                 constraints.push_back(call_context_selector * value_before_lo);
 
@@ -581,8 +574,8 @@ namespace nil {
                 constraints.push_back(account_selector * id);
                 constraints.push_back(account_selector * storage_key_hi);
                 constraints.push_back(account_selector * storage_key_lo);
-                constraints.push_back(account_selector * (1 - is_first) * (value_hi_prev - value_before_hi));
-                constraints.push_back(account_selector * (1 - is_first) * (value_lo_prev - value_before_lo));
+                constraints.push_back(account_selector * (1 - is_first) * (value_before_hi_prev - value_before_hi));
+                constraints.push_back(account_selector * (1 - is_first) * (value_before_lo_prev - value_before_lo));
                 //lookup_constraints.push_back({"MPT table", {
                 //    storage_selector * is_last * addr,
                 //    storage_selector * is_last * field,
@@ -649,8 +642,6 @@ namespace nil {
                 //  value_prev equals initial_value
                 //  address 64 bits
                 constraints.push_back(tx_log_selector * (1 - is_write));
-                constraints.push_back(tx_log_selector * initial_value_hi);
-                constraints.push_back(tx_log_selector * initial_value_lo);
                 constraints.push_back(tx_log_selector * (state_root_hi - state_root_before_hi));
                 constraints.push_back(tx_log_selector * (state_root_lo - state_root_before_lo));
                 constraints.push_back(tx_log_selector * value_before_hi);
@@ -681,8 +672,6 @@ namespace nil {
                 constraints.push_back(padding_selector * state_root_before_lo);
                 constraints.push_back(padding_selector * value_hi);
                 constraints.push_back(padding_selector * value_lo);
-                constraints.push_back(padding_selector * initial_value_hi);
-                constraints.push_back(padding_selector * initial_value_lo);
                 constraints.push_back(padding_selector * value_before_hi);
                 constraints.push_back(padding_selector * value_before_lo);
 

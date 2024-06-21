@@ -88,7 +88,10 @@ namespace nil {
             if(obj.op == TX_ACCESS_LIST_ACCOUNT_STORAGE_OP )  os << "TX_ACCESS_LIST_ACCOUNT_STORAGE_OP  : ";
             if(obj.op == TX_LOG_OP )                          os << "TX_LOG_OP                          : ";
             if(obj.op == TX_RECEIPT_OP )                      os << "TX_RECEIPT_OP                      : ";
+            if(obj.op == PADDING_OP )                         os << "PADDING_OP                         : ";
             os << obj.rw_id << ", addr =" << obj.address;
+            if(obj.op == STORAGE_OP || obj.op == TRANSIENT_STORAGE_OP)
+                os << " storage_key = " << obj.storage_key;
             if(obj.is_write) os << " W "; else os << " R ";
             os << "[" << std::hex << obj.value_prev << std::dec <<"] => ";
             os << "[" << std::hex << obj.value << std::dec <<"]";
@@ -192,17 +195,436 @@ namespace nil {
             ){
                 // Opcode is not presented in RW lookup table. We just take it from json
                 std::cout << opcode << std::endl;
-                if(opcode == "PUSH1") {
+                if(opcode == "STOP") {
+                    // 0x00 -- no RW operations
+                } else if(opcode == "ADD") {
+                    // 0x01
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "PUSH2") {
+                } else if(opcode == "MUL") {
+                    // 0x02
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "PUSH4") {
+                } else if(opcode == "SUB") {
+                    // 0x03
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DIV") {
+                    // 0x04
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SDIV") {
+                    // 0x05
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                }  else if(opcode == "MOD") {
+                    // 0x06
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                }   else if(opcode == "SMOD") {
+                    // 0x07
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "ADDMOD") {
+                    // 0x08
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "MULMOD") {
+                    // 0x09
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                }   else if(opcode == "EXP") {
+                    // 0x0a
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                }   else if(opcode == "SIGEXTEND") {
+                    // 0x0b
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "LT") {
+                    // 0x10
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "GT") {
+                    // 0x11
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SLT") {
+                    // 0x12
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SGT") {
+                    // 0x13
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "EQ") {
+                    // 0x14
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "ISZERO") {
+                    // 0x15
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "ADD") {
+                    // 0x16
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "OR") {
+                    // 0x17
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "XOR") {
+                    // 0x18
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "NOT") {
+                    // 0x19
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "BYTE") {
+                    // 0x1a
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SHL") {
+                    // 0x1b
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SHR") {
+                    // 0x1c
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SAR") {
+                    // 0x1d
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SHA3") {
+                    // 0x20
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    auto length = stack[stack.size()-2];
+                    // TODO: add Length memory READ operations
+                    auto offset = stack[stack.size()-1];
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "ADDRESS") {
+                    // 0x30
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "BALANCE") {
+                    // 0x31
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO:  add read operations from account
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "ORIGIN") {
+                    // 0x32
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALLER") {
+                    // 0x33
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALLVALUE") {
+                    // 0x34
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALLDATALOAD") {
+                    // 0x35
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add 32 read operations to calldata
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALLDATASIZE") {
+                    // 0x36
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALLDATACOPY") {
+                    // 0x37
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add length read operations to calldata
+                    // TODO: add length write operations to memory
+                } else if(opcode == "CODESIZE") {
+                    // 0x38
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CODECOPY") {
+                    // 0x39
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add length write operations to memory
+                    // Consistency with bytecode table will be checked by bytecode circuit
+                } else if(opcode == "GASPRICE") {
+                    // 0x3a
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "EXTCODESIZE") {
+                    // 0x3b
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "EXTCODECOPY") {
+                    // 0x3c
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add length write operations to memory
+                    // Consistency with bytecode table will be checked by bytecode circuit
+                } else if(opcode == "RETURNDATASIZE") {
+                    // 0x3d
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "RETURNDATACOPY") {
+                    // 0x3e
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add length write operations to memory
+                    // Where will consistency check be done?
+                } else if(opcode == "EXTCODEHASH") {
+                    // 0x3f
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "BLOCKHASH") {
+                    // 0x40
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "COINBASE") {
+                    // 0x41
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "TIMESTAMP") {
+                    // 0x42
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "NUMBER") {
+                    // 0x43
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DIFFICULTY") {
+                    // 0x44
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "GASLIMIT") {
+                    // 0x45
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CHAINID") {
+                    // 0x46
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SELFBALANCE") {
+                    // 0x47
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "BASEFEE") {
+                    // 0x48
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "BLOBHASH") {
+                    // 0x49
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "BLOBBASEFEE") {
+                    // 0x4a
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "POP") {
+                    // 0x50
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "MLOAD") {
+                    // 0x51
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    zkevm_word_type addr = stack[stack.size() - 1];
+                    BOOST_ASSERT_MSG(addr < std::numeric_limits<std::size_t>::max(), "Cannot process so large memory address");
+                    std::cout << "\t\t Address = 0x" << std::hex << addr << std::dec << " memory size " << memory.size() << std::endl;
+                    for( std::size_t i = 0; i < 32; i++){
+                        rw_ops.push_back(memory_operation(call_id, addr+i, rw_ops.size(), false, addr+i < memory.size() ? memory[std::size_t(addr+i)]: 0));
+                        std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    }
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                 } else if(opcode == "MSTORE") {
-                    // READ from stack
+                    // 0x52
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
@@ -215,326 +637,21 @@ namespace nil {
                         rw_ops.push_back(memory_operation(call_id, addr + i, rw_ops.size(), true, bytes[i]));
                         std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     }
-                    // TODO add memory rows for write in memory operation
-                } else if(opcode == "CALLVALUE") {
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    std::cout << stack.size() << "=>" << stack_next.size() << std::endl;
-                } else if(opcode == "ISZERO") {
+                } else if(opcode == "MSTORE8") {
+                    // 0x53
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "JUMPI") {
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "JUMPDEST") {
-                } else if(opcode == "POP") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "CALLDATASIZE") {
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "LT") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "CALLDATALOAD") {
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SHR") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "EQ") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "JUMP") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP1") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP2") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP3") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP4") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP5") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP6") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP7") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-7, rw_ops.size(), false, stack[stack.size()-7]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP8") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-8, rw_ops.size(), false, stack[stack.size()-8]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP9") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-9, rw_ops.size(), false, stack[stack.size()-9]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP10") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-10, rw_ops.size(), false, stack[stack.size()-10]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP11") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-11, rw_ops.size(), false, stack[stack.size()-11]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP12") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-12, rw_ops.size(), false, stack[stack.size()-12]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP13") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-13, rw_ops.size(), false, stack[stack.size()-13]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP14") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-14, rw_ops.size(), false, stack[stack.size()-14]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP15") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-15, rw_ops.size(), false, stack[stack.size()-15]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "DUP16") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-16, rw_ops.size(), false, stack[stack.size()-16]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "ADD") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SUB") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SLT") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP1") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-2, rw_ops.size(), true, stack_next[stack_next.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP2") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-3, rw_ops.size(), true, stack_next[stack_next.size()-3]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP3") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-4, rw_ops.size(), true, stack_next[stack_next.size()-4]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP4") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-5, rw_ops.size(), true, stack_next[stack_next.size()-5]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP5") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-6, rw_ops.size(), true, stack_next[stack_next.size()-6]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP6") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-7, rw_ops.size(), false, stack[stack.size()-7]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-7, rw_ops.size(), true, stack_next[stack_next.size()-7]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP7") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-8, rw_ops.size(), false, stack[stack.size()-8]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-8, rw_ops.size(), true, stack_next[stack_next.size()-8]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP8") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-9, rw_ops.size(), false, stack[stack.size()-9]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-9, rw_ops.size(), true, stack_next[stack_next.size()-9]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP9") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-10, rw_ops.size(), false, stack[stack.size()-10]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-10, rw_ops.size(), true, stack_next[stack_next.size()-10]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP10") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-11, rw_ops.size(), false, stack[stack.size()-11]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-11, rw_ops.size(), true, stack_next[stack_next.size()-11]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP11") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-12, rw_ops.size(), false, stack[stack.size()-12]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-12, rw_ops.size(), true, stack_next[stack_next.size()-12]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP12") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-13, rw_ops.size(), false, stack[stack.size()-13]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-13, rw_ops.size(), true, stack_next[stack_next.size()-13]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP13") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-14, rw_ops.size(), false, stack[stack.size()-14]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-14, rw_ops.size(), true, stack_next[stack_next.size()-14]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP14") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-15, rw_ops.size(), false, stack[stack.size()-15]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-15, rw_ops.size(), true, stack_next[stack_next.size()-15]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP15") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-16, rw_ops.size(), false, stack[stack.size()-16]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-16, rw_ops.size(), true, stack_next[stack_next.size()-16]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "SWAP16") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-17, rw_ops.size(), false, stack[stack.size()-17]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-17, rw_ops.size(), true, stack_next[stack_next.size()-17]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "MLOAD") {
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     zkevm_word_type addr = stack[stack.size() - 1];
                     BOOST_ASSERT_MSG(addr < std::numeric_limits<std::size_t>::max(), "Cannot process so large memory address");
                     std::cout << "\t\t Address = 0x" << std::hex << addr << std::dec << " memory size " << memory.size() << std::endl;
-                    for( std::size_t i = 0; i < 32; i++){
-                        rw_ops.push_back(memory_operation(call_id, addr+i, rw_ops.size(), false, addr+i < memory.size() ? memory[std::size_t(addr+i)]: 0));
-                        std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    }
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "RETURN") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "GT") {
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
-                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    auto bytes = w_to_8(stack[stack.size() - 2]);
+                    rw_ops.push_back(memory_operation(call_id, addr, rw_ops.size(), true, bytes[31]));
                 } else if(opcode == "SLOAD") {
+                    // 0x54
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(storage_operation(
                         call_id,
                         0,
@@ -544,9 +661,11 @@ namespace nil {
                         storage_next.at(stack[stack.size()-1]),
                         storage_next.at(stack[stack.size()-1])
                     )); // Second parameter should be transaction_id)
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                 } else if(opcode == "SSTORE") {
+                    // 0x55
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
 
@@ -562,7 +681,609 @@ namespace nil {
                         (storage.find(stack[stack.size()-1]) == storage.end())? 0: storage.at(stack[stack.size()-1]))
                     ); // Second parameter should be transaction_id
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    // TODO: add storage write operations
+                } else if(opcode == "JUMP") {
+                    // 0x56
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "JUMPI") {
+                    // 0x57
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PC") {
+                    // 0x58
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "MSIZE") {
+                    // 0x58
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "GAS") {
+                    // 0x59
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "JUMPDEST") {
+                    // 0x5a
+                } else if(opcode == "TLOAD") {
+                    // 0x5b
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add trasient storage operations
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "TSTORE") {
+                    // 0x5c
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add trasient storage write operations
+                } else if(opcode == "MCOPY") {
+                    // 0x5d
+                    std::cout << "Test me, please!" << std::endl;
+                    exit(2);
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    // TODO: add length read operations to memory
+                    // TODO: add length write operations to memory
+                    // Consistensy will be checked by copy circuit
+                }  else  if(opcode == "PUSH0") {
+                    // 0x5f
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                }  else  if(opcode == "PUSH1") {
+                    // 0x60
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH2") {
+                    // 0x61
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH3") {
+                    // 0x62
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH4") {
+                    // 0x63
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH5") {
+                    // 0x64
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH6") {
+                    // 0x65
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH7") {
+                    // 0x66
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH8") {
+                    // 0x67
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH9") {
+                    // 0x68
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH10") {
+                    // 0x69
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH11") {
+                    // 0x6a
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH12") {
+                    // 0x6b
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH13") {
+                    // 0x6c
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH14") {
+                    // 0x6d
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH15") {
+                    // 0x6e
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH16") {
+                    // 0x6f
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH17") {
+                    // 0x70
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH18") {
+                    // 0x71
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH19") {
+                    // 0x72
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH20") {
+                    // 0x73
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH21") {
+                    // 0x74
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH22") {
+                    // 0x75
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH23") {
+                    // 0x76
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH24") {
+                    // 0x77
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH25") {
+                    // 0x78
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH26") {
+                    // 0x79
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH27") {
+                    // 0x7a
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH28") {
+                    // 0x7b
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH29") {
+                    // 0x7c
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH30") {
+                    // 0x7d
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH31") {
+                    // 0x7e
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "PUSH32") {
+                    // 0x7f
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP1") {
+                    // 0x80
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP2") {
+                    // 0x81
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP3") {
+                    // 0x82
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP4") {
+                    // 0x83
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP5") {
+                    // 0x84
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP6") {
+                    // 0x85
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP7") {
+                    // 0x86
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-7, rw_ops.size(), false, stack[stack.size()-7]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP8") {
+                    // 0x87
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-8, rw_ops.size(), false, stack[stack.size()-8]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP9") {
+                    // 0x88
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-9, rw_ops.size(), false, stack[stack.size()-9]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP10") {
+                    // 0x89
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-10, rw_ops.size(), false, stack[stack.size()-10]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP11") {
+                    // 0x8a
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-11, rw_ops.size(), false, stack[stack.size()-11]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP12") {
+                    // 0x8b
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-12, rw_ops.size(), false, stack[stack.size()-12]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP13") {
+                    // 0x8c
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-13, rw_ops.size(), false, stack[stack.size()-13]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP14") {
+                    // 0x8d
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-14, rw_ops.size(), false, stack[stack.size()-14]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP15") {
+                    // 0x8e
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-15, rw_ops.size(), false, stack[stack.size()-15]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DUP16") {
+                    // 0x8f
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-16, rw_ops.size(), false, stack[stack.size()-16]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP1") {
+                    // 0x90
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-2, rw_ops.size(), true, stack_next[stack_next.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP2") {
+                    // 0x91
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-3, rw_ops.size(), true, stack_next[stack_next.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP3") {
+                    // 0x92
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-4, rw_ops.size(), true, stack_next[stack_next.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP4") {
+                    // 0x93
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-5, rw_ops.size(), true, stack_next[stack_next.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP5") {
+                    // 0x94
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-6, rw_ops.size(), true, stack_next[stack_next.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP6") {
+                    // 0x95
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-7, rw_ops.size(), false, stack[stack.size()-7]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-7, rw_ops.size(), true, stack_next[stack_next.size()-7]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP7") {
+                    // 0x96
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-8, rw_ops.size(), false, stack[stack.size()-8]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-8, rw_ops.size(), true, stack_next[stack_next.size()-8]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP8") {
+                    // 0x97
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-9, rw_ops.size(), false, stack[stack.size()-9]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-9, rw_ops.size(), true, stack_next[stack_next.size()-9]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP9") {
+                    // 0x98
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-10, rw_ops.size(), false, stack[stack.size()-10]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-10, rw_ops.size(), true, stack_next[stack_next.size()-10]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP10") {
+                    // 0x99
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-11, rw_ops.size(), false, stack[stack.size()-11]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-11, rw_ops.size(), true, stack_next[stack_next.size()-11]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP11") {
+                    // 0x9a
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-12, rw_ops.size(), false, stack[stack.size()-12]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-12, rw_ops.size(), true, stack_next[stack_next.size()-12]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP12") {
+                    // 0x9b
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-13, rw_ops.size(), false, stack[stack.size()-13]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-13, rw_ops.size(), true, stack_next[stack_next.size()-13]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP13") {
+                    // 0x9c
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-14, rw_ops.size(), false, stack[stack.size()-14]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-14, rw_ops.size(), true, stack_next[stack_next.size()-14]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP14") {
+                    // 0x9d
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-15, rw_ops.size(), false, stack[stack.size()-15]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-15, rw_ops.size(), true, stack_next[stack_next.size()-15]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP15") {
+                    // 0x9e
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-16, rw_ops.size(), false, stack[stack.size()-16]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-16, rw_ops.size(), true, stack_next[stack_next.size()-16]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SWAP16") {
+                    // 0x9f
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-17, rw_ops.size(), false, stack[stack.size()-17]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-17, rw_ops.size(), true, stack_next[stack_next.size()-17]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "LOG0") {
+                    // 0xa0
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "LOG1") {
+                    // 0xa1
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "LOG2") {
+                    // 0xa2
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "LOG3") {
+                    // 0xa3
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "LOG4") {
+                    // 0xa4
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CREATE") {
+                    // 0xf0
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALL") {
+                    // 0xf1
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-7, rw_ops.size(), false, stack[stack.size()-7]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CALLCODE") {
+                    // 0xf2
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-7, rw_ops.size(), false, stack[stack.size()-7]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "RETURN") {
+                    // 0xf3
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "DELEGATECALL") {
+                    // 0xf4
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "CREATE2") {
+                    // 0xf5
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "STATICCALL") {
+                    // 0xfa
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-6, rw_ops.size(), false, stack[stack.size()-6]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-5, rw_ops.size(), false, stack[stack.size()-5]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-4, rw_ops.size(), false, stack[stack.size()-4]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "REVERT") {
+                    // 0xfd
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                } else if(opcode == "SELFDESTRUCT") {
+                    // 0xff
+                    rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                 } else {
                     std::cout << "Unknown opcode " << std::hex << opcode << std::dec << std::endl;
                     BOOST_ASSERT(false);
