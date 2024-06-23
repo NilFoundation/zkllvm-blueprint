@@ -184,6 +184,7 @@ set(ZKEVM_TESTS_FILES
     "zkevm/opcodes/div"
     "zkevm/opcodes/cmp"
     "zkevm/opcodes/not"
+    "zkevm/opcodes/byte_ops"
     )
 
 set(CURVES_TESTS_FILES
