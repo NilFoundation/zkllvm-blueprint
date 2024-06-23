@@ -45,6 +45,7 @@
 #include <nil/blueprint/zkevm/operations/sdiv_smod.hpp>
 #include <nil/blueprint/zkevm/operations/cmp.hpp>
 #include <nil/blueprint/zkevm/operations/not.hpp>
+#include <nil/blueprint/zkevm/operations/byte.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -322,6 +323,7 @@ namespace nil {
                 // OR
                 // XOR
                 opcodes[zkevm_opcode::NOT] = std::make_shared<zkevm_not_operation<BlueprintFieldType>>();
+                opcodes[zkevm_opcode::BYTE] = std::make_shared<zkevm_byte_operation<BlueprintFieldType>>();
                 // BYTE
                 // SHL
                 // SHR
