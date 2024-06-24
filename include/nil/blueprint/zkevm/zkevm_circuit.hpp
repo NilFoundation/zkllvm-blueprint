@@ -48,6 +48,7 @@
 #include <nil/blueprint/zkevm/operations/byte.hpp>
 #include <nil/blueprint/zkevm/operations/signextend.hpp>
 #include <nil/blueprint/zkevm/operations/bitwise.hpp>
+#include <nil/blueprint/zkevm/operations/shl.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -326,7 +327,7 @@ namespace nil {
                 opcodes[zkevm_opcode::XOR] = std::make_shared<zkevm_bitwise_operation<BlueprintFieldType>>(bitwise_type::B_XOR);
                 opcodes[zkevm_opcode::NOT] = std::make_shared<zkevm_not_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::BYTE] = std::make_shared<zkevm_byte_operation<BlueprintFieldType>>();
-                // SHL
+                opcodes[zkevm_opcode::SHL] = std::make_shared<zkevm_shl_operation<BlueprintFieldType>>();
                 // SHR
                 // SAR
 

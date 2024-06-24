@@ -23,7 +23,7 @@
 //---------------------------------------------------------------------------//
 
 #include "nil/crypto3/algebra/fields/pallas/base_field.hpp"
-#define BOOST_TEST_MODULE zkevm_add_test
+#define BOOST_TEST_MODULE zkevm_byte_ops_test
 
 #include <boost/test/unit_test.hpp>
 
@@ -56,30 +56,37 @@ BOOST_AUTO_TEST_CASE(zkevm_byte_ops_test) {
     machine.stack.push(0);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     machine.stack.push(65538);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     machine.stack.push(10);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     machine.stack.push(30);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     machine.stack.push(50);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     machine.stack.push(zwordc(0x1234567890_cppui_modular257));
     machine.stack.push(1);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     machine.stack.push(zwordc(0x1234567890_cppui_modular257));
     machine.stack.push(31);
     zkevm_circuit.assign_opcode(zkevm_opcode::BYTE, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SIGNEXTEND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::SHL, machine);
     zkevm_circuit.finalize_test();
     // assignment.export_table(std::cout);
     // circuit.export_circuit(std::cout);
