@@ -46,6 +46,7 @@
 #include <nil/blueprint/zkevm/operations/cmp.hpp>
 #include <nil/blueprint/zkevm/operations/not.hpp>
 #include <nil/blueprint/zkevm/operations/byte.hpp>
+#include <nil/blueprint/zkevm/operations/signextend.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -312,7 +313,7 @@ namespace nil {
                 // ADDMOD
                 // MULMOD
                 // EXP
-                // SIGNEXTEND
+                opcodes[zkevm_opcode::SIGNEXTEND] = std::make_shared<zkevm_signextend_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::LT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_LT);
                 opcodes[zkevm_opcode::GT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_GT);
                 opcodes[zkevm_opcode::SLT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_SLT);
@@ -324,7 +325,6 @@ namespace nil {
                 // XOR
                 opcodes[zkevm_opcode::NOT] = std::make_shared<zkevm_not_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::BYTE] = std::make_shared<zkevm_byte_operation<BlueprintFieldType>>();
-                // BYTE
                 // SHL
                 // SHR
                 // SAR

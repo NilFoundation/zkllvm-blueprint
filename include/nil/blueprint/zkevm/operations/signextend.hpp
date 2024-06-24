@@ -34,7 +34,7 @@ namespace nil {
     namespace blueprint {
 
         template<typename BlueprintFieldType>
-        class zkevm_byte_operation : public zkevm_operation<BlueprintFieldType> {
+        class zkevm_signextend_operation : public zkevm_operation<BlueprintFieldType> {
         public:
             using op_type = zkevm_operation<BlueprintFieldType>;
             using gate_class = typename op_type::gate_class;
@@ -53,67 +53,85 @@ namespace nil {
                 };
 
                 // Table layout
-                // i is the offset from the MOST SIGNIFICANT BYTE
-                // i0p = p + 2n
-                // +-------------------+-+---+-+-+--+--+--+-+
-                // |         i         |I|i0p|p|n|xn|x'|x"|b|
-                // +-------------------+-+---+-+-+--+--+--+-+
-                // |         x         |         r          |
-                // +-------------------+--------------------+
-                // |      (j-n)^{-1}   |                    |
-                // +-------------------+--------------------+
+                // b is the number of the most significant byte to include into x, starting from the least significant one
+                // b = p + 2n
+                // +-----------------------+-+---+-+-+--+--+--+--+---+----+
+                // |            b          |I|b0p|p|n|xn|x'|x"|sb|sgn|saux|
+                // +-----------------------+-+---+-+-+--+--+--+--+---+----+
+                // |            x          |              r               |
+                // +-----------------------+------------------------------+
+                // |        (j-n)^{-1}     |                              |
+                // +-----------------------+------------------------------+
 
                 constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
 
-                std::vector<var> i_chunks;
+                std::vector<var> b_chunks;
                 std::vector<var> x_chunks;
                 std::vector<var> r_chunks;
                 std::vector<var> indic;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    i_chunks.push_back(var_gen(i, -1));
+                    b_chunks.push_back(var_gen(i, -1));
                     x_chunks.push_back(var_gen(i, 0));
                     r_chunks.push_back(var_gen(chunk_amount + i, 0));
                     indic.push_back(var_gen(i, +1));
                 }
+
                 var I_var   = var_gen(chunk_amount, -1),
-                    i0p_var = var_gen(chunk_amount + 1, -1),
+                    b0p_var = var_gen(chunk_amount + 1, -1),
                     p_var   = var_gen(chunk_amount + 2, -1),
                     n_var   = var_gen(chunk_amount + 3, -1),
                     xn_var  = var_gen(chunk_amount + 4, -1),
                     xp_var  = var_gen(chunk_amount + 5, -1),
                     xpp_var = var_gen(chunk_amount + 6, -1),
-                    b_var   = var_gen(chunk_amount + 7, -1);
+                    sb_var  = var_gen(chunk_amount + 7, -1),
+                    sgn_var = var_gen(chunk_amount + 8, -1),
+                    saux_var= var_gen(chunk_amount + 9, -1);
 
-                constraint_type i_sum;
+                constraint_type b_sum;
                 for(std::size_t j = 1; j < chunk_amount; j++) {
-                    i_sum += i_chunks[j];
+                    b_sum += b_chunks[j];
                 }
-                constraints.push_back(position * i_sum * (1 - I_var * i_sum));
+                constraints.push_back(position * b_sum * (1 - I_var * b_sum));
 
-                constraints.push_back(position * (i0p_var - i_chunks[0]*(1 - i_sum*I_var) - 32*i_sum*I_var));
+                constraints.push_back(position * (b0p_var - b_chunks[0]*(1 - b_sum*I_var) - 32*b_sum*I_var));
 
                 constraints.push_back(position * p_var * (1 - p_var));
-                constraints.push_back(position * (i0p_var - p_var - 2*n_var));
+                constraints.push_back(position * (b0p_var - p_var - 2*n_var));
                 // TODO: lookup constraint for n_var & 2*n_var
-
 
                 constraint_type x_sum;
                 for(std::size_t j = 0; j < chunk_amount; j++) {
-                    x_sum += x_chunks[chunk_amount-1 - j] * (1 - (j - n_var)*indic[j]);
+                    x_sum += x_chunks[j] * (1 - (j - n_var)*indic[j]);
                 }
                 constraints.push_back(position * (xn_var - x_sum));
                 constraints.push_back(position * (xn_var - xp_var*256 - xpp_var));
                 // TODO: lookup constraints for xp_var, 256*xp_var, xpp_var, 256*xpp_var
-                constraints.push_back(position * (b_var - (1-p_var)*xp_var - p_var*xpp_var));
 
-                constraints.push_back(position * (r_chunks[0] - b_var));
-                for(std::size_t j = 1; j < chunk_amount; j++) {
-                    constraints.push_back(position * r_chunks[j]);
-                }
+                constraints.push_back(position * (sb_var - (1-p_var)*xpp_var - p_var*xp_var));
+
+                constraints.push_back(position * sgn_var * (1-sgn_var));
+                // TODO: lookup constraints for saux_var, 256*saux_var
+                constraints.push_back(position * (sb_var + 128 - saux_var - 256*sgn_var));
 
                 for(std::size_t j = 0; j < chunk_amount; j++) {
                     constraints.push_back(position * ((j - n_var)*(1 - (j - n_var)*indic[j])));
                 }
+
+                constraint_type is_transition[chunk_amount],
+                                is_sign[chunk_amount]; // is_sign[i] = is_transition[0] + .... + is_transition[i-1]
+
+                for(std::size_t i = 0; i < chunk_amount; i++) {
+                    is_transition[i] = 1 - (i - n_var)*indic[i];
+                    for(std::size_t j = i + 1; j < chunk_amount; j++) {
+                        is_sign[j] += is_transition[i];
+                    }
+                }
+                for(std::size_t i = 0; i < chunk_amount; i++) {
+                    constraints.push_back(position * (r_chunks[i] - is_sign[i]*sgn_var*65535
+                                                                  - is_transition[i]*((1-p_var)*(sb_var + 256*255*sgn_var) + p_var*xn_var)
+                                                                  - (1 - is_sign[i] - is_transition[i])*x_chunks[i]));
+                }
+
                 return {{gate_class::MIDDLE_OP, constraints}};
             }
 
@@ -123,34 +141,38 @@ namespace nil {
                 using integral_type = boost::multiprecision::number<
                     boost::multiprecision::backends::cpp_int_modular_backend<257>>;
 
-                word_type i = stack.pop();
+                word_type b = stack.pop();
                 word_type x = stack.pop();
-                int shift = (integral_type(i) < 32) ? int(integral_type(i)) : 32;
-                word_type result = word_type((integral_type(x) << ((8*shift) + 1)) >> (31*8 + 1));
+                int len = (integral_type(b) < 32) ? int(integral_type(b)) + 1 : 32;
+                integral_type sign = (integral_type(x) << (8*(32-len) + 1)) >> 256;
+                word_type result = word_type((((integral_type(1) << 8*(32-len)) - 1) << 8*len)*sign) +
+                                   word_type((integral_type(x) << (8*(32-len) + 1)) >> (8*(32-len) + 1));
                                                             // +1 because integral type is 257 bits long
 
-                unsigned int i0 = static_cast<unsigned int>(integral_type(i) % 65536),
-                             i0p = (integral_type(i) > 65535) ? 32 : i0;
-                int parity = i0p % 2,
-                    n = (i0p - parity) / 2;
-                unsigned int xn = static_cast<unsigned int>((integral_type(x) << (16*n + 1)) >> (16*15 + 1)),
-                                                           // +1 because integral_type is 257 bits long
+                unsigned int b0 = static_cast<unsigned int>(integral_type(b) % 65536),
+                             b0p = (integral_type(b) > 65535) ? 32 : b0;
+                int parity = b0p % 2,
+                    n = (b0p - parity) / 2;
+                unsigned int xn = static_cast<unsigned int>((integral_type(x) << (16*(n > 15 ? 16 : 15 - n) + 1)) >> (16*15 + 1)),
+                                                                       // +1 because integral_type is 257 bits long
                              xpp = xn % 256,
                              xp = (xn - xpp) / 256,
-                             b = (parity == 0) ? xp : xpp;
+                             sb = (parity == 0) ? xpp : xp,
+                             sgn = (sb > 128),
+                             saux = sb + 128 - sgn*256;
 
-                const std::vector<value_type> i_chunks = zkevm_word_to_field_element<BlueprintFieldType>(i);
+                const std::vector<value_type> b_chunks = zkevm_word_to_field_element<BlueprintFieldType>(b);
                 const std::vector<value_type> x_chunks = zkevm_word_to_field_element<BlueprintFieldType>(x);
                 const std::vector<value_type> r_chunks = zkevm_word_to_field_element<BlueprintFieldType>(result);
 
-                size_t chunk_amount = i_chunks.size();
+                size_t chunk_amount = b_chunks.size();
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 assignment_type &assignment = zkevm_circuit.get_assignment();
                 const std::size_t curr_row = zkevm_circuit.get_current_row();
 
                 // TODO: replace with memory access, which would also do range checks!
                 for(std::size_t j = 0; j < chunk_amount; j++) {
-                    assignment.witness(witness_cols[j], curr_row) = i_chunks[j];
+                    assignment.witness(witness_cols[j], curr_row) = b_chunks[j];
                     assignment.witness(witness_cols[j], curr_row + 1) = x_chunks[j];
                     assignment.witness(witness_cols[chunk_amount + j], curr_row + 1) = r_chunks[j];
 
@@ -159,24 +181,25 @@ namespace nil {
                                indic = (cur_j == val_n) ? 0 : (cur_j-val_n).inversed();
                     assignment.witness(witness_cols[j], curr_row + 2) = indic;
                 }
-                value_type sum_i = 0;
-                for(std::size_t j = 1; j < chunk_amount; j++) {
-                    sum_i += i_chunks[j];
-                }
-                assignment.witness(witness_cols[chunk_amount], curr_row) = sum_i.is_zero() ? 0 : sum_i.inversed();
-                assignment.witness(witness_cols[chunk_amount + 1], curr_row) = i0p;
 
+                value_type sum_b = 0;
+                for(std::size_t j = 1; j < chunk_amount; j++) {
+                    sum_b += b_chunks[j];
+                }
+                assignment.witness(witness_cols[chunk_amount], curr_row) = sum_b.is_zero() ? 0 : sum_b.inversed();
+                assignment.witness(witness_cols[chunk_amount + 1], curr_row) = b0p;
                 assignment.witness(witness_cols[chunk_amount + 2], curr_row) = parity;
                 assignment.witness(witness_cols[chunk_amount + 3], curr_row) = n;
-
-                assignment.witness(witness_cols[chunk_amount + 4], curr_row) = xn; // n is the offset from MSW
+                assignment.witness(witness_cols[chunk_amount + 4], curr_row) = xn;
                 assignment.witness(witness_cols[chunk_amount + 5], curr_row) = xp;
                 assignment.witness(witness_cols[chunk_amount + 6], curr_row) = xpp;
-                assignment.witness(witness_cols[chunk_amount + 7], curr_row) = b;
+                assignment.witness(witness_cols[chunk_amount + 7], curr_row) = sb;
+                assignment.witness(witness_cols[chunk_amount + 8], curr_row) = sgn;
+                assignment.witness(witness_cols[chunk_amount + 9], curr_row) = saux;
 
                 // reset the machine state; hope that we won't have to do this manually
                 stack.push(x);
-                stack.push(i);
+                stack.push(b);
             }
 
             std::size_t rows_amount() override {
