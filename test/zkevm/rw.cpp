@@ -63,7 +63,8 @@ std::vector<std::uint8_t> hex_string_to_bytes(std::string const &hex_string) {
 
 template <typename BlueprintFieldType, std::size_t WitnessColumns>
 void test_zkevm_rw(
-    std::string path
+    std::string path,
+    std::size_t max_rw_size
 ){
     std::cout << "Read write circuit test with "<< WitnessColumns << " witnesses" << std::endl;
     std::cout << "path = " << path << std::endl;
@@ -75,7 +76,7 @@ void test_zkevm_rw(
     boost::property_tree::read_json(ss, pt);
     ss.close();
 
-    nil::blueprint::rw_trace<BlueprintFieldType> rw_trace(pt, 2046);
+    nil::blueprint::rw_trace<BlueprintFieldType> rw_trace(pt, max_rw_size);
 
     constexpr std::size_t PublicInputColumns = 0;
     constexpr std::size_t ConstantColumns = 4;
@@ -103,26 +104,24 @@ void test_zkevm_rw(
         witnesses[i] = i;
     }
     component_type component_instance = component_type(witnesses, std::array<std::uint32_t, 1>{0},
-                                                       std::array<std::uint32_t, 1>{0}, 2046);
+                                                       std::array<std::uint32_t, 1>{0}, max_rw_size);
 
     std::vector<value_type> public_input;
     nil::crypto3::test_component<component_type, BlueprintFieldType, hash_type, Lambda>
         (component_instance, desc, public_input, result_check, instance_input,
-         nil::blueprint::connectedness_check_type::type::NONE, 2046);
+         nil::blueprint::connectedness_check_type::type::NONE, max_rw_size);
 }
 
 constexpr static const std::size_t random_tests_amount = 10;
 
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
     using field_type = typename crypto3::algebra::curves::vesta::base_field_type;
-BOOST_AUTO_TEST_CASE(multiprecision_test){
-    typename field_type::integral_type mask = 0xffff;
-    std::cout << std::hex << mask << std::endl;
-    std::cout << std::hex << (mask << 8) << std::endl;
-    std::cout << std::hex << (mask << 16) << std::endl;
-}
 BOOST_AUTO_TEST_CASE(small_storage_contract){
-    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/small_stack_storage.json");
+    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/small_stack_storage.json", 2046);
+}
+
+BOOST_AUTO_TEST_CASE(mstore8_contract){
+    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/mstore8.json", 5000);
 }
 BOOST_AUTO_TEST_SUITE_END()
 /*

@@ -89,7 +89,7 @@ namespace nil {
             if(obj.op == TX_LOG_OP )                          os << "TX_LOG_OP                          : ";
             if(obj.op == TX_RECEIPT_OP )                      os << "TX_RECEIPT_OP                      : ";
             if(obj.op == PADDING_OP )                         os << "PADDING_OP                         : ";
-            os << obj.rw_id << ", addr =" << obj.address;
+            os << obj.rw_id << ", addr =" << std::hex << obj.address << std::dec;
             if(obj.op == STORAGE_OP || obj.op == TRANSIENT_STORAGE_OP)
                 os << " storage_key = " << obj.storage_key;
             if(obj.is_write) os << " W "; else os << " R ";
@@ -335,7 +335,7 @@ namespace nil {
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                } else if(opcode == "ADD") {
+                } else if(opcode == "AND") {
                     // 0x16
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
@@ -455,7 +455,7 @@ namespace nil {
                 } else if(opcode == "CALLDATACOPY") {
                     // 0x37
                     std::cout << "Test me, please!" << std::endl;
-                    exit(2);
+                    //exit(2);
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
@@ -648,6 +648,7 @@ namespace nil {
                     std::cout << "\t\t Address = 0x" << std::hex << addr << std::dec << " memory size " << memory.size() << std::endl;
                     auto bytes = w_to_8(stack[stack.size() - 2]);
                     rw_ops.push_back(memory_operation(call_id, addr, rw_ops.size(), true, bytes[31]));
+                    std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                 } else if(opcode == "SLOAD") {
                     // 0x54
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), false, stack[stack.size()-1]));

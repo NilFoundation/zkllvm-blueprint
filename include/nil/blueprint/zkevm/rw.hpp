@@ -109,7 +109,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t max_rw_size = 2046) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t max_rw_size = 5000) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -122,7 +122,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t max_rw_size = 2046) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t max_rw_size = 5000) {
                     return max_rw_size;
                 }
 
@@ -155,7 +155,7 @@ namespace nil {
                 };
 
                 template<typename ContainerType>
-                explicit zkevm_rw(ContainerType witness, std::size_t _max_rw_size =2046) :
+                explicit zkevm_rw(ContainerType witness, std::size_t _max_rw_size =5000) :
                     component_type(witness, {}, {}, get_manifest()), max_rw_size(_max_rw_size)
                     {};
 
@@ -163,7 +163,7 @@ namespace nil {
                          typename PublicInputContainerType>
                 zkevm_rw(WitnessContainerType witness, ConstantContainerType constant,
                     PublicInputContainerType public_input,
-                    std::size_t _max_rw_size =2046
+                    std::size_t _max_rw_size =5000
                 ) : component_type(witness, constant, public_input, get_manifest()), max_rw_size(_max_rw_size) {};
 
                 zkevm_rw(
@@ -172,7 +172,7 @@ namespace nil {
                         constants,
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
-                    std::size_t _max_rw_size =2046
+                    std::size_t _max_rw_size =5000
                 ) : component_type(witnesses, constants, public_inputs, get_manifest()), max_rw_size(_max_rw_size){};
 
 
