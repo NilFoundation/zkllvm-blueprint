@@ -312,8 +312,8 @@ namespace nil {
 
                 // carries for b + |b| = 2^256
                 std::vector<var> tb;
-                for (std::size_t i = chunk_amount + 9; i < chunk_amount + 9 + carry_amount - 1; i++) {
-                    tb.push_back(var_gen(i, -1));
+                for (std::size_t i = 0; i < carry_amount - 1; i++) {
+                    tb.push_back(var_gen(chunk_amount + 9 + i, -1));
                 }
                 // constraints for b + |b| = 2^256, only for negative b, i.e. b_neg_2 = 1
                 constraints.push_back(position_2 * b_neg_2 * carry_on_addition_constraint(

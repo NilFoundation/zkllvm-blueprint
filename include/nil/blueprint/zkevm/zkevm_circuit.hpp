@@ -50,6 +50,7 @@
 #include <nil/blueprint/zkevm/operations/bitwise.hpp>
 #include <nil/blueprint/zkevm/operations/shl.hpp>
 #include <nil/blueprint/zkevm/operations/shr.hpp>
+#include <nil/blueprint/zkevm/operations/sar.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -330,7 +331,7 @@ namespace nil {
                 opcodes[zkevm_opcode::BYTE] = std::make_shared<zkevm_byte_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::SHL] = std::make_shared<zkevm_shl_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::SHR] = std::make_shared<zkevm_shr_operation<BlueprintFieldType>>();
-                // SAR
+                opcodes[zkevm_opcode::SAR] = std::make_shared<zkevm_sar_operation<BlueprintFieldType>>();
 
                 std::vector<constraint_type> middle_constraints;
                 std::vector<constraint_type> first_constraints;
