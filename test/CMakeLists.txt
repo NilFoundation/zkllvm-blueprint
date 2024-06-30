@@ -211,6 +211,7 @@ set(ZKEVM_TESTS_FILES
     "zkevm/opcodes/not"
     "zkevm/opcodes/byte_ops"
     "zkevm/opcodes/bitwise"
+    "zkevm/opcodes/mod_ops"
     )
 
 set(CURVES_TESTS_FILES

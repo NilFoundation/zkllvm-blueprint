@@ -51,6 +51,8 @@
 #include <nil/blueprint/zkevm/operations/shl.hpp>
 #include <nil/blueprint/zkevm/operations/shr.hpp>
 #include <nil/blueprint/zkevm/operations/sar.hpp>
+#include <nil/blueprint/zkevm/operations/addmod.hpp>
+#include <nil/blueprint/zkevm/operations/mulmod.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -314,8 +316,8 @@ namespace nil {
                 opcodes[zkevm_opcode::SDIV] = std::make_shared<zkevm_sdiv_smod_operation<BlueprintFieldType>>(true);
                 opcodes[zkevm_opcode::MOD] = std::make_shared<zkevm_div_mod_operation<BlueprintFieldType>>(false);
                 opcodes[zkevm_opcode::SMOD] = std::make_shared<zkevm_sdiv_smod_operation<BlueprintFieldType>>(false);
-                // ADDMOD
-                // MULMOD
+                opcodes[zkevm_opcode::ADDMOD] = std::make_shared<zkevm_addmod_operation<BlueprintFieldType>>();
+                opcodes[zkevm_opcode::MULMOD] = std::make_shared<zkevm_mulmod_operation<BlueprintFieldType>>();
                 // EXP
                 opcodes[zkevm_opcode::SIGNEXTEND] = std::make_shared<zkevm_signextend_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::LT] = std::make_shared<zkevm_cmp_operation<BlueprintFieldType>>(cmp_type::C_LT);

@@ -88,6 +88,16 @@ namespace nil {
                               q_64_chunks[3] - a_64_chunks[3]);
             }
 
+            template<typename T>
+            T third_carryless_construct(
+                const std::vector<T> &b_64_chunks, const std::vector<T> &r_64_chunks
+            ) const {
+                return
+                    (r_64_chunks[1] * b_64_chunks[3] + r_64_chunks[2] * b_64_chunks[2] +
+                     r_64_chunks[3] * b_64_chunks[1]) +
+                    two_64 * (r_64_chunks[2] * b_64_chunks[3] + r_64_chunks[3] * b_64_chunks[2]);
+            }
+
             std::map<gate_class, std::vector<constraint_type>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
                 std::vector<constraint_type> constraints;
                 constexpr const std::size_t chunk_amount = 16;
@@ -109,8 +119,8 @@ namespace nil {
                 // +--------------------------------+--------+--+--+--+--+-----------+
                 // |                a               |   c1   |c2|ax|bx|qx|           | 4  5
                 // +--------------------------------+--------+--+--++-++-++--+-------+
-                // |                b               |   c3   |c4|1/B|a-|b-|q-|  tb   | 3  4
-                // +--------------------------------+--------+--+---+--+--+--+-------+
+                // |                b               |           |1/B|a-|b-|q-|  tb   | 3  4
+                // +--------------------------------+-----------+---+--+--+--+-------+
                 // |                r               |                 q              | 2  3
                 // +--------------------------------+--+--+--+---------+----------+-+
                 // |               |b|              |BI|b-|q-|    tq   |    t     |  | 1  2
@@ -176,13 +186,10 @@ namespace nil {
                     q_chunks_1.push_back(var_gen(i + chunk_amount, +1));
                 }
                 std::vector<var> c_1_chunks;
-                std::vector<var> c_3_chunks;
                 for (std::size_t i = chunk_amount; i < chunk_amount + 4; i++) {
                     c_1_chunks.push_back(var_gen(i, -1));
-                    c_3_chunks.push_back(var_gen(i, 0));
                 }
                 var c_2 = var_gen(chunk_amount + 4, -1);
-                var c_4 = var_gen(chunk_amount + 4, 0);
                 var b_sum_inverse_1 = var_gen(chunk_amount + 5, 0);
 
                 std::vector<constraint_type> a_64_chunks = {
@@ -210,7 +217,6 @@ namespace nil {
                     chunk_sum_64<constraint_type, var>(q_chunks_1, 3)
                 };
                 constraint_type c_1_64 = chunk_sum_64<constraint_type, var>(c_1_chunks, 0);
-                constraint_type c_3_64 = chunk_sum_64<constraint_type, var>(c_3_chunks, 0);
                 // inverse or zero for b_sum_inverse
                 constraint_type b_sum_1;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
@@ -225,10 +231,14 @@ namespace nil {
                 constraint_type second_carryless = second_carryless_construct<constraint_type>(
                     a_64_chunks, b_64_chunks_1, r_64_chunks_1, q_64_chunks_1);
                 constraints.push_back(
-                    position_1 * (second_carryless + c_1_64 + c_2 * two_64 - c_3_64 * two128 - c_4 * two192));
-                // add constraints for c_2/c_4: c_2 is 0/1, c_4 is 0/1/2/3
+                    position_1 * (second_carryless + c_1_64 + c_2 * two_64));
+                // add constraints: c_2 is 0/1
                 constraints.push_back(position_1 * c_2 * (c_2 - 1));
-                constraints.push_back(position_1 * c_4 * (c_4 - 1) * (c_4 - 2) * (c_4 - 3));
+
+                constraint_type third_carryless = third_carryless_construct<constraint_type>(b_64_chunks_1, r_64_chunks_1);
+                constraints.push_back(position_1 * third_carryless);
+                constraints.push_back(position_1 * b_64_chunks_1[3] * r_64_chunks_1[3]); // forth_carryless
+
                 // TODO: figure out how to add lookup constraints to constrain chunks of q
                 // force r = 0 if b = 0
                 constraint_type b_zero = 1 - b_sum_inverse_1 * b_sum_1;
@@ -317,23 +327,23 @@ namespace nil {
                 }
                 // constraints for b + |b| = 2^256, only for negative b, i.e. b_neg_2 = 1
                 constraints.push_back(position_2 * b_neg_2 * carry_on_addition_constraint(
-                                                                 b_chunks_2[0] + 0, b_chunks_2[1] + 0, b_chunks_2[2] + 0,
-                                                                 b_abs_chunks_2[0] + 0, b_abs_chunks_2[1] + 0, b_abs_chunks_2[2] + 0,
+                                                                 b_chunks_2[0], b_chunks_2[1], b_chunks_2[2],
+                                                                 b_abs_chunks_2[0], b_abs_chunks_2[1], b_abs_chunks_2[2],
                                                                  c_zero, c_zero, c_zero,
-                                                                 tb[0] + 0,tb[0] + 0,true));
+                                                                 tb[0],tb[0],true));
                 constraints.push_back(position_2 * b_neg_2 * tb[0] * (1 - tb[0])); // tb[0] is 0 or 1
                 for (std::size_t i = 1; i < carry_amount - 1; i++) {
                      constraints.push_back(position_2 * b_neg_2 * carry_on_addition_constraint(
-                                                           b_chunks_2[3*i] + 0, b_chunks_2[3*i + 1] + 0, b_chunks_2[3*i + 2] + 0,
-                                                           b_abs_chunks_2[3*i] + 0, b_abs_chunks_2[3*i + 1] + 0, b_abs_chunks_2[3*i + 2] + 0,
+                                                           b_chunks_2[3*i], b_chunks_2[3*i + 1], b_chunks_2[3*i + 2],
+                                                           b_abs_chunks_2[3*i], b_abs_chunks_2[3*i + 1], b_abs_chunks_2[3*i + 2],
                                                            c_zero, c_zero, c_zero,
-                                                           tb[i-1] + 0,tb[i] + 0));
+                                                           tb[i-1],tb[i]));
                      constraints.push_back(position_2 * b_neg_2 * tb[i] * (1 - tb[i])); // t[i] is 0 or 1
                 }
                 constraints.push_back(position_2 * b_neg_2 * last_carry_on_addition_constraint(
-                                                                        b_chunks_2[3*(carry_amount-1)] + 0,
-                                                                        b_abs_chunks_2[3*(carry_amount-1)] + 0,
-                                                                        c_zero, tb[carry_amount - 2] + 0, c_one));
+                                                                        b_chunks_2[3*(carry_amount-1)],
+                                                                        b_abs_chunks_2[3*(carry_amount-1)],
+                                                                        c_zero, tb[carry_amount - 2], c_one));
                 // ^^^ if ever b + |b| = 2^256 is used, the last carry should be 1 since it is actually an overflow
                 // if b_neg_2 = 0, we should have b = |b|
                 for(std::size_t i = 0; i < chunk_amount; i++) {
@@ -355,23 +365,23 @@ namespace nil {
                     tq.push_back(var_gen(i, 0));
                 }
                 constraints.push_back(position_3 * q_neg_3 * carry_on_addition_constraint(
-                                                                 q_chunks_3[0] + 0, q_chunks_3[1] + 0, q_chunks_3[2] + 0,
-                                                                 q_abs_chunks_3[0] + 0, q_abs_chunks_3[1] + 0, q_abs_chunks_3[2] + 0,
+                                                                 q_chunks_3[0], q_chunks_3[1], q_chunks_3[2],
+                                                                 q_abs_chunks_3[0], q_abs_chunks_3[1], q_abs_chunks_3[2],
                                                                  c_zero, c_zero, c_zero,
-                                                                 tq[0] + 0,tq[0] + 0,true));
+                                                                 tq[0],tq[0],true));
                 constraints.push_back(position_3 * q_neg_3 * tq[0] * (1 - tq[0])); // tq[0] is 0 or 1
                 for (std::size_t i = 1; i < carry_amount - 1; i++) {
                      constraints.push_back(position_3 * q_neg_3 * carry_on_addition_constraint(
-                                                           q_chunks_3[3*i] + 0, q_chunks_3[3*i + 1] + 0, q_chunks_3[3*i + 2] + 0,
-                                                           q_abs_chunks_3[3*i] + 0, q_abs_chunks_3[3*i + 1] + 0, q_abs_chunks_3[3*i + 2] + 0,
+                                                           q_chunks_3[3*i], q_chunks_3[3*i + 1], q_chunks_3[3*i + 2],
+                                                           q_abs_chunks_3[3*i], q_abs_chunks_3[3*i + 1], q_abs_chunks_3[3*i + 2],
                                                            c_zero, c_zero, c_zero,
-                                                           tq[i-1] + 0,tq[i] + 0));
+                                                           tq[i-1],tq[i]));
                      constraints.push_back(position_3 * q_neg_3 * tq[i] * (1 - tq[i])); // t[i] is 0 or 1
                 }
                 constraints.push_back(position_3 * q_neg_3 * last_carry_on_addition_constraint(
-                                                                        q_chunks_3[3*(carry_amount-1)] + 0,
-                                                                        q_abs_chunks_3[3*(carry_amount-1)] + 0,
-                                                                        c_zero, tq[carry_amount - 2] + 0, c_one));
+                                                                        q_chunks_3[3*(carry_amount-1)],
+                                                                        q_abs_chunks_3[3*(carry_amount-1)],
+                                                                        c_zero, tq[carry_amount - 2], c_one));
                 // ^^^ if ever q + |q| = 2^256 is used, the last carry should be 1 since it is actually an overflow
                 // if q_neg_3 = 0, we should have q = |q|
                 for(std::size_t i = 0; i < chunk_amount; i++) {
@@ -520,12 +530,7 @@ namespace nil {
                 value_type c_2 = static_cast<value_type>(first_row_carries >> 64);
                 std::vector<value_type> c_1_chunks = chunk_64_to_16<BlueprintFieldType>(c_1);
                 // no need for c_2 chunks as there is only a single chunk
-                auto second_row_carries =
-                    (second_carryless_construct(a_64_chunks, b_64_chunks, r_64_chunks, q_64_chunks)
-                     + c_1 + c_2 * two_64).data >> 128;
-                value_type c_3 = static_cast<value_type>(second_row_carries & (two_64 - 1).data);
-                value_type c_4 = static_cast<value_type>(second_row_carries >> 64);
-                std::vector<value_type> c_3_chunks = chunk_64_to_16<BlueprintFieldType>(c_3);
+
                 value_type b_sum = std::accumulate(b_chunks.begin(), b_chunks.end(), value_type(0));
 
                 for(std::size_t i = 0; i < chunk_amount; i++) {
@@ -560,12 +565,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 2) = b_chunks[i];
                 }
-                for (std::size_t i = 0; i < 4; i++) {
-                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 2) = c_3_chunks[i];
-                }
-                assignment.witness(witness_cols[4 + chunk_amount], curr_row + 2) = c_4;
-                assignment.witness(witness_cols[5 + chunk_amount], curr_row + 2) =
-                    b_sum == 0 ? 0 : b_sum.inversed();
+                assignment.witness(witness_cols[5 + chunk_amount], curr_row + 2) = b_sum == 0 ? 0 : b_sum.inversed();
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 3) = r_chunks[i];
