@@ -110,6 +110,7 @@ set(NON_NATIVE_TESTS_FILES_WITH_PROOF_GEN
 )
 
 set(PLONK_TESTS_FILES
+    "non_native/plonk/add_mul_zkllvm_compatible"
     "algebra/curves/plonk/variable_base_scalar_mul"
     "algebra/curves/plonk/unified_addition"
     "algebra/curves/plonk/variable_base_endo_scalar_mul"
