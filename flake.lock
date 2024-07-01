@@ -44,11 +44,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1717829899,
-        "narHash": "sha256-5ZVG0gt1z5ctEHun1rCwGoblu6C4hXkHbu+OcA8iqpc=",
+        "lastModified": 1719860451,
+        "narHash": "sha256-95yrei6vFRHLhbNR9TkpnPJeC9ip8YP5nC7wDhkkDWc=",
         "owner": "NilFoundation",
         "repo": "crypto3",
-        "rev": "1cf64acec2f4022224cb19673854250e08a6d7c3",
+        "rev": "04c8e0ba9c3919fde03a36ef176a156aa9106363",
         "type": "github"
       },
       "original": {
@@ -81,11 +81,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1717555607,
-        "narHash": "sha256-WZ1s48OODmRJ3DHC+I/DtM3tDRuRJlNqMvxvAPTD7ec=",
+        "lastModified": 1719707984,
+        "narHash": "sha256-RoxIr/fbndtuKqulGvNCcuzC6KdAib85Q8gXnjzA1dw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0b8e7a1ae5a94da2e1ee3f3030a32020f6254105",
+        "rev": "7dca15289a1c2990efbe4680f0923ce14139b042",
         "type": "github"
       },
       "original": {
