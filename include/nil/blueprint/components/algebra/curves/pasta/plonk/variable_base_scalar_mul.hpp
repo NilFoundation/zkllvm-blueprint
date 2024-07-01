@@ -238,6 +238,9 @@ namespace nil {
                 typename CurveType::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type T(T_x,
                                                                                                             T_y);
 
+                std::cout << std::hex << "\n\ninspance input point:  " << T_x.data < " " << T_y.data << "\n";
+                std::cout <<  "inspance input scalar: " << b_high.data << b.data << std::dec << std::endl;
+
                 typedef typename CurveType::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type g1_value_type;
                 std::array<g1_value_type, 6> P;
                 g1_value_type Q;

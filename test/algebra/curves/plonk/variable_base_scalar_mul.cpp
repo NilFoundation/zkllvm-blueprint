@@ -50,6 +50,7 @@ template <typename CurveType, bool Stretched = false>
 void test_variable_base_scalar_mul (
 		const std::vector<typename CurveType::base_field_type::value_type> &public_input,
 		typename CurveType::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type expected){
+
     constexpr std::size_t WitnessColumns = 15 * (Stretched ? 2 : 1);
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 1;
