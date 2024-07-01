@@ -173,6 +173,9 @@ void test_vbsm(
 		g1_value_type expected;
 
 		expected = point * scalar;
+		if (expected == g1_value_type(0, 1)) {
+			expected = g1_value_type(0, 0);
+		}
 
 		typename CurveType::scalar_field_type::value_type shifted = shift_scalar<CurveType>(scalar);
 		typename CurveType::scalar_field_type::integral_type shifted_integral_type = typename CurveType::scalar_field_type::integral_type(shifted.data);
