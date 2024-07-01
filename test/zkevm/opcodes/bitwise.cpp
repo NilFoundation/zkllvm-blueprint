@@ -52,6 +52,11 @@ BOOST_AUTO_TEST_CASE(zkevm_bitwise_test) {
     zkevm_circuit<field_type> zkevm_circuit(assignment, circuit);
     zkevm_machine_type machine = get_empty_machine();
     // incorrect test logic, but we have no memory operations so
+    machine.stack.push(zwordc(0x1_cppui_modular257));
+    machine.stack.push(zwordc(0x3_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::AND, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::OR, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::XOR, machine);
     machine.stack.push(zwordc(0x1234567890_cppui_modular257));
     machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::AND, machine);

@@ -327,6 +327,30 @@ namespace nil {
                 virtual std::size_t get_columns_number(){return 1;}
                 virtual std::size_t get_rows_number(){return 65536;}
             };
+
+            class byte_and_xor_table_type : public lookup_table_definition{
+            public:
+                byte_and_xor_table_type(): lookup_table_definition("byte_and_xor_table"){
+                    this->subtables["full"] = {{0,1,2,3}, 0, 65535};
+                    this->subtables["and"] = {{0,1,2}, 0, 65535};
+                    this->subtables["xor"] = {{0,1,3}, 0, 65535};
+                    this->subtables["word"] = {{0,1}, 0, 65535};
+                }
+                virtual void generate(){
+                    this->_table.resize(4);
+                    for(std::size_t x = 0; x < 256; x++) {
+                        for(std::size_t y = 0; y < 256; y++) {
+                            this->_table[0].push_back(x);
+                            this->_table[1].push_back(y);
+                            this->_table[2].push_back(x & y);
+                            this->_table[3].push_back(x ^ y);
+                        }
+                    }
+                }
+                virtual std::size_t get_columns_number(){ return 4; }
+                virtual std::size_t get_rows_number(){ return 65536; }
+            };
+
         public:
             using bimap_type = boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::set_of<std::size_t>>;
             using left_reserved_type = typename bimap_type::left_map;
@@ -346,6 +370,7 @@ namespace nil {
                 tables["sha256_ch"] = std::shared_ptr<lookup_table_definition>(new ch_function_table());
                 tables["byte_range_table"] = std::shared_ptr<lookup_table_definition>(new byte_range_table_type());
                 tables["zkevm_opcodes"] = std::shared_ptr<lookup_table_definition>(new zkevm_opcode_table);
+                tables["byte_and_xor_table"] = std::shared_ptr<lookup_table_definition>(new byte_and_xor_table_type());
             }
 
             void register_lookup_table(std::shared_ptr<lookup_table_definition> table){

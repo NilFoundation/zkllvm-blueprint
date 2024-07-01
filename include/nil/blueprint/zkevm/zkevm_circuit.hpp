@@ -94,6 +94,12 @@ namespace nil {
                 }
                 return selector;
             }
+
+            template<typename T>
+            std::size_t add_lookup_gate(std::size_t selector_id, const T &args) {
+                circuit.add_lookup_gate(selector_id, args);
+                return selector_id;
+            }
         private:
             assignment_type &assignment;
             circuit_type &circuit;
@@ -124,6 +130,8 @@ namespace nil {
             std::map<std::string, std::size_t> zkevm_circuit_lookup_tables() const {
                 std::map<std::string, std::size_t> lookup_tables;
                 lookup_tables["chunk_16_bits/full"] = 0;
+                lookup_tables["byte_and_xor_table/and"] = 1;
+                lookup_tables["byte_and_xor_table/xor"] = 2;
                 return lookup_tables;
             }
 
@@ -131,6 +139,11 @@ namespace nil {
                 :assignment(assignment_), circuit(circuit_), opcodes_info_instance(opcodes_info::instance()),
                  sel_manager(assignment_, circuit_),
                  curr_row(start_row_index_), start_row_index(start_row_index_) {
+
+                // 5(?) constant columns
+                for(std::size_t i = 0; i < 5; i++) {
+                    sel_manager.allocate_constant_column();
+                }
 
                 BOOST_ASSERT_MSG(start_row_index > 0,
                     "Start row index must be greater than zero, otherwise some gates would access non-existent rows.");
@@ -338,6 +351,9 @@ namespace nil {
                 std::vector<constraint_type> middle_constraints;
                 std::vector<constraint_type> first_constraints;
                 std::vector<constraint_type> last_constraints;
+
+                std::vector<lookup_constraint_type> middle_lookup_constraints;
+
                 // first step is step selection
                 first_constraints.push_back(state.step_selection.variable() - 1);
                 start_selector = sel_manager.add_gate(first_constraints);
@@ -401,15 +417,35 @@ namespace nil {
                     for (auto gate_it : opcode_gates) {
                         switch (gate_it.first) {
                             case zkevm_opcode_gate_class::FIRST_OP:
-                                for (auto constraint : gate_it.second) {
+                                for (auto constraint : gate_it.second.first) {
                                     middle_constraints.push_back(
                                         curr_opt_constraint * constraint * start_selector);
                                 }
+                                for (auto lookup_constraint : gate_it.second.second) {
+                                   auto lookup_table = lookup_constraint.table_id;
+                                   auto lookup_expressions = lookup_constraint.lookup_input;
+                                   std::vector<constraint_type> new_lookup_expressions;
+
+                                   for(auto lookup_expr : lookup_expressions) {
+                                       new_lookup_expressions.push_back(curr_opt_constraint * lookup_expr * start_selector);
+                                   }
+                                   middle_lookup_constraints.push_back({lookup_table, new_lookup_expressions});
+                                }
                                 break;
                             case zkevm_opcode_gate_class::MIDDLE_OP:
-                                for (auto constraint : gate_it.second) {
+                                for (auto constraint : gate_it.second.first) {
                                     middle_constraints.push_back(
                                         curr_opt_constraint * constraint);
+                                }
+                                for (auto lookup_constraint : gate_it.second.second) {
+                                   auto lookup_table = lookup_constraint.table_id;
+                                   auto lookup_expressions = lookup_constraint.lookup_input;
+                                   std::vector<constraint_type> new_lookup_expressions;
+
+                                   for(auto lookup_expr : lookup_expressions) {
+                                       new_lookup_expressions.push_back(curr_opt_constraint * lookup_expr);
+                                   }
+                                   middle_lookup_constraints.push_back({lookup_table, new_lookup_expressions});
                                 }
                                 break;
                             case zkevm_opcode_gate_class::LAST_OP:
@@ -424,6 +460,7 @@ namespace nil {
                     }
                 }
                 middle_selector = sel_manager.add_gate(middle_constraints);
+                sel_manager.add_lookup_gate(middle_selector, middle_lookup_constraints);
 
                 assignment.enable_selector(start_selector, curr_row);
                 assignment.enable_selector(middle_selector, curr_row);
@@ -436,6 +473,8 @@ namespace nil {
             // dynamic selector: indicates when the circuit is acitve
             // currently represented as a selector column; hopefully this is possible to do in practice
             std::size_t middle_selector;
+            // added for lookups
+            std::size_t lookup_selector;
             // witness columns for opcodes
             std::vector<std::size_t> opcode_cols;
             // dynamic selectors for the state selector circuit

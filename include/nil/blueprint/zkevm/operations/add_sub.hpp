@@ -39,6 +39,7 @@ namespace nil {
             using op_type = zkevm_operation<BlueprintFieldType>;
             using gate_class = typename op_type::gate_class;
             using constraint_type = typename op_type::constraint_type;
+            using lookup_constraint_type = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
             using zkevm_circuit_type = typename op_type::zkevm_circuit_type;
             using assignment_type = typename op_type::assignment_type;
             using value_type = typename BlueprintFieldType::value_type;
@@ -53,7 +54,7 @@ namespace nil {
             constexpr static const value_type two_32 = 4294967296;
             constexpr static const value_type two_48 = 281474976710656;
 
-            std::map<gate_class, std::vector<constraint_type>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
                 std::vector<constraint_type> constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
@@ -113,7 +114,7 @@ namespace nil {
                 last_constraint_gen(a_chunks[3 * (carry_amount - 1)], b_chunks[3 * (carry_amount - 1)],
                                     r_chunks[3 * (carry_amount - 1)],
                                     r_carry[carry_amount - 2], r_carry[carry_amount - 1]);
-                return {{gate_class::MIDDLE_OP, constraints}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
