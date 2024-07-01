@@ -73,6 +73,13 @@ void test_variable_base_scalar_mul (
 			R.X = var_value(assignment, real_res.X);
 			R.Y = var_value(assignment, real_res.Y);
 
+			if (expected.X != R.X || expected.Y != R.Y) {
+				std::cout << "test_variable_base_scalar_mul failed!\n";
+				std::cout << "expected result: " << expected.X.data << " " << expected.Y.data << "\n";
+				std::cout << "real result    : " << R.X.data << " " << R.Y.data << "\n";
+				std::abort();
+			}
+
 			BOOST_CHECK_EQUAL(expected.X, R.X);
 			BOOST_CHECK_EQUAL(expected.Y, R.Y);
     };
