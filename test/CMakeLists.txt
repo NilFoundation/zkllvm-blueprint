@@ -11,8 +11,6 @@ include(CMTest)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-find_package(Boost REQUIRED COMPONENTS random unit_test_framework)
-
 cm_test_link_libraries(blueprint
                        crypto3::all
                        ${Boost_LIBRARIES})
