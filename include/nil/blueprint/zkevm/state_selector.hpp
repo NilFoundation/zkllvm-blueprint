@@ -178,7 +178,7 @@ namespace nil {
                     var option_var = var(this->W(option / 2 + 1), 0, true, var::column_type::witness),
                         parity_var = var(this->W(this->witness_amount() - 1), 0, true, var::column_type::witness);
                     if (option % 2 == 0) {
-                        return option_var * (parity_var - 1);
+                        return option_var * (1 - parity_var);
                     } else {
                         return option_var * parity_var;
                     }
