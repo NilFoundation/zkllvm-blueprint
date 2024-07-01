@@ -71,6 +71,7 @@
               "-DCMAKE_ENABLE_TESTS=TRUE"
               "-DCMAKE_C_COMPILER=clang"
               "-DCMAKE_CXX_COMPILER=clang++"
+              "-DSTANDARD_EC_INF_POINTS_ENABLED=TRUE"
             ];
 
             ninjaFlags = pkgs.lib.strings.concatStringsSep " " (["-k 0"] ++ testList);
