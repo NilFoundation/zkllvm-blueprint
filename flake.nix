@@ -71,7 +71,7 @@
             "blueprint_algebra_fields_plonk_non_native_division_remainder_test"
             #blueprint_non_native_plonk_scalar_non_native_range_test, TODO: enable once fixed.
             "blueprint_non_native_plonk_bool_scalar_multiplication_test"
-            #blueprint_non_native_plonk_add_mul_zkllvm_compatible_test, TODO: enable once fixed.
+            "blueprint_non_native_plonk_add_mul_zkllvm_compatible_test"
             "blueprint_hashes_plonk_decomposition_test"
             "blueprint_verifiers_placeholder_fri_cosets_test"
             "blueprint_hashes_plonk_sha256_process_test"
