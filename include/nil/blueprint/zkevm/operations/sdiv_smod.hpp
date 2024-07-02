@@ -99,15 +99,17 @@ namespace nil {
                     two_64 * (r_64_chunks[2] * b_64_chunks[3] + r_64_chunks[3] * b_64_chunks[2]);
             }
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+                generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index =
-                    zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 // The central relation is a = br + q. We also require that sgn(q) = sgn(a) and
                 // that |q| < |b| if b != 0.
@@ -139,6 +141,10 @@ namespace nil {
                      b_input_chunks.push_back(var_gen(i,-1));
                      a_chunks_0.push_back(var_gen(i, 0));
                      b_chunks_0.push_back(var_gen(i, +1));
+                }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_0 * a_chunks_0[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position_0 * b_input_chunks[i]}});
                 }
                 var a_inv  = var_gen(chunk_amount, -1),
                     b1_inv = var_gen(chunk_amount + 1, -1),
@@ -186,9 +192,16 @@ namespace nil {
                     r_chunks_1.push_back(var_gen(i, +1));
                     q_chunks_1.push_back(var_gen(i + chunk_amount, +1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_1 * r_chunks_1[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position_1 * q_chunks_1[i]}});
+                }
                 std::vector<var> c_1_chunks;
                 for (std::size_t i = chunk_amount; i < chunk_amount + 4; i++) {
                     c_1_chunks.push_back(var_gen(i, -1));
+                }
+                for (std::size_t i = 0; i < 4; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_1 * c_1_chunks[i]}});
                 }
                 var c_2 = var_gen(chunk_amount + 4, -1);
                 var b_sum_inverse_1 = var_gen(chunk_amount + 5, 0);
@@ -240,7 +253,6 @@ namespace nil {
                 constraints.push_back(position_1 * third_carryless);
                 constraints.push_back(position_1 * b_64_chunks_1[3] * r_64_chunks_1[3]); // forth_carryless
 
-                // TODO: figure out how to add lookup constraints to constrain chunks of q
                 // force r = 0 if b = 0
                 constraint_type b_zero = 1 - b_sum_inverse_1 * b_sum_1;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
@@ -259,10 +271,16 @@ namespace nil {
                     q_neg = var_gen(chunk_amount + 8, 0);
                 value_type two_15 = 32768;
                 // a_top + 2^15 = a_aux + 2^16 * a_neg
-                constraints.push_back(position_1*(a_top + two_15 - two_16 * a_neg - a_aux));
+                constraints.push_back(position_1 * a_neg * (1 - a_neg));
+                lookup_constraints.push_back({range_check_table_index, {position_1 * a_aux}});
+                constraints.push_back(position_1 * (a_top + two_15 - two_16 * a_neg - a_aux));
                 // b_top + 2^15 = b_aux + 2^16 * b_neg
+                constraints.push_back(position_1 * b_neg * (1 - b_neg));
+                lookup_constraints.push_back({range_check_table_index, {position_1 * b_aux}});
                 constraints.push_back(position_1*(b_top + two_15 - two_16 * b_neg - b_aux));
                 // q_top + 2^15 = q_aux + 2^16 * q_neg
+                constraints.push_back(position_1 * q_neg * (1 - q_neg));
+                lookup_constraints.push_back({range_check_table_index, {position_1 * q_aux}});
                 constraints.push_back(position_1*(q_top + two_15 - two_16 * q_neg - q_aux));
 
                 // q = 0 OR sgn(a) = sgn(q) TODO: Recheck for a = -2^255, b = -1 !!!
@@ -297,6 +315,9 @@ namespace nil {
                 std::vector<var> b_abs_chunks_2;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     b_abs_chunks_2.push_back(var_gen(i, +1));
+                }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_2 * b_abs_chunks_2[i]}});
                 }
 
                 // constraint generators for carry-on addition
@@ -360,6 +381,9 @@ namespace nil {
                     q_chunks_3.push_back(var_gen(i,-1));
                     q_abs_chunks_3.push_back(var_gen(i,+1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_3 * q_abs_chunks_3[i]}});
+                }
                 // carries for q + |q| = 2^256
                 std::vector<var> tq;
                 for (std::size_t i = chunk_amount + 3; i < chunk_amount + 3 + carry_amount - 1; i++) {
@@ -411,6 +435,9 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     v_chunks_4.push_back(var_gen(i, is_div ? 0 : +1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_4 * v_chunks_4[i]}});
+                }
                 std::vector<var> t;
                 for (std::size_t i = chunk_amount + 3 + carry_amount - 1;
                                  i < chunk_amount + 3 + carry_amount - 1 + carry_amount; i++) {
@@ -459,7 +486,7 @@ namespace nil {
                     }
                 }
 
-                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
+                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {

@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
+// Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
 //
@@ -84,13 +85,18 @@ namespace nil {
                               a_64_chunks[2] * b_64_chunks[1] + a_64_chunks[3] * b_64_chunks[0] - r_64_chunks[3]);
             }
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+                generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
+                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+
                 constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
                 std::vector<var> a_chunks;
                 std::vector<var> b_chunks;
@@ -139,7 +145,17 @@ namespace nil {
                 constraints.push_back(position * c_2 * (c_2 - 1));
                 constraints.push_back(position * c_4 * (c_4 - 1) * (c_4 - 2) * (c_4 - 3));
 
-                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                }
+                for (std::size_t i = 0; i < 4; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * c_1_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * c_3_chunks[i]}});
+                }
+
+                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {

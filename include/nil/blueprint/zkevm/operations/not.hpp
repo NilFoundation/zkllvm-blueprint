@@ -53,13 +53,18 @@ namespace nil {
             constexpr static const value_type two_48 = 281474976710656;
             constexpr static const value_type ffff = two_16 - 1;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+                generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
+                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+
                 constraint_type position = zkevm_circuit.get_opcode_row_constraint(0, this->rows_amount());
                 auto constraint_gen = [&constraints, &position]
                         (var a_0, var a_1, var a_2,
@@ -106,7 +111,12 @@ namespace nil {
                 }
                 last_constraint_gen(a_chunks[3 * (carry_amount - 1)], b_chunks[3 * (carry_amount - 1)],
                                     r_carry[carry_amount - 2], r_carry[carry_amount - 1]);
-                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
+                }
+
+                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
