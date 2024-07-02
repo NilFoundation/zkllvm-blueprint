@@ -45,13 +45,17 @@ namespace nil {
             using value_type = typename BlueprintFieldType::value_type;
             using var = typename op_type::var;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+                generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
+                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 // Table layout
                 // b is the number of the most significant byte to include into x, starting from the least significant one
@@ -76,6 +80,10 @@ namespace nil {
                     r_chunks.push_back(var_gen(chunk_amount + i, 0));
                     indic.push_back(var_gen(i, +1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * x_chunks[i]}});
+                }
 
                 var I_var   = var_gen(chunk_amount, -1),
                     b0p_var = var_gen(chunk_amount + 1, -1),
@@ -98,7 +106,9 @@ namespace nil {
 
                 constraints.push_back(position * p_var * (1 - p_var));
                 constraints.push_back(position * (b0p_var - p_var - 2*n_var));
-                // TODO: lookup constraint for n_var & 2*n_var
+                // lookup constraint for n_var & 2*n_var
+                lookup_constraints.push_back({range_check_table_index, {position * n_var}});
+                lookup_constraints.push_back({range_check_table_index, {position * 2 * n_var}});
 
                 constraint_type x_sum;
                 for(std::size_t j = 0; j < chunk_amount; j++) {
@@ -106,12 +116,18 @@ namespace nil {
                 }
                 constraints.push_back(position * (xn_var - x_sum));
                 constraints.push_back(position * (xn_var - xp_var*256 - xpp_var));
-                // TODO: lookup constraints for xp_var, 256*xp_var, xpp_var, 256*xpp_var
+                // lookup constraints for xp_var, 256*xp_var, xpp_var, 256*xpp_var
+                lookup_constraints.push_back({range_check_table_index, {position * xp_var}});
+                lookup_constraints.push_back({range_check_table_index, {position * 256 * xp_var}});
+                lookup_constraints.push_back({range_check_table_index, {position * xpp_var}});
+                lookup_constraints.push_back({range_check_table_index, {position * 256 * xpp_var}});
 
                 constraints.push_back(position * (sb_var - (1-p_var)*xpp_var - p_var*xp_var));
 
                 constraints.push_back(position * sgn_var * (1-sgn_var));
-                // TODO: lookup constraints for saux_var, 256*saux_var
+                // lookup constraints for saux_var, 256*saux_var
+                lookup_constraints.push_back({range_check_table_index, {position * saux_var}});
+                lookup_constraints.push_back({range_check_table_index, {position * 256 * saux_var}});
                 constraints.push_back(position * (sb_var + 128 - saux_var - 256*sgn_var));
 
                 for(std::size_t j = 0; j < chunk_amount; j++) {
@@ -133,7 +149,7 @@ namespace nil {
                                                                   - (1 - is_sign[i] - is_transition[i])*x_chunks[i]));
                 }
 
-                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
+                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {

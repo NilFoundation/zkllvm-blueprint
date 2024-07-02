@@ -26,8 +26,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-//#include <nil/crypto3/algebra/fields/arithmetic_params/goldilocks64.hpp>
-#include "nil/crypto3/algebra/fields/pallas/base_field.hpp"
+#include <nil/crypto3/algebra/fields/arithmetic_params/goldilocks64.hpp>
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
@@ -41,8 +40,7 @@ using namespace nil::crypto3::algebra;
 BOOST_AUTO_TEST_SUITE(zkevm_iszero_test_suite)
 
 BOOST_AUTO_TEST_CASE(zkevm_iszero_test) {
-    // using field_type = fields::goldilocks64;
-    using field_type = fields::pallas_base_field;
+    using field_type = fields::goldilocks64;
     using arithmentization_type = nil::crypto3::zk::snark::plonk_constraint_system<field_type>;
     using assignment_type = assignment<arithmentization_type>;
     using circuit_type = circuit<arithmentization_type>;

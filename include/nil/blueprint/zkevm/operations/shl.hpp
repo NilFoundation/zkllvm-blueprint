@@ -85,13 +85,17 @@ namespace nil {
                               a_64_chunks[2] * b_64_chunks[1] + a_64_chunks[3] * b_64_chunks[0] - r_64_chunks[3]);
             }
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+                generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
+                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 // Table layout
                 // (construct b = 1 << input_b, then do multiplication)
@@ -115,6 +119,9 @@ namespace nil {
                     indic_2.push_back(var_gen(chunk_amount + i, +1));
                     b_chunks_0.push_back(var_gen(i, +1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position_0 * input_b_chunks[i]}});
+                }
                 var b0p_var = var_gen(chunk_amount, -1),
                     b0pp_var = var_gen(chunk_amount + 1, -1),
                     b0ppp_var = var_gen(chunk_amount + 2, -1),
@@ -123,7 +130,13 @@ namespace nil {
                     z_var = var_gen(chunk_amount + 5, -1),
                     tp_var = var_gen(chunk_amount + 5, -1);
 
-                // TODO: lookup constrain b0p, 4096*b0p, b0pp, 4096*b0ppp, b0ppp, 256*b0ppp
+                // lookup constrain b0p, 4096*b0p, b0pp, 4096*b0pp, b0ppp, 256*b0ppp
+                lookup_constraints.push_back({range_check_table_index, {position_0 * b0p_var}});
+                lookup_constraints.push_back({range_check_table_index, {position_0 * 4096 * b0p_var}});
+                lookup_constraints.push_back({range_check_table_index, {position_0 * b0pp_var}});
+                lookup_constraints.push_back({range_check_table_index, {position_0 * 4096 * b0pp_var}});
+                lookup_constraints.push_back({range_check_table_index, {position_0 * b0ppp_var}});
+                lookup_constraints.push_back({range_check_table_index, {position_0 * 256 * b0ppp_var}});
                 constraints.push_back(position_0 * (input_b_chunks[0] - b0p_var - 16*b0pp_var - 256*b0ppp_var));
                 constraints.push_back(position_0 * b0ppp_var * (1 - b0ppp_var * I1_var));
 
@@ -160,6 +173,10 @@ namespace nil {
                     b_chunks.push_back(var_gen(i, 0));
                     r_chunks.push_back(var_gen(i, +1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                }
                 std::vector<var> c_1_chunks;
                 std::vector<var> c_3_chunks;
                 for (std::size_t i = 0; i < 4; i++) {
@@ -170,6 +187,10 @@ namespace nil {
                     c_3_chunks.push_back(var_gen(i + chunk_amount + 5, +1));
                 }
                 var c_4 = var_gen(chunk_amount + 9, +1);
+                for (std::size_t i = 0; i < 4; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * c_1_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * c_3_chunks[i]}});
+                }
 
                 std::vector<constraint_type> a_64_chunks = {
                     chunk_sum_64<constraint_type, var>(a_chunks, 0),
@@ -202,7 +223,7 @@ namespace nil {
                 constraints.push_back(position * c_2 * (c_2 - 1));
                 constraints.push_back(position * c_4 * (c_4 - 1) * (c_4 - 2) * (c_4 - 3));
 
-                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
+                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {

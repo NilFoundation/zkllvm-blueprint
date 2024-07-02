@@ -56,13 +56,18 @@ namespace nil {
             constexpr static const value_type two_32 = 4294967296;
             constexpr static const value_type two_48 = 281474976710656;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>> generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+                generate_gates(zkevm_circuit_type &zkevm_circuit) override {
+
                 std::vector<constraint_type> constraints;
+                std::vector<lookup_constraint_type> lookup_constraints;
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
+                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+
                 constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
                 auto constraint_gen = [&constraints, &position]
                         (var a_0, var a_1, var a_2,
@@ -102,6 +107,12 @@ namespace nil {
                 for (std::size_t i = 0; i < carry_amount; i++) {
                     r_carry.push_back(var_gen(i + chunk_amount, +1));
                 }
+                for (std::size_t i = 0; i < chunk_amount; i++) {
+                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
+                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                }
+
                 // special first constraint
                 constraint_gen(a_chunks[0], a_chunks[1], a_chunks[2],
                                b_chunks[0], b_chunks[1], b_chunks[2],
@@ -139,8 +150,12 @@ namespace nil {
                         result = var_gen(chunk_amount+4,0);
                     value_type two_15 = 32768;
                     // a_top + 2^15 = a_aux + 2^16 * a_neg
+                    lookup_constraints.push_back({range_check_table_index, {position * a_aux}});
+                    constraints.push_back(position * a_neg * (1 - a_neg));
                     constraints.push_back(position*(a_top + two_15 - two_16 * a_neg - a_aux));
                     // r_top + 2^15 = r_aux + 2^16 * r_neg
+                    constraints.push_back(position * r_neg * (1 - r_neg));
+                    lookup_constraints.push_back({range_check_table_index, {position * r_aux}});
                     constraints.push_back(position*(r_top + two_15 - two_16 * r_neg - r_aux));
 
                     // result = (r_neg & !a_neg) | ((r_neg&a_neg | !r_neg & !a_neg  )& c) =
