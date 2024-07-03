@@ -51,11 +51,15 @@ namespace nil {
 
             bitwise_type bit_operation;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+            std::map<gate_class, std::pair<
+                std::vector<std::pair<std::size_t, constraint_type>>,
+                std::vector<std::pair<std::size_t, lookup_constraint_type>>
+                >>
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
-                std::vector<constraint_type> constraints;
-                std::vector<lookup_constraint_type> lookup_constraints;
+                std::vector<std::pair<std::size_t, constraint_type>> constraints;
+                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
+
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
@@ -73,25 +77,20 @@ namespace nil {
                 // | bytes of r | 0
                 // +------------+
 
-                constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
-                //TODO: this is where we should have lookup constraints assuring a,b and r bytes are related by the correct bitwise op
-                // NB: once this is done, we don't need any other lookup constraints for this opcode. r_chunks are enough constrained.
+                std::size_t position = 1;
                 for(std::size_t i = 0; i < 2*chunk_amount; i++) {
                     var a_byte = var_gen(i, -1),
                         b_byte = var_gen(i, 0),
                         r_byte = var_gen(i, +1);
                         switch(bit_operation) {
                            case B_AND:
-                             lookup_constraints.push_back({byte_and_table_index, {position * a_byte, position * b_byte,
-                                                                                  position * r_byte }});
+                             lookup_constraints.push_back({position, {byte_and_table_index, {a_byte, b_byte, r_byte }}});
                            break;
                            case B_XOR:
-                             lookup_constraints.push_back({byte_xor_table_index, {position * a_byte, position * b_byte,
-                                                                                  position * r_byte }});
+                             lookup_constraints.push_back({position, {byte_xor_table_index, {a_byte, b_byte, r_byte }}});
                            break;
                            case B_OR:
-                             lookup_constraints.push_back({byte_and_table_index, {position * (255 - a_byte), position * (255 - b_byte),
-                                                                                  position * (255 - r_byte) }});
+                             lookup_constraints.push_back({position, {byte_and_table_index, {(255-a_byte),(255-b_byte),(255-r_byte) }}});
                            break;
                         }
                 }

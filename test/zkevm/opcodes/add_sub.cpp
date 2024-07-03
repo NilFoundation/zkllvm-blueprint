@@ -65,8 +65,15 @@ BOOST_AUTO_TEST_CASE(zkevm_add_test) {
     zkevm_circuit.assign_opcode(zkevm_opcode::ADD, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SUB, machine);
     zkevm_circuit.finalize_test();
-    // assignment.export_table(std::cout);
-    // circuit.export_circuit(std::cout);
+/*
+    std::ofstream myfile;
+    myfile.open("test_assignment.txt");
+    assignment.export_table(myfile);
+    myfile.close();
+    myfile.open("test_circuit.txt");
+    circuit.export_circuit(myfile);
+    myfile.close();
+*/
     nil::crypto3::zk::snark::basic_padding(assignment);
     BOOST_ASSERT(is_satisfied(circuit, assignment) == true);
 }

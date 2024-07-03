@@ -74,14 +74,14 @@ namespace nil {
 
             std::size_t allocate_witess_column() {
                 if (witness_index >= assignment.witnesses_amount()) {
-                    assignment.resize_witnesses(2 * witness_index);
+                    assignment.resize_witnesses(witness_index + 1);
                 }
                 return witness_index++;
             }
 
             std::size_t allocate_constant_column() {
                 if (constant_index >= assignment.constants_amount()) {
-                    assignment.resize_constants(2 * constant_index);
+                    assignment.resize_constants(constant_index + 1);
                 }
                 return constant_index++;
             }
@@ -140,7 +140,7 @@ namespace nil {
                  sel_manager(assignment_, circuit_),
                  curr_row(start_row_index_), start_row_index(start_row_index_) {
 
-                // 5(?) constant columns
+                // 8(?) constant columns. I'm not sure we really need them: satisfiability check passes even without them
                 for(std::size_t i = 0; i < 5; i++) {
                     sel_manager.allocate_constant_column();
                 }
@@ -175,25 +175,29 @@ namespace nil {
                 if (opcode_it == opcodes.end()) {
                     BOOST_ASSERT_MSG(false, (std::string("Unimplemented opcode: ") + opcode_to_string(opcode)) != "");
                 }
-                opcode_it->second->generate_assignments(*this, machine);
                 // state management
                 state.step_selection.value = 1;
-                state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1;
+                // state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1;
+                state.rows_until_next_op.value = max_opcode_height - 1;
                 state.rows_until_next_op_inv.value =
                     state.rows_until_next_op.value == 0 ? 0 : state.rows_until_next_op.value.inversed();
-                advance_rows(opcode, opcode_it->second->rows_amount());
+                advance_rows(opcode, max_opcode_height - opcode_it->second->rows_amount());
+                opcode_it->second->generate_assignments(*this, machine);
+                advance_rows(opcode, opcode_it->second->rows_amount(), (max_opcode_height - opcode_it->second->rows_amount()) % 2);
             }
 
-            void advance_rows(const zkevm_opcode opcode, std::size_t rows) {
+            void advance_rows(const zkevm_opcode opcode, std::size_t rows, std::size_t shift = 0) {
                 assignment.enable_selector(middle_selector, curr_row, curr_row + rows - 1);
                 // TODO: figure out what is going to happen on state change
                 value_type opcode_val = opcodes_info_instance.get_opcode_value(opcode);
-                for (std::size_t i = 0; i < rows; i++) {
-                    // TODO: switch to real bytecode
-                    assignment.witness(state_selector->W(0), curr_row) = opcode_val;
-                    components::generate_assignments(
-                        *state_selector, assignment,
-                        {var(state_selector->W(0), curr_row, false, var::column_type::witness)}, curr_row);
+                for (std::size_t i = 0 + shift; i < rows + shift; i++) {
+                    if (i % state_selector->rows_amount == 0) {
+                        // TODO: switch to real bytecode
+                        assignment.witness(state_selector->W(0), curr_row) = opcode_val;
+                        components::generate_assignments(
+                            *state_selector, assignment,
+                            {var(state_selector->W(0), curr_row, false, var::column_type::witness)}, curr_row);
+                    }
                     assignment.witness(opcode_row_selector->W(0), curr_row) = state.rows_until_next_op.value;
                     components::generate_assignments(
                         *opcode_row_selector, assignment,
@@ -241,15 +245,15 @@ namespace nil {
             // for opcode constraints at certain row of opcode execution
             // note that rows are counted "backwards", starting from opcode rows amount minus one
             // and ending in zero
-            constraint_type get_opcode_row_constraint(std::size_t row, std::size_t opcode_height) const {
-                BOOST_ASSERT(row < opcode_height);
+            constraint_type get_opcode_row_constraint(std::size_t row) const {
+                BOOST_ASSERT(row < max_opcode_height);
                 var height_var = state.rows_until_next_op.variable();
                 var height_var_inv = state.rows_until_next_op_inv.variable();
                 // ordering here is important: minimising the degree when possible
-                if (row == opcode_height - 1) {
+                if (row == max_opcode_height - 1) {
                     return state.step_selection.variable();
                 }
-                if (row == opcode_height - 2) {
+                if (row == max_opcode_height - 2) {
                     return state.step_selection.variable(-1);
                 }
                 if (row == 0) {
@@ -362,7 +366,8 @@ namespace nil {
 
                 const std::size_t opcodes_amount = opcodes_info_instance.get_opcodes_amount();
                 const std::size_t state_selector_cols_amount =
-                    state_selector_type::get_manifest(opcodes_amount).witness_amount->max_value_if_sat();
+                    state_selector_type::get_manifest(opcodes_amount,true).witness_amount->max_value_if_sat();
+
                 for (std::size_t i = 0; i < state_selector_cols_amount; i++) {
                     state_selector_cols.push_back(sel_manager.allocate_witess_column());
                 }
@@ -371,22 +376,31 @@ namespace nil {
                 }
                 state_selector = std::make_shared<state_selector_type>(
                     state_selector_cols, std::array<std::uint32_t, 0>({}), std::array<std::uint32_t, 0>({}),
-                    opcodes_amount);
+                    opcodes_amount,true);
 
                 auto state_selector_constraints = state_selector->generate_constraints();
-                middle_constraints.insert(middle_constraints.end(), state_selector_constraints.begin(),
-                                          state_selector_constraints.end());
 
-                static constexpr std::size_t max_opcode_height = 20;
                 const std::size_t opcode_row_selection_cols_amount =
-                    state_selector_type::get_manifest(max_opcode_height).witness_amount->max_value_if_sat();
+                    state_selector_type::get_manifest(max_opcode_height,false).witness_amount->max_value_if_sat();
                 for (std::size_t i = 0; i < opcode_row_selection_cols_amount; i++) {
                     opcode_row_selection_cols.push_back(sel_manager.allocate_witess_column());
                 }
                 opcode_row_selector = std::make_shared<state_selector_type>(
                     opcode_row_selection_cols, std::array<std::uint32_t, 0>({}), std::array<std::uint32_t, 0>({}),
-                    max_opcode_height);
+                    max_opcode_height,false);
                 auto opcode_row_selector_constraints = opcode_row_selector->generate_constraints();
+
+                if (state_selector->is_compressed) {
+                    // for a compressed state selector we rely upon opcode_row_selector parity data to apply constraints once in 2 rows
+                    var parity_var = opcode_row_selector->parity_variable();
+                    for(auto constraint : state_selector_constraints) {
+                        middle_constraints.push_back(constraint * parity_var);
+                    }
+                } else {
+                    middle_constraints.insert(middle_constraints.end(), state_selector_constraints.begin(),
+                                              state_selector_constraints.end());
+                }
+
                 middle_constraints.insert(middle_constraints.end(), opcode_row_selector_constraints.begin(),
                                           opcode_row_selector_constraints.end());
 
@@ -402,50 +416,64 @@ namespace nil {
                     }
 
                     std::size_t opcode_num = opcodes_info_instance.get_opcode_value(opcode_it.first);
-                    auto curr_opt_constraint = state_selector->option_constraint(opcode_num);
-                    // force current height to be proper value at the start of the opcode
-                    if (opcode_height == 1) {
-                        // minor optimisation here: we have only a single step so can just set 0
-                        middle_constraints.push_back(curr_opt_constraint * state.rows_until_next_op.variable());
-                    } else {
-                        middle_constraints.push_back(
-                            curr_opt_constraint * (state.rows_until_next_op.variable() - (opcode_height - 1)) *
-                            state.step_selection.variable());
-                    }
+                    auto // curr_opt_constraint = state_selector->option_constraint(opcode_num),
+                         curr_opt_constraint_even = state_selector->option_constraint_even(opcode_num),
+                         curr_opt_constraint_odd = state_selector->option_constraint_odd(opcode_num);
+                    // force max height to be proper value at the start of the opcode
+                    middle_constraints.push_back(
+                        curr_opt_constraint_odd * (state.rows_until_next_op.variable() - (max_opcode_height - 1)) *
+                        state.step_selection.variable());
+                    // curr_opt_constraint is in _odd_ version here because max_opcode_height-1 is odd
 
                     auto opcode_gates = opcode_it.second->generate_gates(*this);
                     for (auto gate_it : opcode_gates) {
                         switch (gate_it.first) {
                             case zkevm_opcode_gate_class::FIRST_OP:
-                                for (auto constraint : gate_it.second.first) {
-                                    middle_constraints.push_back(
-                                        curr_opt_constraint * constraint * start_selector);
+                                for (auto constraint_pair : gate_it.second.first) {
+                                    std::size_t local_row = constraint_pair.first;
+                                    constraint_type curr_opt_constraint =
+                                        (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
+                                    constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
+                                    middle_constraints.push_back(curr_opt_constraint * constraint * start_selector);
                                 }
-                                for (auto lookup_constraint : gate_it.second.second) {
-                                   auto lookup_table = lookup_constraint.table_id;
-                                   auto lookup_expressions = lookup_constraint.lookup_input;
-                                   std::vector<constraint_type> new_lookup_expressions;
+                                for (auto lookup_constraint_pair : gate_it.second.second) {
+                                    std::size_t local_row = lookup_constraint_pair.first;
+                                    constraint_type curr_opt_constraint =
+                                        (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
+                                    lookup_constraint_type lookup_constraint = lookup_constraint_pair.second;
+                                    auto lookup_table = lookup_constraint.table_id;
+                                    auto lookup_expressions = lookup_constraint.lookup_input;
+                                    constraint_type row_selector = get_opcode_row_constraint(local_row);
+                                    std::vector<constraint_type> new_lookup_expressions;
 
-                                   for(auto lookup_expr : lookup_expressions) {
-                                       new_lookup_expressions.push_back(curr_opt_constraint * lookup_expr * start_selector);
-                                   }
-                                   middle_lookup_constraints.push_back({lookup_table, new_lookup_expressions});
+                                    for(auto lookup_expr : lookup_expressions) {
+                                        new_lookup_expressions.push_back(curr_opt_constraint * lookup_expr * row_selector * start_selector);
+                                    }
+                                    middle_lookup_constraints.push_back({lookup_table, new_lookup_expressions});
                                 }
                                 break;
                             case zkevm_opcode_gate_class::MIDDLE_OP:
-                                for (auto constraint : gate_it.second.first) {
-                                    middle_constraints.push_back(
-                                        curr_opt_constraint * constraint);
+                                for (auto constraint_pair : gate_it.second.first) {
+                                    std::size_t local_row = constraint_pair.first;
+                                    constraint_type curr_opt_constraint =
+                                        (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
+                                    constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
+                                    middle_constraints.push_back(curr_opt_constraint * constraint);
                                 }
-                                for (auto lookup_constraint : gate_it.second.second) {
-                                   auto lookup_table = lookup_constraint.table_id;
-                                   auto lookup_expressions = lookup_constraint.lookup_input;
-                                   std::vector<constraint_type> new_lookup_expressions;
+                                for (auto lookup_constraint_pair : gate_it.second.second) {
+                                    std::size_t local_row = lookup_constraint_pair.first;
+                                    constraint_type curr_opt_constraint =
+                                        (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
+                                    lookup_constraint_type lookup_constraint = lookup_constraint_pair.second;
+                                    auto lookup_table = lookup_constraint.table_id;
+                                    auto lookup_expressions = lookup_constraint.lookup_input;
+                                    constraint_type row_selector = get_opcode_row_constraint(local_row);
+                                    std::vector<constraint_type> new_lookup_expressions;
 
-                                   for(auto lookup_expr : lookup_expressions) {
-                                       new_lookup_expressions.push_back(curr_opt_constraint * lookup_expr);
-                                   }
-                                   middle_lookup_constraints.push_back({lookup_table, new_lookup_expressions});
+                                    for(auto lookup_expr : lookup_expressions) {
+                                        new_lookup_expressions.push_back(curr_opt_constraint * lookup_expr * row_selector);
+                                    }
+                                    middle_lookup_constraints.push_back({lookup_table, new_lookup_expressions});
                                 }
                                 break;
                             case zkevm_opcode_gate_class::LAST_OP:
@@ -459,6 +487,7 @@ namespace nil {
                         }
                     }
                 }
+
                 middle_selector = sel_manager.add_gate(middle_constraints);
                 sel_manager.add_lookup_gate(middle_selector, middle_lookup_constraints);
 
@@ -500,7 +529,8 @@ namespace nil {
             std::size_t start_row_index;
             std::size_t end_row_index;
 
-            static const std::size_t max_opcode_cols = 64;
+            static const std::size_t max_opcode_cols = 32;
+            static const std::size_t max_opcode_height = 10;
         };
     }   // namespace blueprint
 }   // namespace nil

@@ -45,11 +45,15 @@ namespace nil {
             using value_type = typename BlueprintFieldType::value_type;
             using var = typename op_type::var;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+            std::map<gate_class, std::pair<
+                std::vector<std::pair<std::size_t, constraint_type>>,
+                std::vector<std::pair<std::size_t, lookup_constraint_type>>
+                >>
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
-                std::vector<constraint_type> constraints;
-                std::vector<lookup_constraint_type> lookup_constraints;
+                std::vector<std::pair<std::size_t, constraint_type>> constraints;
+                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
+
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
@@ -68,7 +72,7 @@ namespace nil {
                 // |      (j-n)^{-1}   |                    |
                 // +-------------------+--------------------+
 
-                constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
+                std::size_t position = 1;
 
                 std::vector<var> i_chunks;
                 std::vector<var> x_chunks;
@@ -93,42 +97,43 @@ namespace nil {
                 for(std::size_t j = 1; j < chunk_amount; j++) {
                     i_sum += i_chunks[j];
                 }
-                constraints.push_back(position * i_sum * (1 - I_var * i_sum));
+                constraints.push_back({position, i_sum * (1 - I_var * i_sum)});
 
-                constraints.push_back(position * (i0p_var - i_chunks[0]*(1 - i_sum*I_var) - 32*i_sum*I_var));
+                constraints.push_back({position, (i0p_var - i_chunks[0]*(1 - i_sum*I_var) - 32*i_sum*I_var)});
 
-                constraints.push_back(position * p_var * (1 - p_var));
-                constraints.push_back(position * (i0p_var - p_var - 2*n_var));
+                constraints.push_back({position, p_var * (1 - p_var)});
+                constraints.push_back({position, (i0p_var - p_var - 2*n_var)});
                 // lookup constraint for n_var & 2*n_var
-                lookup_constraints.push_back({range_check_table_index, {position * n_var}});
-                lookup_constraints.push_back({range_check_table_index, {position * 2 * n_var}});
+                lookup_constraints.push_back({position, {range_check_table_index, {n_var}}});
+                lookup_constraints.push_back({position, {range_check_table_index, {2 * n_var}}});
 
                 constraint_type x_sum;
                 for(std::size_t j = 0; j < chunk_amount; j++) {
                     x_sum += x_chunks[chunk_amount-1 - j] * (1 - (j - n_var)*indic[j]);
                 }
-                constraints.push_back(position * (xn_var - x_sum));
-                constraints.push_back(position * (xn_var - xp_var*256 - xpp_var));
+                constraints.push_back({position, (xn_var - x_sum)});
+                constraints.push_back({position, (xn_var - xp_var*256 - xpp_var)});
                 // lookup constraints for xp_var, 256*xp_var, xpp_var, 256*xpp_var
-                lookup_constraints.push_back({range_check_table_index, {position * xp_var}});
-                lookup_constraints.push_back({range_check_table_index, {position * 256 * xp_var}});
-                lookup_constraints.push_back({range_check_table_index, {position * xpp_var}});
-                lookup_constraints.push_back({range_check_table_index, {position * 256 * xpp_var}});
+                lookup_constraints.push_back({position, {range_check_table_index, {xp_var}}});
+                lookup_constraints.push_back({position, {range_check_table_index, {256 * xp_var}}});
+                lookup_constraints.push_back({position, {range_check_table_index, {xpp_var}}});
+                lookup_constraints.push_back({position, {range_check_table_index, {256 * xpp_var}}});
 
-                constraints.push_back(position * (b_var - (1-p_var)*xp_var - p_var*xpp_var));
+                constraints.push_back({position, (b_var - (1-p_var)*xp_var - p_var*xpp_var)});
 
-                constraints.push_back(position * (r_chunks[0] - b_var));
+                constraints.push_back({position, (r_chunks[0] - b_var)});
                 for(std::size_t j = 1; j < chunk_amount; j++) {
-                    constraints.push_back(position * r_chunks[j]);
+                    constraints.push_back({position, r_chunks[j]});
                 }
 
                 for(std::size_t j = 0; j < chunk_amount; j++) {
-                    constraints.push_back(position * ((j - n_var)*(1 - (j - n_var)*indic[j])));
+                    constraints.push_back({position, ((j - n_var)*(1 - (j - n_var)*indic[j]))});
                 }
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({range_check_table_index, {position * i_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * x_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {i_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {x_chunks[i]}}});
+//                    lookup_constraints.push_back({position, {range_check_table_index, {r_chunks[i]}});
+                    // ^^^ NOT NEEDED because r is already enough constrained
                 }
 
                 return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};

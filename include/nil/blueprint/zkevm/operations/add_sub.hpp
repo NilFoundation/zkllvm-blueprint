@@ -55,11 +55,15 @@ namespace nil {
             constexpr static const value_type two_32 = 4294967296;
             constexpr static const value_type two_48 = 281474976710656;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+            std::map<gate_class, std::pair<
+                std::vector<std::pair<std::size_t, constraint_type>>,
+                std::vector<std::pair<std::size_t, lookup_constraint_type>>
+                >>
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
-                std::vector<constraint_type> constraints;
-                std::vector<lookup_constraint_type> lookup_constraints;
+                std::vector<std::pair<std::size_t, constraint_type>> constraints;
+                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
+
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
@@ -67,7 +71,8 @@ namespace nil {
                 };
                 const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
-                constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
+                std::size_t position = 1;
+
                 auto constraint_gen = [&constraints, &position]
                         (var a_0, var a_1, var a_2,
                          var b_0, var b_1, var b_2,
@@ -75,24 +80,21 @@ namespace nil {
                          var last_carry, var result_carry, bool first_constraint = false) {
                     if (first_constraint) {
                         // no last carry for first constraint
-                        constraints.push_back(
-                            position * (
+                        constraints.push_back({position, (
                                 (a_0 + b_0) + (a_1 + b_1) * two_16 + (a_2 + b_2) * two_32
-                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48));
+                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48)});
 
                     } else {
-                        constraints.push_back(
-                            position * (
+                        constraints.push_back({ position, (
                                 last_carry + (a_0 + b_0) + (a_1 + b_1) * two_16 + (a_2 + b_2) * two_32
-                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48));
+                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48)});
                     }
-                    constraints.push_back(position * result_carry * (result_carry - 1));
+                    constraints.push_back({position, result_carry * (result_carry - 1)});
                 };
                 auto last_constraint_gen = [&constraints, &position]
                         (var a_0, var b_0, var r_0, var last_carry, var result_carry) {
-                    constraints.push_back(
-                        position * (last_carry + a_0 + b_0 - r_0 - result_carry * two_16));
-                    constraints.push_back(position * result_carry * (result_carry - 1));
+                    constraints.push_back({position, (last_carry + a_0 + b_0 - r_0 - result_carry * two_16)});
+                    constraints.push_back({position, result_carry * (result_carry - 1)});
                 };
                 std::vector<var> a_chunks;
                 std::vector<var> b_chunks;
@@ -122,9 +124,9 @@ namespace nil {
                                     r_carry[carry_amount - 2], r_carry[carry_amount - 1]);
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {a_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {b_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {r_chunks[i]}}});
                 }
 
                 return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};

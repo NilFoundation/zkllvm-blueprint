@@ -48,11 +48,15 @@ namespace nil {
 
             zkevm_iszero_operation() = default;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+            std::map<gate_class, std::pair<
+                std::vector<std::pair<std::size_t, constraint_type>>,
+                std::vector<std::pair<std::size_t, lookup_constraint_type>>
+                >>
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
-                std::vector<constraint_type> constraints;
-                std::vector<lookup_constraint_type> lookup_constraints;
+                std::vector<std::pair<std::size_t, constraint_type>> constraints;
+                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
+
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
@@ -60,22 +64,21 @@ namespace nil {
                 };
                 const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
+                std::size_t position = 0;
+
 std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << std::endl;
+
                 constraint_type chunk_sum = var_gen(0);
-                lookup_constraints.push_back({range_check_table_index, {var_gen(0)}});
+                lookup_constraints.push_back({position, {range_check_table_index, {var_gen(0)}}});
                 std::size_t i = 1;
                 for (; i < chunk_amount; i++) {
                     chunk_sum += var_gen(i);
-                    lookup_constraints.push_back({range_check_table_index, {var_gen(i)}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {var_gen(i)}}});
                 }
                 var result = var_gen(i++);
-                for (; i < 2 * chunk_amount; i++) {
-                    // force other chunks to be zero
-                    constraints.emplace_back(var_gen(i));
-                }
-                var chunk_sum_inverse = var_gen(i);
-                constraints.emplace_back(chunk_sum * chunk_sum_inverse + result - 1);
-                constraints.emplace_back(chunk_sum * result);
+                var chunk_sum_inverse = var_gen(i++);
+                constraints.push_back({position, (chunk_sum * chunk_sum_inverse + result - 1)});
+                constraints.push_back({position, (chunk_sum * result)});
                 return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
@@ -99,9 +102,6 @@ std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << 
                     assignment.witness(witness_cols[i], curr_row) = 0;
                 }
                 i++;
-                for (; i < 2 * chunks.size(); i++) {
-                    assignment.witness(witness_cols[i], curr_row) = 0;
-                }
                 const value_type chunk_sum = std::accumulate(chunks.begin(), chunks.end(), value_type::zero());
                 assignment.witness(witness_cols[i], curr_row) =
                     chunk_sum == 0 ? value_type::zero() : value_type::one() * chunk_sum.inversed();

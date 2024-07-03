@@ -56,11 +56,15 @@ namespace nil {
             constexpr static const value_type two_32 = 4294967296;
             constexpr static const value_type two_48 = 281474976710656;
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+            std::map<gate_class, std::pair<
+                std::vector<std::pair<std::size_t, constraint_type>>,
+                std::vector<std::pair<std::size_t, lookup_constraint_type>>
+                >>
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
-                std::vector<constraint_type> constraints;
-                std::vector<lookup_constraint_type> lookup_constraints;
+                std::vector<std::pair<std::size_t, constraint_type>> constraints;
+                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
+
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
@@ -68,7 +72,7 @@ namespace nil {
                 };
                 const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
-                constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
+                std::size_t position = 1;
                 auto constraint_gen = [&constraints, &position]
                         (var a_0, var a_1, var a_2,
                          var b_0, var b_1, var b_2,
@@ -76,24 +80,21 @@ namespace nil {
                          var last_carry, var result_carry, bool first_constraint = false) {
                     if (first_constraint) {
                         // no last carry for first constraint
-                        constraints.push_back(
-                            position * (
+                        constraints.push_back({ position, (
                                 (a_0 + b_0) + (a_1 + b_1) * two_16 + (a_2 + b_2) * two_32
-                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48));
+                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48)});
 
                     } else {
-                        constraints.push_back(
-                            position * (
+                        constraints.push_back({ position, (
                                 last_carry + (a_0 + b_0) + (a_1 + b_1) * two_16 + (a_2 + b_2) * two_32
-                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48));
+                                - r_0 - r_1 * two_16 - r_2 * two_32 - result_carry * two_48)});
                     }
-                    constraints.push_back(position * result_carry * (result_carry - 1));
+                    constraints.push_back({position, result_carry * (result_carry - 1)});
                 };
                 auto last_constraint_gen = [&constraints, &position]
                         (var a_0, var b_0, var r_0, var last_carry, var result_carry) {
-                    constraints.push_back(
-                        position * (last_carry + a_0 + b_0 - r_0 - result_carry * two_16));
-                    constraints.push_back(position * result_carry * (result_carry - 1));
+                    constraints.push_back({ position, (last_carry + a_0 + b_0 - r_0 - result_carry * two_16)});
+                    constraints.push_back({ position, result_carry * (result_carry - 1)});
                 };
                 std::vector<var> a_chunks;
                 std::vector<var> b_chunks;
@@ -108,9 +109,9 @@ namespace nil {
                     r_carry.push_back(var_gen(i + chunk_amount, +1));
                 }
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {a_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {b_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {r_chunks[i]}}});
                 }
 
                 // special first constraint
@@ -136,8 +137,8 @@ namespace nil {
                     var b_chunk_sum_inverse = var_gen(chunk_amount, 0),
                         result = var_gen(chunk_amount + 1,0);
 
-                    constraints.push_back(position * (b_chunk_sum * b_chunk_sum_inverse + result - 1));
-                    constraints.push_back(position * b_chunk_sum * result);
+                    constraints.push_back({position, (b_chunk_sum * b_chunk_sum_inverse + result - 1)});
+                    constraints.push_back({position, b_chunk_sum * result});
                 } else if ((cmp_operation == C_SLT) || (cmp_operation == C_SGT)) {
                     // additional constraints for computing and accounting for the signs of a and r
                     var c = r_carry[carry_amount-1],
@@ -150,20 +151,20 @@ namespace nil {
                         result = var_gen(chunk_amount+4,0);
                     value_type two_15 = 32768;
                     // a_top + 2^15 = a_aux + 2^16 * a_neg
-                    lookup_constraints.push_back({range_check_table_index, {position * a_aux}});
-                    constraints.push_back(position * a_neg * (1 - a_neg));
-                    constraints.push_back(position*(a_top + two_15 - two_16 * a_neg - a_aux));
+                    lookup_constraints.push_back({position, {range_check_table_index, {a_aux}}});
+                    constraints.push_back({position, a_neg * (1 - a_neg)});
+                    constraints.push_back({position, (a_top + two_15 - two_16 * a_neg - a_aux)});
                     // r_top + 2^15 = r_aux + 2^16 * r_neg
-                    constraints.push_back(position * r_neg * (1 - r_neg));
-                    lookup_constraints.push_back({range_check_table_index, {position * r_aux}});
-                    constraints.push_back(position*(r_top + two_15 - two_16 * r_neg - r_aux));
+                    constraints.push_back({position, r_neg * (1 - r_neg)});
+                    lookup_constraints.push_back({position, {range_check_table_index, {position * r_aux}}});
+                    constraints.push_back({position, (r_top + two_15 - two_16 * r_neg - r_aux)});
 
                     // result = (r_neg & !a_neg) | ((r_neg&a_neg | !r_neg & !a_neg  )& c) =
                     // = (r_neg & !a_neg) | (c & !a_neg) | (c & r_neg) =
                     // = r_neg(1-a_neg) + c(1-a_neg) + c r_neg - 2*r_neg(1-a_neg)c
-                    constraints.push_back(position*(r_neg*(1-a_neg) + c*(1-a_neg) + c*r_neg - 2*c*r_neg*(1-a_neg) - result));
+                    constraints.push_back({position, (r_neg*(1-a_neg) + c*(1-a_neg) + c*r_neg - 2*c*r_neg*(1-a_neg) - result)});
                 }
-                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
+                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {

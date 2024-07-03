@@ -85,11 +85,15 @@ namespace nil {
                               a_64_chunks[2] * b_64_chunks[1] + a_64_chunks[3] * b_64_chunks[0] - r_64_chunks[3]);
             }
 
-            std::map<gate_class, std::pair<std::vector<constraint_type>,std::vector<lookup_constraint_type>>>
+            std::map<gate_class, std::pair<
+                std::vector<std::pair<std::size_t, constraint_type>>,
+                std::vector<std::pair<std::size_t, lookup_constraint_type>>
+                >>
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
-                std::vector<constraint_type> constraints;
-                std::vector<lookup_constraint_type> lookup_constraints;
+                std::vector<std::pair<std::size_t, constraint_type>> constraints;
+                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
+
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
@@ -97,7 +101,7 @@ namespace nil {
                 };
                 const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
-                constraint_type position = zkevm_circuit.get_opcode_row_constraint(1, this->rows_amount());
+                std::size_t position = 1;
                 std::vector<var> a_chunks;
                 std::vector<var> b_chunks;
                 std::vector<var> r_chunks;
@@ -136,23 +140,22 @@ namespace nil {
                 constraint_type c_3_64 = chunk_sum_64<constraint_type, var>(c_3_chunks, 0);
                 constraint_type first_carryless = first_carryless_consrtruct<constraint_type>(
                     a_64_chunks, b_64_chunks, r_64_chunks);
-                constraints.push_back(position * (first_carryless - c_1_64 * two128 - c_2 * two192));
+                constraints.push_back({position, (first_carryless - c_1_64 * two128 - c_2 * two192)});
                 constraint_type second_carryless = second_carryless_construct<constraint_type>(
                     a_64_chunks, b_64_chunks, r_64_chunks);
-                constraints.push_back(
-                    position * (second_carryless + c_1_64 + c_2 * two_64 - c_3_64 * two128 - c_4 * two192));
+                constraints.push_back({position, (second_carryless + c_1_64 + c_2 * two_64 - c_3_64 * two128 - c_4 * two192)});
                 // add constraints for c_2/c_4: c_2 is 0/1, c_4 is 0/1/2/3
-                constraints.push_back(position * c_2 * (c_2 - 1));
-                constraints.push_back(position * c_4 * (c_4 - 1) * (c_4 - 2) * (c_4 - 3));
+                constraints.push_back({position, c_2 * (c_2 - 1)});
+                constraints.push_back({position, c_4 * (c_4 - 1) * (c_4 - 2) * (c_4 - 3)});
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({range_check_table_index, {position * a_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * b_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * r_chunks[i]}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {a_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {b_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {r_chunks[i]}}});
                 }
                 for (std::size_t i = 0; i < 4; i++) {
-                    lookup_constraints.push_back({range_check_table_index, {position * c_1_chunks[i]}});
-                    lookup_constraints.push_back({range_check_table_index, {position * c_3_chunks[i]}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {c_1_chunks[i]}}});
+                    lookup_constraints.push_back({position, {range_check_table_index, {c_3_chunks[i]}}});
                 }
 
                 return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
