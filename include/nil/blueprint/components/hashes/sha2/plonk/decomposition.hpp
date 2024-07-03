@@ -63,8 +63,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -78,15 +77,14 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return 3;
                 }
                 constexpr static std::size_t get_empty_rows_amount() {
                     return 1;
                 }
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::size_t empty_rows_amount = get_empty_rows_amount();
                 constexpr static const std::size_t gates_amount = 1;
 
@@ -257,13 +255,13 @@ namespace nil {
                 using var = typename plonk_native_decomposition<BlueprintFieldType>::var;
 
                 auto constraint_1 =
-                    var(component.W(8), -1) - (var(component.W(3), 0) + var(component.W(2), 0) * 0x100000000_cppui255 +
-                                               var(component.W(1), 0) * 0x10000000000000000_cppui255 +
-                                               var(component.W(0), 0) * 0x1000000000000000000000000_cppui255);
+                    var(component.W(8), -1) - (var(component.W(3), 0) + var(component.W(2), 0) * 0x100000000_cppui_modular255 +
+                                               var(component.W(1), 0) * 0x10000000000000000_cppui_modular255 +
+                                               var(component.W(0), 0) * 0x1000000000000000000000000_cppui_modular255);
                 auto constraint_2 =
-                    var(component.W(8), 1) - (var(component.W(7), 0) + var(component.W(6), 0) * 0x100000000_cppui255 +
-                                              var(component.W(5), 0) * 0x10000000000000000_cppui255 +
-                                              var(component.W(4), 0) * 0x1000000000000000000000000_cppui255);
+                    var(component.W(8), 1) - (var(component.W(7), 0) + var(component.W(6), 0) * 0x100000000_cppui_modular255 +
+                                              var(component.W(5), 0) * 0x10000000000000000_cppui_modular255 +
+                                              var(component.W(4), 0) * 0x1000000000000000000000000_cppui_modular255);
                 auto constraint_3 = var(component.W(3), 0) -
                                                       (var(component.W(0), -1) + var(component.W(1), -1) * (65536));
                 auto constraint_4 = var(component.W(2), 0) -

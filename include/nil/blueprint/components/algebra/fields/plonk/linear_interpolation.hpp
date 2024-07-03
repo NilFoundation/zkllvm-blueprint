@@ -62,8 +62,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -76,13 +75,12 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return 1;
                 }
 
                 constexpr static const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
 
                 struct input_type {
                     var x0, z0, x1, z1;
@@ -93,7 +91,7 @@ namespace nil {
                 };
 
                 struct result_type {
-		    std::array<var,2> output;
+                    std::array<var,2> output;
 
                     result_type(const linear_inter_coefs &component, std::uint32_t start_row_index) {
                         output = { var(component.W(4), start_row_index, false, var::column_type::witness),
@@ -150,9 +148,10 @@ namespace nil {
                 assignment.witness(component.W(2), start_row_index) = x1;
                 assignment.witness(component.W(3), start_row_index) = z1;
                 if (x0 != x1) { // normal case
-                    assignment.witness(component.W(4), start_row_index) = (x1*z0 - x0*z1) / (x1-x0);
-                    assignment.witness(component.W(5), start_row_index) = (z1-z0) / (x1-x0);
-                    assignment.witness(component.W(6), start_row_index) = 1 / (x1-x0);
+                    auto diff_inversed = (x1-x0).inversed();
+                    assignment.witness(component.W(4), start_row_index) = (x1*z0 - x0*z1) * diff_inversed;
+                    assignment.witness(component.W(5), start_row_index) = (z1-z0) * diff_inversed;
+                    assignment.witness(component.W(6), start_row_index) = diff_inversed;
                 } else { // just make some assignments that will fail
                     assignment.witness(component.W(4), start_row_index) = 0;
                     assignment.witness(component.W(5), start_row_index) = 0;

@@ -65,8 +65,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -80,8 +79,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return 762;
                 }
                 constexpr static std::size_t get_empty_rows_amount() {
@@ -104,7 +102,7 @@ namespace nil {
                         0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
                         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::size_t empty_rows_amount = get_empty_rows_amount();
                 constexpr static const std::size_t gates_amount = 11;
                 constexpr static const std::size_t lookup_gates_amount = 8;
@@ -1547,9 +1545,8 @@ namespace nil {
                     assignment.witness(component.W(8), i + 4) = integral_a2;
 
                     assignment.witness(component.W(0), i + 3) =
-                        (sum - message_scheduling_words[(i - row) / 5 + 16]) /
-                        typename BlueprintFieldType::integral_type(
-                            typename BlueprintFieldType::value_type(2).pow(32).data);
+                        (sum - message_scheduling_words[(i - row) / 5 + 16]) *
+                            typename BlueprintFieldType::value_type(2).pow(32).inversed();
                 }
                 row = row + 240;
                 for (std::size_t i = row; i < row + 512; i = i + 8) {
@@ -1644,8 +1641,8 @@ namespace nil {
                     assignment.witness(component.W(4), i + 4) = tmp1;
                     assignment.witness(component.W(4), i + 3) = e_new;
                     assignment.witness(component.W(4), i + 2) =
-                        (sum - e_new) / typename BlueprintFieldType::integral_type(
-                                            typename BlueprintFieldType::value_type(2).pow(32).data);
+                        (sum - e_new) * typename BlueprintFieldType::integral_type(
+                                            typename BlueprintFieldType::value_type(2).pow(32).inversed().data);
 
                     typename BlueprintFieldType::integral_type integral_a2 =
                         typename BlueprintFieldType::integral_type(e_new.data);
@@ -1734,7 +1731,7 @@ namespace nil {
                             typename BlueprintFieldType::value_type(2).pow(32).data);
                     assignment.witness(component.W(2), i + 5) = a_new;
                     assignment.witness(component.W(3), i + 5) =
-                        (sum1 - a_new) / typename BlueprintFieldType::value_type(2).pow(32);
+                        (sum1 - a_new) * typename BlueprintFieldType::value_type(2).pow(32).inversed();
 
                     integral_a2 =
                         typename BlueprintFieldType::integral_type(a_new.data);

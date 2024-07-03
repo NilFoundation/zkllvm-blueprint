@@ -67,9 +67,8 @@ namespace nil {
                 using operating_field_type = crypto3::algebra::fields::curve25519_base_field;
                 using non_native_policy_type = basic_non_native_policy<BlueprintFieldType>;
 
-                constexpr static std::size_t rows_amount_internal(std::size_t witness_amount,
-                                                                  std::size_t lookup_column_amount) {
-                    return 2 + range_type::get_rows_amount(witness_amount, lookup_column_amount);
+                constexpr static std::size_t rows_amount_internal(std::size_t witness_amount) {
+                    return 2 + range_type::get_rows_amount(witness_amount);
                 }
             public:
                 using component_type =
@@ -88,11 +87,10 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest =
                         gate_manifest(gate_manifest_type()).merge_with(
-                            range_type::get_gate_manifest(witness_amount, lookup_column_amount));
+                            range_type::get_gate_manifest(witness_amount));
                     return manifest;
                 }
 
@@ -104,9 +102,8 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
-                    return rows_amount_internal(witness_amount, lookup_column_amount);
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
+                    return rows_amount_internal(witness_amount);
                 }
                 constexpr static std::size_t get_empty_rows_amount() {
                     return 1;
@@ -114,7 +111,7 @@ namespace nil {
 
                 constexpr static const std::size_t T = 257;
 
-                const std::size_t rows_amount = rows_amount_internal(this->witness_amount(), 0);
+                const std::size_t rows_amount = rows_amount_internal(this->witness_amount());
                 const std::size_t empty_rows_amount = get_empty_rows_amount();
                 constexpr static const std::size_t gates_amount = 1;
                 const std::string component_name = "non-native field addition";
@@ -189,10 +186,13 @@ namespace nil {
                     typename ed25519_field_type::integral_type integral_eddsa_r =
                         typename ed25519_field_type::integral_type(eddsa_r.data);
                     typename ed25519_field_type::extended_integral_type eddsa_p = ed25519_field_type::modulus;
+
+                    // On the following like values like eddsa_a.data are of modular type. We do not allow converting them to
+                    // integral types of different precision, so we first need to convert them to integral type, then extend.
                     typename ed25519_field_type::extended_integral_type integral_eddsa_q =
-                        (typename ed25519_field_type::extended_integral_type(eddsa_a.data) +
-                        typename ed25519_field_type::extended_integral_type(eddsa_b.data) -
-                        typename ed25519_field_type::extended_integral_type(eddsa_r.data)) /
+                        (typename ed25519_field_type::extended_integral_type(typename ed25519_field_type::integral_type(eddsa_a.data)) +
+                        typename ed25519_field_type::extended_integral_type(typename ed25519_field_type::integral_type(eddsa_b.data)) -
+                        typename ed25519_field_type::extended_integral_type(typename ed25519_field_type::integral_type(eddsa_r.data))) /
                         eddsa_p;
                     typename ed25519_field_type::extended_integral_type pow = extended_base << 257;
                     typename ed25519_field_type::extended_integral_type minus_eddsa_p = pow - eddsa_p;
@@ -201,9 +201,10 @@ namespace nil {
                     std::array<typename BlueprintFieldType::value_type, 4> q;
                     std::array<typename BlueprintFieldType::value_type, 4> p;
                     typename BlueprintFieldType::integral_type mask = (pasta_base << 66) - 1;
-                    r[0] = (integral_eddsa_r) & (mask);
-                    q[0] = (integral_eddsa_q) & (mask);
-                    p[0] = (minus_eddsa_p) & (mask);
+                    typename BlueprintFieldType::extended_integral_type extended_mask = mask;
+                    r[0] = integral_eddsa_r & mask;
+                    q[0] = integral_eddsa_q & extended_mask;
+                    p[0] = minus_eddsa_p & extended_mask;
                     for (std::size_t i = 1; i < 4; i++) {
                         r[i] = (integral_eddsa_r >> (66 * i)) & (mask);
                     }
@@ -275,10 +276,13 @@ namespace nil {
                 typename ed25519_field_type::integral_type integral_eddsa_r =
                     typename ed25519_field_type::integral_type(eddsa_r.data);
                 typename ed25519_field_type::extended_integral_type eddsa_p = ed25519_field_type::modulus;
+
+                // On the following like values like eddsa_a.data are of modular type. We do not allow converting them to
+                // integral types of different precision, so we first need to convert them to integral type, then extend.
                 typename ed25519_field_type::extended_integral_type integral_eddsa_q =
-                    (typename ed25519_field_type::extended_integral_type(eddsa_a.data) +
-                     typename ed25519_field_type::extended_integral_type(eddsa_b.data) -
-                     typename ed25519_field_type::extended_integral_type(eddsa_r.data)) /
+                    (typename ed25519_field_type::extended_integral_type(typename ed25519_field_type::integral_type(eddsa_a.data)) +
+                     typename ed25519_field_type::extended_integral_type(typename ed25519_field_type::integral_type(eddsa_b.data)) -
+                     typename ed25519_field_type::extended_integral_type(typename ed25519_field_type::integral_type(eddsa_r.data))) /
                     eddsa_p;
                 typename ed25519_field_type::extended_integral_type pow = extended_base << 257;
                 typename ed25519_field_type::extended_integral_type minus_eddsa_p = pow - eddsa_p;
@@ -287,9 +291,10 @@ namespace nil {
                 std::array<typename BlueprintFieldType::value_type, 4> q;
                 std::array<typename BlueprintFieldType::value_type, 4> p;
                 typename BlueprintFieldType::integral_type mask = (pasta_base << 66) - 1;
-                r[0] = (integral_eddsa_r) & (mask);
-                q[0] = (integral_eddsa_q) & (mask);
-                p[0] = (minus_eddsa_p) & (mask);
+                typename BlueprintFieldType::extended_integral_type extended_mask = (pasta_base << 66) - 1;
+                r[0] = integral_eddsa_r & mask;
+                q[0] = integral_eddsa_q & extended_mask;
+                p[0] = minus_eddsa_p & extended_mask;
                 for (std::size_t i = 1; i < 4; i++) {
                     r[i] = (integral_eddsa_r >> (66 * i)) & (mask);
                 }
@@ -394,7 +399,7 @@ namespace nil {
                 typename ed25519_field_type::extended_integral_type pow = extended_base << 257;
                 typename ed25519_field_type::extended_integral_type minus_eddsa_p = pow - eddsa_p;
                 std::array<typename BlueprintFieldType::value_type, 4> p;
-                typename BlueprintFieldType::integral_type mask = (base << 66) - 1;
+                typename BlueprintFieldType::extended_integral_type mask = (base << 66) - 1;
                 p[0] = minus_eddsa_p & mask;
 
                 auto t = var(component.W(0), 0) + var(component.W(1), 0) + p[0] * var(component.W(2), 0);

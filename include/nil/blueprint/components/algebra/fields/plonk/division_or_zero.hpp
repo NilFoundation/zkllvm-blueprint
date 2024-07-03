@@ -63,14 +63,12 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount) {
                     static gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount) {
                     return 1;
                 }
                 constexpr static std::size_t get_empty_rows_amount() {
@@ -78,9 +76,9 @@ namespace nil {
                 }
 
                 constexpr static const std::size_t gates_amount = 1;
-                const std::size_t rows_amount = get_rows_amount(this->witness_amount(), 0);
+                const std::size_t rows_amount = get_rows_amount(this->witness_amount());
                 const std::size_t empty_rows_amount = get_empty_rows_amount();
-                const std::string component_name = "native field div_or_zero";
+                const std::string component_name = "native field division or zero";
 
                 using var = typename component_type::var;
                 using manifest_type = plonk_component_manifest;
@@ -105,10 +103,6 @@ namespace nil {
                 struct result_type {
                     var output = var(0, 0, false);
                     result_type(const division_or_zero &component, std::uint32_t start_row_index) {
-                        output = var(component.W(2), start_row_index, false, var::column_type::witness);
-                    }
-
-                    result_type(const division_or_zero &component, std::size_t start_row_index) {
                         output = var(component.W(2), start_row_index, false, var::column_type::witness);
                     }
 
@@ -137,7 +131,7 @@ namespace nil {
 
                 static typename BlueprintFieldType::value_type calculate(typename BlueprintFieldType::value_type x,
                                                                          typename BlueprintFieldType::value_type y) {
-                    return (y == 0) ? 0 : x / y;
+                    return (y == BlueprintFieldType::value_type::zero()) ? BlueprintFieldType::value_type::zero() : x * y.inversed();
                 }
             };
 
@@ -158,14 +152,14 @@ namespace nil {
 
                 assignment.witness(component.W(0), j) = var_value(assignment, instance_input.x);
                 assignment.witness(component.W(1), j) = var_value(assignment, instance_input.y);
-                if (var_value(assignment, instance_input.y) != 0) {
-                    assignment.witness(component.W(2), j) = var_value(assignment, instance_input.x) /
-                        var_value(assignment, instance_input.y);
+                if (var_value(assignment, instance_input.y) != BlueprintFieldType::value_type::zero()) {
+                    assignment.witness(component.W(2), j) = var_value(assignment, instance_input.x) *
+                        var_value(assignment, instance_input.y).inversed();
                 } else {
-                    assignment.witness(component.W(2), j) = 0;
+                    assignment.witness(component.W(2), j) = BlueprintFieldType::value_type::zero();
                 }
-                assignment.witness(component.W(3), j) = (var_value(assignment, instance_input.y) == 0) ?
-                    0 : var_value(assignment, instance_input.y).inversed();
+                assignment.witness(component.W(3), j) = (var_value(assignment, instance_input.y) == BlueprintFieldType::value_type::zero()) ?
+                    BlueprintFieldType::value_type::zero() : var_value(assignment, instance_input.y).inversed();
                 assignment.witness(component.W(4), j) = var_value(assignment, instance_input.y) * assignment.witness(component.W(3), j);
 
                 return typename plonk_division_or_zero<BlueprintFieldType>::result_type(component, start_row_index);
@@ -196,8 +190,8 @@ namespace nil {
                 using var = typename plonk_division_or_zero<BlueprintFieldType>::var;
 
                 auto constraint_1 = var(component.W(1), 0) * var(component.W(3), 0) - var(component.W(4), 0);
-                auto constraint_2 = var(component.W(4), 0) * (var(component.W(4), 0) - 1);
-                auto constraint_3 = (var(component.W(3), 0) - var(component.W(1), 0)) * (var(component.W(4), 0) - 1);
+                auto constraint_2 = var(component.W(4), 0) * (var(component.W(4), 0) - 1u);
+                auto constraint_3 = (var(component.W(3), 0) - var(component.W(1), 0)) * (var(component.W(4), 0) - 1u);
                 auto constraint_4 = var(component.W(0), 0) * var(component.W(3), 0) - var(component.W(2), 0);
 
                 return bp.add_gate({constraint_1, constraint_2, constraint_3, constraint_4});

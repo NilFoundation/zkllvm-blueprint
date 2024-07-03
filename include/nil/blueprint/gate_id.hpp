@@ -60,6 +60,7 @@ namespace nil {
 
             std::array<std::array<std::vector<value_type>, 3>, 2> witnesses;
             std::array<std::array<std::vector<value_type>, 3>, 2> constants;
+            std::array<std::array<std::vector<value_type>, 3>, 2> selectors;
             // Used to separate constraints from each other in ids.
             std::vector<value_type> constraint_mults;
             // Used to separate lookup variables from each other in ids.
@@ -124,6 +125,10 @@ namespace nil {
                 return get_value_helper(constants, point, index, rotation);
             }
 
+            value_type get_selector(std::size_t point, std::size_t index, std::size_t rotation) {
+                return get_value_helper(selectors, point, index, rotation);
+            }
+
             value_type get_power(std::size_t index) {
                 return get_power_helper(constraint_mults, index);
             }
@@ -144,10 +149,12 @@ namespace nil {
                         return this->get_witness(point, var.index, var.rotation);
                     case var::column_type::constant:
                         return this->get_constant(point, var.index, var.rotation);
-                    case var::column_type::public_input:
                     case var::column_type::selector:
+                        return this->get_selector(point, var.index, var.rotation);
+                    case var::column_type::public_input:
+                        BOOST_ASSERT_MSG(false, "Public input variables should not be in a gate.");
                     case var::column_type::uninitialized:
-                        BOOST_ASSERT_MSG(false, "Public input/selectors/uninitialized must not be in a gate.");
+                        BOOST_ASSERT_MSG(false, "Uninitialized variable should not be inside a gate.");
                 }
                 __builtin_unreachable();
             };
@@ -194,7 +201,7 @@ namespace nil {
 
             // Note that constraits have to be sorted in order to enforce equality between differently ordered gates.
             #define GATE_ID_INIT_MACRO(constraints_container) \
-                value_1 = value_2 = 0; \
+                value_1 = value_2 = BlueprintFieldType::value_type::zero(); \
                 if (constraints_container.empty()) { \
                     return; \
                 } \
@@ -280,7 +287,7 @@ namespace nil {
             std::size_t tag_index;
         public:
             std::pair<value_type, value_type> eval_constraint(const constraint_type& constraint) const {
-                value_type value_1 = 0, value_2 = 0;
+                value_type value_1 = BlueprintFieldType::value_type::zero(), value_2 = BlueprintFieldType::value_type::zero();
                 for (std::size_t i = 0; i < constraint.lookup_input.size(); i++) {
                     nil::crypto3::math::expression_evaluator<var> evaluator_1(
                         constraint.lookup_input[i],
@@ -297,7 +304,7 @@ namespace nil {
 
             // Note that constraits have to be sorted in order to enforce equality between differently ordered gates.
             #define LOOKUP_GATE_ID_INIT_MACRO(constraints_container) \
-                value_1 = value_2 = 0; \
+                value_1 = value_2 = BlueprintFieldType::value_type::zero(); \
                 if (constraints_container.empty()) { \
                     return; \
                 } \

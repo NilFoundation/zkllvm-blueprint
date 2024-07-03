@@ -90,6 +90,10 @@ namespace nil {
                 return ArithmetizationType::copy_constraints();
             }
 
+            virtual typename ArithmetizationType::copy_constraints_container_type& mutable_copy_constraints() {
+                return ArithmetizationType::mutable_copy_constraints();
+            }
+
             virtual const typename ArithmetizationType::lookup_gates_container_type& lookup_gates() const {
                 return ArithmetizationType::lookup_gates();
             }
@@ -111,7 +115,7 @@ namespace nil {
                 if (it != mapping.end()) { \
                     return it->second; \
                 } else { \
-                    std::size_t selector_index = next_selector_index; \
+                    const std::size_t selector_index = next_selector_index; \
                     mapping[gate_id] = selector_index; \
                     this->gate_container.emplace_back(selector_index, args); \
                     next_selector_index++; \
@@ -148,6 +152,13 @@ namespace nil {
 
             virtual std::size_t add_lookup_gate(const std::initializer_list<lookup_constraint_type> &&args) {
                 LOOKUP_GATE_ADDER_MACRO(lookup_selector_map, _lookup_gates);
+            }
+
+            // Sometimes existing gate is already on existing selector
+            //   and we are sure that lookup and usual part are always together
+            virtual std::size_t add_lookup_gate(std::size_t selector_id, const std::vector<lookup_constraint_type> &args) {
+                this->_lookup_gates.push_back({selector_id, args});
+                return selector_id;
             }
 
             virtual const typename ArithmetizationType::lookup_table_type &lookup_table(std::size_t table_id) const {

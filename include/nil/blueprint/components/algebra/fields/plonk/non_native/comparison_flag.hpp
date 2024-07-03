@@ -182,7 +182,6 @@ namespace nil {
                 };
 
                 static gate_manifest get_gate_manifest(std::size_t witness_amount,
-                                                       std::size_t lookup_column_amount,
                                                        std::size_t bits_amount,
                                                        comparison_mode mode) {
                     gate_manifest manifest =
@@ -190,17 +189,16 @@ namespace nil {
                     return manifest;
                 }
 
-                static manifest_type get_manifest() {
+                static manifest_type get_manifest(std::size_t bits_amount, comparison_mode mode) {
                     static manifest_type manifest = manifest_type(
                         std::shared_ptr<manifest_param>(
-                            new manifest_range_param(3, (BlueprintFieldType::modulus_bits + 28 - 1) / 28 )),
+                            new manifest_range_param(3, std::max<std::size_t>(4, (bits_amount + 28 - 1) / 28 + 1))),
                         false
                     );
                     return manifest;
                 }
 
                 constexpr static std::size_t get_rows_amount(std::size_t witness_amount,
-                                                             std::size_t lookup_column_amount,
                                                              std::size_t bits_amount,
                                                              comparison_mode mode) {
                     return rows_amount_internal(witness_amount, bits_amount);
@@ -260,7 +258,7 @@ namespace nil {
 
                 template<typename ContainerType>
                 explicit comparison_flag(ContainerType witness, std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, {}, {}, get_manifest()),
+                        component_type(witness, {}, {}, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_) {};
 
@@ -269,7 +267,7 @@ namespace nil {
                     comparison_flag(WitnessContainerType witness, ConstantContainerType constant,
                                     PublicInputContainerType public_input,
                                     std::size_t bits_amount_, comparison_mode mode_):
-                        component_type(witness, constant, public_input, get_manifest()),
+                        component_type(witness, constant, public_input, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_) {
 
@@ -282,7 +280,7 @@ namespace nil {
                     std::initializer_list<typename component_type::public_input_container_type::value_type>
                         public_inputs,
                     std::size_t bits_amount_, comparison_mode mode_) :
-                        component_type(witnesses, constants, public_inputs, get_manifest()),
+                        component_type(witnesses, constants, public_inputs, get_manifest(bits_amount_, mode_)),
                         bits_amount(bits_amount_),
                         mode(mode_) {
 
@@ -635,7 +633,7 @@ namespace nil {
                     };
                     auto generate_t_update_rule = [&greater_val](var t, var f, var c, var d) {
                         constraint_type constraint = t - ((c - d) * (1 - f) * (f - greater_val) *
-                                                          (-1 / greater_val) + f);
+                                                          (-greater_val.inversed()) + f);
                         return constraint;
                     };
                     auto generate_t_f_constraint = [&greater_val](var t, var f) {
@@ -740,26 +738,26 @@ namespace nil {
                         case comparison_mode::FLAG:
                             // This converts flag {greater_val, 0, 1} to {-1, 0, 1}.
                             comparison_constraint = output_var -
-                                ((- 2 * (1 / g_g_m_1) - 1/g) * flag_var * flag_var +
-                                 (2 * (1 / g_g_m_1) + 1/g + 1) * flag_var);
+                                ((- 2 * g_g_m_1.inversed() - g.inversed()) * flag_var * flag_var +
+                                 (2 * g_g_m_1.inversed() + g.inversed() + 1) * flag_var);
 
                             break;
                         case comparison_mode::GREATER_THAN:
                             // This converts flag {greater_val, 0, 1} to {0, 0, 1}.
-                            comparison_constraint = output_var + flag_var * (flag_var - g) * (1 / g_m_1);
+                            comparison_constraint = output_var + flag_var * (flag_var - g) * g_m_1.inversed();
                             break;
                         case comparison_mode::GREATER_EQUAL:
                             // This converts flag {greater_val, 0, 1} to {0, 1, 1}.
                             comparison_constraint = output_var +
-                                                    (flag_var - g) * (flag_var - (1 - g)) * (1 / g_g_m_1);
+                                                    (flag_var - g) * (flag_var - (1 - g)) * g_g_m_1.inversed();
                             break;
                         case comparison_mode::LESS_THAN:
                             // This converts flag {greater_val, 0, 1} to {1, 0, 0}.
-                            comparison_constraint = output_var - flag_var * (flag_var - 1) * (1 / g_g_m_1);
+                            comparison_constraint = output_var - flag_var * (flag_var - 1) * g_g_m_1.inversed();
                             break;
                         case comparison_mode::LESS_EQUAL:
                             // This converts flag {greater_val, 0, 1} to {1, 1, 0}.
-                            comparison_constraint = output_var - (1 - flag_var * (flag_var - g) * (1/(-g_m_1)));
+                            comparison_constraint = output_var - (1 - flag_var * (flag_var - g) * (-g_m_1).inversed());
                             break;
                     }
                     selector_indices.push_back(bp.add_gate(comparison_constraint));

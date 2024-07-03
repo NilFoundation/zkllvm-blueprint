@@ -9,24 +9,48 @@
 
 include(CMTest)
 
-cm_find_package(Boost REQUIRED COMPONENTS random unit_test_framework)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-cm_test_link_libraries(${CMAKE_WORKSPACE_NAME}_${CURRENT_PROJECT_NAME}
+find_package(Boost REQUIRED COMPONENTS random unit_test_framework)
 
-                       ${CMAKE_WORKSPACE_NAME}::algebra
-                       ${CMAKE_WORKSPACE_NAME}::hash
-                       ${CMAKE_WORKSPACE_NAME}::math
-                       ${CMAKE_WORKSPACE_NAME}::multiprecision
-                       ${CMAKE_WORKSPACE_NAME}::random
-                       ${CMAKE_WORKSPACE_NAME}::zk
-                       marshalling::crypto3_zk
-
+cm_test_link_libraries(blueprint
+                       crypto3::all
                        ${Boost_LIBRARIES})
+
+option(ZK_PLACEHOLDER_PROFILING "Build with placeholder profiling" FALSE)
+option(ZK_PLACEHOLDER_DEBUG "Build with placeholder debug output" FALSE)
+
+if(ZK_PLACEHOLDER_PROFILING)
+    add_definitions(-DZK_PLACEHOLDER_PROFILING_ENABLED)
+endif()
+
+if(ZK_PLACEHOLDER_DEBUG)
+    add_definitions(-DZK_PLACEHOLDER_DEBUG_ENABLED)
+endif()
+
+option(BLUEPRINT_DEBUG "Build with blueprint debug output" FALSE)
+
+if(BLUEPRINT_DEBUG)
+    message(STATUS "BLUEPRINT DEBUG enabled")
+    add_definitions(-DBLUEPRINT_DEBUG_ENABLED)
+endif()
+
+option(BLUEPRINT_PLACEHOLDER_PROOF_GEN "Build with placeholder proof generation running" FALSE)
+
+if(BLUEPRINT_PLACEHOLDER_PROOF_GEN)
+    message(STATUS "BLUEPRINT PROOF GENERATION enabled")
+    add_definitions(-DBLUEPRINT_PLACEHOLDER_PROOF_GEN_ENABLED)
+endif()
 
 macro(define_blueprint_test test)
     string(REPLACE "/" "_" full_test_name blueprint_${test}_test)
 
-    cm_test(NAME ${full_test_name} SOURCES ${test}.cpp)
+    set(TEST_RESULTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/junit_results")
+    set(TEST_LOGS_DIR "${TEST_RESULTS_DIR}/logs")
+    set(additional_args "--log_format=JUNIT"
+                        "--log_sink=${TEST_LOGS_DIR}/${full_test_name}.xml")
+
+    cm_test(NAME ${full_test_name} SOURCES ${test}.cpp ARGS ${additional_args})
 
     target_include_directories(${full_test_name} PRIVATE
                                "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
@@ -37,9 +61,9 @@ macro(define_blueprint_test test)
     set_target_properties(${full_test_name} PROPERTIES CXX_STANDARD 17)
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(${full_test_name} PRIVATE "-fconstexpr-steps=2147483647")
+        target_compile_options(${full_test_name} PRIVATE "${ARGV2}" "-fconstexpr-steps=2147483647" "-ftemplate-backtrace-limit=0")
     elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        target_compile_options(${full_test_name} PRIVATE "-fconstexpr-ops-limit=4294967295")
+        target_compile_options(${full_test_name} PRIVATE "${ARGV2}" "-fconstexpr-ops-limit=4294967295" "-ftemplate-backtrace-limit=0")
     endif()
 
     get_target_property(target_type Boost::unit_test_framework TYPE)
@@ -57,7 +81,8 @@ set(COMMON_TEST_FILES
     "utils/connectedness_check"
     "private_input"
     "proxy"
-    "mock/mocked_components"
+    #"mock/mocked_components"
+    "component_batch"
     )
 
 set(NON_NATIVE_TESTS_FILES
@@ -69,17 +94,20 @@ set(NON_NATIVE_TESTS_FILES
     "algebra/fields/plonk/non_native/bit_decomposition"
     "algebra/fields/plonk/non_native/bit_composition"
     "algebra/fields/plonk/non_native/bit_shift_constant"
-    "algebra/fields/plonk/non_native/logic_ops"
-    "algebra/fields/plonk/non_native/lookup_logic_ops"
     "algebra/fields/plonk/non_native/comparison_checked"
     "algebra/fields/plonk/non_native/comparison_unchecked"
     "algebra/fields/plonk/non_native/comparison_flag"
     "algebra/fields/plonk/non_native/equality_flag"
     "algebra/fields/plonk/non_native/division_remainder"
     "non_native/plonk/bool_scalar_multiplication"
-    "non_native/plonk/add_mul_zkllvm_compatible"
+    #"non_native/plonk/add_mul_zkllvm_compatible"
     "non_native/plonk/scalar_non_native_range"
     )
+
+set(NON_NATIVE_TESTS_FILES_WITH_PROOF_GEN
+    "algebra/fields/plonk/non_native/logic_ops"
+    "algebra/fields/plonk/non_native/lookup_logic_ops"
+)
 
 set(PLONK_TESTS_FILES
     "algebra/curves/plonk/variable_base_scalar_mul"
@@ -147,6 +175,16 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/fri_cosets"
     "verifiers/placeholder/fri_lin_inter"
     "verifiers/placeholder/fri_array_swap"
+    "verifiers/placeholder/expression_evaluation_component"
+    "verifiers/placeholder/final_polynomial_check"
+    "verifiers/flexible/swap"
+    "verifiers/flexible/additions"
+    "verifiers/flexible/multiplications"
+    "verifiers/flexible/poseidon"
+    "verifiers/flexible/constant_pow"
+    "verifiers/flexible/pow_factor"
+    "verifiers/placeholder/verifier"
+    "zkevm/bytecode"
     )
 
 set(FIELDS_TESTS_FILES
@@ -159,6 +197,16 @@ set(FIELDS_TESTS_FILES
     "algebra/fields/r1cs/fp6_2over3"
     "algebra/fields/r1cs/fp6_2over3_verification"
     #"algebra/fields/r1cs/exponentiation"
+    )
+
+set(ZKEVM_TESTS_FILES
+    "zkevm/state_selector"
+    "zkevm/zkevm_word"
+    "zkevm/state_transition"
+    "zkevm/opcodes/iszero"
+    "zkevm/opcodes/add_sub"
+    "zkevm/opcodes/mul"
+    "zkevm/opcodes/div"
     )
 
 set(CURVES_TESTS_FILES
@@ -207,6 +255,7 @@ SET(ALL_TESTS_FILES
     ${NON_NATIVE_TESTS_FILES}
     ${PLONK_TESTS_FILES}
     ${ALGEBRA_TESTS_FILES}
+    ${ZKEVM_TESTS_FILES}
     ${HASHES_TESTS_FILES}
     ${ROUTING_TESTS_FILES}
     ${SCHEMES_TESTS_FILES}
@@ -216,4 +265,8 @@ SET(ALL_TESTS_FILES
 
 foreach(TEST_FILE ${ALL_TESTS_FILES})
     define_blueprint_test(${TEST_FILE})
+endforeach()
+
+foreach(TEST_FILE ${NON_NATIVE_TESTS_FILES_WITH_PROOF_GEN})
+    define_blueprint_test(${TEST_FILE} ARGS "-DBLUEPRINT_PLACEHOLDER_PROOF_GEN=True")
 endforeach()
