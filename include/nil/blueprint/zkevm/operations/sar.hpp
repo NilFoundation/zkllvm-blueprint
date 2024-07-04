@@ -220,6 +220,7 @@ namespace nil {
                 for(std::size_t i = 0; i < carry_amount - 1; i++) {
                     tr.push_back(var_gen(chunk_amount + 2 + carry_amount + i, -1));
                 }
+
                 // constraints for result + r = 2^256 only for negative input_a, i.e. a_neg = 1 and r != 0, i.e. r_sum_0 != 0
                 constraints.push_back({position_0, a_neg * r_sum_0 * carry_on_addition_constraint(
                                                                  result_chunks[0] + 0, result_chunks[1] + 0, result_chunks[2] + 0,
@@ -244,13 +245,13 @@ namespace nil {
                 // i.e. every chunk of result should be 2^16 - 1
                 for(std::size_t i = 0; i < chunk_amount; i++) {
                     constraints.push_back({position_0, ((1 - a_neg) * (result_chunks[i] - r_chunks_0[i]) +
-                                                        a_neg *(1 - r_sum_0 * r_sum_inv)*(two_16 + 1 - result_chunks[i]))});
+                                                        a_neg *(1 - r_sum_0 * r_sum_inv)*(two_16 - 1 - result_chunks[i]))});
                 }
 
                 std::size_t position_05 = 4;
                 for(std::size_t i = 0; i < chunk_amount; i++) {
-                    var rc  = var_gen(i,-1),
-                        rcc = var_gen(chunk_amount + i,+1);
+                    var rc  = var_gen(i,+1),
+                        rcc = var_gen(chunk_amount + i, -1);
                     constraints.push_back({position_05, (rc - rcc)});
                 }
 
@@ -493,7 +494,7 @@ namespace nil {
                     assignment.witness(witness_cols[i], curr_row) = result_chunks[i];
                 }
                 integral_type two_15 = 32768,
-                              biggest_input_a_chunk = integral_type(a) >> (256-16);
+                              biggest_input_a_chunk = integral_type(input_a) >> (256-16);
                 assignment.witness(witness_cols[chunk_amount],curr_row) =
                         (biggest_input_a_chunk > two_15 - 1) ? (biggest_input_a_chunk - two_15) : biggest_input_a_chunk + two_15; // a_aux
                 assignment.witness(witness_cols[chunk_amount + 1],curr_row) = (biggest_input_a_chunk > two_15 - 1); // a_neg

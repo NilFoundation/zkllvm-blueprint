@@ -213,6 +213,7 @@ set(ZKEVM_TESTS_FILES
     "zkevm/opcodes/byte_ops"
     "zkevm/opcodes/bitwise"
     "zkevm/opcodes/mod_ops"
+    "zkevm/opcodes/workload"
     )
 
 set(CURVES_TESTS_FILES
