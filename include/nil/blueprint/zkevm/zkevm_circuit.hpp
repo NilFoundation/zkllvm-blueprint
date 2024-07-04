@@ -532,5 +532,8 @@ namespace nil {
             static const std::size_t max_opcode_cols = 32;
             static const std::size_t max_opcode_height = 10;
         };
+        template<typename BlueprintFieldType>
+        const std::size_t zkevm_circuit<BlueprintFieldType>::max_opcode_height;
+
     }   // namespace blueprint
 }   // namespace nil
