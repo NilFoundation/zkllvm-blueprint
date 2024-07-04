@@ -270,7 +270,9 @@ void print_assignment_table(const assignment_proxy<ArithmetizationType> &table_p
             max_selector_size = std::max(max_selector_size, table_proxy.selector_column_size(i));
         }
         usable_rows_amount = table_proxy.get_used_rows().size();
+std::cout << "setting usable_rows_amount = " << usable_rows_amount << std::endl;
         usable_rows_amount = std::max({usable_rows_amount, max_shared_size, max_public_inputs_size, max_constant_size, max_selector_size});
+std::cout << "setting usable_rows_amount = " << usable_rows_amount << std::endl;
     } else { // SINGLE_PROVER
         total_columns = witness_size + shared_size + public_input_size + constant_size + selector_size;
         std::uint32_t max_witness_size = 0;
@@ -293,6 +295,7 @@ void print_assignment_table(const assignment_proxy<ArithmetizationType> &table_p
     if (padded_rows_amount < 8) {
         padded_rows_amount = 8;
     }
+std::cout << "setting padded_rows_amount = " << padded_rows_amount << std::endl;
     total_size = padded_rows_amount * total_columns;
 
     using TTypeBase = nil::marshalling::field_type<Endianness>;
@@ -432,6 +435,7 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
                       workload = 10000;
 
     std::shared_ptr<assignment_type> assignment = std::make_shared<assignment_type>(0, 0, 0, 0);
+
     std::shared_ptr<circuit_type> circuit = std::make_shared<circuit_type>();
     zkevm_circuit<field_type> zkevm_circuit(*assignment, *circuit);
     zkevm_machine_type machine = get_empty_machine();
@@ -450,14 +454,13 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
     // 
     // witnesses_size: 85 public_inputs_size: 0 constants_size: 5 selectors_size: 3
     // там 5 lookup_constant_columns и 1 lookup_selector
-    const std::size_t ComponentConstantColumns = 5;
+    const std::size_t ComponentConstantColumns = 0;
     const std::size_t LookupConstantColumns = 5;
-    const std::size_t ComponentSelectorColumns = 3;
+    const std::size_t ComponentSelectorColumns = 2;
     const std::size_t LookupSelectorColumns = 1;
-
     const std::size_t WitnessColumns = 85;
     const std::size_t PublicInputColumns = 0;
-
+ 
     const std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
     const std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
 
@@ -471,8 +474,11 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
             crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
     using AssignmentTableType = zk::snark::plonk_table<BlueprintFieldType, zk::snark::plonk_column<BlueprintFieldType>>;
     // Print assignment table
+std::cout << "Our assignment has " << assignment->rows_amount() << " elements" << std::endl;
     std::ofstream otable;
     assignment_proxy<arithmentization_type> assignment_proxy(assignment, 0);
+    assignment_proxy.make_all_rows_used();
+    
     otable.open("assignment.tbl",
                 std::ios_base::binary | std::ios_base::out);
     print_assignment_table<nil::marshalling::option::big_endian, ArithmetizationType, BlueprintFieldType>(
@@ -481,6 +487,7 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
     otable.close();
 
     // Print circuit
+std::cout << "Our circuit has " << circuit->num_gates() << " gates" << std::endl;
     circuit_proxy<arithmentization_type> circuit_proxy(circuit, 0);
     std::ofstream ocircuit;
     ocircuit.open("circuit.crt", std::ios_base::binary | std::ios_base::out);
