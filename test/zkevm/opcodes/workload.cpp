@@ -187,6 +187,7 @@ void print_size_t(
     auto integer_container = nil::marshalling::types::integral<TTypeBase, std::size_t>(input);
     std::array<std::uint8_t, integer_container.length()> char_array{};
     auto write_iter = char_array.begin();
+    integer_container.write(write_iter, char_array.size());
     out.write(reinterpret_cast<char*>(char_array.data()), char_array.size());
 }
 
@@ -213,6 +214,7 @@ void print_field(
     auto field_container = nil::crypto3::marshalling::types::field_element<TTypeBase, typename AssignmentTableType::field_type::value_type>(input);
     std::array<std::uint8_t, field_container.length()> char_array{};
     auto write_iter = char_array.begin();
+    field_container.write(write_iter, char_array.size());
     out.write(reinterpret_cast<char*>(char_array.data()), char_array.size());
 }
 
@@ -270,9 +272,7 @@ void print_assignment_table(const assignment_proxy<ArithmetizationType> &table_p
             max_selector_size = std::max(max_selector_size, table_proxy.selector_column_size(i));
         }
         usable_rows_amount = table_proxy.get_used_rows().size();
-std::cout << "setting usable_rows_amount = " << usable_rows_amount << std::endl;
         usable_rows_amount = std::max({usable_rows_amount, max_shared_size, max_public_inputs_size, max_constant_size, max_selector_size});
-std::cout << "setting usable_rows_amount = " << usable_rows_amount << std::endl;
     } else { // SINGLE_PROVER
         total_columns = witness_size + shared_size + public_input_size + constant_size + selector_size;
         std::uint32_t max_witness_size = 0;
@@ -295,7 +295,6 @@ std::cout << "setting usable_rows_amount = " << usable_rows_amount << std::endl;
     if (padded_rows_amount < 8) {
         padded_rows_amount = 8;
     }
-std::cout << "setting padded_rows_amount = " << padded_rows_amount << std::endl;
     total_size = padded_rows_amount * total_columns;
 
     using TTypeBase = nil::marshalling::field_type<Endianness>;
