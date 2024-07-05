@@ -113,41 +113,34 @@ namespace nil {
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
                 std::vector<std::pair<std::size_t, constraint_type>> constraints;
-                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
 
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index =
-                    zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 // The central relation is a * b = s = Nr + q, q < N.
                 // For N = 0 we should have q = 0, so we set a = 0 in that case
                 //
-                // Table layout:                                                Internal row #:  | External #:
-                // +--------------------------------+--------------------------------+
-                // |                v               |                                | 9         |    0
-                // +--------------------------------+---+-------+--------------------+
-                // |             input_a            |1/N|   t   |                    | 8         |    1
-                // +--------------------------------+---+-------+--------------------+
-                // |                N               |                 q              | 7         |    2
-                // +--------------------------------+--------------------------------+
-                // |                a               |                 b              | 6         |    3
-                // +------+--+------+--+------+--+--+--------------------------------+
-                // |  c1  |c2|  c3  |c4|  c5  |c6|  |                 q              | 5         |    4
-                // +------+--+------+--+------+--+--+--------------------------------+
-                // |                s'              |                 s"             | 4         |    5
-                // +---------+--------+-------------+--------------------------------+
-                // |  tNr'   |  tNr"  |             |                 q              | 3         |    6
-                // +---------+--------+-------------+--------------------------------+
-                // |              (Nr)'             |               (Nr)"            | 2         |    7
-                // +--------------------------------+--------------------------------+
-                // |                r'              |                r"              | 1         |    8
-                // +--------------------------------+------+--+------+--+------+--+--+
-                // |                N               |  c1  |c2|  c3  |c4|  c5  |c6|  | 0         |    9
-                // +--------------------------------+------+--+------+--+------+--+--+
+                // Table layout:                                                     Internal row #:  | External #:
+                // +--------------------------------+--------------------------------+---+-------+
+                // |             input_a            |                 v              |1/N|   t   |  7 |    0
+                // +--------------------------------+--------------------------------+---+-------+
+                // |                N               |                 q              |           |  6 |    1
+                // +--------------------------------+--------------------------------+-----------+
+                // |                a               |                 b              |           |  5 |    2
+                // +------+--+------+--+------+--+--+--------------------------------+-----------+
+                // |  c1  |c2|  c3  |c4|  c5  |c6|  |                 q              |           |  4 |    3
+                // +------+--+------+--+------+--+--+--------------------------------+------+----+
+                // |                s'              |                 s"             | tNr' |tNr"|  3 |    4
+                // +--------------------------------+--------------------------------+------+----+
+                // |              (Nr)'             |               (Nr)"            |           |  2 |    5
+                // +--------------------------------+--------------------------------+-----------+
+                // |                r'              |                r"              |           |  1 |    6
+                // +--------------------------------+------+--+------+--+------+--+--+-----------+
+                // |                N               |  c1  |c2|  c3  |c4|  c5  |c6|  |           |  0 |    7
+                // +--------------------------------+------+--+------+--+------+--+--+-----------+
 
                 // constraint generators for carry-on addition
                 auto carry_on_addition_constraint = [](constraint_type a_0, constraint_type a_1, constraint_type a_2,
@@ -172,19 +165,15 @@ namespace nil {
                                 c_one = c_zero + 1;
 
                 // choose a between input_a and 0 according to N = 0
-                std::size_t position_0 = 7;
+                std::size_t position_0 = 6;
                 std::vector<var> input_a_chunks;
                 std::vector<var> N_chunks_0;
                 std::vector<var> a_chunks_0;
-                var N_sum_inverse_0 = var_gen(chunk_amount, -1);
+                var N_sum_inverse_0 = var_gen(2*chunk_amount, -1);
                 for(std::size_t i = 0; i < chunk_amount; i++) {
                     input_a_chunks.push_back(var_gen(i, -1));
                     N_chunks_0.push_back(var_gen(i, 0));
                     a_chunks_0.push_back(var_gen(i, +1));
-                }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {input_a_chunks[i]}}});
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {N_chunks_0[i]}}});
                 }
 
                 constraint_type N_sum_0;
@@ -192,15 +181,15 @@ namespace nil {
                     N_sum_0 += N_chunks_0[i];
                 }
                 constraint_type N_nonzero_0 = N_sum_0 * N_sum_inverse_0;
+
                 for(std::size_t i = 0; i < chunk_amount; i++) {
                     constraints.push_back({position_0, (a_chunks_0[i] - N_nonzero_0 * input_a_chunks[i])}); // a = 0 if N = 0
                 }
                 // end of choosing a
 
-                // TODO: add lookup constraints to constrain chunks of q
                 // prove that (q < N) or (N = 0)
                 // note that in the latter case we have q = a = 0, so a*b = Nr + q is satisfied
-                std::size_t position_1 = 8;
+                std::size_t position_1 = 7;
                 std::vector<var> N_chunks_1;
                 std::vector<var> q_chunks_1;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
@@ -214,21 +203,17 @@ namespace nil {
 
                 std::vector<var> v_chunks_1;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    v_chunks_1.push_back(var_gen(i, -1));
-                }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {q_chunks_1[i]}}});
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {v_chunks_1[i]}}});
+                    v_chunks_1.push_back(var_gen(chunk_amount + i, 0));
                 }
 
-                var N_sum_inverse_1 = var_gen(chunk_amount, 0);
+                var N_sum_inverse_1 = var_gen(2*chunk_amount, 0);
                 // inverse for N_sum_inverse unless N_sum = 0
                 constraints.push_back({position_1, N_sum_1 * (N_sum_inverse_1 * N_sum_1 - 1)});
                 constraint_type N_nonzero_1 = N_sum_inverse_1 * N_sum_1;
 
                 std::vector<var> t;
                 for (std::size_t i = 0; i < carry_amount; i++) {
-                    t.push_back(var_gen(chunk_amount + 1 + i, 0));
+                    t.push_back(var_gen(2*chunk_amount + 1 + i, 0));
                 }
 
                 // q < N <=> N + v = q + 2^T, i.e. the last carry is 1.
@@ -257,7 +242,7 @@ namespace nil {
                 // end of q < N constraints
 
                 // s = a * b constraints
-                std::size_t position_2 = 5;
+                std::size_t position_2 = 4;
                 std::vector<var> a_chunks;
                 std::vector<var> b_chunks;
                 std::vector<var> s_chunks_2;
@@ -270,11 +255,6 @@ namespace nil {
                 for(std::size_t i = 0; i < chunk_amount; i++) {
                     s_chunks_2.push_back(var_gen(chunk_amount + i, +1));
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {b_chunks[i]}}});
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {s_chunks_2[i]}}});
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {s_chunks_2[chunk_amount + i]}}});
-                }
 
                 std::vector<var> s_c_1_chunks;
                 std::vector<var> s_c_3_chunks;
@@ -284,11 +264,7 @@ namespace nil {
                     s_c_3_chunks.push_back(var_gen(5 + i, 0));
                     s_c_5_chunks.push_back(var_gen(10 + i, 0));
                 }
-                for(std::size_t i = 0; i < 4; i++) {
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {s_c_1_chunks[i]}}});
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {s_c_3_chunks[i]}}});
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {s_c_5_chunks[i]}}});
-                }
+
                 var s_c_2 = var_gen(4, 0);
                 var s_c_4 = var_gen(9, 0);
                 var s_c_6 = var_gen(14, 0);
@@ -330,8 +306,7 @@ namespace nil {
                 // end of s = a * b constraints
 
                 // assure copies of q are equal
-                std::size_t position_31 = 6;
-                std::size_t position_32 = 4;
+                std::size_t position_3 = 5;
                 std::vector<var> q_upper_copy;
                 std::vector<var> q_lower_copy;
                 for(std::size_t i = 0; i < chunk_amount; i++) {
@@ -339,8 +314,7 @@ namespace nil {
                     q_lower_copy.push_back(var_gen(chunk_amount + i, +1));
                 }
                 for(std::size_t i = 0; i < chunk_amount; i++) {
-                    constraints.push_back({position_31, (q_upper_copy[i] - q_lower_copy[i])});
-                    constraints.push_back({position_32, (q_upper_copy[i] - q_lower_copy[i])});
+                    constraints.push_back({position_3, (q_upper_copy[i] - q_lower_copy[i])});
                 }
                 // end of copy constraints for q
 
@@ -355,17 +329,17 @@ namespace nil {
                 std::vector<var> Nr_pp_chunks_4;
 
                 for(std::size_t i = 0; i < chunk_amount; i++) {
-                    sp_chunks_4.push_back(var_gen(i, -1));
-                    spp_chunks_4.push_back(var_gen(chunk_amount + i, -1));
-                    q_chunks_4.push_back(var_gen(chunk_amount + i, 0));
+                    sp_chunks_4.push_back(var_gen(i, 0));
+                    spp_chunks_4.push_back(var_gen(chunk_amount + i, 0));
+                    q_chunks_4.push_back(var_gen(chunk_amount + i, -1));
                     Nr_p_chunks_4.push_back(var_gen(i, +1));
                     Nr_pp_chunks_4.push_back(var_gen(chunk_amount + i, +1));
                 }
                 for(std::size_t i = 0; i < carry_amount - 1; i++) {
-                    tNrp.push_back(var_gen(i, 0));
-                    tNrpp.push_back(var_gen(carry_amount + i, 0));
+                    tNrp.push_back(var_gen(2*chunk_amount + i, 0));
+                    tNrpp.push_back(var_gen(2*chunk_amount + carry_amount + i, 0));
                 }
-                tNrp.push_back(var_gen(carry_amount - 1, 0)); // only the first part has the overflow carry
+                tNrp.push_back(var_gen(2*chunk_amount + carry_amount - 1, 0)); // only the first part has the overflow carry
 
                 constraints.push_back({position_4, carry_on_addition_constraint(Nr_p_chunks_4[0], Nr_p_chunks_4[1], Nr_p_chunks_4[2],
                                                                                 q_chunks_4[0], q_chunks_4[1], q_chunks_4[2],
@@ -421,13 +395,6 @@ namespace nil {
                         N_chunks_5.push_back(var_gen(i, +1));
                     }
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {N_chunks_5[i]}}});
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {r_chunks_5[i]}}});
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {r_chunks_5[chunk_amount + i]}}});
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {Nr_chunks_5[i]}}});
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {Nr_chunks_5[chunk_amount + i]}}});
-                }
 
                 std::vector<var> c_1_chunks;
                 std::vector<var> c_3_chunks;
@@ -437,11 +404,7 @@ namespace nil {
                     c_3_chunks.push_back(var_gen(chunk_amount + 5 + i, +1));
                     c_5_chunks.push_back(var_gen(chunk_amount + 10 + i, +1));
                 }
-                for(std::size_t i = 0; i < 4; i++) {
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {c_1_chunks[i]}}});
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {c_3_chunks[i]}}});
-                    lookup_constraints.push_back({position_5, {range_check_table_index, {c_5_chunks[i]}}});
-                }
+
                 var c_2 = var_gen(chunk_amount + 4, +1);
                 var c_4 = var_gen(chunk_amount + 9, +1);
                 var c_6 = var_gen(chunk_amount + 14, +1);
@@ -479,7 +442,7 @@ namespace nil {
                 constraints.push_back({position_5, (forth_carryless + c_5_64 + c_6 * two_64)});
                 // end of Nr = N * r constraints
 
-                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
@@ -593,50 +556,49 @@ namespace nil {
                 std::vector<value_type> c_5_chunks = chunk_64_to_16<BlueprintFieldType>(c_5);
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row) = v_chunks[i];
+                    assignment.witness(witness_cols[chunk_amount + i], curr_row) = v_chunks[i];
                 }
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 1) = input_a_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row) = input_a_chunks[i];
                 }
                 value_type N_sum = std::accumulate(N_chunks.begin(), N_chunks.end(), value_type(0));
-                assignment.witness(witness_cols[chunk_amount], curr_row + 1) = N_sum == 0 ? 0 : N_sum.inversed();
+                assignment.witness(witness_cols[2*chunk_amount], curr_row) = N_sum == 0 ? 0 : N_sum.inversed();
 
                 bool carry = 0;
                 for (std::size_t i = 0; i < carry_amount - 1; i++) {
                     carry = (carry + N_chunks[3 * i    ] + v_chunks[3 * i    ] +
                                     (N_chunks[3 * i + 1] + v_chunks[3 * i + 1]) * two_16 +
                                     (N_chunks[3 * i + 2] + v_chunks[3 * i + 2]) * two_32 ) >= two_48;
-                    assignment.witness(witness_cols[chunk_amount + 1 + i], curr_row + 1) = carry;
+                    assignment.witness(witness_cols[2*chunk_amount + 1 + i], curr_row) = carry;
                 }
                 carry = (carry + N_chunks[3 * (carry_amount - 1)] + v_chunks[3 * (carry_amount - 1)]) >= two_16;
-                assignment.witness(witness_cols[chunk_amount + 1 + carry_amount - 1], curr_row + 1) = carry;
+                assignment.witness(witness_cols[2*chunk_amount + 1 + carry_amount - 1], curr_row) = carry;
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 2) = N_chunks[i]; //TODO this has to be lookup-constrained with RW-table
+                    assignment.witness(witness_cols[i], curr_row + 1) = N_chunks[i]; //TODO this has to be lookup-constrained with RW-table
                 }
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 2) = q_chunks[i];
-                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 4) = q_chunks[i];
-                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 6) = q_chunks[i];
+                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 1) = q_chunks[i];
+                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 3) = q_chunks[i];
                 }
 
                 // TODO: replace with memory access, which would also do range checks!
                 // also we can pack slightly more effectively
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 3) = a_chunks[i];
-                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 3) = b_chunks[i];
-                    assignment.witness(witness_cols[i], curr_row + 5) = sp_chunks[i];
-                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 5) = spp_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row + 2) = a_chunks[i];
+                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 2) = b_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row + 4) = sp_chunks[i];
+                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 4) = spp_chunks[i];
                 }
                 // s = a * b carries
                 for (std::size_t i = 0; i < 4; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 4) = s_c_1_chunks[i];
-                    assignment.witness(witness_cols[5 + i], curr_row + 4) = s_c_3_chunks[i];
-                    assignment.witness(witness_cols[10 + i], curr_row + 4) = s_c_5_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row + 3) = s_c_1_chunks[i];
+                    assignment.witness(witness_cols[5 + i], curr_row + 3) = s_c_3_chunks[i];
+                    assignment.witness(witness_cols[10 + i], curr_row + 3) = s_c_5_chunks[i];
                 }
-                assignment.witness(witness_cols[4], curr_row + 4) = s_c_2;
-                assignment.witness(witness_cols[9], curr_row + 4) = s_c_4;
-                assignment.witness(witness_cols[14], curr_row + 4) = s_c_6;
+                assignment.witness(witness_cols[4], curr_row + 3) = s_c_2;
+                assignment.witness(witness_cols[9], curr_row + 3) = s_c_4;
+                assignment.witness(witness_cols[14], curr_row + 3) = s_c_6;
 
                 // s = Nr + q carries
                 carry = 0;
@@ -644,46 +606,45 @@ namespace nil {
                     carry = (carry + Nr_p_chunks[3 * i    ] + q_chunks[3 * i    ] +
                                     (Nr_p_chunks[3 * i + 1] + q_chunks[3 * i + 1]) * two_16 +
                                     (Nr_p_chunks[3 * i + 2] + q_chunks[3 * i + 2]) * two_32 ) >= two_48;
-                    assignment.witness(witness_cols[i], curr_row + 6) = carry;
+                    assignment.witness(witness_cols[2*chunk_amount + i], curr_row + 4) = carry;
                 }
                 carry = (carry + Nr_p_chunks[3 * (carry_amount - 1)] + q_chunks[3 * (carry_amount - 1)]) >= two_16;
-                assignment.witness(witness_cols[carry_amount - 1], curr_row + 6) = carry;
+                assignment.witness(witness_cols[2*chunk_amount + carry_amount - 1], curr_row + 4) = carry;
                 bool Nrpp_add = carry;
                 carry = 0;
                 for (std::size_t i = 0; i < carry_amount - 1; i++) {
                     carry = (carry + Nr_pp_chunks[3 * i    ] + (i == 0)*Nrpp_add +
                                      Nr_pp_chunks[3 * i + 1] * two_16 +
                                      Nr_pp_chunks[3 * i + 2] * two_32 ) >= two_48;
-                    assignment.witness(witness_cols[carry_amount + i], curr_row + 6) = carry;
+                    assignment.witness(witness_cols[2*chunk_amount + carry_amount + i], curr_row + 4) = carry;
                 }
                 carry = (carry + Nr_pp_chunks[3 * (carry_amount - 1)]) >= two_16;
                 // ^^^^ normally should be zero, so we don't store it
                 BOOST_ASSERT(carry == 0);
-                // assignment.witness(witness_cols[2*carry_amount - 1], curr_row + 6) = carry;
                 // end of s = Nr + q carries
 
                 for(std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 7) = Nr_p_chunks[i];
-                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 7) = Nr_pp_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row + 5) = Nr_p_chunks[i];
+                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 5) = Nr_pp_chunks[i];
                 }
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 8) = rp_chunks[i];
-                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 8) = rpp_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row + 6) = rp_chunks[i];
+                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 6) = rpp_chunks[i];
                 }
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 9) = N_chunks[i];
+                    assignment.witness(witness_cols[i], curr_row + 7) = N_chunks[i];
                 }
 
                 // N*r carries
                 for (std::size_t i = 0; i < 4; i++) {
-                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 9) = c_1_chunks[i];
-                    assignment.witness(witness_cols[5 + i + chunk_amount], curr_row + 9) = c_3_chunks[i];
-                    assignment.witness(witness_cols[10 + i + chunk_amount], curr_row + 9) = c_5_chunks[i];
+                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 7) = c_1_chunks[i];
+                    assignment.witness(witness_cols[5 + i + chunk_amount], curr_row + 7) = c_3_chunks[i];
+                    assignment.witness(witness_cols[10 + i + chunk_amount], curr_row + 7) = c_5_chunks[i];
                 }
-                assignment.witness(witness_cols[4 + chunk_amount], curr_row + 9) = c_2;
-                assignment.witness(witness_cols[9 + chunk_amount], curr_row + 9) = c_4;
-                assignment.witness(witness_cols[14 + chunk_amount], curr_row + 9) = c_6;
+                assignment.witness(witness_cols[4 + chunk_amount], curr_row + 7) = c_2;
+                assignment.witness(witness_cols[9 + chunk_amount], curr_row + 7) = c_4;
+                assignment.witness(witness_cols[14 + chunk_amount], curr_row + 7) = c_6;
 
                 // reset the machine state; hope that we won't have to do this manually
                 stack.push(N);
@@ -692,7 +653,7 @@ namespace nil {
             }
 
             std::size_t rows_amount() override {
-                return 10;
+                return 8;
             }
         };
     }   // namespace blueprint

@@ -152,6 +152,7 @@ namespace nil {
                 }
                 init_state();
                 init_opcodes();
+std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
             }
 
             void assign_state() {
@@ -352,6 +353,8 @@ namespace nil {
                 opcodes[zkevm_opcode::SHR] = std::make_shared<zkevm_shr_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::SAR] = std::make_shared<zkevm_sar_operation<BlueprintFieldType>>();
 
+                const std::size_t range_check_table_index = this->get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+
                 std::vector<constraint_type> middle_constraints;
                 std::vector<constraint_type> first_constraints;
                 std::vector<constraint_type> last_constraints;
@@ -364,6 +367,8 @@ namespace nil {
                 // TODO: proper end constraints
                 end_selector = circuit.add_gate(last_constraints);
 
+                std::vector<std::size_t> opcode_range_checked_cols;
+
                 const std::size_t opcodes_amount = opcodes_info_instance.get_opcodes_amount();
                 const std::size_t state_selector_cols_amount =
                     state_selector_type::get_manifest(opcodes_amount,true).witness_amount->max_value_if_sat();
@@ -371,7 +376,13 @@ namespace nil {
                 for (std::size_t i = 0; i < state_selector_cols_amount; i++) {
                     state_selector_cols.push_back(sel_manager.allocate_witess_column());
                 }
-                for (std::size_t i = 0; i < max_opcode_cols; i++) {
+                for(std::size_t i = 0; i < opcode_range_checked_cols_amount; i++) {
+                    opcode_range_checked_cols.push_back(sel_manager.allocate_witess_column());
+                }
+
+                opcode_cols = opcode_range_checked_cols; // range-checked columns are the first part of opcode columns
+
+                for (std::size_t i = 0; i < opcode_other_cols_amount; i++) { // followed by some non-range-checked columns
                     opcode_cols.push_back(sel_manager.allocate_witess_column());
                 }
                 state_selector = std::make_shared<state_selector_type>(
@@ -408,6 +419,12 @@ namespace nil {
                     start_selector, end_selector);
                 middle_constraints.insert(middle_constraints.end(), generic_state_transition_constraints.begin(),
                                           generic_state_transition_constraints.end());
+
+                // "unconditional" range checks for some opcode columns
+                for(std::size_t i = 0; i < opcode_range_checked_cols_amount; i++) {
+                    middle_lookup_constraints.push_back({range_check_table_index,
+                        {var(opcode_range_checked_cols[i], 0 ,true, var::column_type::witness) } });
+                }
 
                 for (auto opcode_it : opcodes) {
                     std::size_t opcode_height = opcode_it.second->rows_amount();
@@ -489,6 +506,7 @@ namespace nil {
                 }
 
                 middle_selector = sel_manager.add_gate(middle_constraints);
+std::cout << "Total lookup constraints = " << middle_lookup_constraints.size() << std::endl;
                 sel_manager.add_lookup_gate(middle_selector, middle_lookup_constraints);
 
                 assignment.enable_selector(start_selector, curr_row);
@@ -529,8 +547,10 @@ namespace nil {
             std::size_t start_row_index;
             std::size_t end_row_index;
 
-            static const std::size_t max_opcode_cols = 32;
-            static const std::size_t max_opcode_height = 10;
+            static const std::size_t opcode_range_checked_cols_amount = 32;
+            static const std::size_t opcode_other_cols_amount = 16;
+            static const std::size_t max_opcode_cols = opcode_range_checked_cols_amount + opcode_other_cols_amount;
+            static const std::size_t max_opcode_height = 8;
         };
         template<typename BlueprintFieldType>
         const std::size_t zkevm_circuit<BlueprintFieldType>::max_opcode_height;

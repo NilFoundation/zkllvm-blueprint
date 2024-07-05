@@ -106,32 +106,30 @@ namespace nil {
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
                 std::vector<std::pair<std::size_t, constraint_type>> constraints;
-                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
 
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 // The central relation is a = br + q, q < b.
                 // For b = 0 we must assure r = 0. For the MOD operation we should
                 // have q = 0 if b = 0, so we use a special q_out value.
                 //
                 // Table layout:                                                Internal row #:
-                // +--------------------------------+--------+--+--------------------+
-                // |                a               |   c1   |c2|                    | 3
-                // +--------------------------------+--------+--+---+--------+-------+
-                // |                b               |           |1/B|   t    |       | 2 TODO: for DIV the number of rows can be reduced!
-                // +--------------------------------+-----------+---+--------+-------+
-                // |                r               |                 q              | 1
-                // +--------------------------------+--------------------------------+
-                // |                v               |  q_out (optional, for MOD)     | 0
-                // +--------------------------------+--------------------------------+
-
+                // +--------------------------------+--------+--+--------------------+---+
+                // |                a               |   c1   |c2|                    |   | 3
+                // +--------------------------------+--------+--+---+--------+-------+---+
+                // |                b               |               |   t    |       |1/B| 2
+                // +--------------------------------+---------------+--------+-------+---+
+                // |                r               |                 q              |   | 1
+                // +--------------------------------+--------------------------------+---+
+                // |                v               |  q_out (optional, for MOD)     |   | 0
+                // +--------------------------------+--------------------------------+---+
 
                 std::size_t position_1 = 2;
+
                 std::vector<var> a_chunks;
                 std::vector<var> b_chunks_1;
                 // we have two different constraints at two different positions
@@ -149,7 +147,7 @@ namespace nil {
                     c_1_chunks.push_back(var_gen(i, -1));
                 }
                 var c_2 = var_gen(chunk_amount + 4, -1);
-                var b_sum_inverse_1 = var_gen(chunk_amount + 5, 0);
+                var b_sum_inverse_1 = var_gen(2*chunk_amount, 0);
 
                 std::vector<constraint_type> a_64_chunks = {
                     chunk_sum_64<constraint_type, var>(a_chunks, 0),
@@ -197,20 +195,10 @@ namespace nil {
                 constraints.push_back({position_1, third_carryless});
                 constraints.push_back({position_1, b_64_chunks_1[3] * r_64_chunks_1[3]}); // forth_carryless
 
-                // TODO: figure out how to add lookup constraints to constrain chunks of q
                 // force r = 0 if b = 0
                 constraint_type b_zero = 1 - b_sum_inverse_1 * b_sum_1;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     constraints.push_back({position_1, b_zero * r_chunks_1[i]});
-                }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {a_chunks[i]}}});
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {b_chunks_1[i]}}});
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {r_chunks_1[i]}}});
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {q_chunks_1[i]}}});
-                }
-                for (std::size_t i = 0; i < 4; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {c_1_chunks[i]}}});
                 }
 
                 // prove that (q < b) or (b = r = 0)
@@ -221,7 +209,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     b_chunks_2.push_back(var_gen(i, -1));
                 }
-                var b_sum_inverse_2 = var_gen(chunk_amount + 5, -1);
+                var b_sum_inverse_2 = var_gen(2*chunk_amount, -1);
                 for (std::size_t i = chunk_amount; i < 2 * chunk_amount; i++) {
                     q_chunks_2.push_back(var_gen(i, 0));
                 }
@@ -281,9 +269,6 @@ namespace nil {
                                                                         t[carry_amount - 2], t[carry_amount - 1])});
                 // t[carry_amount-1] is 0 or 1, but should be 1 if b_nonzero = 1
                 constraints.push_back({position_2, (b_nonzero  + (1 - b_nonzero)* t[carry_amount-1]) * (1 - t[carry_amount-1])});
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {v_chunks_2[i]}}});
-                }
 
                 // for MOD only
                 if (!is_div) {
@@ -296,7 +281,7 @@ namespace nil {
                     }
                 }
 
-                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
@@ -358,7 +343,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 1) = b_chunks[i];
                 }
-                assignment.witness(witness_cols[5 + chunk_amount], curr_row + 1) = b_sum == 0 ? 0 : b_sum.inversed();
+                assignment.witness(witness_cols[2*chunk_amount], curr_row + 1) = b_sum == 0 ? 0 : b_sum.inversed();
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 2) = r_chunks[i];

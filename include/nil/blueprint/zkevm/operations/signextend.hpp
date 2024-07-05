@@ -63,16 +63,14 @@ namespace nil {
 
                 // Table layout
                 // b is the number of the most significant byte to include into x, starting from the least significant one
-                // b = p + 2n
-                // +-----------------------+-+---+-+-+--+--+--+--+---+----+
-                // |            b          |I|b0p|p|n|xn|x'|x"|sb|sgn|saux|
-                // +-----------------------+-+---+-+-+--+--+--+--+---+----+
-                // |            x          |              r               |
-                // +-----------------------+------------------------------+
-                // |        (j-n)^{-1}     |                              |
-                // +-----------------------+------------------------------+
+                // b = p + 2n                                                               Row #
+                // +-----------------------+-+---+-+-+--+--+--+--+---+----+-+---------------+
+                // |            b          | |b0p|p|n|xn|x'|x"|sb|sgn|saux|I|               | 1
+                // +-----------------------+-+---+-+-+--+--+--+--+---+----+-+---------------+
+                // |            x          |              r               |    (j-n)^{-1}   | 0
+                // +-----------------------+------------------------------+-----------------+
 
-                std::size_t position = 1;
+                std::size_t position = 0;
 
                 std::vector<var> b_chunks;
                 std::vector<var> x_chunks;
@@ -82,14 +80,10 @@ namespace nil {
                     b_chunks.push_back(var_gen(i, -1));
                     x_chunks.push_back(var_gen(i, 0));
                     r_chunks.push_back(var_gen(chunk_amount + i, 0));
-                    indic.push_back(var_gen(i, +1));
-                }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position, {range_check_table_index, {b_chunks[i]}}});
-                    lookup_constraints.push_back({position, {range_check_table_index, {x_chunks[i]}}});
+                    indic.push_back(var_gen(2*chunk_amount + i, 0));
                 }
 
-                var I_var   = var_gen(chunk_amount, -1),
+                var I_var   = var_gen(2*chunk_amount, -1),
                     b0p_var = var_gen(chunk_amount + 1, -1),
                     p_var   = var_gen(chunk_amount + 2, -1),
                     n_var   = var_gen(chunk_amount + 3, -1),
@@ -110,8 +104,7 @@ namespace nil {
 
                 constraints.push_back({position, p_var * (1 - p_var)});
                 constraints.push_back({position, (b0p_var - p_var - 2*n_var)});
-                // lookup constraint for n_var & 2*n_var
-                lookup_constraints.push_back({position, {range_check_table_index, {n_var}}});
+                // lookup constraint for n_var < 32768
                 lookup_constraints.push_back({position, {range_check_table_index, {2 * n_var}}});
 
                 constraint_type x_sum;
@@ -120,17 +113,14 @@ namespace nil {
                 }
                 constraints.push_back({position, (xn_var - x_sum)});
                 constraints.push_back({position, (xn_var - xp_var*256 - xpp_var)});
-                // lookup constraints for xp_var, 256*xp_var, xpp_var, 256*xpp_var
-                lookup_constraints.push_back({position, {range_check_table_index, {xp_var}}});
+                // lookup constraints for xp_var, xpp_var < 256
                 lookup_constraints.push_back({position, {range_check_table_index, {256 * xp_var}}});
-                lookup_constraints.push_back({position, {range_check_table_index, {xpp_var}}});
                 lookup_constraints.push_back({position, {range_check_table_index, {256 * xpp_var}}});
 
                 constraints.push_back({position, (sb_var - (1-p_var)*xpp_var - p_var*xp_var)});
 
                 constraints.push_back({position, sgn_var * (1-sgn_var)});
-                // lookup constraints for saux_var, 256*saux_var
-                lookup_constraints.push_back({position, {range_check_table_index, {saux_var}}});
+                // lookup constraints for saux_var < 256
                 lookup_constraints.push_back({position, {range_check_table_index, {256 * saux_var}}});
                 constraints.push_back({position, (sb_var + 128 - saux_var - 256*sgn_var)});
 
@@ -186,7 +176,7 @@ namespace nil {
                 const std::vector<value_type> x_chunks = zkevm_word_to_field_element<BlueprintFieldType>(x);
                 const std::vector<value_type> r_chunks = zkevm_word_to_field_element<BlueprintFieldType>(result);
 
-                size_t chunk_amount = b_chunks.size();
+                size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 assignment_type &assignment = zkevm_circuit.get_assignment();
                 const std::size_t curr_row = zkevm_circuit.get_current_row();
@@ -200,14 +190,14 @@ namespace nil {
                     value_type cur_j = j,
                                val_n = n,
                                indic = (cur_j == val_n) ? 0 : (cur_j-val_n).inversed();
-                    assignment.witness(witness_cols[j], curr_row + 2) = indic;
+                    assignment.witness(witness_cols[2*chunk_amount + j], curr_row + 1) = indic;
                 }
 
                 value_type sum_b = 0;
                 for(std::size_t j = 1; j < chunk_amount; j++) {
                     sum_b += b_chunks[j];
                 }
-                assignment.witness(witness_cols[chunk_amount], curr_row) = sum_b.is_zero() ? 0 : sum_b.inversed();
+                assignment.witness(witness_cols[2*chunk_amount], curr_row) = sum_b.is_zero() ? 0 : sum_b.inversed();
                 assignment.witness(witness_cols[chunk_amount + 1], curr_row) = b0p;
                 assignment.witness(witness_cols[chunk_amount + 2], curr_row) = parity;
                 assignment.witness(witness_cols[chunk_amount + 3], curr_row) = n;
@@ -224,7 +214,7 @@ namespace nil {
             }
 
             std::size_t rows_amount() override {
-                return 3;
+                return 2;
             }
         };
     }   // namespace blueprint

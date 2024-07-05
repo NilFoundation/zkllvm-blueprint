@@ -106,36 +106,34 @@ namespace nil {
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
                 std::vector<std::pair<std::size_t, constraint_type>> constraints;
-                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
 
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 // The central relation is a = br + q. We also require that sgn(q) = sgn(a) and
                 // that |q| < |b| if b != 0.
                 // For b = 0 we must assure r = 0. For the SMOD operation we should
                 // have q = 0 if b = 0, so we use a special q_out value.
                 //
-                // Table layout:                                                Internal row #:
-                // +--------------------------------+--------------------------------+
-                // |             b_input            | (a = -2^255) & (b = -1) ?      | 5  6
-                // +--------------------------------+--------+--+--+--+--+-----------+
-                // |                a               |   c1   |c2|ax|bx|qx|           | 4  5
-                // +--------------------------------+--------+--+--++-++-++--+-------+
-                // |                b               |           |1/B|a-|b-|q-|  tb   | 3  4
-                // +--------------------------------+-----------+---+--+--+--+-------+
-                // |                r               |                 q              | 2  3
-                // +--------------------------------+--+--+--+---------+----------+-+
-                // |               |b|              |BI|b-|q-|    tq   |    t     |  | 1  2
-                // +--------------------------------+--+--+--+---------+----------+-+
-                // |        SDIV: v, SMOD: q        |               |q|              | 0  1
-                // +--------------------------------+--------------------------------+
-                // |            SMOD: v             |          SMOD: q_out           |    0
-                // +--------------------------------+--------------------------------+
+                // Table layout:                                                                              Internal row #:
+                // +--------------------------------+--------------------------------+---------------------------+
+                // |             b_input            |                                | (a = -2^255) & (b = -1) ? | 5  6
+                // +--------------------------------+--------+--+--+--+--+-----------+---------------------------+
+                // |                a               |   c1   |c2|ax|bx|qx|           |                           | 4  5
+                // +--------------------------------+--------+--+--++-++-++--+-------+---+-----------------------+
+                // |                b               |               |a-|b-|q-|  tb   |1/B|                       | 3  4
+                // +--------------------------------+---------------+--+--+--+-------+---+-----------------------+
+                // |                r               |                 q              |                           | 2  3
+                // +--------------------------------+--+--+--+---------+----------+--+---------------------------+
+                // |               |b|              |BI|b-|q-|    tq   |    t     |  |                           | 1  2
+                // +--------------------------------+--+--+--+---------+----------+--+---------------------------+
+                // |        SDIV: v, SMOD: q        |               |q|              |                           | 0  1
+                // +--------------------------------+--------------------------------+---------------------------+
+                // |            SMOD: v             |          SMOD: q_out           |                           |    0
+                // +--------------------------------+--------------------------------+---------------------------+
 
                 std::size_t position_0 = 4 + !is_div; // SMOD has extra row
                 std::vector<var> b_input_chunks;
@@ -146,17 +144,14 @@ namespace nil {
                      a_chunks_0.push_back(var_gen(i, 0));
                      b_chunks_0.push_back(var_gen(i, +1));
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {a_chunks_0[i]}}});
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {b_input_chunks[i]}}});
-                }
-                var a_inv  = var_gen(chunk_amount, -1),
-                    b1_inv = var_gen(chunk_amount + 1, -1),
-                    b2_inv = var_gen(chunk_amount + 2, -1),
-                    a_ind  = var_gen(chunk_amount + 3, -1),
-                    b1_ind = var_gen(chunk_amount + 4, -1),
-                    b2_ind = var_gen(chunk_amount + 5, -1),
-                    is_overflow = var_gen(chunk_amount + 6, -1);
+
+                var a_inv  = var_gen(2*chunk_amount, -1),
+                    b1_inv = var_gen(2*chunk_amount + 1, -1),
+                    b2_inv = var_gen(2*chunk_amount + 2, -1),
+                    a_ind  = var_gen(2*chunk_amount + 3, -1),
+                    b1_ind = var_gen(2*chunk_amount + 4, -1),
+                    b2_ind = var_gen(2*chunk_amount + 5, -1),
+                    is_overflow = var_gen(2*chunk_amount + 6, -1);
 
                 constraint_type a_sum_0;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
@@ -196,19 +191,14 @@ namespace nil {
                     r_chunks_1.push_back(var_gen(i, +1));
                     q_chunks_1.push_back(var_gen(i + chunk_amount, +1));
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {r_chunks_1[i]}}});
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {q_chunks_1[i]}}});
-                }
+
                 std::vector<var> c_1_chunks;
                 for (std::size_t i = chunk_amount; i < chunk_amount + 4; i++) {
                     c_1_chunks.push_back(var_gen(i, -1));
                 }
-                for (std::size_t i = 0; i < 4; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {c_1_chunks[i]}}});
-                }
+
                 var c_2 = var_gen(chunk_amount + 4, -1);
-                var b_sum_inverse_1 = var_gen(chunk_amount + 5, 0);
+                var b_sum_inverse_1 = var_gen(2*chunk_amount, 0);
 
                 std::vector<constraint_type> a_64_chunks = {
                     chunk_sum_64<constraint_type, var>(a_chunks, 0),
@@ -275,15 +265,12 @@ namespace nil {
                 value_type two_15 = 32768;
                 // a_top + 2^15 = a_aux + 2^16 * a_neg
                 constraints.push_back({position_1, a_neg * (1 - a_neg)});
-                lookup_constraints.push_back({position_1, {range_check_table_index, {a_aux}}});
                 constraints.push_back({position_1, (a_top + two_15 - two_16 * a_neg - a_aux)});
                 // b_top + 2^15 = b_aux + 2^16 * b_neg
                 constraints.push_back({position_1, b_neg * (1 - b_neg)});
-                lookup_constraints.push_back({position_1, {range_check_table_index, {b_aux}}});
                 constraints.push_back({position_1, (b_top + two_15 - two_16 * b_neg - b_aux)});
                 // q_top + 2^15 = q_aux + 2^16 * q_neg
                 constraints.push_back({position_1, q_neg * (1 - q_neg)});
-                lookup_constraints.push_back({position_1, {range_check_table_index, {q_aux}}});
                 constraints.push_back({position_1, (q_top + two_15 - two_16 * q_neg - q_aux)});
 
                 // q = 0 OR sgn(a) = sgn(q) TODO: Recheck for a = -2^255, b = -1 !!!
@@ -303,7 +290,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     b_sum_2 += b_chunks_2[i];
                 }
-                var b_sum_inverse_2 = var_gen(chunk_amount + 5, -1),
+                var b_sum_inverse_2 = var_gen(2*chunk_amount, -1),
                     b_non_zero_2 = var_gen(chunk_amount, +1);
                 constraints.push_back({position_2, (b_non_zero_2 - b_sum_2 * b_sum_inverse_2)});
 
@@ -318,9 +305,6 @@ namespace nil {
                 std::vector<var> b_abs_chunks_2;
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     b_abs_chunks_2.push_back(var_gen(i, +1));
-                }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {b_abs_chunks_2[i]}}});
                 }
 
                 // constraint generators for carry-on addition
@@ -383,9 +367,7 @@ namespace nil {
                     q_chunks_3.push_back(var_gen(i,-1));
                     q_abs_chunks_3.push_back(var_gen(i,+1));
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_3, {range_check_table_index, {q_abs_chunks_3[i]}}});
-                }
+
                 // carries for q + |q| = 2^256
                 std::vector<var> tq;
                 for (std::size_t i = chunk_amount + 3; i < chunk_amount + 3 + carry_amount - 1; i++) {
@@ -437,9 +419,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     v_chunks_4.push_back(var_gen(i, is_div ? 0 : +1));
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_4, {range_check_table_index, {v_chunks_4[i]}}});
-                }
+
                 std::vector<var> t;
                 for (std::size_t i = chunk_amount + 3 + carry_amount - 1;
                                  i < chunk_amount + 3 + carry_amount - 1 + carry_amount; i++) {
@@ -488,7 +468,7 @@ namespace nil {
                     }
                 }
 
-                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
@@ -571,15 +551,15 @@ namespace nil {
                            b_input_sum = std::accumulate(b_input_chunks.begin(), b_input_chunks.end(), value_type(0)),
                            b_lower_sum = b_input_sum - b_input_chunks[chunk_amount - 1]; // all chunks except the last
 
-                assignment.witness(witness_cols[chunk_amount], curr_row) = (a_sum == 16*65535) ?
+                assignment.witness(witness_cols[2*chunk_amount], curr_row) = (a_sum == 16*65535) ?
                                                                             0 : (a_sum - 16*65535).inversed();
-                assignment.witness(witness_cols[chunk_amount+1], curr_row) = (b_lower_sum == 0) ? 0 : b_lower_sum.inversed();
-                assignment.witness(witness_cols[chunk_amount+2], curr_row) = (b_input_chunks[chunk_amount-1] == 32768) ?
+                assignment.witness(witness_cols[2*chunk_amount+1], curr_row) = (b_lower_sum == 0) ? 0 : b_lower_sum.inversed();
+                assignment.witness(witness_cols[2*chunk_amount+2], curr_row) = (b_input_chunks[chunk_amount-1] == 32768) ?
                                                                               0 : (b_input_chunks[chunk_amount-1] - 32768).inversed();
-                assignment.witness(witness_cols[chunk_amount+3], curr_row) = (a_sum == 16*65535);
-                assignment.witness(witness_cols[chunk_amount+4], curr_row) = (b_lower_sum == 0);
-                assignment.witness(witness_cols[chunk_amount+5], curr_row) = (b_input_chunks[chunk_amount-1] == 32768);
-                assignment.witness(witness_cols[chunk_amount+6], curr_row) = (a_sum == 16*65535) && (b_lower_sum == 0) &&
+                assignment.witness(witness_cols[2*chunk_amount+3], curr_row) = (a_sum == 16*65535);
+                assignment.witness(witness_cols[2*chunk_amount+4], curr_row) = (b_lower_sum == 0);
+                assignment.witness(witness_cols[2*chunk_amount+5], curr_row) = (b_input_chunks[chunk_amount-1] == 32768);
+                assignment.witness(witness_cols[2*chunk_amount+6], curr_row) = (a_sum == 16*65535) && (b_lower_sum == 0) &&
                                                                                 (b_input_chunks[chunk_amount-1] == 32768);
 
                 // TODO: replace with memory access, which would also do range checks!
@@ -595,7 +575,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 2) = b_chunks[i];
                 }
-                assignment.witness(witness_cols[5 + chunk_amount], curr_row + 2) = b_sum == 0 ? 0 : b_sum.inversed();
+                assignment.witness(witness_cols[2*chunk_amount], curr_row + 2) = b_sum == 0 ? 0 : b_sum.inversed();
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 3) = r_chunks[i];

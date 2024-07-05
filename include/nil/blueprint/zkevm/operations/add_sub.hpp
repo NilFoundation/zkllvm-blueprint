@@ -62,14 +62,12 @@ namespace nil {
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
                 std::vector<std::pair<std::size_t, constraint_type>> constraints;
-                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
 
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
                 std::size_t position = 1;
 
@@ -122,14 +120,7 @@ namespace nil {
                 last_constraint_gen(a_chunks[3 * (carry_amount - 1)], b_chunks[3 * (carry_amount - 1)],
                                     r_chunks[3 * (carry_amount - 1)],
                                     r_carry[carry_amount - 2], r_carry[carry_amount - 1]);
-
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position, {range_check_table_index, {a_chunks[i]}}});
-                    lookup_constraints.push_back({position, {range_check_table_index, {b_chunks[i]}}});
-                    lookup_constraints.push_back({position, {range_check_table_index, {r_chunks[i]}}});
-                }
-
-                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {

@@ -55,31 +55,32 @@ namespace nil {
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
                 std::vector<std::pair<std::size_t, constraint_type>> constraints;
-                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
 
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+
+                // Table layout                                             Row #
+                // +------------------+-+----------------+---+--------------+
+                // |        a         |r|                |1/A|              | 0
+                // +------------------+-+----------------+---+--------------+
 
                 std::size_t position = 0;
 
-std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << std::endl;
+//std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << std::endl;
 
-                constraint_type chunk_sum = var_gen(0);
-                lookup_constraints.push_back({position, {range_check_table_index, {var_gen(0)}}});
-                std::size_t i = 1;
-                for (; i < chunk_amount; i++) {
+                constraint_type chunk_sum;
+
+                for (std::size_t i = 0; i < chunk_amount; i++) {
                     chunk_sum += var_gen(i);
-                    lookup_constraints.push_back({position, {range_check_table_index, {var_gen(i)}}});
                 }
-                var result = var_gen(i++);
-                var chunk_sum_inverse = var_gen(i++);
+                var result = var_gen(chunk_amount);
+                var chunk_sum_inverse = var_gen(2*chunk_amount);
                 constraints.push_back({position, (chunk_sum * chunk_sum_inverse + result - 1)});
                 constraints.push_back({position, (chunk_sum * result)});
-                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
@@ -89,21 +90,16 @@ std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << 
                 const std::vector<value_type> chunks = zkevm_word_to_field_element<BlueprintFieldType>(a);
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 assignment_type &assignment = zkevm_circuit.get_assignment();
-                std::size_t i = 0;
                 const std::size_t curr_row = zkevm_circuit.get_current_row();
+                std::size_t chunk_amount = 16;
 
                 // TODO: replace with memory access
-                for (; i < chunks.size(); i++) {
+                for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row) = chunks[i];
                 }
-                if (a == 0u) {
-                    assignment.witness(witness_cols[i], curr_row) = 1;
-                } else {
-                    assignment.witness(witness_cols[i], curr_row) = 0;
-                }
-                i++;
+                assignment.witness(witness_cols[chunk_amount], curr_row) = (a == 0u);
                 const value_type chunk_sum = std::accumulate(chunks.begin(), chunks.end(), value_type::zero());
-                assignment.witness(witness_cols[i], curr_row) =
+                assignment.witness(witness_cols[2*chunk_amount], curr_row) =
                     chunk_sum == 0 ? value_type::zero() : value_type::one() * chunk_sum.inversed();
                 // reset the machine state; hope that we won't have to do this manually
                 stack.push(a);

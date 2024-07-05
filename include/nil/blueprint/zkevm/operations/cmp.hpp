@@ -63,14 +63,21 @@ namespace nil {
                 generate_gates(zkevm_circuit_type &zkevm_circuit) override {
 
                 std::vector<std::pair<std::size_t, constraint_type>> constraints;
-                std::vector<std::pair<std::size_t, lookup_constraint_type>> lookup_constraints;
 
                 constexpr const std::size_t chunk_amount = 16;
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 auto var_gen = [&witness_cols](std::size_t i, int32_t offset = 0) {
                     return zkevm_operation<BlueprintFieldType>::var_gen(witness_cols, i, offset);
                 };
-                const std::size_t range_check_table_index = zkevm_circuit.get_circuit().get_reserved_indices().at("chunk_16_bits/full");
+
+                // Table layout
+                // +----------------+--------------------------------+----------------+
+                // |       a        |                                |                |
+                // +----------------+--------------------------------+----------------+
+                // |       b        |EQ:res; SGT,SLT: ax,a-,cx,c-,res|1/B| (EQ only)  |
+                // +----------------+--------------------------------+----------------+
+                // |       c        |carry|                          |                |
+                // +----------------+--------------------------------+----------------+
 
                 std::size_t position = 1;
                 auto constraint_gen = [&constraints, &position]
@@ -108,11 +115,6 @@ namespace nil {
                 for (std::size_t i = 0; i < carry_amount; i++) {
                     r_carry.push_back(var_gen(i + chunk_amount, +1));
                 }
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position, {range_check_table_index, {a_chunks[i]}}});
-                    lookup_constraints.push_back({position, {range_check_table_index, {b_chunks[i]}}});
-                    lookup_constraints.push_back({position, {range_check_table_index, {r_chunks[i]}}});
-                }
 
                 // special first constraint
                 constraint_gen(a_chunks[0], a_chunks[1], a_chunks[2],
@@ -134,7 +136,7 @@ namespace nil {
                     for(std::size_t i = 1; i < chunk_amount; i++) {
                         b_chunk_sum += b_chunks[i];
                     }
-                    var b_chunk_sum_inverse = var_gen(chunk_amount, 0),
+                    var b_chunk_sum_inverse = var_gen(2*chunk_amount, 0),
                         result = var_gen(chunk_amount + 1,0);
 
                     constraints.push_back({position, (b_chunk_sum * b_chunk_sum_inverse + result - 1)});
@@ -151,12 +153,10 @@ namespace nil {
                         result = var_gen(chunk_amount+4,0);
                     value_type two_15 = 32768;
                     // a_top + 2^15 = a_aux + 2^16 * a_neg
-                    lookup_constraints.push_back({position, {range_check_table_index, {a_aux}}});
                     constraints.push_back({position, a_neg * (1 - a_neg)});
                     constraints.push_back({position, (a_top + two_15 - two_16 * a_neg - a_aux)});
                     // r_top + 2^15 = r_aux + 2^16 * r_neg
                     constraints.push_back({position, r_neg * (1 - r_neg)});
-                    lookup_constraints.push_back({position, {range_check_table_index, {position * r_aux}}});
                     constraints.push_back({position, (r_top + two_15 - two_16 * r_neg - r_aux)});
 
                     // result = (r_neg & !a_neg) | ((r_neg&a_neg | !r_neg & !a_neg  )& c) =
@@ -164,7 +164,7 @@ namespace nil {
                     // = r_neg(1-a_neg) + c(1-a_neg) + c r_neg - 2*r_neg(1-a_neg)c
                     constraints.push_back({position, (r_neg*(1-a_neg) + c*(1-a_neg) + c*r_neg - 2*c*r_neg*(1-a_neg) - result)});
                 }
-                return {{gate_class::MIDDLE_OP, {constraints, lookup_constraints}}};
+                return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
             void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
@@ -216,24 +216,26 @@ namespace nil {
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 assignment_type &assignment = zkevm_circuit.get_assignment();
                 const std::size_t curr_row = zkevm_circuit.get_current_row();
+                std:size_t chunk_amount = 16;
+
                 // TODO: replace with memory access, which would also do range checks!
                 // NB! we need range checks on b, since it's generated here!
-                for (std::size_t i = 0; i < a_chunks.size(); i++) {
+                for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row) = a_chunks[i];
                 }
 
                 value_type b_sum = value_type::zero();
-                for (std::size_t i = 0; i < b_chunks.size(); i++) {
+                for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 1) = b_chunks[i];
                     b_sum += b_chunks[i];
                 }
                 if (cmp_operation == C_EQ) {
-                    assignment.witness(witness_cols[b_chunks.size()], curr_row + 1) =
+                    assignment.witness(witness_cols[2*chunk_amount], curr_row + 1) =
                         b_sum.is_zero() ? value_type::zero() : value_type::one() * b_sum.inversed();
-                    assignment.witness(witness_cols[b_chunks.size() + 1], curr_row + 1) = integral_type(result);
+                    assignment.witness(witness_cols[chunk_amount + 1], curr_row + 1) = integral_type(result);
                 }
 
-                for (std::size_t i = 0; i < r_chunks.size(); i++) {
+                for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 2) = r_chunks[i];
                 }
 
@@ -243,15 +245,15 @@ namespace nil {
                                   biggest_r_chunk = integral_type(c) >> (256 - 16);
 
                     // find the sign bit by adding 2^16/2 to the biggest chunk. The carry-on bit is 1 iff the sign bit is 1
-                    assignment.witness(witness_cols[b_chunks.size()], curr_row + 1) =
+                    assignment.witness(witness_cols[chunk_amount], curr_row + 1) =
                         (biggest_a_chunk > two_15 - 1) ? (biggest_a_chunk - two_15) : biggest_a_chunk + two_15;
-                    assignment.witness(witness_cols[b_chunks.size() + 1], curr_row + 1) = (biggest_a_chunk > two_15 - 1);
+                    assignment.witness(witness_cols[chunk_amount + 1], curr_row + 1) = (biggest_a_chunk > two_15 - 1);
 
-                    assignment.witness(witness_cols[b_chunks.size() + 2], curr_row + 1) =
+                    assignment.witness(witness_cols[chunk_amount + 2], curr_row + 1) =
                         (biggest_r_chunk > two_15 - 1) ? (biggest_r_chunk - two_15) : biggest_r_chunk + two_15;
-                    assignment.witness(witness_cols[b_chunks.size() + 3], curr_row + 1) = (biggest_r_chunk > two_15 - 1);
+                    assignment.witness(witness_cols[chunk_amount + 3], curr_row + 1) = (biggest_r_chunk > two_15 - 1);
 
-                    assignment.witness(witness_cols[b_chunks.size() + 4], curr_row + 1) = integral_type(result);
+                    assignment.witness(witness_cols[chunk_amount + 4], curr_row + 1) = integral_type(result);
                 }
 
                 // we might want to pack carries more efficiently?
@@ -260,11 +262,11 @@ namespace nil {
                     carry = (carry + a_chunks[3 * i    ] + b_chunks[3 * i    ] +
                                     (a_chunks[3 * i + 1] + b_chunks[3 * i + 1]) * two_16 +
                                     (a_chunks[3 * i + 2] + b_chunks[3 * i + 2]) * two_32 ) >= two_48;
-                    assignment.witness(witness_cols[i + a_chunks.size()], curr_row + 2) = carry;
+                    assignment.witness(witness_cols[i + chunk_amount], curr_row + 2) = carry;
                 }
                 carry = (carry + a_chunks[3 * (carry_amount - 1)] + b_chunks[3 * (carry_amount - 1)]) >= two_16;
                 BOOST_ASSERT(carry == r);
-                assignment.witness(witness_cols[a_chunks.size() + carry_amount - 1], curr_row + 2) = carry;
+                assignment.witness(witness_cols[chunk_amount + carry_amount - 1], curr_row + 2) = carry;
 
                 // reset the machine state; hope that we won't have to do this manually
                 stack.push(y);

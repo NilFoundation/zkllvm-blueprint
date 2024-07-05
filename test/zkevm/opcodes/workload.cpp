@@ -450,16 +450,16 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
 
 
 
-    // 
-    // witnesses_size: 85 public_inputs_size: 0 constants_size: 5 selectors_size: 3
-    // там 5 lookup_constant_columns и 1 lookup_selector
+    //
+    // witnesses_size: 101 public_inputs_size: 0 constants_size: 5 selectors_size: 3
+    // 5 lookup_constant_columns, 1 lookup_selector
     const std::size_t ComponentConstantColumns = 0;
     const std::size_t LookupConstantColumns = 5;
     const std::size_t ComponentSelectorColumns = 2;
     const std::size_t LookupSelectorColumns = 1;
-    const std::size_t WitnessColumns = 85;
+    const std::size_t WitnessColumns = 101;
     const std::size_t PublicInputColumns = 0;
- 
+
     const std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
     const std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
 
@@ -477,8 +477,8 @@ std::cout << "Our assignment has " << assignment->rows_amount() << " elements" <
     std::ofstream otable;
     assignment_proxy<arithmentization_type> assignment_proxy(assignment, 0);
     assignment_proxy.make_all_rows_used();
-    
-    otable.open("assignment.tbl",
+
+    otable.open("small_assignment.tbl",
                 std::ios_base::binary | std::ios_base::out);
     print_assignment_table<nil::marshalling::option::big_endian, ArithmetizationType, BlueprintFieldType>(
         assignment_proxy, print_table_kind::MULTI_PROVER, ComponentConstantColumns, ComponentSelectorColumns, otable);
@@ -489,7 +489,7 @@ std::cout << "Our assignment has " << assignment->rows_amount() << " elements" <
 std::cout << "Our circuit has " << circuit->num_gates() << " gates" << std::endl;
     circuit_proxy<arithmentization_type> circuit_proxy(circuit, 0);
     std::ofstream ocircuit;
-    ocircuit.open("circuit.crt", std::ios_base::binary | std::ios_base::out);
+    ocircuit.open("small_circuit.crt", std::ios_base::binary | std::ios_base::out);
 
     print_circuit<nil::marshalling::option::big_endian, ArithmetizationType, ConstraintSystemType>(
         circuit_proxy, assignment_proxy, false, 0, ocircuit);

@@ -135,21 +135,21 @@ namespace nil {
                 // We choose r so that sgn(r) = sgn(a), except when r = 0. In that case, if a < 0, we take r = -1
                 //
                 // Table layout:                                                Internal row #:
-                // +--------------------------------+--+--+----+---+----+------------+
-                // |             result             |ax|a-| ta |1/R| tr |            | 6
-                // +--------------------------------+--+--+----+---+----+------------+
-                // |            input_a             |                r               | 5
-                // +--------------------------------+--------+--+-----------+---+----+
-                // |          a = |input_a|         |   c1   |c2|           |1/B|    | 4
-                // +--------------------------------+--------+--+-----------+---+----+
-                // |                r               |                 q              | 3
-                // +--------------------------------+--------------------------------+
-                // |                b               |                 v              | 2
-                // +--------------------------------+---+---+----+--+--+-+--+-------++
-                // |             input_b            |b0'|b0"|b0"'|I1|I2|z|tp|   t   || 1
-                // +--------------------------------+---+---+----+--+--+-+--+-------++
-                // |        (j - b0')^{-1}          |           (j - b0")^{-1}       | 0
-                // +--------------------------------+--------------------------------+
+                // +--------------------------------+--+--+----+---+----+------------+---+------------+
+                // |             result             |ax|a-| ta |1/R| tr |            |1/R|            | 6
+                // +--------------------------------+--+--+----+---+----+------------+---+------------+
+                // |            input_a             |                r               |                | 5
+                // +--------------------------------+--------+--+-----------+---+----+---+------------+
+                // |          a = |input_a|         |   c1   |c2|           |1/B|    |1/B|            | 4
+                // +--------------------------------+--------+--+-----------+---+----+---+------------+
+                // |                r               |                 q              |                | 3
+                // +--------------------------------+--------------------------------+--+--+----------+
+                // |                b               |                 v              |I1|I2|          | 2
+                // +--------------------------------+---+---+----+--+--+-+--+-------++--+--+----------+
+                // |             input_b            |b0'|b0"|b0"'|I1|I2|z|tp|   t   || (j - b0')^{-1} | 1
+                // +--------------------------------+---+---+----+--+--+-+--+-------++----------------+
+                // |                                |                                | (j - b0")^{-1} | 0
+                // +--------------------------------+--------------------------------+----------------+
 
                 std::size_t position_0 = 5;
                 std::vector<var> result_chunks;
@@ -162,19 +162,12 @@ namespace nil {
                     r_chunks_0.push_back(var_gen(chunk_amount + i, 0));
                     a_chunks_0.push_back(var_gen(i, +1));
                 }
-                for(std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {input_a_chunks_0[i]}}});
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {a_chunks_0[i]}}});
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {r_chunks_0[i]}}});
-                    lookup_constraints.push_back({position_0, {range_check_table_index, {result_chunks[i]}}});
-                }
 
                 var input_a_top = input_a_chunks_0[chunk_amount - 1],
                     a_aux = var_gen(chunk_amount, -1),
                     a_neg = var_gen(chunk_amount + 1, -1);
                 value_type two_15 = 32768;
                 // a_top + 2^15 = a_aux + 2^16 * a_neg
-                lookup_constraints.push_back({position_0, {range_check_table_index, {a_aux}}});
                 constraints.push_back({position_0, a_neg * (1-a_neg)});
                 constraints.push_back({position_0, (input_a_top + two_15 - two_16 * a_neg - a_aux)});
 
@@ -209,7 +202,7 @@ namespace nil {
                     constraints.push_back({position_0, (1 - a_neg) * (input_a_chunks_0[i] - a_chunks_0[i])});
                 }
 
-                var r_sum_inv = var_gen(chunk_amount + 2 + carry_amount - 1, -1);
+                var r_sum_inv = var_gen(2*chunk_amount, -1);
                 constraint_type r_sum_0;
                 for(std::size_t i = 0; i < chunk_amount; i++) {
                     r_sum_0 += r_chunks_0[i];
@@ -268,19 +261,14 @@ namespace nil {
                     b_chunks_1.push_back(var_gen(i, +1));
                     q_chunks_1.push_back(var_gen(i + chunk_amount, 0));
                 }
-                for(std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {b_chunks_1[i]}}});
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {q_chunks_1[i]}}});
-                }
+
                 std::vector<var> c_1_chunks;
                 for (std::size_t i = chunk_amount; i < chunk_amount + 4; i++) {
                     c_1_chunks.push_back(var_gen(i, -1));
                 }
-                for(std::size_t i = 0; i < 4; i++) {
-                    lookup_constraints.push_back({position_1, {range_check_table_index, {c_1_chunks[i]}}});
-                }
+
                 var c_2 = var_gen(chunk_amount + 4, -1);
-                var b_sum_inverse_1 = var_gen(chunk_amount + 10, -1);
+                var b_sum_inverse_1 = var_gen(2*chunk_amount, -1);
 
                 std::vector<constraint_type> a_64_chunks = {
                     chunk_sum_64<constraint_type, var>(a_chunks, 0),
@@ -351,9 +339,7 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     v_chunks_2.push_back(var_gen(chunk_amount + i, 0));
                 }
-                for(std::size_t i = 0; i < chunk_amount; i++) {
-                    lookup_constraints.push_back({position_2, {range_check_table_index, {v_chunks_2[i]}}});
-                }
+
                 for (std::size_t i = chunk_amount + 6; i < chunk_amount + 7 + carry_amount; i++) {
                     t.push_back(var_gen(i, +1));
                 }
@@ -391,23 +377,20 @@ namespace nil {
                 for(std::size_t i = 0; i < chunk_amount; i++) {
                     b_chunks_3.push_back(var_gen(i, -1));
                     input_b_chunks.push_back(var_gen(i, 0));
-                    indic_1.push_back(var_gen(i, +1));
-                    indic_2.push_back(var_gen(chunk_amount + i, +1));
+                    indic_1.push_back(var_gen(2*chunk_amount + i, 0));
+                    indic_2.push_back(var_gen(2*chunk_amount + i, +1));
                 }
                 var b0p_var = var_gen(chunk_amount, 0),
                     b0pp_var = var_gen(chunk_amount + 1, 0),
                     b0ppp_var = var_gen(chunk_amount + 2, 0),
-                    I1_var = var_gen(chunk_amount + 3, 0),
-                    I2_var = var_gen(chunk_amount + 4, 0),
+                    I1_var = var_gen(2*chunk_amount, -1),
+                    I2_var = var_gen(2*chunk_amount + 1, -1),
                     z_var = var_gen(chunk_amount + 5, 0),
                     tp_var = var_gen(chunk_amount + 5, 0);
 
-                // lookup constrain b0p, 4096*b0p, b0pp, 4096*b0pp, b0ppp, 256*b0ppp
-                lookup_constraints.push_back({position_3, {range_check_table_index, {b0p_var}}});
+                // lookup constrain b0p < 16, b0pp < 16, b0ppp < 256
                 lookup_constraints.push_back({position_3, {range_check_table_index, {4096 * b0p_var}}});
-                lookup_constraints.push_back({position_3, {range_check_table_index, {b0pp_var}}});
                 lookup_constraints.push_back({position_3, {range_check_table_index, {4096 * b0pp_var}}});
-                lookup_constraints.push_back({position_3, {range_check_table_index, {b0ppp_var}}});
                 lookup_constraints.push_back({position_3, {range_check_table_index, {256 * b0ppp_var}}});
 
                 constraints.push_back({position_3, (input_b_chunks[0] - b0p_var - 16*b0pp_var - 256*b0ppp_var)});
@@ -510,7 +493,7 @@ namespace nil {
                 // The last carry, if input_a + |input_a| is ever needed, should be 1 anyway, so we don't store it
 
                 value_type r_sum = std::accumulate(r_chunks.begin(), r_chunks.end(), value_type(0));
-                assignment.witness(witness_cols[chunk_amount + 2 + carry_amount - 1], curr_row) = r_sum.is_zero() ? 0 : r_sum.inversed();
+                assignment.witness(witness_cols[2*chunk_amount], curr_row) = r_sum.is_zero() ? 0 : r_sum.inversed();
 
                 carry = 0;
                 // result + r = 2^256 carries
@@ -558,7 +541,7 @@ namespace nil {
                 }
                 assignment.witness(witness_cols[4 + chunk_amount], curr_row + 2) = c_2;
 
-                assignment.witness(witness_cols[10 + chunk_amount], curr_row + 2) = b_sum == 0 ? 0 : b_sum.inversed();
+                assignment.witness(witness_cols[2*chunk_amount], curr_row + 2) = b_sum == 0 ? 0 : b_sum.inversed();
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row + 3) = r_chunks[i];
@@ -591,8 +574,8 @@ namespace nil {
                 assignment.witness(witness_cols[chunk_amount], curr_row + 5) = b0p;
                 assignment.witness(witness_cols[chunk_amount + 1], curr_row + 5) = b0pp;
                 assignment.witness(witness_cols[chunk_amount + 2], curr_row + 5) = b0ppp;
-                assignment.witness(witness_cols[chunk_amount + 3], curr_row + 5) = I1;
-                assignment.witness(witness_cols[chunk_amount + 4], curr_row + 5) = I2;
+                assignment.witness(witness_cols[2*chunk_amount], curr_row + 4) = I1;
+                assignment.witness(witness_cols[2*chunk_amount + 1], curr_row + 4) = I2;
                 assignment.witness(witness_cols[chunk_amount + 5], curr_row + 5) = z;
                 assignment.witness(witness_cols[chunk_amount + 6], curr_row + 5) = tp;
 
@@ -607,8 +590,8 @@ namespace nil {
                 assignment.witness(witness_cols[chunk_amount + 7 + carry_amount - 1], curr_row + 5) = carry;
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {
-                    assignment.witness(witness_cols[i], curr_row + 6) = (b0p - i).is_zero()? 0 : (b0p - i).inversed();
-                    assignment.witness(witness_cols[chunk_amount + i], curr_row + 6) = (b0pp - i).is_zero()? 0 : (b0pp - i).inversed();
+                    assignment.witness(witness_cols[2*chunk_amount + i], curr_row + 5) = (b0p - i).is_zero()? 0 : (b0p - i).inversed();
+                    assignment.witness(witness_cols[2*chunk_amount + i], curr_row + 6) = (b0pp - i).is_zero()? 0 : (b0pp - i).inversed();
                 }
 
                 // reset the machine state; hope that we won't have to do this manually
