@@ -34,6 +34,8 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 
+#include <nil/blueprint/gate_id.hpp>
+
 #include <nil/blueprint/zkevm/state.hpp>
 #include <nil/blueprint/zkevm/state_selector.hpp>
 #include <nil/blueprint/zkevm/zkevm_opcodes.hpp>
@@ -140,7 +142,7 @@ namespace nil {
                  sel_manager(assignment_, circuit_),
                  curr_row(start_row_index_), start_row_index(start_row_index_) {
 
-                // 8(?) constant columns. I'm not sure we really need them: satisfiability check passes even without them
+                // 5(?) constant columns. I'm not sure we really need them: satisfiability check passes even without them
                 for(std::size_t i = 0; i < 5; i++) {
                     sel_manager.allocate_constant_column();
                 }
@@ -152,7 +154,7 @@ namespace nil {
                 }
                 init_state();
                 init_opcodes();
-std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
+//std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
             }
 
             void assign_state() {
@@ -426,6 +428,10 @@ std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
                         {var(opcode_range_checked_cols[i], 0 ,true, var::column_type::witness) } });
                 }
 
+                using gate_id_type = gate_id<BlueprintFieldType>;
+                std::map<gate_id_type, constraint_type> constraint_list;
+                std::map<gate_id_type, constraint_type> virtual_selector;
+
                 for (auto opcode_it : opcodes) {
                     std::size_t opcode_height = opcode_it.second->rows_amount();
                     if (opcode_height > max_opcode_height) {
@@ -451,7 +457,11 @@ std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
                                     constraint_type curr_opt_constraint =
                                         (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
                                     constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
-                                    middle_constraints.push_back(curr_opt_constraint * constraint * start_selector);
+//                                    middle_constraints.push_back(curr_opt_constraint * constraint * start_selector);
+
+                                    constraint_list[gate_id_type(constraint_pair.second)] = constraint_pair.second;
+                                    virtual_selector[gate_id_type(constraint_pair.second)] +=
+                                        get_opcode_row_constraint(local_row) * curr_opt_constraint * start_selector;
                                 }
                                 for (auto lookup_constraint_pair : gate_it.second.second) {
                                     std::size_t local_row = lookup_constraint_pair.first;
@@ -475,7 +485,11 @@ std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
                                     constraint_type curr_opt_constraint =
                                         (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
                                     constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
-                                    middle_constraints.push_back(curr_opt_constraint * constraint);
+//                                    middle_constraints.push_back(curr_opt_constraint * constraint);
+
+                                    constraint_list[gate_id_type(constraint_pair.second)] = constraint_pair.second;
+                                    virtual_selector[gate_id_type(constraint_pair.second)] +=
+                                        get_opcode_row_constraint(local_row) * curr_opt_constraint;
                                 }
                                 for (auto lookup_constraint_pair : gate_it.second.second) {
                                     std::size_t local_row = lookup_constraint_pair.first;
@@ -505,8 +519,12 @@ std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
                     }
                 }
 
+                for(const auto c : virtual_selector) {
+                    constraint_type constraint = constraint_list[c.first];
+                    middle_constraints.push_back(constraint * c.second);
+                }
+
                 middle_selector = sel_manager.add_gate(middle_constraints);
-std::cout << "Total lookup constraints = " << middle_lookup_constraints.size() << std::endl;
                 sel_manager.add_lookup_gate(middle_selector, middle_lookup_constraints);
 
                 assignment.enable_selector(start_selector, curr_row);

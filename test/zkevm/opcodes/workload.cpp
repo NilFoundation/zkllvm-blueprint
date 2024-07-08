@@ -431,7 +431,7 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
         zkevm_opcode::DIV, zkevm_opcode::MOD, zkevm_opcode::SDIV, zkevm_opcode::SMOD, zkevm_opcode::ISZERO,
         zkevm_opcode::ADDMOD, zkevm_opcode::MULMOD, zkevm_opcode::MUL, zkevm_opcode::NOT};
     const std::size_t num_of_opcodes = implemented_opcodes.size(),
-                      workload = 10000;
+                      workload = 65535;
 
     std::shared_ptr<assignment_type> assignment = std::make_shared<assignment_type>(0, 0, 0, 0);
 
@@ -478,7 +478,7 @@ std::cout << "Our assignment has " << assignment->rows_amount() << " elements" <
     assignment_proxy<arithmentization_type> assignment_proxy(assignment, 0);
     assignment_proxy.make_all_rows_used();
 
-    otable.open("small_assignment.tbl",
+    otable.open("middle_assignment.tbl",
                 std::ios_base::binary | std::ios_base::out);
     print_assignment_table<nil::marshalling::option::big_endian, ArithmetizationType, BlueprintFieldType>(
         assignment_proxy, print_table_kind::MULTI_PROVER, ComponentConstantColumns, ComponentSelectorColumns, otable);
@@ -489,14 +489,14 @@ std::cout << "Our assignment has " << assignment->rows_amount() << " elements" <
 std::cout << "Our circuit has " << circuit->num_gates() << " gates" << std::endl;
     circuit_proxy<arithmentization_type> circuit_proxy(circuit, 0);
     std::ofstream ocircuit;
-    ocircuit.open("small_circuit.crt", std::ios_base::binary | std::ios_base::out);
+    ocircuit.open("middle_circuit.crt", std::ios_base::binary | std::ios_base::out);
 
     print_circuit<nil::marshalling::option::big_endian, ArithmetizationType, ConstraintSystemType>(
         circuit_proxy, assignment_proxy, false, 0, ocircuit);
     ocircuit.close();
 
-    // nil::crypto3::zk::snark::basic_padding(*assignment);
-    // BOOST_ASSERT(is_satisfied(circuit, assignment) == true);
+//    nil::crypto3::zk::snark::basic_padding(*assignment);
+//    BOOST_ASSERT(is_satisfied(circuit, assignment) == true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
