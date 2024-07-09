@@ -448,16 +448,37 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
     zkevm_circuit.finalize_test();
 
 
+    std::vector<size_t> lookup_columns_indices;
+    for(std::size_t i = 0; i < assignment->constants_amount(); i++) {
+        lookup_columns_indices.push_back(i);
+    }
 
+    std::size_t cur_selector_id = 0;
+    for(const auto &gate: circuit->gates()){
+        cur_selector_id = std::max(cur_selector_id, gate.selector_index);
+    }
+    for(const auto &lookup_gate: circuit->lookup_gates()){
+        cur_selector_id = std::max(cur_selector_id, lookup_gate.tag_index);
+    }
+    cur_selector_id++;
+    zk::snark::pack_lookup_tables_horizontal(
+                    circuit->get_reserved_indices(),
+                    circuit->get_reserved_tables(),
+                    *circuit, *assignment,
+                    lookup_columns_indices,
+                    cur_selector_id,
+                    assignment->rows_amount(),
+                    500000
+                );
 
     //
-    // witnesses_size: 101 public_inputs_size: 0 constants_size: 5 selectors_size: 3
+    // witnesses_size: 102 public_inputs_size: 0 constants_size: 5 selectors_size: 3
     // 5 lookup_constant_columns, 1 lookup_selector
     const std::size_t ComponentConstantColumns = 0;
     const std::size_t LookupConstantColumns = 5;
-    const std::size_t ComponentSelectorColumns = 2;
-    const std::size_t LookupSelectorColumns = 1;
-    const std::size_t WitnessColumns = 101;
+    const std::size_t ComponentSelectorColumns = 3;
+    const std::size_t LookupSelectorColumns = 2; // for lookup table packing
+    const std::size_t WitnessColumns = 102;
     const std::size_t PublicInputColumns = 0;
 
     const std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
@@ -478,7 +499,7 @@ std::cout << "Our assignment has " << assignment->rows_amount() << " elements" <
     assignment_proxy<arithmentization_type> assignment_proxy(assignment, 0);
     assignment_proxy.make_all_rows_used();
 
-    otable.open("middle_assignment.tbl",
+    otable.open("big2_assignment.tbl",
                 std::ios_base::binary | std::ios_base::out);
     print_assignment_table<nil::marshalling::option::big_endian, ArithmetizationType, BlueprintFieldType>(
         assignment_proxy, print_table_kind::MULTI_PROVER, ComponentConstantColumns, ComponentSelectorColumns, otable);
@@ -489,14 +510,15 @@ std::cout << "Our assignment has " << assignment->rows_amount() << " elements" <
 std::cout << "Our circuit has " << circuit->num_gates() << " gates" << std::endl;
     circuit_proxy<arithmentization_type> circuit_proxy(circuit, 0);
     std::ofstream ocircuit;
-    ocircuit.open("middle_circuit.crt", std::ios_base::binary | std::ios_base::out);
+
+    ocircuit.open("big2_circuit.crt", std::ios_base::binary | std::ios_base::out);
 
     print_circuit<nil::marshalling::option::big_endian, ArithmetizationType, ConstraintSystemType>(
         circuit_proxy, assignment_proxy, false, 0, ocircuit);
     ocircuit.close();
 
 //    nil::crypto3::zk::snark::basic_padding(*assignment);
-//    BOOST_ASSERT(is_satisfied(circuit, assignment) == true);
+//    BOOST_ASSERT(is_satisfied(*circuit, *assignment) == true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

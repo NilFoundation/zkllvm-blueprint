@@ -155,6 +155,8 @@ namespace nil {
                 init_state();
                 init_opcodes();
 //std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
+                assignment.resize_selectors(assignment.selectors_amount() + 2); // for lookup table packing
+//std::cout << "SA = " << assignment.selectors_amount() << std::endl;
             }
 
             void assign_state() {
@@ -170,7 +172,8 @@ namespace nil {
 
             void finalize() {
                 BOOST_ASSERT_MSG(curr_row != 0, "Row underflow in finalization");
-                assignment.enable_selector(end_selector, curr_row - 1);
+                // assignment.enable_selector(end_selector, curr_row - 1);
+                assignment.witness(state.last_row_indicator.selector, curr_row - 1) = 1;
             }
 
             void assign_opcode(const zkevm_opcode opcode, zkevm_machine_interface &machine) {
@@ -282,6 +285,8 @@ namespace nil {
                    sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 0);
                 state.step_selection = state_var_type(
                    sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 1);
+                state.last_row_indicator = state_var_type(
+                   sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 0);
             }
 
             std::vector<constraint_type> generate_generic_transition_constraints(
@@ -299,6 +304,7 @@ namespace nil {
                 auto step_selection_next_var = state.step_selection.variable(+1);
                 auto option_variable = state_selector->option_variable(0);
                 auto option_variable_prev = state_selector->option_variable(-1);
+                auto last_row_indicator_var = state.last_row_indicator.variable();
                 // inverse or zero for rows_until_next_op/rows_until_next_op_inv
                 constraints.push_back(
                     rows_until_next_op_var * rows_until_next_op_var * rows_until_next_op_inv_var
@@ -318,9 +324,12 @@ namespace nil {
                 // or we are at the end of the circuit
                 auto partial_state_transition_constraints = generate_transition_constraints(
                     state, generate_frozen_state_transition());
+                // TODO: the problematic constraints are here \/ \/ \/
                 for (auto constraint : partial_state_transition_constraints) {
                     constraints.push_back(
-                        (1 - var(end_selector, 0, true, var::column_type::selector)) *
+                        (1 - last_row_indicator_var) *
+                        // ^^^ this fixes the problem from the commented line below
+//                        (1 - var(end_selector, 0, true, var::column_type::selector)) *
                         (1 - step_selection_next_var) * constraint);
                 }
                 return constraints;
@@ -367,6 +376,8 @@ namespace nil {
                 first_constraints.push_back(state.step_selection.variable() - 1);
                 start_selector = sel_manager.add_gate(first_constraints);
                 // TODO: proper end constraints
+                middle_constraints.push_back(state.last_row_indicator.variable(-1));
+                last_constraints.push_back(state.last_row_indicator.variable(-1) - 1);
                 end_selector = circuit.add_gate(last_constraints);
 
                 std::vector<std::size_t> opcode_range_checked_cols;
@@ -419,6 +430,7 @@ namespace nil {
 
                 auto generic_state_transition_constraints = generate_generic_transition_constraints(
                     start_selector, end_selector);
+                // TODO : the problematic constraints that prevent proof verification \/ \/ \/
                 middle_constraints.insert(middle_constraints.end(), generic_state_transition_constraints.begin(),
                                           generic_state_transition_constraints.end());
 
@@ -457,7 +469,6 @@ namespace nil {
                                     constraint_type curr_opt_constraint =
                                         (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
                                     constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
-//                                    middle_constraints.push_back(curr_opt_constraint * constraint * start_selector);
 
                                     constraint_list[gate_id_type(constraint_pair.second)] = constraint_pair.second;
                                     virtual_selector[gate_id_type(constraint_pair.second)] +=
@@ -485,7 +496,6 @@ namespace nil {
                                     constraint_type curr_opt_constraint =
                                         (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
                                     constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
-//                                    middle_constraints.push_back(curr_opt_constraint * constraint);
 
                                     constraint_list[gate_id_type(constraint_pair.second)] = constraint_pair.second;
                                     virtual_selector[gate_id_type(constraint_pair.second)] +=

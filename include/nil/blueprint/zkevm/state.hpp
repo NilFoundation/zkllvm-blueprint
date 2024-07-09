@@ -106,6 +106,7 @@ namespace nil {
             state_var_type step_selection;
             state_var_type rows_until_next_op;
             state_var_type rows_until_next_op_inv;
+            state_var_type last_row_indicator;
 
             void assign_state(assignment_type &assignment, std::size_t row) const {
                 #define X(name) name.assign_value(assignment, row);
