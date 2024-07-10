@@ -104,7 +104,7 @@ namespace nil {
                         const std::vector<std::vector<var>> &_bytecodes,
                         const std::vector<std::pair<var, var>> &_bytecode_hashes,
                         const var& _rlc_challenge
-                    ) : bytecodes(_bytecodes), full_size(0), bytecode_hashes(_bytecode_hashes), rlc_challenge(_rlc_challenge){
+                    ) : bytecodes(_bytecodes), bytecode_hashes(_bytecode_hashes), rlc_challenge(_rlc_challenge), full_size(0) {
                         BOOST_ASSERT(_bytecodes.size() == _bytecode_hashes.size());
                         for( std::size_t i = 0; i < bytecodes.size(); i++ ){
                             full_size += bytecodes[i].size();

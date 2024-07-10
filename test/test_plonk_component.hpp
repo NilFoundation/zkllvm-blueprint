@@ -26,8 +26,7 @@
 // @file Declaration of interfaces for PLONK unified addition component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_TEST_PLONK_COMPONENT_HPP
-#define CRYPTO3_TEST_PLONK_COMPONENT_HPP
+#pragma once
 
 #include <fstream>
 #include <random>
@@ -180,7 +179,7 @@ namespace nil {
             std::size_t start_row = 0; //dist(gen);
             // resize to ensure that if the component is empty by default (e.g. a component which only uses batching)
             if (start_row != 0) {
-                assignment.witness(0, start_row - 1) = 0;
+                assignment.witness(0, start_row - 1) = 0u;
             }
 
             if constexpr (PrivateInput) {
@@ -594,5 +593,3 @@ namespace nil {
         }
     }    // namespace crypto3
 }    // namespace nil
-
-#endif    // CRYPTO3_TEST_PLONK_COMPONENT_HPP

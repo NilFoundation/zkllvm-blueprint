@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <nil/crypto3/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 
 #include <nil/crypto3/algebra/fields/goldilocks64/base_field.hpp>
 #include <nil/crypto3/algebra/fields/bls12/base_field.hpp>
@@ -32,33 +32,26 @@
 namespace nil {
     namespace blueprint {
 
-        typedef crypto3::multiprecision::uint256_t zkevm_word_type;
+        constexpr static const
+            boost::multiprecision::number<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>> zkevm_modulus =
+                        0x10000000000000000000000000000000000000000000000000000000000000000_cppui_modular257;
 
-        template <typename BlueprintFieldType>
-        typename BlueprintFieldType::value_type w_hi(const zkevm_word_type &val){
-            return (val & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000_cppui256) >> 128;
-        }
+        constexpr static const boost::multiprecision::backends::modular_params<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>>
+                    zkevm_modular_params = zkevm_modulus.backend();
 
-        template <typename BlueprintFieldType>
-        typename BlueprintFieldType::value_type w_lo(const zkevm_word_type &val){
-            return val & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF_cppui256;
-        }
+        typedef boost::multiprecision::number<
+            boost::multiprecision::backends::modular_adaptor<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>,
+                boost::multiprecision::backends::modular_params_ct<
+                    boost::multiprecision::backends::cpp_int_modular_backend<257>,
+                    zkevm_modular_params>>>
+            zkevm_word_type;
 
-        std::array<std::uint8_t, 32> w_to_8(const zkevm_word_type &val){
-            std::array<std::uint8_t, 32> result;
-            zkevm_word_type tmp = val;
-            for(std::size_t i = 0; i < 32; i++){
-                result[31-i] = std::uint8_t(tmp & 0xFF); tmp >>=  8;
-            }
-            return result;
-        }
-
-        template <typename BlueprintFieldType>
-        std::array<typename BlueprintFieldType::value_type, 2> w_to_128(const zkevm_word_type &val){
-            std::array<typename BlueprintFieldType::value_type, 2> result;
-            result[0] = w_hi;
-            result[1] = w_lo;
-            return result;
+        template<typename T>
+        constexpr zkevm_word_type zwordc(const T &value) {
+            return zkevm_word_type::backend_type(value.backend());
         }
 
         template<typename BlueprintFieldType>
@@ -67,10 +60,13 @@ namespace nil {
             std::vector<value_type> chunks;
             constexpr const std::size_t chunk_size = 16;
             constexpr const std::size_t num_chunks = 256 / chunk_size;
-            constexpr const zkevm_word_type mask = (zkevm_word_type(1) << chunk_size) - 1;
-            zkevm_word_type word_copy = word;
+            using integral_type = boost::multiprecision::number<
+                boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+            constexpr const integral_type mask =
+                integral_type((zkevm_word_type(1) << chunk_size) - 1);
+            integral_type word_copy = integral_type(word);
             for (std::size_t i = 0; i < num_chunks; ++i) {
-                chunks.push_back(static_cast<value_type>(word_copy & mask));
+                chunks.push_back(word_copy & mask);
                 word_copy >>= chunk_size;
             }
             return chunks;
@@ -81,7 +77,7 @@ namespace nil {
             const typename BlueprintFieldType::value_type &value
         ) {
             using value_type = typename BlueprintFieldType::value_type;
-            using integral_type = crypto3::multiprecision::uint256_t;
+            using integral_type = typename BlueprintFieldType::integral_type;
             std::vector<value_type> chunks;
             constexpr const std::size_t chunk_size = 16;
             constexpr const std::size_t num_chunks = 4;
@@ -107,6 +103,41 @@ namespace nil {
                 result *= 16;
                 result += char_to_hex(val[i]);
             }
+            return result;
+        }
+
+        template <typename BlueprintFieldType>
+        typename BlueprintFieldType::value_type w_hi(const zkevm_word_type &val){
+            using integral_type = boost::multiprecision::number<boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+
+            integral_type mask = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000_cppui_modular257;
+            return (integral_type(val) & mask) >> 128;
+        }
+
+        template <typename BlueprintFieldType>
+        typename BlueprintFieldType::value_type w_lo(const zkevm_word_type &val){
+            using integral_type = boost::multiprecision::number<boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+
+            integral_type mask = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF_cppui_modular257;
+            return integral_type(val) & mask;
+        }
+
+        std::array<std::uint8_t, 32> w_to_8(const zkevm_word_type &val){
+            using integral_type = boost::multiprecision::number<boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+
+            std::array<std::uint8_t, 32> result;
+            integral_type tmp(val);
+            for(std::size_t i = 0; i < 32; i++){
+                result[31-i] = std::uint8_t(tmp & 0xFF); tmp >>=  8;
+            }
+            return result;
+        }
+
+        template <typename BlueprintFieldType>
+        std::array<typename BlueprintFieldType::value_type, 2> w_to_128(const zkevm_word_type &val){
+            std::array<typename BlueprintFieldType::value_type, 2> result;
+            result[0] = w_hi;
+            result[1] = w_lo;
             return result;
         }
     }   // namespace blueprint

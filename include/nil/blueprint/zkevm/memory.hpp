@@ -57,7 +57,7 @@ namespace nil {
 
         struct rw_operation{
             std::uint8_t op;             // described above
-            std::size_t id;            // call_id for stack, memory, tx_id for
+            std::size_t id;              // call_id for stack, memory, tx_id for
             zkevm_word_type address;     // 10 bit for stack, 160 bit for
             std::uint8_t field;          // Not used for stack, memory, storage
             zkevm_word_type storage_key; // 256-bit, not used for stack, memory
@@ -148,6 +148,8 @@ namespace nil {
                 const std::map<zkevm_word_type, zkevm_word_type> &storage,// Storage state before operation
                 const std::map<zkevm_word_type, zkevm_word_type> &storage_next// Storage state before operation
             ){
+                using integral_type = boost::multiprecision::number<boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+
                 // Opcode is not presented in RW lookup table. We just take it from json
                 std::cout << opcode << std::endl;
                 if(opcode == "STOP") {
@@ -416,12 +418,12 @@ namespace nil {
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
-                    std::size_t length = std::size_t(stack[stack.size()-3]);
-                    auto dest = stack[stack.size()-1];
+                    std::size_t length = std::size_t(integral_type(stack[stack.size()-3]));
+                    std::size_t dest = std::size_t(integral_type(stack[stack.size()-1]));
                     std::cout << "Length = " << length << std::endl;
                     std::cout << "Memory_size " << memory.size() << "=>" << memory_next.size() << std::endl;
                     for( std::size_t i = 0; i < length; i++){
-                        rw_ops.push_back(memory_operation(call_id, dest+i, rw_ops.size(), true, memory_next[std::size_t(dest+i)]));
+                        rw_ops.push_back(memory_operation(call_id, dest+i, rw_ops.size(), true, memory_next[dest+i]));
                         std::cout << "\t" << rw_ops[rw_ops.size() - 1] << std::endl;
                     }
                     // TODO: add length read operations to calldata
@@ -580,7 +582,7 @@ namespace nil {
                     BOOST_ASSERT_MSG(addr < std::numeric_limits<std::size_t>::max(), "Cannot process so large memory address");
                     std::cout << "\t\t Address = 0x" << std::hex << addr << std::dec << " memory size " << memory.size() << std::endl;
                     for( std::size_t i = 0; i < 32; i++){
-                        rw_ops.push_back(memory_operation(call_id, addr+i, rw_ops.size(), false, addr+i < memory.size() ? memory[std::size_t(addr+i)]: 0));
+                        rw_ops.push_back(memory_operation(call_id, addr+i, rw_ops.size(), false, addr+i < memory.size() ? memory[std::size_t(integral_type(addr+i))]: 0));
                         std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     }
                     rw_ops.push_back(stack_operation(call_id,  stack_next.size()-1, rw_ops.size(), true, stack_next[stack_next.size()-1]));

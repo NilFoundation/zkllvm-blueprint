@@ -82,7 +82,7 @@ namespace nil {
                 for (; i < chunks.size(); i++) {
                     assignment.witness(witness_cols[i], curr_row) = chunks[i];
                 }
-                if (a == 0) {
+                if (a == 0u) {
                     assignment.witness(witness_cols[i], curr_row) = 1;
                 } else {
                     assignment.witness(witness_cols[i], curr_row) = 0;
@@ -91,8 +91,9 @@ namespace nil {
                 for (; i < 2 * chunks.size(); i++) {
                     assignment.witness(witness_cols[i], curr_row) = 0;
                 }
-                value_type chunk_sum = std::accumulate(chunks.begin(), chunks.end(), value_type::zero());
-                assignment.witness(witness_cols[i], curr_row) = chunk_sum == 0 ? 0 : 1 / chunk_sum;
+                const value_type chunk_sum = std::accumulate(chunks.begin(), chunks.end(), value_type::zero());
+                assignment.witness(witness_cols[i], curr_row) =
+                    chunk_sum == 0 ? value_type::zero() : value_type::one() * chunk_sum.inversed();
                 // reset the machine state; hope that we won't have to do this manually
                 stack.push(a);
             }

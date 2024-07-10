@@ -33,9 +33,6 @@
 #include <nil/blueprint/manifest.hpp>
 #include <nil/blueprint/lookup_library.hpp>
 
-#include <nil/crypto3/hash/type_traits.hpp>
-#include <nil/crypto3/hash/algorithm/hash.hpp>
-
 #include <nil/blueprint/zkevm/memory.hpp>
 #include <nil/blueprint/zkevm/util/bit_tags.hpp>
 #include <nil/blueprint/zkevm/util/chunks16.hpp>
@@ -249,6 +246,7 @@ namespace nil {
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using lookup_constraint_type = crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
+                using integral_type =  boost::multiprecision::number<boost::multiprecision::backends::cpp_int_modular_backend<257>>;
 
                 std::cout << "Generate assignments" << std::endl;
                 std::cout << "Start row index: " << start_row_index << std::endl;
@@ -260,7 +258,7 @@ namespace nil {
                     // Lookup columns
                     assignment.witness(component.W(component_type::OP), start_row_index + i) = rw_trace[i].op;
                     assignment.witness(component.W(component_type::ID), start_row_index + i) = rw_trace[i].id;
-                    assignment.witness(component.W(component_type::ADDRESS), start_row_index + i) = rw_trace[i].address;
+                    assignment.witness(component.W(component_type::ADDRESS), start_row_index + i) = integral_type(rw_trace[i].address);
                     assignment.witness(component.W(component_type::STORAGE_KEY_HI), start_row_index + i) = w_hi<BlueprintFieldType>(rw_trace[i].storage_key);
                     assignment.witness(component.W(component_type::STORAGE_KEY_LO), start_row_index + i) = w_lo<BlueprintFieldType>(rw_trace[i].storage_key);
                     assignment.witness(component.W(component_type::RW_ID), start_row_index + i) = rw_trace[i].rw_id;
@@ -279,15 +277,15 @@ namespace nil {
                     // id
                     mask = 0xffff;
                     mask <<= 16;
-                    assignment.witness(component.W(component_type::CHUNKS[0]), start_row_index + i) = (mask & rw_trace[i].id) >> 16;
+                    assignment.witness(component.W(component_type::CHUNKS[0]), start_row_index + i) = (mask & integral_type(rw_trace[i].id)) >> 16;
                     mask >>= 16;
-                    assignment.witness(component.W(component_type::CHUNKS[1]), start_row_index + i) = (mask & rw_trace[i].id);
+                    assignment.witness(component.W(component_type::CHUNKS[1]), start_row_index + i) = (mask & integral_type(rw_trace[i].id));
 
                     // address
                     mask = 0xffff;
                     mask <<= (16 * 9);
                     for( std::size_t j = 0; j < 10; j++){
-                        assignment.witness(component.W(component_type::CHUNKS[2+j]), start_row_index + i) = (((mask & rw_trace[i].address) >> (16 * (9-j))));
+                        assignment.witness(component.W(component_type::CHUNKS[2+j]), start_row_index + i) = (((mask & integral_type(rw_trace[i].address)) >> (16 * (9-j))));
                         mask >>= 16;
                     }
 
@@ -295,7 +293,7 @@ namespace nil {
                     mask = 0xffff;
                     mask <<= (16 * 15);
                     for( std::size_t j = 0; j < 16; j++){
-                        assignment.witness(component.W(component_type::CHUNKS[12+j]), start_row_index + i) = (((mask & rw_trace[i].storage_key) >> (16 * (15-j))));
+                        assignment.witness(component.W(component_type::CHUNKS[12+j]), start_row_index + i) = (((mask & integral_type(rw_trace[i].storage_key)) >> (16 * (15-j))));
                         mask >>= 16;
                     }
 

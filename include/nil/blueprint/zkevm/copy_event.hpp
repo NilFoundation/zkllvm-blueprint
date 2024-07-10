@@ -206,6 +206,8 @@ namespace nil {
                 std::size_t transaction_id = 0,
                 std::size_t initial_rw_counter = 0
             ){
+                using integral_type = boost::multiprecision::number<boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+
                 boost::property_tree::ptree ptrace = pt.get_child("result.structLogs");
                 boost::property_tree::ptree pstack;
                 boost::property_tree::ptree pmemory;
@@ -339,14 +341,14 @@ namespace nil {
                     } else if(opcode == "CALLDATACOPY") {
                         // 0x37
 //                        exit(2);
-                        std::size_t dst = std::size_t(stack[stack.size()- 1]);
-                        std::size_t src = std::size_t(stack[stack.size()- 2]);
-                        std::size_t length = std::size_t(stack[stack.size() - 3]);
+                        std::size_t dst = std::size_t(integral_type(stack[stack.size()- 1]));
+                        std::size_t src = std::size_t(integral_type(stack[stack.size()- 2]));
+                        std::size_t length = std::size_t(integral_type(stack[stack.size() - 3]));
                         std::cout << "CALLDATACOPY copy event length = " << length << " rw_counter = " << rw_counter << ": ";
                         std::vector<std::uint8_t> bytes;
                         for( std::size_t i = 0; i < length; i++){
                             bytes.push_back(memory_next[dst+i]);
-                            std::cout << std::hex << std::setw(2) << std::setfill('0') << std::size_t(memory_next[dst + i]) << std::dec;
+                            std::cout << std::hex << std::setw(2) << std::setfill('0') << std::size_t(memory_next[std::size_t(integral_type(dst + i))]) << std::dec;
                         }
                         std::cout << std::endl;
                         result.push_back(calldatacopy_event(transaction_id, call_id, src, dst, length, rw_counter, bytes));
@@ -360,7 +362,7 @@ namespace nil {
                         // 0x39
                         std::cout << "CODECOPY event calldata copy!" << std::endl;
                         exit(2);
-                        std::size_t length = std::size_t(stack[stack.size()-3]);
+                        std::size_t length = std::size_t(integral_type(stack[stack.size()-3]));
                         rw_counter += 3 + length;
                         // TODO: add length write operations to memory
                         // Consistency with bytecode table will be checked by bytecode circuit
@@ -372,9 +374,9 @@ namespace nil {
                         rw_counter += 1;
                     } else if(opcode == "EXTCODECOPY") {
                         // 0x3c
-                        std::cout << "EXDCODECOPY event calldata copy!" << std::endl;
+                        std::cout << "EXDCODECOPY event copy!" << std::endl;
                         exit(2);
-                        std::size_t length = std::size_t(stack[stack.size()-3]);
+                        std::size_t length = std::size_t(integral_type(stack[stack.size()-3]));
                         rw_counter += 4 + length;
                         // TODO: add length write operations to memory
                         // Consistency with bytecode table will be checked by bytecode circuit
@@ -383,9 +385,9 @@ namespace nil {
                         rw_counter += 1;
                     } else if(opcode == "RETURNDATACOPY") {
                         // 0x3e
-                        std::cout << "RETURNDATACOPY event calldata copy!" << std::endl;
+                        std::cout << "RETURNDATACOPY event copy!" << std::endl;
                         exit(2);
-                        std::size_t length = std::size_t(stack[stack.size()-3]);
+                        std::size_t length = std::size_t(integral_type(stack[stack.size()-3]));
                         rw_counter += 3 + length;
                         // TODO: add length write operations to memory
                         // Where will consistency check be done?

@@ -35,20 +35,17 @@
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 
 #include <nil/crypto3/hash/keccak.hpp>
-#include <nil/crypto3/random/algebraic_engine.hpp>
 
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
-#include <nil/blueprint/zkevm/memory.hpp>
 #include <nil/blueprint/zkevm/rw.hpp>
 
 #include <nil/crypto3/random/algebraic_random_device.hpp>
 #include <nil/crypto3/random/algebraic_engine.hpp>
 #include <nil/crypto3/algebra/random_element.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include "../test_plonk_component.hpp"
+
 
 using namespace nil;
 
@@ -117,22 +114,22 @@ constexpr static const std::size_t random_tests_amount = 10;
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
     using field_type = typename crypto3::algebra::curves::vesta::base_field_type;
 BOOST_AUTO_TEST_CASE(small_storage_contract){
-    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/small_stack_storage.json", 10000);
+    test_zkevm_rw<field_type, 65>("./test/zkevm/data/small_stack_storage.json", 10000);
 }
 
 BOOST_AUTO_TEST_CASE(mstore8_contract){
-    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/mstore8.json", 10000);
+    test_zkevm_rw<field_type, 65>("./test/zkevm/data/mstore8.json", 10000);
 }
 
 BOOST_AUTO_TEST_CASE(meminit_contract){
-    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/mem_init.json", 10000);
+    test_zkevm_rw<field_type, 65>("./test/zkevm/data/mem_init.json", 10000);
 }
 
 BOOST_AUTO_TEST_CASE(calldatacopy_contract){
-    test_zkevm_rw<field_type, 65>("../libs/blueprint/test/zkevm/data/calldatacopy.json", 10000);
+    test_zkevm_rw<field_type, 65>("./test/zkevm/data/calldatacopy.json", 10000);
 }
-
 BOOST_AUTO_TEST_SUITE_END()
+
 /*
 BOOST_AUTO_TEST_SUITE(blueprint_plonk_pallas_test_suite)
     using field_type = typename crypto3::algebra::curves::pallas::base_field_type;

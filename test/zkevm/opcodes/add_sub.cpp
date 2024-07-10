@@ -22,11 +22,13 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
+#include "nil/crypto3/algebra/fields/pallas/base_field.hpp"
 #define BOOST_TEST_MODULE zkevm_add_test
 
 #include <boost/test/unit_test.hpp>
 
-#include <nil/crypto3/algebra/fields/arithmetic_params/goldilocks64.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
+#include "nil/blueprint/zkevm/zkevm_word.hpp"
 
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
@@ -42,7 +44,7 @@ using namespace nil::crypto3::algebra;
 BOOST_AUTO_TEST_SUITE(zkevm_add_test_suite)
 
 BOOST_AUTO_TEST_CASE(zkevm_add_test) {
-    using field_type = fields::goldilocks64;
+    using field_type = fields::pallas_base_field;
     using arithmentization_type = nil::crypto3::zk::snark::plonk_constraint_system<field_type>;
     using assignment_type = assignment<arithmentization_type>;
     using circuit_type = circuit<arithmentization_type>;
@@ -52,16 +54,16 @@ BOOST_AUTO_TEST_CASE(zkevm_add_test) {
     zkevm_circuit<field_type> zkevm_circuit(assignment, circuit);
     zkevm_machine_type machine = get_empty_machine();
     // incorrect test logic, but we have no memory operations so
-    machine.stack.push(1234567890);
-    machine.stack.push(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
+    machine.stack.push(zwordc(0x1234567890_cppui_modular257));
+    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::ADD, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SUB, machine);
-    machine.stack.push(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
-    machine.stack.push(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
+    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::ADD, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SUB, machine);
-    machine.stack.push(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui256);
-    machine.stack.push(1234567890);
+    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    machine.stack.push(zwordc(0x1234567890_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::ADD, machine);
     zkevm_circuit.assign_opcode(zkevm_opcode::SUB, machine);
     zkevm_circuit.finalize_test();

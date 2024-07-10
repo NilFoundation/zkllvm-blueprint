@@ -49,9 +49,9 @@ namespace nil {
             constexpr static const value_type two_16 = 65536;
             constexpr static const value_type two_32 = 4294967296;
             constexpr static const value_type two_48 = 281474976710656;
-            constexpr static const value_type two_64 = 0x10000000000000000_cppui254;
-            constexpr static const value_type two128 = 0x100000000000000000000000000000000_cppui254;
-            constexpr static const value_type two192 = 0x1000000000000000000000000000000000000000000000000_cppui254;
+            constexpr static const value_type two_64 = 0x10000000000000000_cppui_modular254;
+            constexpr static const value_type two128 = 0x100000000000000000000000000000000_cppui_modular254;
+            constexpr static const value_type two192 = 0x1000000000000000000000000000000000000000000000000_cppui_modular254;
 
             template<typename T, typename V = T>
             T chunk_sum_64(const std::vector<V> &chunks, const unsigned char chunk_idx) const {
