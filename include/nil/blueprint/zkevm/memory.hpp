@@ -36,6 +36,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <nil/blueprint/zkevm/util/ptree.hpp>
+
 namespace nil {
     namespace blueprint {
         constexpr std::uint8_t START_OP = 0;
@@ -137,59 +139,12 @@ namespace nil {
             std::vector<rw_operation> rw_ops;
             std::size_t call_id;
 
-            std::uint8_t char_to_hex(char c) {
-                if (c >= '0' && c <= '9') return c - '0';
-                if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-                if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-                return 0;
-            }
-
-            zkevm_word_type zkevm_word_from_string(std::string val){
-                zkevm_word_type result;
-                for(std::size_t i = 0; i < val.size(); i++ ){
-                    result *= 16;
-                    result += char_to_hex(val[i]);
-                }
-                return result;
-            }
-
-            std::vector<zkevm_word_type> zkevm_word_vector_from_ptree(const boost::property_tree::ptree &ptree){
-                std::vector<zkevm_word_type> result;
-                for(auto it = ptree.begin(); it != ptree.end(); it++){
-                    result.push_back(zkevm_word_from_string(it->second.data()));
-                }
-                return result;
-            }
-
-            std::map<zkevm_word_type, zkevm_word_type> key_value_storage_from_ptree(const boost::property_tree::ptree &ptree){
-                std::map<zkevm_word_type, zkevm_word_type> result;
-//              std::cout << "Storage:" << std::endl;
-                for(auto it = ptree.begin(); it != ptree.end(); it++){
-                    result[zkevm_word_from_string(it->first.data())] = zkevm_word_from_string(it->second.data());
-//                    std::cout << "\t" << it->first.data() << "=>" <<  it->second.data() << std::endl;
-                }
-                return result;
-            }
-
-            std::vector<std::uint8_t> byte_vector_from_ptree(const boost::property_tree::ptree &ptree){
-                std::vector<std::uint8_t> result;
-//                std::cout << "MEMORY words " << ptree.size() << ":";
-                for(auto it = ptree.begin(); it != ptree.end(); it++){
-                    for(std::size_t i = 0; i < it->second.data().size(); i+=2){
-                        std::uint8_t byte = char_to_hex(it->second.data()[i]) * 16 + char_to_hex(it->second.data()[i+1]);
-//                        std::cout << std::hex << std::setw(2) << std::setfill('0') << std::size_t(byte) << " ";
-                        result.push_back(byte);
-                    }
-                }
-//                std::cout << std::endl;
-                return result;
-            }
-
             void append_opcode(
                 std::string opcode,
                 const std::vector<zkevm_word_type> &stack,       // Stack state before operation
                 const std::vector<zkevm_word_type> &stack_next,  // stack state after operation. We need it for correct PUSH and correct SLOAD
                 const std::vector<uint8_t> &memory ,     // Memory state before operation in bytes format
+                const std::vector<uint8_t> &memory_next ,     // Memory state before operation in bytes format
                 const std::map<zkevm_word_type, zkevm_word_type> &storage,// Storage state before operation
                 const std::map<zkevm_word_type, zkevm_word_type> &storage_next// Storage state before operation
             ){
@@ -455,13 +410,20 @@ namespace nil {
                 } else if(opcode == "CALLDATACOPY") {
                     // 0x37
                     std::cout << "Test me, please!" << std::endl;
-                    //exit(2);
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-3, rw_ops.size(), false, stack[stack.size()-3]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-2, rw_ops.size(), false, stack[stack.size()-2]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
                     rw_ops.push_back(stack_operation(call_id,  stack.size()-1, rw_ops.size(), false, stack[stack.size()-1]));
                     std::cout << "\t" << rw_ops[rw_ops.size()-1] << std::endl;
+                    std::size_t length = std::size_t(stack[stack.size()-3]);
+                    auto dest = stack[stack.size()-1];
+                    std::cout << "Length = " << length << std::endl;
+                    std::cout << "Memory_size " << memory.size() << "=>" << memory_next.size() << std::endl;
+                    for( std::size_t i = 0; i < length; i++){
+                        rw_ops.push_back(memory_operation(call_id, dest+i, rw_ops.size(), true, memory_next[std::size_t(dest+i)]));
+                        std::cout << "\t" << rw_ops[rw_ops.size() - 1] << std::endl;
+                    }
                     // TODO: add length read operations to calldata
                     // TODO: add length write operations to memory
                 } else if(opcode == "CODESIZE") {
@@ -1302,6 +1264,7 @@ namespace nil {
 
                 std::vector<zkevm_word_type> stack = zkevm_word_vector_from_ptree(ptrace.begin()->second.get_child("stack"));
                 std::vector<std::uint8_t> memory = byte_vector_from_ptree(ptrace.begin()->second.get_child("memory"));
+                std::vector<std::uint8_t> memory_next;
                 std::vector<zkevm_word_type> stack_next;
                 std::map<zkevm_word_type, zkevm_word_type> storage = key_value_storage_from_ptree(ptrace.begin()->second.get_child("storage"));
                 std::map<zkevm_word_type, zkevm_word_type> storage_next;
@@ -1309,15 +1272,16 @@ namespace nil {
                 rw_ops.push_back(start_operation());
                 for( auto it = ptrace.begin(); it!=ptrace.end(); it++ ){
                     if(std::distance(it, ptrace.end()) == 1)
-                        append_opcode(it->second.get_child("op").data(), stack, {}, memory, storage, storage);
+                        append_opcode(it->second.get_child("op").data(), stack, {}, memory, {}, storage, storage);
                     else{
                         stack_next = zkevm_word_vector_from_ptree(std::next(it)->second.get_child("stack"));
+                        memory_next = byte_vector_from_ptree(std::next(it)->second.get_child("memory"));
                         storage_next = key_value_storage_from_ptree(it->second.get_child("storage"));
-                        append_opcode(it->second.get_child("op").data(), stack, stack_next, memory, storage, storage_next);
-                        memory = byte_vector_from_ptree(std::next(it)->second.get_child("memory"));
+                        append_opcode(it->second.get_child("op").data(), stack, stack_next, memory, memory_next, storage, storage_next);
                     }
                     storage = storage_next;
                     stack = stack_next;
+                    memory = memory_next;
                 }
                 std::sort(rw_ops.begin(), rw_ops.end(), [](rw_operation a, rw_operation b){
                     return a < b;

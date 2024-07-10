@@ -93,5 +93,21 @@ namespace nil {
             }
             return chunks;
         }
+
+        std::uint8_t char_to_hex(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            return 0;
+        }
+
+        zkevm_word_type zkevm_word_from_string(std::string val){
+            zkevm_word_type result;
+            for(std::size_t i = 0; i < val.size(); i++ ){
+                result *= 16;
+                result += char_to_hex(val[i]);
+            }
+            return result;
+        }
     }   // namespace blueprint
 }   // namespace nil

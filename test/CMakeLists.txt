@@ -162,6 +162,7 @@ set(PLONK_TESTS_FILES
     "verifiers/placeholder/verifier"
     "zkevm/bytecode"
     "zkevm/rw"
+    "zkevm/copy"
     )
 
 set(FIELDS_TESTS_FILES

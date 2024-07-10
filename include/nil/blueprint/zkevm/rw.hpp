@@ -65,6 +65,7 @@ namespace nil {
                 static constexpr std::size_t VALUE_HI = 8;
                 static constexpr std::size_t VALUE_LO = 9;
 
+                // Advice columns
                 static constexpr std::size_t OP_SELECTORS_AMOUNT = 4; // index \in {0..31}
                 static constexpr std::array<std::size_t, OP_SELECTORS_AMOUNT> OP_SELECTORS = {10, 11, 12, 13};
 
@@ -109,7 +110,7 @@ namespace nil {
                     }
                 };
 
-                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t max_rw_size = 5000) {
+                static gate_manifest get_gate_manifest(std::size_t witness_amount, std::size_t max_rw_size= 10000) {
                     gate_manifest manifest = gate_manifest(gate_manifest_type());
                     return manifest;
                 }
@@ -122,7 +123,7 @@ namespace nil {
                     return manifest;
                 }
 
-                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t max_rw_size = 5000) {
+                constexpr static std::size_t get_rows_amount(std::size_t witness_amount, std::size_t max_rw_size= 10000) {
                     return max_rw_size;
                 }
 
