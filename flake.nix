@@ -3,45 +3,39 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    nil_crypto3 = {
-      url =
-        "git+https://github.com/NilFoundation/crypto3?submodules=1&rev=1cf64acec2f4022224cb19673854250e08a6d7c3";
+    nil-crypto3 = {
+      url = "github:NilFoundation/crypto3";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, nil_crypto3, flake-utils }:
+  outputs = { self, nixpkgs, nil-crypto3, flake-utils }:
     (flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         stdenv = pkgs.llvmPackages_16.stdenv;
+        crypto3 = nil-crypto3.packages.${system}.default;
       in rec {
         packages = rec {
-          crypto3 = nil_crypto3.packages.${pkgs.system}.default;
           zkllvm-blueprint = stdenv.mkDerivation {
             name = "zkllvm-blueprint";
 
             src = self;
 
-            env.CXXFLAGS = toString ([ "-fPIC" ]);
-
-            buildInputs = with pkgs; [ cmake pkg-config clang_16
-              (boost183.override {
-                enableShared = true;
-                enableStatic = true;
-                enableRelease = true;
-                enableDebug = true;
-              })
+            buildInputs = with pkgs; [
+              cmake
+              pkg-config
+              clang_16
             ];
 
-            # Because crypto3 is header-only, we must propagate it so users
-            # of this flake must not specify crypto3 in their derivations manually
-            propagatedBuildInputs = [ crypto3 ];
+            propagatedBuildInputs = [ crypto3 pkgs.boost183 ];
 
-            cmakeFlags =
-              [ "-DCMAKE_BUILD_TYPE=Release"
-                "-DCMAKE_CXX_STANDARD=17" ];
+            cmakeBuildType = "Release";
+
+            cmakeFlags = [
+              "-DCMAKE_CXX_STANDARD=17"
+            ];
 
             doCheck = false;
           };
@@ -62,7 +56,7 @@
             "blueprint_algebra_fields_plonk_interpolation_test"
             "blueprint_algebra_fields_plonk_non_native_addition_test"
             "blueprint_algebra_fields_plonk_non_native_subtraction_test"
-            #blueprint_algebra_fields_plonk_non_native_multiplication_test, TODO: enable once fixed.
+            "blueprint_algebra_fields_plonk_non_native_multiplication_test"
             "blueprint_algebra_fields_plonk_non_native_range_test"
             "blueprint_algebra_fields_plonk_non_native_reduction_test"
             "blueprint_algebra_fields_plonk_non_native_bit_decomposition_test"
@@ -77,7 +71,7 @@
             "blueprint_algebra_fields_plonk_non_native_division_remainder_test"
             #blueprint_non_native_plonk_scalar_non_native_range_test, TODO: enable once fixed.
             "blueprint_non_native_plonk_bool_scalar_multiplication_test"
-            #blueprint_non_native_plonk_add_mul_zkllvm_compatible_test, TODO: enable once fixed.
+            "blueprint_non_native_plonk_add_mul_zkllvm_compatible_test"
             "blueprint_hashes_plonk_decomposition_test"
             "blueprint_verifiers_placeholder_fri_cosets_test"
             "blueprint_hashes_plonk_sha256_process_test"
@@ -120,12 +114,9 @@
 
         checks = {
           default = stdenv.mkDerivation {
-            # TODO: rewrite this using overrideAttrs on makePackage
             name = "zkllvm-blueprint-tests";
 
             src = self;
-
-            env.CXXFLAGS = toString ([ "-fPIC" ]);
 
             buildInputs = with pkgs; [
               cmake
@@ -133,14 +124,13 @@
               pkg-config
               clang_16
               boost183
-              packages.crypto3
+              crypto3
             ];
 
             cmakeBuildType = "Debug";
 
             cmakeFlags = [
               "-DCMAKE_CXX_STANDARD=17"
-              "-DBUILD_SHARED_LIBS=TRUE"
               "-DCMAKE_ENABLE_TESTS=TRUE"
               "-DCMAKE_C_COMPILER=clang"
               "-DCMAKE_CXX_COMPILER=clang++"
@@ -171,7 +161,7 @@
               boost183
               clang_16
               clang-tools_16
-              packages.crypto3
+              crypto3
             ];
 
             shellHook = ''
@@ -192,9 +182,9 @@
 }
 
 # 1 build crypto 3 locally with the command 'nix build -L .?submodules=1#'
-# 2 redirect to the local build of crypto3: 'nix develop --redirect .#crypto3 /your/path/to/crypto3/result/'
+# 2 use the local source of crypto3: 'nix develop --override-input nil-crypto3 /your/path/to/crypto3 .?submodules=1#'
 # 3a to build all in blueprint: 'nix flake -L check .?submodules=1#' or build all and run tests: nix build -L .?submodules=1#checks.x86_64-linux.default
 # 3b to build individual targets:
-# nix develop . -c cmake -B build -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=FALSE -DCMAKE_ENABLE_TESTS=TRUE -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+# nix develop . -c cmake -B build -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ENABLE_TESTS=TRUE -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 # cd build
 # nix develop ../ -c cmake --build . -t blueprint_verifiers_flexible_constant_pow_test
