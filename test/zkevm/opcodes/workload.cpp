@@ -478,7 +478,7 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
     const std::size_t LookupConstantColumns = 5;
     const std::size_t ComponentSelectorColumns = 3;
     const std::size_t LookupSelectorColumns = 2; // for lookup table packing
-    const std::size_t WitnessColumns = 102;
+    const std::size_t WitnessColumns = 101;
     const std::size_t PublicInputColumns = 0;
 
     const std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;

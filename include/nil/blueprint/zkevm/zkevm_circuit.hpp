@@ -154,9 +154,7 @@ namespace nil {
                 }
                 init_state();
                 init_opcodes();
-//std::cout << "WA = " << assignment.witnesses_amount() << std::endl;
                 assignment.resize_selectors(assignment.selectors_amount() + 2); // for lookup table packing
-//std::cout << "SA = " << assignment.selectors_amount() << std::endl;
             }
 
             void assign_state() {
