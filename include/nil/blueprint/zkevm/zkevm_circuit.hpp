@@ -183,12 +183,18 @@ namespace nil {
                 state.step_selection.value = 1;
                 // state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1; // the initial version of it.
                 // Currently we use max_opcode_height instead of rows_amount()
-                state.rows_until_next_op_inv.value = max_opcode_height - 1 == 0 ?
-                                                     0 : value_type(max_opcode_height - 1).inversed();
-                advance_rows(opcode, max_opcode_height - opcode_it->second->rows_amount(), max_opcode_height - 1);
+
+                std::size_t opcode_height = opcode_it->second->rows_amount();
+
+                // for opcodes with odd height skip one row
+                if (opcode_it->second->rows_amount() % 2) {
+                    state.rows_until_next_op_inv.value = value_type(opcode_height).inversed();
+                    advance_rows(opcode, 1, opcode_height);
+                } else {
+                    state.rows_until_next_op_inv.value = value_type(opcode_height - 1).inversed();
+                }
                 opcode_it->second->generate_assignments(*this, machine);
-                advance_rows(opcode, opcode_it->second->rows_amount(), opcode_it->second->rows_amount() - 1,
-                                                  (max_opcode_height - opcode_it->second->rows_amount()) % 2);
+                advance_rows(opcode, opcode_height, opcode_height - 1, opcode_height % 2);
             }
 
             void advance_rows(const zkevm_opcode opcode, std::size_t rows, std::size_t internal_start_row, std::size_t shift = 0) {
@@ -254,16 +260,16 @@ namespace nil {
             // for opcode constraints at certain row of opcode execution
             // note that rows are counted "backwards", starting from opcode rows amount minus one
             // and ending in zero
-            constraint_type get_opcode_row_constraint(std::size_t row) const {
-                BOOST_ASSERT(row < max_opcode_height);
+            constraint_type get_opcode_row_constraint(std::size_t row, std::size_t opcode_height) const {
+                BOOST_ASSERT(row < opcode_height);
 
                 var height_var = opcode_row_selector->option_variable();
                 var height_var_inv = state.rows_until_next_op_inv.variable();
                 // ordering here is important: minimising the degree when possible
-                if (row == max_opcode_height - 1) {
+                if (row == opcode_height - 1) {
                     return state.step_selection.variable();
                 }
-                if (row == max_opcode_height - 2) {
+                if (row == opcode_height - 2) {
                     return state.step_selection.variable(-1);
                 }
                 if (row == 0) {
@@ -459,16 +465,18 @@ namespace nil {
                     if (opcode_height > max_opcode_height) {
                         BOOST_ASSERT("Opcode height exceeds maximum, please update max_opcode_height constant.");
                     }
+                    // force opcode height to be always even
+                    std::size_t adj_opcode_height = opcode_height + (opcode_height % 2);
 
                     std::size_t opcode_num = opcodes_info_instance.get_opcode_number(opcode_it.first);
                     auto // curr_opt_constraint = state_selector->option_constraint(opcode_num),
                          curr_opt_constraint_even = state_selector->option_constraint_even(opcode_num),
                          curr_opt_constraint_odd = state_selector->option_constraint_odd(opcode_num);
-                    // force max height to be proper value at the start of the opcode
+                    // force height to be proper value at the start of the opcode
                     middle_constraints.push_back(
-                        curr_opt_constraint_odd * (opcode_row_selector->option_variable() - (max_opcode_height - 1)) *
+                        curr_opt_constraint_odd * (opcode_row_selector->option_variable() - (adj_opcode_height - 1)) *
                         state.step_selection.variable());
-                    // curr_opt_constraint is in _odd_ version here because max_opcode_height-1 is odd
+                    // curr_opt_constraint is in _odd_ version because total adj_opcode_height-1 is always odd
 
                     auto opcode_gates = opcode_it.second->generate_gates(*this);
                     for (auto gate_it : opcode_gates) {
@@ -478,11 +486,12 @@ namespace nil {
                                     std::size_t local_row = constraint_pair.first;
                                     constraint_type curr_opt_constraint =
                                         (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
-                                    constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
+                                    constraint_type constraint = get_opcode_row_constraint(local_row, adj_opcode_height)
+                                                                     * constraint_pair.second;
 
                                     constraint_list[gate_id_type(constraint_pair.second)] = constraint_pair.second;
                                     virtual_selector[gate_id_type(constraint_pair.second)] +=
-                                        get_opcode_row_constraint(local_row) * curr_opt_constraint * start_selector;
+                                        get_opcode_row_constraint(local_row, adj_opcode_height) * curr_opt_constraint * start_selector;
                                 }
                                 for (auto lookup_constraint_pair : gate_it.second.second) {
                                     std::size_t local_row = lookup_constraint_pair.first;
@@ -491,7 +500,7 @@ namespace nil {
                                     lookup_constraint_type lookup_constraint = lookup_constraint_pair.second;
                                     auto lookup_table = lookup_constraint.table_id;
                                     auto lookup_expressions = lookup_constraint.lookup_input;
-                                    constraint_type row_selector = get_opcode_row_constraint(local_row);
+                                    constraint_type row_selector = get_opcode_row_constraint(local_row, adj_opcode_height);
                                     std::vector<constraint_type> new_lookup_expressions;
 
                                     for(auto lookup_expr : lookup_expressions) {
@@ -505,11 +514,12 @@ namespace nil {
                                     std::size_t local_row = constraint_pair.first;
                                     constraint_type curr_opt_constraint =
                                         (local_row % 2 == 0) ? curr_opt_constraint_even : curr_opt_constraint_odd;
-                                    constraint_type constraint = get_opcode_row_constraint(local_row) * constraint_pair.second;
+                                    constraint_type constraint = get_opcode_row_constraint(local_row, adj_opcode_height)
+                                                                    * constraint_pair.second;
 
                                     constraint_list[gate_id_type(constraint_pair.second)] = constraint_pair.second;
                                     virtual_selector[gate_id_type(constraint_pair.second)] +=
-                                        get_opcode_row_constraint(local_row) * curr_opt_constraint;
+                                        get_opcode_row_constraint(local_row, adj_opcode_height) * curr_opt_constraint;
                                 }
                                 for (auto lookup_constraint_pair : gate_it.second.second) {
                                     std::size_t local_row = lookup_constraint_pair.first;
@@ -518,7 +528,7 @@ namespace nil {
                                     lookup_constraint_type lookup_constraint = lookup_constraint_pair.second;
                                     auto lookup_table = lookup_constraint.table_id;
                                     auto lookup_expressions = lookup_constraint.lookup_input;
-                                    constraint_type row_selector = get_opcode_row_constraint(local_row);
+                                    constraint_type row_selector = get_opcode_row_constraint(local_row, adj_opcode_height);
                                     std::vector<constraint_type> new_lookup_expressions;
 
                                     for(auto lookup_expr : lookup_expressions) {
