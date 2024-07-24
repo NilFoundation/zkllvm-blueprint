@@ -103,8 +103,7 @@ namespace nil {
             #undef X
             // variables which have generic transition rules and are not handled via
             // state transition mechanism
-            state_var_type step_selection;
-            state_var_type rows_until_next_op;
+            state_var_type step_selection; // 1 in first line of new opcode, 0 otherwise
             state_var_type rows_until_next_op_inv;
             state_var_type last_row_indicator;
 
@@ -113,7 +112,6 @@ namespace nil {
                 zkevm_STATE_LIST_FOR_TRANSITIONS(X)
                 #undef X
                 step_selection.assign_value(assignment, row);
-                rows_until_next_op.assign_value(assignment, row);
                 rows_until_next_op_inv.assign_value(assignment, row);
             }
         };

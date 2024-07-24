@@ -170,7 +170,7 @@ namespace nil {
 
             void finalize() {
                 BOOST_ASSERT_MSG(curr_row != 0, "Row underflow in finalization");
-                // assignment.enable_selector(end_selector, curr_row - 1);
+                assignment.enable_selector(end_selector, curr_row);
                 assignment.witness(state.last_row_indicator.selector, curr_row - 1) = 1;
             }
 
@@ -181,28 +181,31 @@ namespace nil {
                 }
                 // state management
                 state.step_selection.value = 1;
-                // state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1;
-                state.rows_until_next_op.value = max_opcode_height - 1;
-                state.rows_until_next_op_inv.value =
-                    state.rows_until_next_op.value == 0 ? 0 : state.rows_until_next_op.value.inversed();
-                advance_rows(opcode, max_opcode_height - opcode_it->second->rows_amount());
+                // state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1; // the initial version of it.
+                // Currently we use max_opcode_height instead of rows_amount()
+                state.rows_until_next_op_inv.value = max_opcode_height - 1 == 0 ?
+                                                     0 : value_type(max_opcode_height - 1).inversed();
+                advance_rows(opcode, max_opcode_height - opcode_it->second->rows_amount(), max_opcode_height - 1);
                 opcode_it->second->generate_assignments(*this, machine);
-                advance_rows(opcode, opcode_it->second->rows_amount(), (max_opcode_height - opcode_it->second->rows_amount()) % 2);
+                advance_rows(opcode, opcode_it->second->rows_amount(), opcode_it->second->rows_amount() - 1,
+                                                  (max_opcode_height - opcode_it->second->rows_amount()) % 2);
             }
 
-            void advance_rows(const zkevm_opcode opcode, std::size_t rows, std::size_t shift = 0) {
+            void advance_rows(const zkevm_opcode opcode, std::size_t rows, std::size_t internal_start_row, std::size_t shift = 0) {
+                std::size_t current_internal_row = internal_start_row;
+
                 assignment.enable_selector(middle_selector, curr_row, curr_row + rows - 1);
                 // TODO: figure out what is going to happen on state change
-                value_type opcode_val = opcodes_info_instance.get_opcode_value(opcode);
+                value_type opcode_num = opcodes_info_instance.get_opcode_number(opcode);
                 for (std::size_t i = 0 + shift; i < rows + shift; i++) {
                     if (i % state_selector->rows_amount == 0) {
                         // TODO: switch to real bytecode
-                        assignment.witness(state_selector->W(0), curr_row) = opcode_val;
+                        assignment.witness(state_selector->W(0), curr_row) = opcode_num;
                         components::generate_assignments(
                             *state_selector, assignment,
                             {var(state_selector->W(0), curr_row, false, var::column_type::witness)}, curr_row);
                     }
-                    assignment.witness(opcode_row_selector->W(0), curr_row) = state.rows_until_next_op.value;
+                    assignment.witness(opcode_row_selector->W(0), curr_row) = current_internal_row;
                     components::generate_assignments(
                         *opcode_row_selector, assignment,
                         {var(opcode_row_selector->W(0), curr_row, false, var::column_type::witness)}, curr_row);
@@ -210,10 +213,12 @@ namespace nil {
                     if (i == 0) {
                         state.step_selection.value = 0;
                     }
-                    assignment.witness(state_selector->W(0), curr_row) = opcode_val;
-                    state.rows_until_next_op.value = state.rows_until_next_op.value - 1;
-                    state.rows_until_next_op_inv.value = state.rows_until_next_op.value == 0 ?
-                        0 : state.rows_until_next_op.value.inversed();
+                    assignment.witness(state_selector->W(0), curr_row) = opcode_num;
+
+                    current_internal_row--;
+                    state.rows_until_next_op_inv.value = current_internal_row == 0 ?
+                        0 : value_type(current_internal_row).inversed();
+
                     curr_row++;
                 }
             }
@@ -251,7 +256,8 @@ namespace nil {
             // and ending in zero
             constraint_type get_opcode_row_constraint(std::size_t row) const {
                 BOOST_ASSERT(row < max_opcode_height);
-                var height_var = state.rows_until_next_op.variable();
+
+                var height_var = opcode_row_selector->option_variable();
                 var height_var_inv = state.rows_until_next_op_inv.variable();
                 // ordering here is important: minimising the degree when possible
                 if (row == max_opcode_height - 1) {
@@ -277,8 +283,6 @@ namespace nil {
                    sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 0);
                 state.curr_gas = state_var_type(
                    sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 0);
-                state.rows_until_next_op = state_var_type(
-                   sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 0);
                 state.rows_until_next_op_inv = state_var_type(
                    sel_manager.allocate_witess_column(), state_var_type::column_type::witness, 0);
                 state.step_selection = state_var_type(
@@ -293,9 +297,10 @@ namespace nil {
             ) {
                 std::vector<constraint_type> constraints;
 
-                auto rows_until_next_op_var = state.rows_until_next_op.variable();
-                auto rows_until_next_op_prev_var = state.rows_until_next_op.variable(-1);
-                auto rows_until_next_op_next_var = state.rows_until_next_op.variable(+1);
+                auto rows_until_next_op_var = opcode_row_selector->option_variable(0);
+                auto rows_until_next_op_prev_var = opcode_row_selector->option_variable(-1);
+                auto rows_until_next_op_next_var = opcode_row_selector->option_variable(+1);
+
                 auto rows_until_next_op_inv_var = state.rows_until_next_op_inv.variable();
                 auto rows_until_next_op_inv_prev_var = state.rows_until_next_op_inv.variable(-1);
                 auto step_selection_var = state.step_selection.variable();
@@ -322,7 +327,7 @@ namespace nil {
                 // or we are at the end of the circuit
                 auto partial_state_transition_constraints = generate_transition_constraints(
                     state, generate_frozen_state_transition());
-                // TODO: the problematic constraints are here \/ \/ \/
+                // the initially problematic constraints are here \/ \/ \/
                 for (auto constraint : partial_state_transition_constraints) {
                     constraints.push_back(
                         (1 - last_row_indicator_var) *
@@ -370,11 +375,19 @@ namespace nil {
 
                 std::vector<lookup_constraint_type> middle_lookup_constraints;
 
-                // first step is step selection
-                first_constraints.push_back(state.step_selection.variable() - 1);
+                first_constraints.push_back(state.stack_size.variable()); // stack size at start is 0.
+                                                                          // NB: no need for range checks before first real transition,
+                                                                          // it's all ensured by "frozen" transition constraints.
+                first_constraints.push_back(state.step_selection.variable() - 1); // first step is step selection
                 start_selector = sel_manager.add_gate(first_constraints);
-                // TODO: proper end constraints
+
                 middle_constraints.push_back(state.last_row_indicator.variable(-1));
+                // ensure that stack_size is always between 0 and max_stack_size.
+                // This allows simpler transitions of stack size without the need to control validity of updated stack size
+                middle_lookup_constraints.push_back({range_check_table_index, { state.stack_size.variable() } });
+                middle_lookup_constraints.push_back({range_check_table_index, { state.stack_size.variable() + 65535 - max_stack_size } });
+
+                // TODO: proper end constraints
                 last_constraints.push_back(state.last_row_indicator.variable(-1) - 1);
                 end_selector = circuit.add_gate(last_constraints);
 
@@ -428,7 +441,6 @@ namespace nil {
 
                 auto generic_state_transition_constraints = generate_generic_transition_constraints(
                     start_selector, end_selector);
-                // TODO : the problematic constraints that prevent proof verification \/ \/ \/
                 middle_constraints.insert(middle_constraints.end(), generic_state_transition_constraints.begin(),
                                           generic_state_transition_constraints.end());
 
@@ -448,13 +460,13 @@ namespace nil {
                         BOOST_ASSERT("Opcode height exceeds maximum, please update max_opcode_height constant.");
                     }
 
-                    std::size_t opcode_num = opcodes_info_instance.get_opcode_value(opcode_it.first);
+                    std::size_t opcode_num = opcodes_info_instance.get_opcode_number(opcode_it.first);
                     auto // curr_opt_constraint = state_selector->option_constraint(opcode_num),
                          curr_opt_constraint_even = state_selector->option_constraint_even(opcode_num),
                          curr_opt_constraint_odd = state_selector->option_constraint_odd(opcode_num);
                     // force max height to be proper value at the start of the opcode
                     middle_constraints.push_back(
-                        curr_opt_constraint_odd * (state.rows_until_next_op.variable() - (max_opcode_height - 1)) *
+                        curr_opt_constraint_odd * (opcode_row_selector->option_variable() - (max_opcode_height - 1)) *
                         state.step_selection.variable());
                     // curr_opt_constraint is in _odd_ version here because max_opcode_height-1 is odd
 
@@ -577,9 +589,12 @@ namespace nil {
             static const std::size_t opcode_other_cols_amount = 16;
             static const std::size_t max_opcode_cols = opcode_range_checked_cols_amount + opcode_other_cols_amount;
             static const std::size_t max_opcode_height = 8;
+            static const std::size_t max_stack_size = 1024;
         };
         template<typename BlueprintFieldType>
         const std::size_t zkevm_circuit<BlueprintFieldType>::max_opcode_height;
+        template<typename BlueprintFieldType>
+        const std::size_t zkevm_circuit<BlueprintFieldType>::max_stack_size;
 
     }   // namespace blueprint
 }   // namespace nil

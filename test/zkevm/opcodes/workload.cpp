@@ -431,7 +431,8 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
         zkevm_opcode::DIV, zkevm_opcode::MOD, zkevm_opcode::SDIV, zkevm_opcode::SMOD, zkevm_opcode::ISZERO,
         zkevm_opcode::ADDMOD, zkevm_opcode::MULMOD, zkevm_opcode::MUL, zkevm_opcode::NOT};
     const std::size_t num_of_opcodes = implemented_opcodes.size(),
-                      workload = 65535;
+//                      workload = 65535;
+                      workload = 1023;
 
     std::shared_ptr<assignment_type> assignment = std::make_shared<assignment_type>(0, 0, 0, 0);
 
@@ -517,8 +518,8 @@ std::cout << "Our circuit has " << circuit->num_gates() << " gates" << std::endl
         circuit_proxy, assignment_proxy, false, 0, ocircuit);
     ocircuit.close();
 
-//    nil::crypto3::zk::snark::basic_padding(*assignment);
-//    BOOST_ASSERT(is_satisfied(*circuit, *assignment) == true);
+    nil::crypto3::zk::snark::basic_padding(*assignment);
+    BOOST_ASSERT(is_satisfied(*circuit, *assignment) == true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
