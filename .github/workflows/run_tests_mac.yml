@@ -1,0 +1,64 @@
+name: Run mac tests
+
+on:
+  workflow_call:
+    inputs:
+      submodules-refs:
+        type: string
+        description: "Lines with submodules' repo names and refs (e.g. `org/repo: ref`)"
+        required: false
+
+env:
+  LIB_NAME: "blueprint"
+  CACHE_NAME: "blueprint-job-cache"
+  TESTS_ARTIFACT_NAME: "test-results-mac"
+
+jobs:
+  build-and-test:
+    name: "Build and test macOS"
+    runs-on: [macos-14]
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Blueprint
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Checkout submodules to specified refs
+        if: inputs.submodules-refs != ''
+        uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.2.1
+        with:
+          refs: ${{ inputs.submodules-refs }}
+          paths: |
+            ${{ github.workspace }}/**
+            !${{ github.workspace }}/
+            !${{ github.workspace }}/**/.git/**
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
+      # nix is taken from the cloud-init template, no need to install it.
+      - name: Build and run tests
+        run: |
+          nix build -L .?submodules=1#checks.aarch64-darwin.default
+          results_dir="./results"
+          mkdir -p "$results_dir"
+          cp -r ./result/* "$results_dir/all-checks"
+          rm -rf result
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action/linux@v2
+        with:
+          check_name: "Mac Test Results"
+          files: "results/**/*.xml"
+          comment_mode: ${{ github.event.pull_request.head.repo.fork && 'off' || 'always' }} # Don't create PR comment from fork runs
+          action_fail_on_inconclusive: true # fail, if no reports
+          action_fail: true
+      - name: 'Upload Artifacts'
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-results
+          path: "results/**/*.xml"
+          retention-days: 5
+          if-no-files-found: error
+          overwrite: true

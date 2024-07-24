@@ -1,31 +1,21 @@
-name: Run tests
+name: Run linux tests
 
 on:
-  # Triggers the workflow on pull request events but only for the master branch
-  pull_request:
-    branches: [ master ]
-  push:
-    branches: [ master ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      submodules-refs:
+        type: string
+        description: "Lines with submodules' repo names and refs (e.g. `org/repo: ref`)"
+        required: false
 
 env:
-  SUITE_REPO: "NilFoundation/crypto3"
   LIB_NAME: "blueprint"
   CACHE_NAME: "blueprint-job-cache"
+  TESTS_ARTIFACT_NAME: "test-results-linux"
 
 jobs:
-  handle-syncwith:
-    if: github.event_name == 'pull_request'
-    name: Call Reusable SyncWith Handler
-    uses: NilFoundation/ci-cd/.github/workflows/reusable-handle-syncwith.yml@v1
-    with:
-      ci-cd-ref: 'v1'
-    secrets: inherit
-
   build-and-test:
-    needs: [ handle-syncwith ]
+    name: "Build and test Linux"
     runs-on: ["self-hosted", "aws_autoscaling"]
     strategy:
       fail-fast: false
@@ -33,7 +23,6 @@ jobs:
       # https://github.com/actions/checkout/issues/1552
       - name: Clean up after previous checkout
         run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
-
       - name: Checkout Blueprint
         uses: actions/checkout@v4
         with:
