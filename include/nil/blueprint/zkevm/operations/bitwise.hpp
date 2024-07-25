@@ -131,9 +131,11 @@ namespace nil {
                     assignment.witness(witness_cols[2*i+1], curr_row + 2) = integral_type(r_chunks[i].data) / 256;
                 }
 
-                // reset the machine state; hope that we won't have to do this manually
+                /*
                 stack.push(b);
                 stack.push(a);
+                */
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

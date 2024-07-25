@@ -371,9 +371,9 @@ namespace nil {
                     }
                 }
 
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(b);
-                stack.push(a);
+                // stack.push(b);
+                // stack.push(a);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

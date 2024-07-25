@@ -1,5 +1,4 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
 // Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
@@ -307,9 +306,10 @@ namespace nil {
                     assignment.witness(witness_cols[i + chunk_amount + 5], curr_row + 3) = c_3_chunks[i];
                 }
                 assignment.witness(witness_cols[chunk_amount + 9], curr_row + 3) = c_4;
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(input_b);
-                stack.push(a);
+
+                // stack.push(input_b);
+                // stack.push(a);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

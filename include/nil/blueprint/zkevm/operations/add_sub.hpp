@@ -159,12 +159,14 @@ namespace nil {
                 }
                 carry = (carry + a_chunks[3 * (carry_amount - 1)] + b_chunks[3 * (carry_amount - 1)]) >= two_16;
                 assignment.witness(witness_cols[a_chunks.size() + carry_amount - 1], curr_row + 2) = carry;
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(b);
+
+                // stack.push(b);
                 if (is_add) {
-                    stack.push(a);
-                } else {
                     stack.push(result);
+                    //stack.push(a);
+                } else {
+                    stack.push(a);
+                    //stack.push(result);
                 }
             }
 

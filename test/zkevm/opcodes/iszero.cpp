@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
+// Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
 //
@@ -51,10 +52,9 @@ BOOST_AUTO_TEST_CASE(zkevm_iszero_test) {
     circuit_type circuit;
     zkevm_circuit<field_type> zkevm_circuit(assignment, circuit);
     zkevm_machine_type machine = get_empty_machine();
-    // incorrect test logic, but we have no memory operations so
-    machine.stack.push(1234567890);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 1234567890);
     zkevm_circuit.assign_opcode(zkevm_opcode::ISZERO, machine);
-    machine.stack.push(0);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 0);
     zkevm_circuit.assign_opcode(zkevm_opcode::ISZERO, machine);
     zkevm_circuit.finalize_test();
     // assignment.export_table(std::cout);

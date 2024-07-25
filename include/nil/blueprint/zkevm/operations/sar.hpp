@@ -1,5 +1,4 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
 // Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
@@ -594,9 +593,9 @@ namespace nil {
                     assignment.witness(witness_cols[2*chunk_amount + i], curr_row + 6) = (b0pp - i).is_zero()? 0 : (b0pp - i).inversed();
                 }
 
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(input_b);
-                stack.push(input_a);
+                // stack.push(input_b);
+                // stack.push(input_a);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

@@ -39,6 +39,7 @@
 #include <nil/blueprint/zkevm/state.hpp>
 #include <nil/blueprint/zkevm/state_selector.hpp>
 #include <nil/blueprint/zkevm/zkevm_opcodes.hpp>
+#include <nil/blueprint/zkevm/zkevm_word.hpp>
 
 #include <nil/blueprint/zkevm/operations/iszero.hpp>
 #include <nil/blueprint/zkevm/operations/add_sub.hpp>
@@ -55,6 +56,7 @@
 #include <nil/blueprint/zkevm/operations/sar.hpp>
 #include <nil/blueprint/zkevm/operations/addmod.hpp>
 #include <nil/blueprint/zkevm/operations/mulmod.hpp>
+#include <nil/blueprint/zkevm/operations/pushx.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -174,7 +176,7 @@ namespace nil {
                 assignment.witness(state.last_row_indicator.selector, curr_row - 1) = 1;
             }
 
-            void assign_opcode(const zkevm_opcode opcode, zkevm_machine_interface &machine) {
+            void assign_opcode(const zkevm_opcode opcode, zkevm_machine_interface &machine, zkevm_word_type bytecode_input = 0) {
                 auto opcode_it = opcodes.find(opcode);
                 if (opcode_it == opcodes.end()) {
                     BOOST_ASSERT_MSG(false, (std::string("Unimplemented opcode: ") + opcode_to_string(opcode)) != "");
@@ -193,7 +195,22 @@ namespace nil {
                 } else {
                     state.rows_until_next_op_inv.value = value_type(opcode_height - 1).inversed();
                 }
-                opcode_it->second->generate_assignments(*this, machine);
+                std::set<zkevm_opcode> push_opcodes = { zkevm_opcode::PUSH0, zkevm_opcode::PUSH1, zkevm_opcode::PUSH2,
+                 zkevm_opcode::PUSH3, zkevm_opcode::PUSH4, zkevm_opcode::PUSH5, zkevm_opcode::PUSH6, zkevm_opcode::PUSH7,
+                 zkevm_opcode::PUSH8, zkevm_opcode::PUSH9, zkevm_opcode::PUSH10, zkevm_opcode::PUSH11, zkevm_opcode::PUSH12,
+                 zkevm_opcode::PUSH13, zkevm_opcode::PUSH14, zkevm_opcode::PUSH15, zkevm_opcode::PUSH16, zkevm_opcode::PUSH17,
+                 zkevm_opcode::PUSH18, zkevm_opcode::PUSH19, zkevm_opcode::PUSH20, zkevm_opcode::PUSH21, zkevm_opcode::PUSH22,
+                 zkevm_opcode::PUSH23, zkevm_opcode::PUSH24, zkevm_opcode::PUSH25, zkevm_opcode::PUSH26, zkevm_opcode::PUSH27,
+                 zkevm_opcode::PUSH28, zkevm_opcode::PUSH29, zkevm_opcode::PUSH30, zkevm_opcode::PUSH31, zkevm_opcode::PUSH32
+                };
+                if (push_opcodes.find(opcode) == push_opcodes.end()) {
+                    opcode_it->second->generate_assignments(*this, machine);
+                } else {
+                    // for push opcodes we use the additional argument
+                    using pushx_op_type = zkevm_pushx_operation<BlueprintFieldType>;
+                    auto pushx_implementation = std::static_pointer_cast<pushx_op_type>(opcode_it->second);
+                    pushx_implementation->generate_assignments(*this, machine, bytecode_input);
+                }
                 advance_rows(opcode, opcode_height, opcode_height - 1, opcode_height % 2);
             }
 
@@ -372,6 +389,40 @@ namespace nil {
                 opcodes[zkevm_opcode::SHL] = std::make_shared<zkevm_shl_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::SHR] = std::make_shared<zkevm_shr_operation<BlueprintFieldType>>();
                 opcodes[zkevm_opcode::SAR] = std::make_shared<zkevm_sar_operation<BlueprintFieldType>>();
+
+                opcodes[zkevm_opcode::PUSH0] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(0);
+                opcodes[zkevm_opcode::PUSH1] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(1);
+                opcodes[zkevm_opcode::PUSH2] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(2);
+                opcodes[zkevm_opcode::PUSH3] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(3);
+                opcodes[zkevm_opcode::PUSH4] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(4);
+                opcodes[zkevm_opcode::PUSH5] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(5);
+                opcodes[zkevm_opcode::PUSH6] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(6);
+                opcodes[zkevm_opcode::PUSH7] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(7);
+                opcodes[zkevm_opcode::PUSH8] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(8);
+                opcodes[zkevm_opcode::PUSH9] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(9);
+                opcodes[zkevm_opcode::PUSH10] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(10);
+                opcodes[zkevm_opcode::PUSH11] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(11);
+                opcodes[zkevm_opcode::PUSH12] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(12);
+                opcodes[zkevm_opcode::PUSH13] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(13);
+                opcodes[zkevm_opcode::PUSH14] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(14);
+                opcodes[zkevm_opcode::PUSH15] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(15);
+                opcodes[zkevm_opcode::PUSH16] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(16);
+                opcodes[zkevm_opcode::PUSH17] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(17);
+                opcodes[zkevm_opcode::PUSH18] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(18);
+                opcodes[zkevm_opcode::PUSH19] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(19);
+                opcodes[zkevm_opcode::PUSH20] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(20);
+                opcodes[zkevm_opcode::PUSH21] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(21);
+                opcodes[zkevm_opcode::PUSH22] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(22);
+                opcodes[zkevm_opcode::PUSH23] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(23);
+                opcodes[zkevm_opcode::PUSH24] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(24);
+                opcodes[zkevm_opcode::PUSH25] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(25);
+                opcodes[zkevm_opcode::PUSH26] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(26);
+                opcodes[zkevm_opcode::PUSH27] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(27);
+                opcodes[zkevm_opcode::PUSH28] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(28);
+                opcodes[zkevm_opcode::PUSH29] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(29);
+                opcodes[zkevm_opcode::PUSH30] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(30);
+                opcodes[zkevm_opcode::PUSH31] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(31);
+                opcodes[zkevm_opcode::PUSH32] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(32);
 
                 const std::size_t range_check_table_index = this->get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 

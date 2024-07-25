@@ -146,8 +146,7 @@ namespace nil {
                 carry = (carry + a_chunks[3 * (carry_amount - 1)] + b_chunks[3 * (carry_amount - 1)]) >= two_16;
                 assignment.witness(witness_cols[a_chunks.size() + carry_amount - 1], curr_row + 1) = carry;
 
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(a);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

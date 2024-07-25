@@ -52,35 +52,53 @@ BOOST_AUTO_TEST_CASE(zkevm_mod_ops_test) {
     zkevm_circuit<field_type> zkevm_circuit(assignment, circuit);
     zkevm_machine_type machine = get_empty_machine();
     // incorrect test logic, but we have no memory operations so
-    machine.stack.push(0); // N
-    machine.stack.push(zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
-    machine.stack.push(2); // a
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 0); // N
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 2); // a
     zkevm_circuit.assign_opcode(zkevm_opcode::ADDMOD, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 0); // N
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 2); // a
     zkevm_circuit.assign_opcode(zkevm_opcode::MULMOD, machine);
-    machine.stack.push(1); // N
-    machine.stack.push(zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
-    machine.stack.push(2); // a
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 1); // N
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 2); // a
     zkevm_circuit.assign_opcode(zkevm_opcode::ADDMOD, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 1); // N
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 2); // a
     zkevm_circuit.assign_opcode(zkevm_opcode::MULMOD, machine);
-    machine.stack.push(3); // N
-    machine.stack.push(zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
-    machine.stack.push(2); // a
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 3); // N
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 2); // a
     zkevm_circuit.assign_opcode(zkevm_opcode::ADDMOD, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 3); // N
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257)); // b
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, 2); // a
     zkevm_circuit.assign_opcode(zkevm_opcode::MULMOD, machine);
-    machine.stack.push(zwordc(0x1234567890_cppui_modular257));
-    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
-    machine.stack.push(zwordc(0x12b8f010425938504d73ebc8801e2e0161b70726fb8d3a24da9ff9647225a184_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1234567890_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x12b8f010425938504d73ebc8801e2e0161b70726fb8d3a24da9ff9647225a184_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::ADDMOD, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1234567890_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x12b8f010425938504d73ebc8801e2e0161b70726fb8d3a24da9ff9647225a184_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::MULMOD, machine);
-    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
-    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
-    machine.stack.push(zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::ADDMOD, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::MULMOD, machine);
-    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
-    machine.stack.push(zwordc(0x1234567890_cppui_modular257));
-    machine.stack.push(zwordc(0x6789012345_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1234567890_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x6789012345_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::ADDMOD, machine);
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1234567890_cppui_modular257));
+    zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x6789012345_cppui_modular257));
     zkevm_circuit.assign_opcode(zkevm_opcode::MULMOD, machine);
     zkevm_circuit.finalize_test();
     // assignment.export_table(std::cout);

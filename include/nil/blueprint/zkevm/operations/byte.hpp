@@ -141,11 +141,9 @@ namespace nil {
                                                            // +1 because integral_type is 257 bits long
                              xpp = xn % 256,
                              xp = (xn - xpp) / 256;
-//                             b = (parity == 0) ? xp : xpp;
 
                 const std::vector<value_type> i_chunks = zkevm_word_to_field_element<BlueprintFieldType>(i);
                 const std::vector<value_type> x_chunks = zkevm_word_to_field_element<BlueprintFieldType>(x);
-//                const std::vector<value_type> r_chunks = zkevm_word_to_field_element<BlueprintFieldType>(result);
 
                 size_t chunk_amount = i_chunks.size();
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
@@ -156,7 +154,6 @@ namespace nil {
                 for(std::size_t j = 0; j < chunk_amount; j++) {
                     assignment.witness(witness_cols[j], curr_row) = i_chunks[j];
                     assignment.witness(witness_cols[j], curr_row + 1) = x_chunks[j];
-//                    assignment.witness(witness_cols[chunk_amount + j], curr_row + 1) = r_chunks[j];
 
                     value_type cur_j = j,
                                val_n = n,
@@ -178,9 +175,9 @@ namespace nil {
                 assignment.witness(witness_cols[chunk_amount + 6], curr_row) = xpp;
                 assignment.witness(witness_cols[chunk_amount + 7], curr_row) = static_cast<value_type>(integral_type(result));
 
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(x);
-                stack.push(i);
+                // stack.push(x);
+                // stack.push(i);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

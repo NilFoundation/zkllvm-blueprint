@@ -203,9 +203,9 @@ namespace nil {
                 }
                 assignment.witness(witness_cols[chunk_amount], curr_row + 2) = c_2;
                 assignment.witness(witness_cols[1 + chunk_amount], curr_row + 2) = c_4;
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(b);
-                stack.push(a);
+                //stack.push(b);
+                //stack.push(a);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

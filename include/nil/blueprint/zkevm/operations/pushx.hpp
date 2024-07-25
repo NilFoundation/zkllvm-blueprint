@@ -1,5 +1,4 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
 // Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
@@ -35,7 +34,7 @@ namespace nil {
     namespace blueprint {
 
         template<typename BlueprintFieldType>
-        class zkevm_iszero_operation : public zkevm_operation<BlueprintFieldType> {
+        class zkevm_pushx_operation : public zkevm_operation<BlueprintFieldType> {
         public:
             using op_type = zkevm_operation<BlueprintFieldType>;
             using gate_class = typename op_type::gate_class;
@@ -46,7 +45,11 @@ namespace nil {
             using value_type = typename BlueprintFieldType::value_type;
             using var = typename op_type::var;
 
-            zkevm_iszero_operation() = default;
+            zkevm_pushx_operation(std::size_t _x) : byte_count(_x) {
+                BOOST_ASSERT(_x < 33); // the maximum push is 32 bytes
+            }
+
+            std::size_t byte_count;
 
             std::map<gate_class, std::pair<
                 std::vector<std::pair<std::size_t, constraint_type>>,
@@ -63,30 +66,32 @@ namespace nil {
                 };
 
                 // Table layout                                             Row #
-                // +------------------+-+----------------+---+--------------+
-                // |        a         |r|                |1/A|              | 0
-                // +------------------+-+----------------+---+--------------+
+                // +---------+--------+------------------+------------------+
+                // |  bytes  |00000000|                  |                  | 0
+                // +---------+--------+------------------+------------------+
 
                 std::size_t position = 0;
 
-//std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << std::endl;
+                // this will need dynamic lookups into bytecode and memory circuits, but for now we just check
+                // that all chunks after ]byte_count/2[ are 0
 
-                constraint_type chunk_sum;
-
-                for (std::size_t i = 0; i < chunk_amount; i++) {
-                    chunk_sum += var_gen(i);
+                for(std::size_t i = (byte_count + 1)/2; i < chunk_amount; i++) {
+                    constraints.push_back({position, var_gen(i)});
                 }
-                var result = var_gen(chunk_amount);
-                var chunk_sum_inverse = var_gen(2*chunk_amount);
-                constraints.push_back({position, (chunk_sum * chunk_sum_inverse + result - 1)});
-                constraints.push_back({position, (chunk_sum * result)});
+
                 return {{gate_class::MIDDLE_OP, {constraints, {}}}};
             }
 
-            void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
+            void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine,
+                                      zkevm_word_type bytecode_input) {
                 zkevm_stack &stack = machine.stack;
                 using word_type = typename zkevm_stack::word_type;
-                word_type a = stack.pop();
+                using integral_type = boost::multiprecision::number<
+                    boost::multiprecision::backends::cpp_int_modular_backend<257>>;
+
+                word_type a = word_type(integral_type(bytecode_input) &
+                                        ((integral_type(1) << (8*byte_count)) - 1)); // use only byte_count lowest bytes
+
                 const std::vector<value_type> chunks = zkevm_word_to_field_element<BlueprintFieldType>(a);
                 const std::vector<std::size_t> &witness_cols = zkevm_circuit.get_opcode_cols();
                 assignment_type &assignment = zkevm_circuit.get_assignment();
@@ -97,12 +102,11 @@ namespace nil {
                 for (std::size_t i = 0; i < chunk_amount; i++) {
                     assignment.witness(witness_cols[i], curr_row) = chunks[i];
                 }
-                assignment.witness(witness_cols[chunk_amount], curr_row) = (a == 0u);
-                const value_type chunk_sum = std::accumulate(chunks.begin(), chunks.end(), value_type::zero());
-                assignment.witness(witness_cols[2*chunk_amount], curr_row) =
-                    chunk_sum == 0 ? value_type::zero() : value_type::one() * chunk_sum.inversed();
-                //stack.push(a);
-                stack.push(word_type(a == 0u));
+                // really push into stack for now
+                stack.push(a);
+            }
+            void generate_assignments(zkevm_circuit_type &zkevm_circuit, zkevm_machine_interface &machine) override {
+                 generate_assignments(zkevm_circuit, machine, 0);
             }
 
             std::size_t rows_amount() override {

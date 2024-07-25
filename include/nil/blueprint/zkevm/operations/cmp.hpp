@@ -268,9 +268,9 @@ namespace nil {
                 BOOST_ASSERT(carry == r);
                 assignment.witness(witness_cols[chunk_amount + carry_amount - 1], curr_row + 2) = carry;
 
-                // reset the machine state; hope that we won't have to do this manually
-                stack.push(y);
-                stack.push(x);
+                //stack.push(y);
+                //stack.push(x);
+                stack.push(result);
             }
 
             std::size_t rows_amount() override {

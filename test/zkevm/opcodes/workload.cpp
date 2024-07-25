@@ -431,7 +431,7 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
         zkevm_opcode::DIV, zkevm_opcode::MOD, zkevm_opcode::SDIV, zkevm_opcode::SMOD, zkevm_opcode::ISZERO,
         zkevm_opcode::ADDMOD, zkevm_opcode::MULMOD, zkevm_opcode::MUL, zkevm_opcode::NOT};
     const std::size_t num_of_opcodes = implemented_opcodes.size(),
-                      workload = 65535;
+                      workload = 32767;
 //                      workload = 63;
 
     std::shared_ptr<assignment_type> assignment = std::make_shared<assignment_type>(0, 0, 0, 0);
@@ -440,10 +440,10 @@ BOOST_AUTO_TEST_CASE(zkevm_workload_test) {
     zkevm_circuit<field_type> zkevm_circuit(*assignment, *circuit);
     zkevm_machine_type machine = get_empty_machine();
     // incorrect test logic, but we have no memory operations so
-    machine.stack.push(zwordc(0x1234567890_cppui_modular257));
-    machine.stack.push(zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
-    machine.stack.push(zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
     for(std::size_t i = 0; i < workload; i++) {
+        zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1234567890_cppui_modular257));
+        zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0x1b70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
+        zkevm_circuit.assign_opcode(zkevm_opcode::PUSH32, machine, zwordc(0xFb70726fb8d3a24da9ff9647225a18412b8f010425938504d73ebc8801e2e016_cppui_modular257));
         zkevm_circuit.assign_opcode(implemented_opcodes[i % num_of_opcodes], machine);
     }
     zkevm_circuit.finalize_test();

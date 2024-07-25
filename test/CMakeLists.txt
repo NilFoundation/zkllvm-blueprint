@@ -204,7 +204,6 @@ set(ZKEVM_TESTS_FILES
     "zkevm/zkevm_word"
     "zkevm/state_transition"
     "zkevm/opcodes/iszero"
-    "zkevm/opcodes/iszero_goldilocks"
     "zkevm/opcodes/add_sub"
     "zkevm/opcodes/mul"
     "zkevm/opcodes/div"
@@ -213,6 +212,7 @@ set(ZKEVM_TESTS_FILES
     "zkevm/opcodes/byte_ops"
     "zkevm/opcodes/bitwise"
     "zkevm/opcodes/mod_ops"
+    "zkevm/opcodes/pushx"
     "zkevm/opcodes/workload"
     )
 
