@@ -57,6 +57,7 @@
 #include <nil/blueprint/zkevm/operations/addmod.hpp>
 #include <nil/blueprint/zkevm/operations/mulmod.hpp>
 #include <nil/blueprint/zkevm/operations/pushx.hpp>
+#include <nil/blueprint/zkevm/operations/err0.hpp>
 
 namespace nil {
     namespace blueprint {
@@ -176,18 +177,17 @@ namespace nil {
                 assignment.witness(state.last_row_indicator.selector, curr_row - 1) = 1;
             }
 
-            void assign_opcode(const zkevm_opcode opcode, zkevm_machine_interface &machine, zkevm_word_type bytecode_input = 0) {
+            void assign_opcode(const zkevm_opcode opcode, zkevm_machine_interface &machine, zkevm_word_type additional_input = 0) {
                 auto opcode_it = opcodes.find(opcode);
                 if (opcode_it == opcodes.end()) {
                     BOOST_ASSERT_MSG(false, (std::string("Unimplemented opcode: ") + opcode_to_string(opcode)) != "");
                 }
                 // state management
                 state.step_selection.value = 1;
-                // state.rows_until_next_op.value = opcode_it->second->rows_amount() - 1; // the initial version of it.
-                // Currently we use max_opcode_height instead of rows_amount()
+                state.last_row_indicator.value = 0;
+                state.curr_gas.value = machine.gas;
 
                 std::size_t opcode_height = opcode_it->second->rows_amount();
-
                 // for opcodes with odd height skip one row
                 if (opcode_it->second->rows_amount() % 2) {
                     state.rows_until_next_op_inv.value = value_type(opcode_height).inversed();
@@ -195,23 +195,37 @@ namespace nil {
                 } else {
                     state.rows_until_next_op_inv.value = value_type(opcode_height - 1).inversed();
                 }
-                std::set<zkevm_opcode> push_opcodes = { zkevm_opcode::PUSH0, zkevm_opcode::PUSH1, zkevm_opcode::PUSH2,
+
+                std::set<zkevm_opcode> opcodes_with_args = { zkevm_opcode::PUSH0, zkevm_opcode::PUSH1, zkevm_opcode::PUSH2,
                  zkevm_opcode::PUSH3, zkevm_opcode::PUSH4, zkevm_opcode::PUSH5, zkevm_opcode::PUSH6, zkevm_opcode::PUSH7,
                  zkevm_opcode::PUSH8, zkevm_opcode::PUSH9, zkevm_opcode::PUSH10, zkevm_opcode::PUSH11, zkevm_opcode::PUSH12,
                  zkevm_opcode::PUSH13, zkevm_opcode::PUSH14, zkevm_opcode::PUSH15, zkevm_opcode::PUSH16, zkevm_opcode::PUSH17,
                  zkevm_opcode::PUSH18, zkevm_opcode::PUSH19, zkevm_opcode::PUSH20, zkevm_opcode::PUSH21, zkevm_opcode::PUSH22,
                  zkevm_opcode::PUSH23, zkevm_opcode::PUSH24, zkevm_opcode::PUSH25, zkevm_opcode::PUSH26, zkevm_opcode::PUSH27,
-                 zkevm_opcode::PUSH28, zkevm_opcode::PUSH29, zkevm_opcode::PUSH30, zkevm_opcode::PUSH31, zkevm_opcode::PUSH32
+                 zkevm_opcode::PUSH28, zkevm_opcode::PUSH29, zkevm_opcode::PUSH30, zkevm_opcode::PUSH31, zkevm_opcode::PUSH32,
+                 zkevm_opcode::err0
                 };
-                if (push_opcodes.find(opcode) == push_opcodes.end()) {
+                if (opcodes_with_args.find(opcode) == opcodes_with_args.end()) {
                     opcode_it->second->generate_assignments(*this, machine);
                 } else {
                     // for push opcodes we use the additional argument
                     using pushx_op_type = zkevm_pushx_operation<BlueprintFieldType>;
-                    auto pushx_implementation = std::static_pointer_cast<pushx_op_type>(opcode_it->second);
-                    pushx_implementation->generate_assignments(*this, machine, bytecode_input);
+                    using err0_op_type = zkevm_err0_operation<BlueprintFieldType>;
+                    if (opcode == zkevm_opcode::err0) {
+                        auto err0_implementation = std::static_pointer_cast<err0_op_type>(opcode_it->second);
+                        err0_implementation->generate_assignments(*this, machine, additional_input);
+                    } else {
+                        auto pushx_implementation = std::static_pointer_cast<pushx_op_type>(opcode_it->second);
+                        pushx_implementation->generate_assignments(*this, machine, additional_input);
+                    }
                 }
                 advance_rows(opcode, opcode_height, opcode_height - 1, opcode_height % 2);
+                // post-opcode state management
+                state.pc.value++;
+                // NB: we don't need to control stack size values here, because in a valid circuit they should alway be within the range
+                state.stack_size.value -= opcodes_info_instance.get_opcode_stack_input(opcode);
+                state.stack_size.value += opcodes_info_instance.get_opcode_stack_output(opcode);
+                machine.gas -= opcodes_info_instance.get_opcode_cost(opcode);
             }
 
             void advance_rows(const zkevm_opcode opcode, std::size_t rows, std::size_t internal_start_row, std::size_t shift = 0) {
@@ -244,6 +258,10 @@ namespace nil {
 
                     curr_row++;
                 }
+            }
+
+            opcodes_info get_opcodes_info() {
+                return opcodes_info_instance;
             }
 
             zkevm_state_type &get_state() {
@@ -423,6 +441,8 @@ namespace nil {
                 opcodes[zkevm_opcode::PUSH30] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(30);
                 opcodes[zkevm_opcode::PUSH31] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(31);
                 opcodes[zkevm_opcode::PUSH32] = std::make_shared<zkevm_pushx_operation<BlueprintFieldType>>(32);
+                // fake opcodes for errors
+                opcodes[zkevm_opcode::err0] = std::make_shared<zkevm_err0_operation<BlueprintFieldType>>();
 
                 const std::size_t range_check_table_index = this->get_circuit().get_reserved_indices().at("chunk_16_bits/full");
 
@@ -511,6 +531,10 @@ namespace nil {
                 std::map<gate_id_type, constraint_type> constraint_list;
                 std::map<gate_id_type, constraint_type> virtual_selector;
 
+                constraint_type opcode_first_line_constraint;
+                constraint_type stack_size_transitions;
+                constraint_type curr_gas_transitions;
+
                 for (auto opcode_it : opcodes) {
                     std::size_t opcode_height = opcode_it.second->rows_amount();
                     if (opcode_height > max_opcode_height) {
@@ -523,11 +547,25 @@ namespace nil {
                     auto // curr_opt_constraint = state_selector->option_constraint(opcode_num),
                          curr_opt_constraint_even = state_selector->option_constraint_even(opcode_num),
                          curr_opt_constraint_odd = state_selector->option_constraint_odd(opcode_num);
-                    // force height to be proper value at the start of the opcode
-                    middle_constraints.push_back(
-                        curr_opt_constraint_odd * (opcode_row_selector->option_variable() - (adj_opcode_height - 1)) *
-                        state.step_selection.variable());
-                    // curr_opt_constraint is in _odd_ version because total adj_opcode_height-1 is always odd
+
+                    // save constraints to ensure later that internal row number has proper value at the start of the opcode
+                    opcode_first_line_constraint +=
+                        curr_opt_constraint_odd * (opcode_row_selector->option_variable() - (adj_opcode_height - 1));
+                    // ^^^ curr_opt_constraint is in _odd_ version because it's applied
+                    // at row with internal number adj_opcode_height-1, that always odd
+
+                    // save constraints to ensure correct updates of stack size
+                    stack_size_transitions += curr_opt_constraint_even * (state.stack_size.variable(0)
+                                                    - opcodes_info_instance.get_opcode_stack_input(opcode_it.first)
+                                                    + opcodes_info_instance.get_opcode_stack_output(opcode_it.first)
+                                                    - state.stack_size.variable(+1));
+                    // curr_opt_constraint is in _even_ version because it's applied at row with internal number 0
+
+                    // save constraints to ensure correct updates of remaining gas NB: only static costs now! TODO: include dynamic costs
+                    curr_gas_transitions += curr_opt_constraint_even * (state.curr_gas.variable(0)
+                                                                        - opcodes_info_instance.get_opcode_cost(opcode_it.first)
+                                                                        - state.curr_gas.variable(+1));
+                    // curr_opt_constraint is in _even_ version because it's applied at row with internal number 0
 
                     auto opcode_gates = opcode_it.second->generate_gates(*this);
                     for (auto gate_it : opcode_gates) {
@@ -599,6 +637,20 @@ namespace nil {
                         }
                     }
                 }
+                // ensure first line of each opcode has correct internal row number
+                middle_constraints.push_back(opcode_first_line_constraint * state.step_selection.variable());
+
+                // ensure the last line of each opcode updates stack_size and curr_gas correctly
+                middle_constraints.push_back(stack_size_transitions * state.step_selection.variable(+1));
+                middle_constraints.push_back(curr_gas_transitions * state.step_selection.variable(+1));
+
+                // increase program counter, unless the opcode is JUMP or JUMPI
+                middle_constraints.push_back((state.pc.variable(0) + 1 - state.pc.variable(+1))
+                    * (1 - state_selector->option_constraint_even(opcodes_info_instance.get_opcode_number(zkevm_opcode::JUMP))
+                         - state_selector->option_constraint_even(opcodes_info_instance.get_opcode_number(zkevm_opcode::JUMPI)))
+                    * state.step_selection.variable(+1));
+                // TODO: JUMP and JUMPI need special constraints for program counter
+                // we also need to check that they are followed by either JUMPDEST or an error opcode
 
                 for(const auto c : virtual_selector) {
                     constraint_type constraint = constraint_list[c.first];

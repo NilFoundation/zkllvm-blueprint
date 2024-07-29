@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
+// Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
 //
@@ -113,6 +114,7 @@ namespace nil {
                 #undef X
                 step_selection.assign_value(assignment, row);
                 rows_until_next_op_inv.assign_value(assignment, row);
+                last_row_indicator.assign_value(assignment, row);
             }
         };
 

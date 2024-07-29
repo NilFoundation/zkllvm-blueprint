@@ -69,8 +69,6 @@ namespace nil {
 
                 std::size_t position = 0;
 
-//std::cout << "FOR TESTS: Expect 722, output = " << (constraint_type() + 722) << std::endl;
-
                 constraint_type chunk_sum;
 
                 for (std::size_t i = 0; i < chunk_amount; i++) {

@@ -213,6 +213,7 @@ set(ZKEVM_TESTS_FILES
     "zkevm/opcodes/bitwise"
     "zkevm/opcodes/mod_ops"
     "zkevm/opcodes/pushx"
+    "zkevm/opcodes/err0"
     "zkevm/opcodes/workload"
     )
 

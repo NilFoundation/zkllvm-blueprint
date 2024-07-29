@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2024 Dmitrii Tabalin <d.tabalin@nil.foundation>
+// Copyright (c) 2024 Alexey Yashunsky <a.yashunsky@nil.foundation>
 //
 // MIT License
 //
@@ -215,13 +216,39 @@ namespace nil {
                 return it->second;
             }
 
+            zkevm_opcode get_opcode_from_number(const std::size_t& value) const {
+                auto it = opcode_to_number_map.right.find(value);
+                BOOST_ASSERT(it != opcode_to_number_map.right.end());
+                return it->second;
+            }
+
+            std::size_t get_opcode_cost(const zkevm_opcode& opcode) const {
+                auto it = opcode_cost_map.find(opcode);
+                BOOST_ASSERT(it != opcode_cost_map.end());
+                return it->second;
+            }
+
+            std::size_t get_opcode_stack_input(const zkevm_opcode& opcode) const {
+                auto it = opcode_stack_input_map.find(opcode);
+                BOOST_ASSERT(it != opcode_stack_input_map.end());
+                return it->second;
+            }
+
+            std::size_t get_opcode_stack_output(const zkevm_opcode& opcode) const {
+                auto it = opcode_stack_output_map.find(opcode);
+                BOOST_ASSERT(it != opcode_stack_output_map.end());
+                return it->second;
+            }
+
             std::size_t get_opcodes_amount() const {
                 return opcode_to_byte_map.size();
             }
 
             boost::bimap<boost::bimaps::set_of<zkevm_opcode>, boost::bimaps::set_of<std::size_t>> opcode_to_byte_map;
             boost::bimap<boost::bimaps::set_of<zkevm_opcode>, boost::bimaps::set_of<std::size_t>> opcode_to_number_map;
-            std::map<zkevm_opcode, std::size_t> opcode_to_cost_map;
+            std::map<zkevm_opcode, std::size_t> opcode_cost_map;
+            std::map<zkevm_opcode, std::size_t> opcode_stack_input_map;
+            std::map<zkevm_opcode, std::size_t> opcode_stack_output_map;
         private:
             opcodes_info() {
                 // <opcode, byte value, static cost, has dynamic cost, stack input, stack output>
@@ -381,8 +408,10 @@ namespace nil {
                 for(std::size_t i = 0; i < opcode_data.size(); i++) {
                     auto [opcode_mnemo, opcode_byte, opcode_cost, opcode_dynamic, stack_input, stack_output] = opcode_data[i];
                     opcode_to_byte_map.insert({opcode_mnemo, opcode_byte});
-                    opcode_to_cost_map.insert({opcode_mnemo, opcode_cost});
                     opcode_to_number_map.insert({opcode_mnemo, i});
+                    opcode_cost_map.insert({opcode_mnemo, opcode_cost});
+                    opcode_stack_input_map.insert({opcode_mnemo, stack_input});
+                    opcode_stack_output_map.insert({opcode_mnemo, stack_output});
                 }
             }
         };
