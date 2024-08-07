@@ -38,28 +38,32 @@
     },
     "nil-crypto3": {
       "inputs": {
+        "flake-utils": "flake-utils_2",
         "nix-3rdparty": "nix-3rdparty",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1720036529,
-        "narHash": "sha256-Ub38Lwsy0PzQtJ+3cfqbVVAXrDuu0A4i1i3vPT9Nxa0=",
-        "owner": "NilFoundation",
-        "repo": "crypto3",
-        "rev": "c34662a28869af63afc67789435390a2a8f3c708",
-        "type": "github"
+        "lastModified": 1722946905,
+        "narHash": "sha256-4NInlI4co9vwYbrw+bGay3PYL+4jAOdKXxFT3jUDcUA=",
+        "ref": "refs/heads/master",
+        "rev": "8fb1f02855dadcaa9d18e74dae01543bc56f5b64",
+        "revCount": 9168,
+        "type": "git",
+        "url": "https://github.com/NilFoundation/crypto3"
       },
       "original": {
-        "owner": "NilFoundation",
-        "repo": "crypto3",
-        "type": "github"
+        "type": "git",
+        "url": "https://github.com/NilFoundation/crypto3"
       }
     },
     "nix-3rdparty": {
       "inputs": {
-        "flake-utils": "flake-utils_2",
+        "flake-utils": [
+          "nil-crypto3",
+          "flake-utils"
+        ],
         "nixpkgs": [
           "nil-crypto3",
           "nixpkgs"
@@ -79,18 +83,40 @@
         "type": "github"
       }
     },
+    "nix-3rdparty_2": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1721822436,
+        "narHash": "sha256-AQidmv80fA72FFHgyjCq9Psc04w9aaHedJpoVgnLb6M=",
+        "owner": "NilFoundation",
+        "repo": "nix-3rdparty",
+        "rev": "d14a2a3c4b9498b297400b225fc09570bfe0a9a1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NilFoundation",
+        "repo": "nix-3rdparty",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1717555607,
-        "narHash": "sha256-WZ1s48OODmRJ3DHC+I/DtM3tDRuRJlNqMvxvAPTD7ec=",
+        "lastModified": 1721896952,
+        "narHash": "sha256-79GOgbHd0oKpANpuw6gnc5Et+QZrMsNk+NENAnW5CUQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0b8e7a1ae5a94da2e1ee3f3030a32020f6254105",
+        "rev": "a9d164fed4d92ccacfdd55c383bcca3cc4a69619",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-24.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -99,6 +125,7 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nil-crypto3": "nil-crypto3",
+        "nix-3rdparty": "nix-3rdparty_2",
         "nixpkgs": "nixpkgs"
       }
     },

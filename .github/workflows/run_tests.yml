@@ -58,23 +58,3 @@ jobs:
             max-jobs = 4
         run: |
           nix build -L .?submodules=1#checks.x86_64-linux.default
-          results_dir="./results"
-          mkdir -p "$results_dir"
-          cp -r ./result/* "$results_dir/all-checks"
-          rm -rf result
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action/linux@v2
-        with:
-          check_name: "Linux Test Results"
-          files: "results/**/*.xml"
-          comment_mode: ${{ github.event.pull_request.head.repo.fork && 'off' || 'always' }} # Don't create PR comment from fork runs
-          action_fail_on_inconclusive: true # fail, if no reports
-          action_fail: true
-      - name: 'Upload Artifacts'
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-test-results
-          path: "results/**/*.xml"
-          retention-days: 5
-          if-no-files-found: error
-          overwrite: true
