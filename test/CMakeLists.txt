@@ -97,6 +97,7 @@ set(PLONK_TESTS_FILES
     "hashes/plonk/sha512_process"
     "hashes/plonk/keccak_round"
     "hashes/plonk/keccak_padding"
+    "hashes/plonk/keccak_padding_no_template"
     "hashes/plonk/keccak"
     "hashes/plonk/decomposition"
     "hashes/plonk/detail/sha_table_generators_base4"
