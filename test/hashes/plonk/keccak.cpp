@@ -38,7 +38,8 @@
 #include <nil/crypto3/algebra/curves/alt_bn128.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/alt_bn128.hpp>
 
-// #include <nil/crypto3/hash/algorithm/hash.hpp>
+#include <nil/crypto3/hash/algorithm/hash.hpp>
+#include <nil/crypto3/hash/adaptor/hashed.hpp>
 #include <nil/crypto3/hash/keccak.hpp>
 // #include <nil/crypto3/random/algebraic_engine.hpp>
 
@@ -256,6 +257,77 @@ std::array<typename BlueprintFieldType::value_type, 25>
 }
 
 template<typename BlueprintFieldType>
+std::vector<typename BlueprintFieldType::value_type>
+    bytes_to_bit_chunks64(std::string bytes) {
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
+    
+    std::vector<int> bits;
+    std::cout << "bits:\n";
+    for (auto byte : bytes) {
+        integral_type mask = integral_type(1) << 7;
+        for (int i = 0; i < 8; ++i) {
+            bits.push_back(int(byte & mask));
+            mask >>= 1;
+            std::cout << bits.back();
+        }
+    }
+    std::cout << std::endl;
+    std::size_t start_idx = 0;
+    while (start_idx + 1 < bits.size() && bits[start_idx] == 0) {
+        ++start_idx;
+    }
+    std::size_t end_idx = std::min(start_idx + 64, bits.size());
+
+    std::vector<value_type> result;
+    while (end_idx <= bits.size()) {
+        integral_type value = 0;
+        for (std::size_t i = start_idx; i < end_idx; ++i) {
+            value = (value << 1) + bits[i];
+        }
+        result.push_back(value_type(value));
+        start_idx = end_idx;
+        end_idx = std::min(start_idx + 64, bits.size());
+    }
+
+    return result;
+}
+
+template<typename Container, typename BlueprintFieldType>
+std::string bit_chunks64_to_bytes(Container bit_chunks) {
+    using value_type = typename BlueprintFieldType::value_type;
+    using integral_type = typename BlueprintFieldType::integral_type;
+
+    std::string result;
+    for (value_type chunk : bit_chunks) {
+        integral_type value = integral_type(chunk.data);
+        integral_type mask = integral_type(7) << 7;
+        for (int i = 0; i < 8; ++i) {
+            result.push_back(std::string(value & mask));
+            mask >>= 3;
+        }
+    }
+    return result;
+}
+
+template<typename BlueprintFieldType>
+std::vector<typename BlueprintFieldType::value_type>
+    keccak_hash_call(std::vector<typename BlueprintFieldType::value_type> message, std::size_t num_bits) {
+    using value_type = typename BlueprintFieldType::value_type;
+
+    hashes::keccak_1600<224>::digest_type result = hash<hashes::keccak_1600<256>>(message.begin(), message.end());
+    std::string result_str = std::to_string(result).data();
+    std::cout << "Keccak hash call result string:\n" << result_str << std::endl;
+
+    auto result_chunks = bytes_to_bit_chunks64<BlueprintFieldType>(result_str);
+    std::cout << "Keccak hash call result chunks:\n";
+    for (auto chunk : result_chunks) {
+        std::cout << chunk.data << std::endl;
+    }
+    return result_chunks;
+}
+
+template<typename BlueprintFieldType>
 std::array<typename BlueprintFieldType::value_type, 4>
     keccak_function(std::vector<typename BlueprintFieldType::value_type> message, std::size_t num_bits) {
 
@@ -315,6 +387,14 @@ std::array<typename BlueprintFieldType::value_type, 4>
         hash[i] = unpack<BlueprintFieldType>(inner_state[i]);
     }
 
+    std::cout << "Testing bits to bytes: " << bit_chunks64_to_bytes<std::array<value_type, 4>, BlueprintFieldType>(hash) << std::endl;
+    //check that computation is the same as keccak_1600_compressor
+    // auto check_result = keccak_hash_call<BlueprintFieldType>(message, num_bits);
+    for (int i = 0; i < 4; ++i) {
+        std::cout << "hash:\n"
+                  << hash[i].data << "\n";
+    }
+
     return hash;
 }
 
@@ -324,7 +404,7 @@ auto test_keccak_inner(std::vector<typename BlueprintFieldType::value_type> mess
                        std::size_t num_bits, bool range_check_input, std::size_t limit_permutation_column) {
     constexpr std::size_t PublicInputColumns = 1;
     constexpr std::size_t ConstantColumns = 3;
-    constexpr std::size_t SelectorColumns = 30;
+    constexpr std::size_t SelectorColumns = 40;
     nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType> desc(WitnessesAmount, PublicInputColumns,
                                                                               ConstantColumns, SelectorColumns);
     using ArithmetizationType = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>;
