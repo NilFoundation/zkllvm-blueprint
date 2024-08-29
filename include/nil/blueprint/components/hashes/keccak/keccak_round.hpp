@@ -25,6 +25,8 @@
 #ifndef CRYPTO3_BLUEPRINT_COMPONENTS_KECCAK_ROUND_HPP
 #define CRYPTO3_BLUEPRINT_COMPONENTS_KECCAK_ROUND_HPP
 
+#include <iostream>
+
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
 #include <nil/marshalling/algorithms/pack.hpp>
@@ -41,7 +43,6 @@
 #include <vector>
 #include <array>
 #include <map>
-#include <iostream>
 
 namespace nil {
     namespace blueprint {
@@ -239,9 +240,10 @@ namespace nil {
                 const std::size_t gates_amount =
                     get_gates_amount(this->witness_amount(), xor_with_mes, last_round_call, limit_permutation_column);
 
-                const value_type sparse_3 = 0x6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB_cppui255;
+                const value_type sparse_3 = 0x6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB6DB_cppui_modular256;
 
                 const integral_type sparse_x80 = calculate_sparse(integral_type(0x8000000000000000));
+                const integral_type sparse_x7f = calculate_sparse(integral_type(0x8000000000000000 - 1));
 
                 constexpr static const std::array<std::size_t, 25> rho_offsets = {
                     0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62, 18, 39, 61, 20, 44};
@@ -1025,6 +1027,7 @@ namespace nil {
                     for (std::size_t i = 0; i < lookup_gates_configuration.size(); ++i) {
                         res += lookup_gates_configuration[i].size();
                     }
+                    std::cout << "Keccak round gates amount = " << res << std::endl;
                     return res;
                 }
 
@@ -1108,7 +1111,6 @@ namespace nil {
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
                 const typename keccak_round_component<BlueprintFieldType>::input_type &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
-
                 using component_type = keccak_round_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
@@ -1486,7 +1488,7 @@ namespace nil {
                             cur_constraints.push_back(constraint_2);
 
                             selector_indexes.push_back(bp.add_gate(cur_constraints));
-                            std::cout << selector_indexes.back() << std::endl;
+                            //std::cout << selector_indexes.back() << std::endl;
 
                             cur_lookup_table_name = "keccak_pack_table/range_check_sparse";
                             break;
@@ -1568,6 +1570,7 @@ namespace nil {
                         ++index;
                         continue;
                     }
+
                     for (std::size_t i = 0; i < cur_lookup_config_vec.size(); ++i) {
                         for (std::size_t j = 0; j < cur_lookup_config_vec[i].lookups.size(); ++j) {
                             lookup_constraint_type lookup_constraint = {
@@ -1878,6 +1881,7 @@ namespace nil {
                 // inner_state ^ chunk
                 std::array<value_type, 25> A_1;
                 if (component.xor_with_mes) {
+                    std::cout << "Last round call = " << component.last_round_call << std::endl;
                     for (int index = 0; index < 17 - component.last_round_call; ++index) {
                         value_type state = var_value(assignment, instance_input.inner_state[index]);
                         value_type message = var_value(assignment, instance_input.padded_message_chunk[index]);
@@ -1921,6 +1925,7 @@ namespace nil {
                     // last round call
                     if (component.last_round_call) {
                         value_type state = var_value(assignment, instance_input.inner_state[16]);
+                        std::cout << "Last round state = " << std::hex << state << " " << component.sparse_x80 << std::dec << std::endl;
                         value_type message = var_value(assignment, instance_input.padded_message_chunk[16]);
                         value_type sum = state + message + value_type(component.sparse_x80);
                         integral_type integral_sum = integral_type(sum.data);
@@ -1963,6 +1968,7 @@ namespace nil {
                     }
                     for (int i = 17; i < 25; ++i) {
                         A_1[i] = var_value(assignment, instance_input.inner_state[i]);
+                        std::cout << "Round state " << i << " = "<< A_1[i] << std::endl;
                     }
                     config_index += 17;
                 } else {
@@ -2309,7 +2315,7 @@ namespace nil {
                                            cur_config.constraints[2][j].row + strow) =
                             value_type(integral_normalized_chunks[j - 1]);
                     }
-                    
+
                 }
                 // std::cout << "result:\n" << A_4.data << " ";
                 // for (int i = 1; i < 25; ++i) {

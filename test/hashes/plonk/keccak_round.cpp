@@ -384,23 +384,24 @@ BOOST_AUTO_TEST_SUITE(blueprint_plonk_test_suite)
 BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas) {
     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
     test_keccak_round_not_random<field_type, 9>();
-    // test_keccak_round_random<field_type, 9, false, false>();
-    // test_keccak_round_random<field_type, 9, true, false>();
-    // test_keccak_round_random<field_type, 9, true, true>();
-    // test_keccak_round_random<field_type, 15, false, false>();
-    // test_keccak_round_random<field_type, 15, true, false>();
+    test_keccak_round_random<field_type, 9, false, false>();
+    test_keccak_round_random<field_type, 9, true, false>();
+    test_keccak_round_random<field_type, 9, true, true>();
+    test_keccak_round_random<field_type, 15, false, false>();
+    test_keccak_round_random<field_type, 15, true, false>();
     test_keccak_round_random<field_type, 15, true, true>();
 }
 
-// BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_diff_perm_cols) {
-//     using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
-//     test_keccak_round_not_random<field_type, 15>();
-//     test_keccak_round_random<field_type, 9, false, false, 5>();
-//     test_keccak_round_random<field_type, 9, true, false, 6>();
-//     test_keccak_round_random<field_type, 9, true, true, 7>();
-//     test_keccak_round_random<field_type, 15, false, false, 5>();
-//     test_keccak_round_random<field_type, 15, true, false, 6>();
-//     test_keccak_round_random<field_type, 15, true, true, 9>();
-// }
+BOOST_AUTO_TEST_CASE(blueprint_plonk_hashes_keccak_round_pallas_diff_perm_cols) {
+    using field_type = nil::crypto3::algebra::curves::pallas::base_field_type;
+    test_keccak_round_not_random<field_type, 15>();
+    test_keccak_round_random<field_type, 9, false, false, 5>();
+    test_keccak_round_random<field_type, 9, true, false, 6>();
+    test_keccak_round_random<field_type, 9, true, true, 7>();
+    test_keccak_round_random<field_type, 15, false, false, 5>();
+    test_keccak_round_random<field_type, 15, true, false, 6>();
+    test_keccak_round_random<field_type, 15, true, true, 9>();
+    test_keccak_round_random<field_type, 15, true, true, 7>();
+}
 
 BOOST_AUTO_TEST_SUITE_END()

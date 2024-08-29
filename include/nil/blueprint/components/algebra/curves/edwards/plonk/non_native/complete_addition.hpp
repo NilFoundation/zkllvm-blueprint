@@ -270,6 +270,15 @@ namespace nil {
                          typename Ed25519Type::base_field_type::integral_type(R_y_array[3].data) * (base << 198)));
 
                     typename Ed25519Type::template g1_type<nil::crypto3::algebra::curves::coordinates::affine>::value_type P = T + R;
+                    if (P == Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type::zero()) {
+                        P.Y = 1;
+                    }
+                    if (T == Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type::zero()) {
+                        T.Y = 1;
+                    }
+                    if (R == Ed25519Type::template g1_type<crypto3::algebra::curves::coordinates::affine>::value_type::zero()) {
+                        R.Y = 1;
+                    }
 
                     typename Ed25519Type::base_field_type::integral_type mask = (base << 66) - 1;
 
@@ -595,7 +604,7 @@ namespace nil {
 
                 typename Ed25519Type::base_field_type::integral_type d =
                     typename Ed25519Type::base_field_type::integral_type(
-                        0x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3_cppui256);
+                        0x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3_cppui_modular256);
                 assignment.constant(component.C(0), row + 4) = d & mask;
                 assignment.constant(component.C(0), row + 5) = (d >> 66) & mask;
                 assignment.constant(component.C(0), row + 6) = (d >> 132) & mask;

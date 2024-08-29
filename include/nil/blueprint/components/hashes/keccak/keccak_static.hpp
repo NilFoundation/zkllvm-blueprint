@@ -22,8 +22,8 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_KECCAK_HPP
-#define CRYPTO3_BLUEPRINT_COMPONENTS_KECCAK_HPP
+#ifndef CRYPTO3_BLUEPRINT_COMPONENTS_KECCAK_STATIC_HPP
+#define CRYPTO3_BLUEPRINT_COMPONENTS_KECCAK_STATIC_HPP
 
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 
@@ -34,6 +34,7 @@
 #include <nil/blueprint/lookup_library.hpp>
 
 #include <nil/blueprint/components/hashes/sha2/plonk/detail/split_functions.hpp>
+#include <nil/blueprint/components/hashes/keccak/util.hpp>
 #include <nil/blueprint/components/hashes/keccak/keccak_round.hpp>
 #include <nil/blueprint/components/hashes/keccak/keccak_padding.hpp>
 
@@ -41,10 +42,10 @@ namespace nil {
     namespace blueprint {
         namespace components {
             template<typename ArithmetizationType>
-            class keccak;
+            class keccak_static;
 
             template<typename BlueprintFieldType>
-            class keccak<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
+            class keccak_static<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                 : public plonk_component<BlueprintFieldType> {
 
                 using component_type = plonk_component<BlueprintFieldType>;
@@ -188,10 +189,11 @@ namespace nil {
                 struct result_type {
                     std::array<var, 4> final_inner_state;
 
-                    result_type(const keccak &component, std::size_t start_row_index) {
+                    result_type(const keccak_static &component, std::size_t start_row_index) {
                         auto offset =
                             component.full_configuration[component.num_configs - 1].last_coordinate.row +
                             (component.full_configuration[component.num_configs - 1].last_coordinate.column > 0);
+                        std::cout << "Keccak component result :" << std::endl;
                         for (std::size_t i = 0; i < 4; ++i) {
                             final_inner_state[i] =
                                 var(component.W(
@@ -199,7 +201,9 @@ namespace nil {
                                     start_row_index + component.rows_amount - offset +
                                         component.full_configuration[component.num_configs - 4 + i].copy_from.row,
                                     false);
+                            std::cout << final_inner_state[i] << " ";
                         }
+                        std::cout << std::endl;
                     }
                     std::vector<std::reference_wrapper<var>> all_vars() {
                         return {final_inner_state[0], final_inner_state[1], final_inner_state[2], final_inner_state[3]};
@@ -213,34 +217,6 @@ namespace nil {
 
                 static std::size_t calculate_num_round_calls(std::size_t num_blocks, std::size_t num_bits) {
                     return (calculate_padded_length(num_blocks, num_bits)) / 17;
-                }
-
-                integral_type pack(const integral_type &const_input) const {
-                    integral_type input = const_input;
-                    integral_type sparse_res = 0;
-                    integral_type power = 1;
-                    while (input > 0) {
-                        auto bit = input & 1;
-                        sparse_res += bit * power;
-                        power <<= 3;
-                        input >>= 1;
-                    }
-                    return sparse_res;
-                }
-
-                integral_type unpack(const integral_type &const_sparse_input) const {
-                    integral_type sparse_input = const_sparse_input;
-                    integral_type res = 0;
-                    integral_type power = 1;
-                    integral_type mask = (integral_type(1) << 3) - 1;
-                    while (sparse_input > 0) {
-                        auto bit = sparse_input & mask;
-                        BOOST_ASSERT(bit * (1 - bit) == 0);
-                        res += bit * power;
-                        power <<= 1;
-                        sparse_input >>= 3;
-                    }
-                    return res;
                 }
 
                 static configuration configure_pack_unpack(std::size_t witness_amount, std::size_t row,
@@ -532,7 +508,6 @@ namespace nil {
                     std::map<std::string, std::size_t> lookup_tables;
                     lookup_tables["keccak_pack_table/full"] = 0;                  // REQUIRED_TABLE
                     lookup_tables["keccak_pack_table/range_check"] = 0;           // REQUIRED_TABLE
-                    lookup_tables["keccak_pack_table/64bit"] = 0;                 // REQUIRED_TABLE
                     lookup_tables["keccak_sign_bit_table/full"] = 0;              // REQUIRED_TABLE
                     lookup_tables["keccak_normalize3_table/full"] = 0;            // REQUIRED_TABLE
                     lookup_tables["keccak_normalize4_table/full"] = 0;            // REQUIRED_TABLE
@@ -544,7 +519,7 @@ namespace nil {
 
                 template<typename WitnessContainerType, typename ConstantContainerType,
                          typename PublicInputContainerType>
-                keccak(WitnessContainerType witness, ConstantContainerType constant,
+                keccak_static(WitnessContainerType witness, ConstantContainerType constant,
                        PublicInputContainerType public_input, std::size_t num_blocks_, std::size_t num_bits_,
                        bool range_check_input_, std::size_t lpc_ = 7) :
                     component_type(witness, constant, public_input,
@@ -556,7 +531,7 @@ namespace nil {
                     round_tf(witness, constant, public_input, true, false, lpc_),
                     round_ff(witness, constant, public_input, false, false, lpc_) {};
 
-                keccak(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
+                keccak_static(std::initializer_list<typename component_type::witness_container_type::value_type> witnesses,
                        std::initializer_list<typename component_type::constant_container_type::value_type> constants,
                        std::initializer_list<typename component_type::public_input_container_type::value_type>
                            public_inputs,
@@ -572,17 +547,23 @@ namespace nil {
             };
 
             template<typename BlueprintFieldType>
-            using keccak_component = keccak<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
+            using keccak_static_component = keccak_static<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>;
 
             template<typename BlueprintFieldType>
             std::vector<std::size_t> generate_gates(
-                const keccak_component<BlueprintFieldType> &component,
+                const keccak_static_component<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
+                const typename keccak_static_component<BlueprintFieldType>::input_type &instance_input,
                 const typename lookup_library<BlueprintFieldType>::left_reserved_type lookup_tables_indices) {
+                std::cout << "Keccak component::generate gates" << std::endl;
+                std::cout << "Input : ";
+                for( std::size_t i = 0; i < instance_input.message.size(); i++){
+                    std::cout << instance_input.message[i] << " ";
+                }
+                std::cout << std::endl;
 
-                using component_type = keccak_component<BlueprintFieldType>;
+                using component_type = keccak_static_component<BlueprintFieldType>;
                 using var = typename component_type::var;
                 using constraint_type = crypto3::zk::snark::plonk_constraint<BlueprintFieldType>;
                 using lookup_constraint_type = typename crypto3::zk::snark::plonk_lookup_constraint<BlueprintFieldType>;
@@ -641,13 +622,13 @@ namespace nil {
 
             template<typename BlueprintFieldType>
             void generate_copy_constraints(
-                const keccak_component<BlueprintFieldType> &component,
+                const keccak_static_component<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
+                const typename keccak_static_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
-                using component_type = keccak_component<BlueprintFieldType>;
+                using component_type = keccak_static_component<BlueprintFieldType>;
                 using padding_type = typename component_type::padding_component_type;
                 using round_type = typename component_type::round_component_type;
                 using var = typename component_type::var;
@@ -733,16 +714,17 @@ namespace nil {
             }
 
             template<typename BlueprintFieldType>
-            typename keccak_component<BlueprintFieldType>::result_type generate_circuit(
-                const keccak_component<BlueprintFieldType> &component,
+            typename keccak_static_component<BlueprintFieldType>::result_type generate_circuit(
+                const keccak_static_component<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
+                const typename keccak_static_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
+                std::cout << "Keccak component generate_circuit rows_amount = " << component.rows_amount << " gates_amount = " << component.gates_amount << " start_row_index = " << start_row_index <<  std::endl;
 
                 BOOST_ASSERT(instance_input.message.size() == component.num_blocks);
 
-                using component_type = keccak_component<BlueprintFieldType>;
+                using component_type = keccak_static_component<BlueprintFieldType>;
                 using padding_type = typename component_type::padding_component_type;
                 using round_type = typename component_type::round_component_type;
                 using var = typename component_type::var;
@@ -753,6 +735,7 @@ namespace nil {
                 typename padding_type::input_type padding_input = {instance_input.message};
                 typename padding_type::result_type padding_result =
                     generate_circuit(component.padding, bp, assignment, padding_input, row);
+                std::cout << "Padding component rows_amount = " << component.padding.rows_amount << std::endl;
                 row += component.padding.rows_amount;
 
                 auto selector_indexes =
@@ -767,7 +750,7 @@ namespace nil {
                             assignment.enable_selector(selector_indexes[sel_ind], gate_row + row);
                             assignment.enable_selector(selector_indexes[sel_ind + 2], gate_row + row);
                         }
-                        std::cout << std::endl;
+                        //std::cout << std::endl;
                         sel_ind += 1;
                     }
                 }
@@ -797,25 +780,41 @@ namespace nil {
                               pmc.begin());
 
                     for (std::size_t j = 0; j < 24; ++j) {
+                        std::cout << i<< ". " << j << ". " << std::endl;
                         typename round_type::input_type round_input = {
                             inner_state, pmc,
                             var(component.C(0), start_row_index + j + 2, false, var::column_type::constant)};
+/*                      std::cout << "Inner state: ";
+                        for (std::size_t i = 0; i < inner_state.size(); i ++ ) std::cout  << inner_state[i] << " ";
+                        std::cout << std::endl;
+                        std::cout << "Padded message coords:";
+                        for (std::size_t i = 0; i < pmc.size(); i ++ ) std::cout  << pmc[i] << " ";
+                        std::cout << std::endl << "\t";*/
                         if (i == component.num_round_calls - 1 && j == 0) {
+                            std::cout << "tt ";
                             typename round_type::result_type round_result =
                                 generate_circuit(component.round_tt, bp, assignment, round_input, row);
                             inner_state = round_result.inner_state;
                             row += component.round_tt.rows_amount;
+                            std::cout << component.round_tt.rows_amount << " : ";
                         } else if (j == 0) {
+                            std::cout << "tf ";
                             typename round_type::result_type round_result =
                                 generate_circuit(component.round_tf, bp, assignment, round_input, row);
                             inner_state = round_result.inner_state;
                             row += component.round_tf.rows_amount;
+                            std::cout << component.round_tf.rows_amount << " : ";
                         } else {
+                            std::cout << "ff ";
                             typename round_type::result_type round_result =
                                 generate_circuit(component.round_ff, bp, assignment, round_input, row);
                             inner_state = round_result.inner_state;
                             row += component.round_ff.rows_amount;
+                            std::cout << component.round_ff.rows_amount << " : ";
                         }
+//                        std::cout << "Result state: ";
+//                        for (std::size_t i = 0; i < inner_state.size(); i ++ ) std::cout  << inner_state[i] << " ";
+//                        std::cout << std::endl;
                     }
                     offset += 17;
                 }
@@ -829,28 +828,29 @@ namespace nil {
                             assignment.enable_selector(selector_indexes[sel_ind], gate_row + row);
                             assignment.enable_selector(selector_indexes[sel_ind + 2], gate_row + row);
                         }
-                        std::cout << std::endl;
+                        //std::cout << std::endl;
                         sel_ind += 1;
                     }
                 }
 
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
-                return typename component_type::result_type(component, start_row_index);
+                typename component_type::result_type result (component, start_row_index);
+                return result;
             }
 
             template<typename BlueprintFieldType>
-            typename keccak_component<BlueprintFieldType>::result_type generate_assignments(
-                const keccak_component<BlueprintFieldType> &component,
+            typename keccak_static_component<BlueprintFieldType>::result_type generate_assignments(
+                const keccak_static_component<BlueprintFieldType> &component,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
+                const typename keccak_static_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
                 BOOST_ASSERT(instance_input.message.size() == component.num_blocks);
 
                 std::size_t cur_row = start_row_index;
 
-                using component_type = keccak_component<BlueprintFieldType>;
+                using component_type = keccak_static_component<BlueprintFieldType>;
                 using round_type = typename component_type::round_component_type;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
@@ -859,6 +859,11 @@ namespace nil {
                 std::vector<var> padded_message =
                     generate_assignments(component.padding, assignment, {instance_input.message}, cur_row)
                         .padded_message;
+                std::cout << "Padded message: ";
+                for(std::size_t i = 0; i < padded_message.size(); i++ ){
+                    std::cout << std::hex << var_value(assignment, padded_message[i]) << std::dec << " ";
+                }
+                std::cout << std::endl;
                 cur_row += component.padding.rows_amount;
 
                 // to sparse
@@ -880,15 +885,16 @@ namespace nil {
                     for (std::size_t j = 0; j < num_chunks; ++j) {
                         integral_chunks.push_back(regular & mask);
                         regular >>= chunk_size;
-                        integral_sparse_chunks.push_back(component.pack(integral_chunks.back()));
-                        // std::cout << "chunks: " << integral_chunks.back() << " " << integral_sparse_chunks.back()
-                        //           << std::endl;
+                        auto packed = pack<BlueprintFieldType>(value_type(integral_chunks.back()));
+                        integral_sparse_chunks.push_back(integral_type(packed.data));
+//                        std::cout << "chunks: " << std::hex <<  integral_chunks.back() << " " << integral_sparse_chunks.back() << std::dec
+//                                   << std::endl;
                     }
                     for (std::size_t j = 0; j < num_chunks; ++j) {
                         sparse = sparse + power * integral_sparse_chunks[num_chunks - j - 1];
                         power <<= (3 * chunk_size);
                     }
-                    // std::cout << "sparse: " << sparse << std::endl;
+                    std::cout << "sparse: " << std::hex << sparse << std::dec << std::endl;
                     sparse_padded_message[index] = value_type(sparse);
 
                     auto cur_config = component.full_configuration[config_index];
@@ -925,10 +931,10 @@ namespace nil {
                     std::copy(sparse_padded_message_coords.begin() + offset,
                               sparse_padded_message_coords.begin() + offset + 17, pmc.begin());
 
-                    for (auto &el : pmc) {
-                        std::cout << component.unpack(integral_type(var_value(assignment, el).data)) << ",";
-                    }
-                    std::cout << std::endl;
+                    //for (auto &el : pmc) {
+                    //    std::cout << component.unpack(integral_type(var_value(assignment, el).data)) << ",";
+                    //}
+                    //std::cout << std::endl;
 
                     for (std::size_t j = 0; j < 24; ++j) {
                         typename round_type::input_type round_input = {
@@ -957,8 +963,9 @@ namespace nil {
                 // from sparse
                 for (std::size_t index = 0; index < 4; ++index) {
                     value_type sparse_value = var_value(assignment, inner_state[index]);
+                    std::cout << "Sparse round output variable = " << inner_state[index] << " = " << std::hex << sparse_value << std::dec << std::endl;
                     integral_type sparse = integral_type(sparse_value.data);
-                    integral_type regular = component.unpack(sparse);
+                    integral_type regular(unpack<BlueprintFieldType>(sparse).data);
                     // std::cout << "from sparse: " << sparse << " to regular " << regular << std::endl;
                     auto chunk_size = component.pack_chunk_size * 3;
                     auto num_chunks = component.pack_num_chunks;
@@ -968,7 +975,8 @@ namespace nil {
                     for (std::size_t j = 0; j < num_chunks; ++j) {
                         integral_chunks.push_back(sparse & mask);
                         sparse >>= chunk_size;
-                        integral_sparse_chunks.push_back(component.unpack(integral_chunks.back()));
+                        auto unpacked = unpack<BlueprintFieldType>(integral_chunks.back());
+                        integral_sparse_chunks.push_back(integral_type(unpacked.data));
                     }
 
                     sparse_padded_message[index] = value_type(regular);
@@ -994,20 +1002,26 @@ namespace nil {
 
                 BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);
 
-                return typename component_type::result_type(component, start_row_index);
+                typename component_type::result_type result(component, start_row_index);
+                std::cout << "Keccak component result = "
+                    << std::hex << var_value(assignment, result.final_inner_state[0]) << std::dec << " "
+                    << std::hex << var_value(assignment, result.final_inner_state[1]) << std::dec << " "
+                    << std::hex << var_value(assignment, result.final_inner_state[2]) << std::dec << " "
+                    << std::hex << var_value(assignment, result.final_inner_state[3]) << std::dec << std::endl;
+                return result;
             }
 
             template<typename BlueprintFieldType>
             void generate_assignments_constant(
-                const keccak_component<BlueprintFieldType> &component,
+                const keccak_static_component<BlueprintFieldType> &component,
                 circuit<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &bp,
                 assignment<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>> &assignment,
-                const typename keccak_component<BlueprintFieldType>::input_type &instance_input,
+                const typename keccak_static_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
                 std::size_t row = start_row_index + 2;
                 for (std::size_t i = 0; i < 24; ++i) {
-                    assignment.constant(component.C(0), row + i) = component.pack(component.round_constant[i]);
+                    assignment.constant(component.C(0), row + i) = pack<BlueprintFieldType>(component.round_constant[i]);
                 }
             }
 

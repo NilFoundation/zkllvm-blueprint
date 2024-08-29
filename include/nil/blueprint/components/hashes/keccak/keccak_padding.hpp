@@ -153,16 +153,20 @@ namespace nil {
                     result_type(const keccak_padding &component, std::size_t start_row_index) {
                         auto size = component.full_configuration.size() - 1 - component.num_blocks * (component.shift != 0);
                         padded_message.resize(size + component.num_padding_zeros);
+                        std::cout << "Padding component result size = " << padded_message.size() <<  " : ";
                         for (std::size_t i = 0; i < padded_message.size() - 17; ++i) {
                             auto config = component.full_configuration[i];
                             padded_message[i] = var(component.W(config.copy_to.back().column),
                                                     config.copy_to.back().row + start_row_index, false);
+                            std::cout << padded_message[i] << " ";
                         }
                         auto output_config = component.full_configuration[component.num_blocks];
                         for (std::size_t i = 0; i < 17; ++i) {
                             padded_message[padded_message.size() - 17 + i] = var(component.W(output_config.copy_to[i].column),
                                                                             output_config.copy_to[i].row + start_row_index, false);
+                            std::cout << padded_message[padded_message.size() - 17 + i] << " ";
                         }
+                        std::cout << std::endl;
                     }
 
                     std::vector<std::reference_wrapper<var>> all_vars() {
@@ -348,7 +352,7 @@ namespace nil {
                 static configuration configure_output(std::size_t witness_amount, std::size_t num_blocks, std::size_t num_bits,
                                                     bool range_check_input, std::size_t limit_permutation_column,
                                                     std::size_t row, std::size_t column) {
-                    
+
                     if (column > 0) {
                         row += 1;
                         column = 0;
@@ -372,13 +376,13 @@ namespace nil {
                         values.push_back({last_row + (last_column / witness_amount),
                                                         (last_column++) % witness_amount});
                         copy_to.push_back(values.back());
-                        
+
                     }
                     delta = {last_row + (last_column / witness_amount), (last_column++) % witness_amount};
                     for (std::size_t i = 0; i < 17; i++) {
                         selectors.push_back({last_row + (last_column / witness_amount),
                                                         (last_column++) % witness_amount});
-                        
+
                     }
                     almost_sum = {last_row + (last_column / witness_amount), (last_column++) % witness_amount};
 
@@ -493,7 +497,7 @@ namespace nil {
                         column = conf.last_coordinate.column;
                     }
                     result.push_back(configure_output(witness_amount, num_blocks, num_bits, range_check_input, limit_permutation_column, row, column));
-                    
+
                     if (calculate_shift(num_blocks, num_bits) == 0) {
                         return result;
                     }
@@ -788,7 +792,7 @@ namespace nil {
 
                 std::vector<constraint_type> cur_constraints;
                 std::vector<lookup_constraint_type> cur_lookup_constraints;
-                
+
                 cur_constraints.clear();
                 cur_lookup_constraints.clear();
 
@@ -872,7 +876,7 @@ namespace nil {
                             }
                             cur_constraints.push_back(constraint);
                         }
-                        
+
                         selector_indexes.push_back(bp.add_gate(cur_constraints));
                         gate_index++;
                         cur_constraints.clear();
@@ -892,10 +896,10 @@ namespace nil {
                 // (s_i - 1)(s_i - 2)w_i=0  &&  s_i(s_i - 2)(w_i*delta - 1)=0
                 for (auto constr : output_gates[idx[0]].constraints) {
                     cur_constraints.push_back((var(constr[0].column, static_cast<int>(constr[0].row) - shifts[0]) - 1) *
-                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[0]) - 2) * 
+                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[0]) - 2) *
                                               var(constr[1].column, static_cast<int>(constr[1].row) - shifts[0]));
                     cur_constraints.push_back(var(constr[0].column, static_cast<int>(constr[0].row) - shifts[0]) *
-                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[0]) - 2) * 
+                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[0]) - 2) *
                                               (var(constr[1].column, static_cast<int>(constr[1].row) - shifts[0]) * var(constr[2].column, static_cast<int>(constr[2].row) - shifts[0]) - 1));
                 }
                 if (output_gates.size() > 1) {
@@ -905,10 +909,10 @@ namespace nil {
                 }
                 for (auto constr : output_gates[idx[1]].constraints) {
                     cur_constraints.push_back((var(constr[0].column, static_cast<int>(constr[0].row) - shifts[1]) - 1) *
-                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[1]) - 2) * 
+                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[1]) - 2) *
                                               var(constr[1].column, static_cast<int>(constr[1].row) - shifts[1]));
                     cur_constraints.push_back(var(constr[0].column, static_cast<int>(constr[0].row) - shifts[1]) *
-                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[1]) - 2) * 
+                                              (var(constr[0].column, static_cast<int>(constr[0].row) - shifts[1]) - 2) *
                                               (var(constr[1].column, static_cast<int>(constr[1].row) - shifts[1]) * var(constr[2].column, static_cast<int>(constr[2].row) - shifts[1]) - 1));
                 }
                 std::vector<constraint_type> s_i;
@@ -927,12 +931,12 @@ namespace nil {
                     cur_constraints.push_back((s_i[i+1] - s_i[i] + 1) * (s_i[i+1] - s_i[i]));
                 }
                 // sum
-                constraint_type sum = s_i[0];  
+                constraint_type sum = s_i[0];
                 for (std::size_t i = 1; i < 17; ++i) {
                     sum += s_i[i];
                 }
                 cur_constraints.push_back((34 - sum) * sum - 1 - var(output_gates[idx[1]].lookups[0][0].column, static_cast<int>(output_gates[idx[1]].lookups[0][0].row) - shifts[1]));
-                
+
                 selector_indexes.push_back(bp.add_gate(cur_constraints));
                 gate_index++;
                 cur_constraints.clear();
@@ -1043,7 +1047,7 @@ namespace nil {
                                             var(component.W(prev_config.copy_to[prev_offset].column), prev_config.copy_to[prev_offset].row + strow, false)});
                 }
                 config_index++;
-                
+
                 if (component.shift == 0) {
                     bp.add_copy_constraint({var(component.C(0), start_row_index + 1, false, var::column_type::constant),
                                             var(component.W(config.copy_to[idx].column), config.copy_to[idx++].row + strow, false)});
@@ -1070,6 +1074,7 @@ namespace nil {
                     &assignment,
                 const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
+                std::cout << "Keccak padding generate_circuit rows_amount = " << component.rows_amount << " gates_amount = " << component.gates_amount << std::endl;
 
                 using component_type = padding_component<BlueprintFieldType>;
 
@@ -1133,6 +1138,7 @@ namespace nil {
                     &assignment,
                 const typename padding_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
+                std::cout << "Keccak padding component generate assignments" << std::endl;
 
                 const std::size_t strow = start_row_index;
 
@@ -1273,7 +1279,7 @@ namespace nil {
                         }
                     }
                 }
-                
+
                 return typename component_type::result_type(component, start_row_index);
             }
 

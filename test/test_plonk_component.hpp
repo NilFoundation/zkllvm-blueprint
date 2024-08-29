@@ -26,8 +26,7 @@
 // @file Declaration of interfaces for PLONK unified addition component.
 //---------------------------------------------------------------------------//
 
-#ifndef CRYPTO3_TEST_PLONK_COMPONENT_HPP
-#define CRYPTO3_TEST_PLONK_COMPONENT_HPP
+#pragma once
 
 #include <fstream>
 #include <random>
@@ -102,28 +101,6 @@ namespace nil {
             return step_list;
         }
 
-        template<typename fri_type, typename FieldType>
-        typename fri_type::params_type create_fri_params(
-                const std::size_t degree_log, const std::size_t lambda,
-                const std::size_t expand_factor = 4, const std::size_t max_step = 1) {
-            math::polynomial<typename FieldType::value_type> q = {0, 0, 1};
-
-            const std::size_t r = degree_log - 1;
-
-            std::vector<std::shared_ptr<math::evaluation_domain<FieldType>>> domain_set =
-                math::calculate_domain_set<FieldType>(degree_log + expand_factor, r);
-
-            typename fri_type::params_type params(
-                (1 << degree_log) - 1,
-                domain_set,
-                generate_random_step_list(r, max_step),
-                expand_factor,
-                lambda
-            );
-
-            return params;
-        }
-
         template<typename ComponentType, typename BlueprintFieldType>
         class plonk_test_assigner {
         public:
@@ -144,6 +121,7 @@ namespace nil {
                 const typename ComponentType::input_type &instance_input,
                 const std::uint32_t start_row_index) const override {
 
+                std::cout << "Generate assignments" << std::endl;
                 return blueprint::components::generate_assignments<BlueprintFieldType>(
                             component, assignment, instance_input, start_row_index);
             }
@@ -193,16 +171,19 @@ namespace nil {
             if constexpr( nil::blueprint::use_lookups<component_type>() ){
                 auto lookup_tables = component_instance.component_lookup_tables();
                 for(auto &[k,v]:lookup_tables){
-                    bp.reserve_table(k);
+                    if( v == 1 )
+                        bp.reserve_dynamic_table(k);
+                    else
+                        bp.reserve_table(k);
                 }
             };
 
             static boost::random::mt19937 gen;
             static boost::random::uniform_int_distribution<> dist(0, 100);
-            std::size_t start_row = 0; // dist(gen);
+            std::size_t start_row = 0; //dist(gen);
             // resize to ensure that if the component is empty by default (e.g. a component which only uses batching)
             if (start_row != 0) {
-                assignment.witness(0, start_row - 1) = 0;
+                assignment.witness(0, start_row - 1) = 0u;
             }
 
             if constexpr (PrivateInput) {
@@ -215,14 +196,22 @@ namespace nil {
                 }
             }
 
+            std::cout << "Generate circuit" << std::endl;
             blueprint::components::generate_circuit<BlueprintFieldType>(
                 component_instance, bp, assignment, instance_input, start_row);
+            std::cout << "Assigner" << std::endl;
             auto component_result = boost::get<typename component_type::result_type>(
                 assigner(component_instance, assignment, instance_input, start_row));
 
             // Stretched components do not have a manifest, as they are dynamically generated.
             if constexpr (!blueprint::components::is_component_stretcher<
                                     BlueprintFieldType, ComponentType>::value) {
+                if(bp.num_gates() + bp.num_lookup_gates() !=
+                                component_type::get_gate_manifest(component_instance.witness_amount(),
+                                                                  component_static_info_args...).get_gates_amount()){
+                    std::cout << bp.num_gates() + bp.num_lookup_gates() << " != " << component_type::get_gate_manifest(component_instance.witness_amount(),
+                                                                  component_static_info_args...).get_gates_amount() << std::endl;
+                }
                 BOOST_ASSERT_MSG(bp.num_gates() + bp.num_lookup_gates() ==
                                 component_type::get_gate_manifest(component_instance.witness_amount(),
                                                                   component_static_info_args...).get_gates_amount(),
@@ -230,6 +219,8 @@ namespace nil {
             }
 
             if (start_row + component_instance.rows_amount >= public_input.size()) {
+                if ( assignment.rows_amount() - start_row != component_instance.rows_amount )
+                    std::cout << assignment.rows_amount() << " != " << component_instance.rows_amount << std::endl;
                 BOOST_ASSERT_MSG(assignment.rows_amount() - start_row == component_instance.rows_amount,
                                 "Component rows amount does not match actual rows amount.");
                 // Stretched components do not have a manifest, as they are dynamically generated.
@@ -242,6 +233,7 @@ namespace nil {
                 }
             }
 
+            std::cout << "Stretcher shit" << std::endl;
             const std::size_t rows_after_component_batching =
                 assignment.finalize_component_batches(bp, start_row + component_instance.rows_amount);
             const std::size_t rows_after_const_batching =
@@ -279,6 +271,7 @@ namespace nil {
                   "Component disconnected! See comment above this assert for a way to output a visual representation of the connectedness graph.");
             }
             desc.usable_rows_amount = assignment.rows_amount();
+            std::cout << "Use lookups" << std::endl;
 
             if constexpr (nil::blueprint::use_lookups<component_type>()) {
                 // Components with lookups may use constant columns.
@@ -302,6 +295,7 @@ namespace nil {
                 desc.usable_rows_amount = zk::snark::pack_lookup_tables_horizontal(
                     bp.get_reserved_indices(),
                     bp.get_reserved_tables(),
+                    bp.get_reserved_dynamic_tables(),
                     bp, assignment, lookup_columns_indices, cur_selector_id,
                     desc.usable_rows_amount,
                     500000
@@ -315,11 +309,12 @@ namespace nil {
 
             profiling(assignment);
 #endif
-            //assignment.export_table(std::cout);
-            //bp.export_circuit(std::cout);
+            // assignment.export_table(std::cout);
+            // bp.export_circuit(std::cout);
 
+            std::cout << "Satisfiability check starts" << std::endl;
             assert(blueprint::is_satisfied(bp, assignment) == expected_to_pass);
-
+            std::cout << "Satisfiability check ends" << std::endl << std::endl;
             return std::make_tuple(desc, bp, assignment);
         }
 
@@ -427,15 +422,12 @@ namespace nil {
 
             std::size_t table_rows_log = std::ceil(std::log2(desc.rows_amount));
 
-            typename fri_type::params_type fri_params = create_fri_params<fri_type, BlueprintFieldType>(
-                table_rows_log, Lambda);
+            typename fri_type::params_type fri_params(1,table_rows_log, Lambda, 2);
             commitment_scheme_type lpc_scheme(fri_params);
-
-            std::size_t permutation_size = desc.witness_columns + desc.public_input_columns + desc.constant_columns;
 
             typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type
                 preprocessed_public_data = nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params_type>::process(
-                    bp, assignments.public_table(), desc, lpc_scheme, permutation_size
+                    bp, assignments.public_table(), desc, lpc_scheme
                 );
 
             typename nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params_type>::preprocessed_data_type
@@ -620,5 +612,3 @@ namespace nil {
         }
     }    // namespace crypto3
 }    // namespace nil
-
-#endif    // CRYPTO3_TEST_PLONK_COMPONENT_HPP
