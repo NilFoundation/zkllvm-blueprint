@@ -265,6 +265,9 @@ namespace nil {
                 struct result_type {
                     std::array<var, 25> inner_state;
 
+                    result_type() {
+                    }
+
                     result_type(const keccak_round &component, std::size_t start_row_index) {
                         std::size_t num_config = component.full_configuration.size() - 30;
                         inner_state[0] =

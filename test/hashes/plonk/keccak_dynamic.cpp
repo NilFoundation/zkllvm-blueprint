@@ -142,7 +142,8 @@ BOOST_AUTO_TEST_CASE(keccak_1_N_message) {
             }
         }
     }
-    std::vector<std::uint8_t> msg(N, 0xac);
+    std::vector<std::uint8_t> msg(N);
+    for( std::size_t i = 0; i < N; i++ ){ msg[i] = (rnd.generic_random_engine()) % 256; }
     test_keccaks<field_type>({{msg,calculate_hash<field_type>(msg)}}, rnd);
 }
 BOOST_AUTO_TEST_CASE(keccak_1_N_zeroes) {

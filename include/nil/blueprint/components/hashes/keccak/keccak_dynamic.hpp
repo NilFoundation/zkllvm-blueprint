@@ -181,26 +181,9 @@ namespace nil {
                 };
 
                 struct result_type {
-//                    std::array<var, 4> final_inner_state;
-
-                    result_type(/*const keccak_dynamic &component, std::size_t start_row_index*/) {
-/*                      auto offset =
-                            component.full_configuration[component.num_configs - 1].last_coordinate.row +
-                            (component.full_configuration[component.num_configs - 1].last_coordinate.column > 0);
-                        std::cout << "Keccak component result :" << std::endl;
-                        for (std::size_t i = 0; i < 4; ++i) {
-                            final_inner_state[i] =
-                                var(component.W(
-                                        component.full_configuration[component.num_configs - 4 + i].copy_from.column),
-                                    start_row_index + component.rows_amount - offset +
-                                        component.full_configuration[component.num_configs - 4 + i].copy_from.row,
-                                    false);
-                            std::cout << final_inner_state[i] << " ";
-                        }
-                        std::cout << std::endl;*/
+                    result_type() {
                     }
                     std::vector<std::reference_wrapper<var>> all_vars() {
-//                        return {final_inner_state[0], final_inner_state[1], final_inner_state[2], final_inner_state[3]};
                         return {};
                     }
                 };
@@ -213,7 +196,6 @@ namespace nil {
                     var is_last;
                     var L;
                     var l;
-                    var lmod;
                     var hash_cur_hi;
                     var hash_cur_lo;
                     var rlc_before;
@@ -224,7 +206,6 @@ namespace nil {
                     var RLC_prev;
                     var L_prev;
                     var l_prev;
-                    var lmod_prev;
                     var is_first_prev;
                     var is_last_prev;
                     var hash_cur_hi_prev;
@@ -251,6 +232,9 @@ namespace nil {
                     var out;
 
                     var is_first_prev;
+                    var XOR_prev;
+                    var ch_prev;
+
                     var rng_next;
                     var XOR_next;
                 };
@@ -271,7 +255,6 @@ namespace nil {
                     var r4;
                     var first_in_block;
                     // First row is length before -- controlled by copy constraints -- other rows 0
-                    //var last_chunk;
 
                     var sp0_prev;
                     var sp1_prev;
@@ -314,48 +297,51 @@ namespace nil {
                         r = var(component.W(14), 0);
                         r_prev = var(component.W(14), -1);
 
-                        h.is_first = var(component.W(0), 0);
-                        h.is_last = var(component.W(1), 0);
-                        h.hash_hi = var(component.W(4), 0);
-                        h.hash_lo = var(component.W(5), 0);
-                        h.RLC = var(component.W(6), 0);
+                        h.L = var(component.W(0), 0);
+                        h.RLC = var(component.W(1), 0);
+                        h.hash_hi = var(component.W(2), 0);
+                        h.hash_lo = var(component.W(3), 0);
+                        h.rlc_before = var(component.W(4), 0);
+                        h.rlc_after = var(component.W(5), 0);
+                        h.l = var(component.W(6), 0);
                         h.hash_cur_hi = var(component.W(7), 0);
                         h.hash_cur_lo = var(component.W(8), 0);
-                        h.L = var(component.W(10), 0);
-                        h.lmod = var(component.W(12), 0);
-                        h.l = var(component.W(11), 0);
-                        h.rlc_before = var(component.W(9), 0);
-                        h.rlc_after = var(component.W(2), 0);
+                        h.is_last = var(component.W(9), 0);
+                        h.is_first = var(component.W(10), 0);
 
-                        h.is_first_prev = var(component.W(0), -1);
-                        h.is_last_prev = var(component.W(1), -1);
-                        h.hash_hi_prev = var(component.W(4), -1);
-                        h.hash_lo_prev = var(component.W(5), -1);
+                        h.L_prev = var(component.W(0), -1);
+                        h.RLC_prev = var(component.W(1), -1);
+                        h.hash_hi_prev = var(component.W(2), -1);
+                        h.hash_lo_prev = var(component.W(3), -1);
+                        h.rlc_before_prev = var(component.W(4), -1);
+                        h.l_prev = var(component.W(6), -1);
                         h.hash_cur_hi_prev = var(component.W(7), -1);
                         h.hash_cur_lo_prev = var(component.W(8), -1);
-                        h.RLC_prev = var(component.W(6), -1);
-                        h.L_prev = var(component.W(10), -1);
-                        h.lmod_prev = var(component.W(12), -1);
-                        h.l_prev = var(component.W(11), -1);
-                        h.rlc_before_prev = var(component.W(9), -1);
+                        h.is_last_prev = var(component.W(9), -1);
+                        h.is_first_prev = var(component.W(10), -1);
 
-                        s.is_first = var(component.W(0), 0);
-                        s.s0 = var(component.W(1), 0);
-                        s.s1 = var(component.W(2), 0);
-                        s.s2 = var(component.W(3), 0);
-                        s.s3 = var(component.W(4), 0);
-                        s.s4 = var(component.W(5), 0);
-                        s.S0 = var(component.W(6), 0);
-                        s.S1 = var(component.W(7), 0);
-                        s.S2 = var(component.W(8), 0);
-                        s.S3 = var(component.W(9), 0);
-                        s.S4 = var(component.W(10), 0);
+                        s.s0 = var(component.W(0), 0);
+                        s.s1 = var(component.W(1), 0);
+                        s.s2 = var(component.W(2), 0);
+                        s.s3 = var(component.W(3), 0);
+                        s.s4 = var(component.W(4), 0);
+                        s.S0 = var(component.W(5), 0);
+                        s.S1 = var(component.W(6), 0);
+                        s.S2 = var(component.W(7), 0);
+                        s.S3 = var(component.W(8), 0);
+                        s.S4 = var(component.W(9), 0);
+                        // Connected with header by polynomial constraints
+                        // Use copy constraints to remove this dependency
+                        s.is_first = var(component.W(10), 0);
                         s.rng = var(component.W(11), 0);
                         s.XOR = var(component.W(12), 0);
                         s.ch = var(component.W(13), 0);
                         s.out = var(component.W(14), 0);
 
-                        s.is_first_prev = var(component.W(0), -1);
+                        s.is_first_prev = var(component.W(10), -1);
+                        s.XOR_prev = var(component.W(12), -1);
+                        s.ch_prev = var(component.W(13), -1);
+
                         s.rng_next = var(component.W(11), 1);
                         s.XOR_next = var(component.W(12), 1);
 
@@ -441,13 +427,7 @@ namespace nil {
 
                 static std::size_t get_gates_amount(std::size_t witness_amount, std::size_t max_blocks,
                                                     std::size_t limit_permutation_column) {
-//                    std::size_t res = 0;
-//                    auto config = configure_map(witness_amount, num_blocks, num_bits, range_check_input,
-//                                                limit_permutation_column);
-//                    for (auto c : config) {
-//                        res += 2;
-//                    }
-                    return 38; // + round_component_type::get_gates_amount(witness_amount, );
+                    return 39; // + round_component_type::get_gates_amount(witness_amount, );
                 }
 
                 std::map<std::string, std::size_t> component_lookup_tables() {
@@ -518,36 +498,38 @@ namespace nil {
                 std::vector<constraint_type> header_constraints;
                 std::vector<lookup_constraint_type> header_lookup_constraints;
                 // Is_first and is_last definition
-                header_constraints.push_back(m.h.is_first * (m.h.is_first - 1));
-                header_constraints.push_back(m.h.is_last * (m.h.is_last - 1));
-                header_constraints.push_back(m.h.is_first * (m.h.L - m.h.l));
-                header_constraints.push_back(m.h.is_last * (m.h.l - m.h.lmod));
-
-                // Transition between blocks
-                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.hash_hi - m.h.hash_hi_prev));
-                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.hash_lo - m.h.hash_lo_prev));
-                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.L - m.h.L_prev));
-                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.lmod - m.h.lmod_prev));
-                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.RLC - m.h.RLC_prev));
-                header_constraints.push_back(( 1 - m.h.is_first ) * (1 - m.h.is_last) * (m.h.l_prev - m.h.l - 136));
-                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.rlc_before_prev - m.h.rlc_before));
+                header_constraints.push_back(m.h.is_first * (m.h.is_first - 1));                                                            // HF1
+                header_constraints.push_back(m.h.is_last * (m.h.is_last - 1));                                                              // HF2
+                header_constraints.push_back(m.h.is_first * (m.h.L - m.h.l));                                                               // HF3
+                header_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check_135"),{m.h.is_last * m.h.l}}); // HF4
 
                 // Hash computation correctness
-                header_constraints.push_back(m.h.is_last * (m.h.hash_hi - m.h.hash_cur_hi));
-                header_constraints.push_back(m.h.is_last * (m.h.hash_lo - m.h.hash_cur_lo));
+                header_constraints.push_back(m.h.is_last * (m.h.hash_hi - m.h.hash_cur_hi));    // HF5
+                header_constraints.push_back(m.h.is_last * (m.h.hash_lo - m.h.hash_cur_lo));    // HF6
 
                 // RLC computation correctness
-                header_constraints.push_back(m.h.is_first * (m.h.rlc_before - m.h.L));
-                header_constraints.push_back(m.h.is_last * (m.h.rlc_after - m.h.RLC));
+                header_constraints.push_back(m.h.is_first * (m.h.rlc_before - m.h.L));  // HF7
+                header_constraints.push_back(m.h.is_last * (m.h.rlc_after - m.h.RLC));  // HF8
 
-                header_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check_135"),{m.h.lmod}});
+                // Transition between blocks
+                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.L - m.h.L_prev));      // BT4
+                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.RLC - m.h.RLC_prev));  // BT5
+                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.hash_hi - m.h.hash_hi_prev));  // BT6
+                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.hash_lo - m.h.hash_lo_prev));  // BT7
+                header_constraints.push_back(( 1 - m.h.is_first ) * (m.h.rlc_before_prev - m.h.rlc_before)); // BT8
+                header_constraints.push_back(( 1 - m.h.is_first ) * (1 - m.h.is_last) * (m.h.l_prev - m.h.l - 136)); // BT9
+
                 header_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check_16bit"),{m.h.L}});
                 header_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check_16bit"),{m.h.l}});
                 selector_indices.push_back(bp.add_gate(header_constraints));
                 bp.add_lookup_gate(selector_indices.back(), header_lookup_constraints);
 
+                std::vector<constraint_type> first_header_constraints;
+                first_header_constraints.push_back(1 - m.h.is_first); // BT1
+                selector_indices.push_back(bp.add_gate(first_header_constraints));
+
                 std::vector<constraint_type> non_first_header_constraints;
-                non_first_header_constraints.push_back(m.h.is_first * (1 - m.h.is_last_prev));
+                non_first_header_constraints.push_back(m.h.is_first * (1 - m.h.is_last_prev)); //BT2
                 selector_indices.push_back(bp.add_gate(non_first_header_constraints));
 
                 // State constraints.
@@ -555,81 +537,105 @@ namespace nil {
                 //      m.s.S -- zerofied for first block and copied for other blocks.
                 std::vector<constraint_type> state_constraints;
                 std::vector<lookup_constraint_type> state_lookup_constraints;
-                state_constraints.push_back(m.s.is_first_prev - m.s.is_first);
-                state_constraints.push_back(m.s.S0 - (1 - m.s.is_first) * m.s.s0);
-                state_constraints.push_back(m.s.S1 - (1 - m.s.is_first) * m.s.s1);
-                state_constraints.push_back(m.s.S2 - (1 - m.s.is_first) * m.s.s2);
-                state_constraints.push_back(m.s.S3 - (1 - m.s.is_first) * m.s.s3);
-                state_constraints.push_back(m.s.S4 - (1 - m.s.is_first) * m.s.s4);
+                state_constraints.push_back(m.s.is_first_prev - m.s.is_first);      // ST1
+                state_constraints.push_back(m.s.S0 - (1 - m.s.is_first) * m.s.s0);  // ST3
+                state_constraints.push_back(m.s.S1 - (1 - m.s.is_first) * m.s.s1);  // ST4
+                state_constraints.push_back(m.s.S2 - (1 - m.s.is_first) * m.s.s2);  // ST5
+                state_constraints.push_back(m.s.S3 - (1 - m.s.is_first) * m.s.s3);  // ST6
+                state_constraints.push_back(m.s.S4 - (1 - m.s.is_first) * m.s.s4);  // ST7
+                state_constraints.push_back(m.s.out
+                    - m.s.XOR_prev * (integral_type(1) << (48 * 3))
+                    - m.s.ch_prev * (integral_type(1) << (48 * 2))
+                    - m.s.XOR * (integral_type(1) << 48)
+                    - m.s.ch
+                );    // ST9
                 state_lookup_constraints.push_back(
                     {lookup_tables_indices.at("keccak_pack_table/sparse_16bit"),{m.s.rng}}
-                );
+                );    // ST8
                 selector_indices.push_back(bp.add_gate(state_constraints));
                 bp.add_lookup_gate(selector_indices.back(), state_lookup_constraints);
 
                 std::vector<constraint_type> xor_constraints;
                 const integral_type sparse_x80 = component.round_tf.sparse_x80 >> 144;
                 const integral_type sparse_x7f = component.round_tf.sparse_x7f >> 144;
-                xor_constraints.push_back((m.s.rng_next - sparse_x80 - m.s.rng) * (m.s.rng_next - sparse_x7f + m.s.rng ));
+                xor_constraints.push_back((m.s.rng_next - sparse_x80 - m.s.rng) * (m.s.rng_next - sparse_x7f + m.s.rng )); // XOR1
+                //xor_constraints.push_back((m.s.ch * (m.s.ch - 1))); -- not necessary, controlled by copy constraints
+                xor_constraints.push_back((m.s.rng_next - sparse_x7f + m.s.rng ) * (m.s.XOR - m.s.rng_next + sparse_x80)); // XOR2
+                xor_constraints.push_back((m.s.rng_next - sparse_x80 - m.s.rng ) * (m.s.XOR - m.s.rng_next - sparse_x80)); // XOR3
+                // XOR_next - is_last * XOR - (1-is_last) * rng_next
+                xor_constraints.push_back((m.s.XOR_next - m.s.ch * m.s.XOR - (1 - m.s.ch) * m.s.rng_next)); // XOR4
                 selector_indices.push_back(bp.add_gate(xor_constraints));
 
                 value_type chunk_factor = value_type(integral_type(1) << 48);
                 std::vector<constraint_type> chunks_constraints;
                 std::vector<lookup_constraint_type> chunks_lookup_constraints;
-                // chunks_constraints.push_back(m.r_prev - m.r); TODO:: implement it using copy constraints
                 chunks_constraints.push_back(
                     m.c.chunk - m.c.sp1 * chunk_factor * chunk_factor * chunk_factor -
                     m.c.sp0 * chunk_factor * chunk_factor - m.c.sp1_prev * chunk_factor - m.c.sp0_prev
-                );
+                );  // CH7
+
                 auto diff = m.c.l_before - m.c.l;
                 auto diff_prev = m.c.l_before_prev - m.c.l_prev;
-                chunks_constraints.push_back(m.c.first_in_block * (1 - m.c.first_in_block));
-                chunks_constraints.push_back(diff * (diff - 1) * (diff - 2) * (diff - 3) * (diff - 4));
-                chunks_constraints.push_back((1 - m.c.first_in_block) * (m.c.l_before - m.c.l_prev));
-                chunks_constraints.push_back(m.c.r2 - m.r * m.r);
-                chunks_constraints.push_back(m.c.r4 - m.c.r2 * m.c.r2);
-                chunks_constraints.push_back((1 - m.c.first_in_block) * diff * (diff_prev - 4));
-                chunks_constraints.push_back(diff * (diff - 1) * (diff-2) * (diff-4) * (m.c.b3 - 1));
-                chunks_constraints.push_back(diff * (diff - 1) * (diff-3) * (diff-4) * (m.c.b2 - 1));
-                chunks_constraints.push_back(diff * (diff - 1) * (diff-3) * (diff-4) * m.c.b3);
-                chunks_constraints.push_back(diff * (diff - 2) * (diff-3) * (diff-4) * (m.c.b1 - 1));
-                chunks_constraints.push_back(diff * (diff - 2) * (diff-3) * (diff-4) * m.c.b2);
-                chunks_constraints.push_back(diff * (diff - 2) * (diff-3) * (diff-4) * m.c.b3);
-                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * (m.c.b0 - 1));
-                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * m.c.b1);
-                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * m.c.b2);
-                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * m.c.b3);
-                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * (m.c.b0 - 1));
-                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * m.c.b1);
-                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * m.c.b2);
-                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * m.c.b3);
+
+                //chunks_constraints.push_back(m.c.first_in_block * (1 - m.c.first_in_block)); // Not necessary, controlled by copy constraints.
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (m.c.l_before - m.c.l_prev)); // LC3
+                chunks_constraints.push_back(diff * (diff - 1) * (diff - 2) * (diff - 3) * (diff - 4)); // LC4
+                chunks_constraints.push_back((1 - m.c.first_in_block) * diff * (diff_prev - 4)); // LC5
+
+                chunks_constraints.push_back(diff * (diff - 1) * (diff-2) * (diff-4) * (m.c.b3 - 1));  // PC1
+                chunks_constraints.push_back(diff * (diff - 1) * (diff-3) * (diff-4) * (m.c.b2 - 1));  // PC2
+                chunks_constraints.push_back(diff * (diff - 1) * (diff-3) * (diff-4) * m.c.b3);        // PC3
+                chunks_constraints.push_back(diff * (diff - 2) * (diff-3) * (diff-4) * (m.c.b1 - 1));  // PC4
+                chunks_constraints.push_back(diff * (diff - 2) * (diff-3) * (diff-4) * m.c.b2);        // PC5
+                chunks_constraints.push_back(diff * (diff - 2) * (diff-3) * (diff-4) * m.c.b3);        // PC6
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * (m.c.b0 - 1)); //PC7
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * m.c.b1);       //PC8
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * m.c.b2);       //PC9
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - diff) * (diff_prev - diff - 1) * (diff_prev - diff - 2) * (diff_prev - diff - 3)  * m.c.b3);       //PC10
+                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * (m.c.b0 - 1)); //PC11
+                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * m.c.b1);       //PC12
+                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * m.c.b2);       //PC13
+                chunks_constraints.push_back(m.c.first_in_block * (diff - 1) * (diff - 2) * (diff-3) * (diff - 4)  * m.c.b3);       //PC14
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - 4) * (diff - 1) * (diff - 2) * (diff - 3)  * (diff - 4) * m.c.b0); //PC15
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - 4) * (diff - 1) * (diff - 2) * (diff - 3)  * (diff - 4) * m.c.b1); //PC16
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - 4) * (diff - 1) * (diff - 2) * (diff - 3)  * (diff - 4) * m.c.b2); //PC17
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (diff_prev - 4) * (diff - 1) * (diff - 2) * (diff - 3)  * (diff - 4) * m.c.b3); //PC18
+
+                chunks_constraints.push_back(m.c.r2 - m.r * m.r);               //RLC4
+                chunks_constraints.push_back(m.c.r4 - m.c.r2 * m.c.r2);         //RLC5
+                chunks_constraints.push_back((1 - m.c.first_in_block) * (m.c.rlc_before - m.c.rlc_prev));   //RLC6
+                //RLC7
                 chunks_constraints.push_back(
                     diff * (diff - 1) * (diff - 2) * (diff - 3) *
                     (m.c.rlc - m.c.r4 * m.c.rlc_before - m.c.r2 * m.r *  m.c.b0 - m.c.r2 * m.c.b1 - m.r  * m.c.b2 - m.c.b3)
                 );
+                //RLC8
                 chunks_constraints.push_back(
                     diff * (diff - 1) * (diff - 2) * (diff - 4) *
                     (m.c.rlc - m.c.r2 * m.r * m.c.rlc_before - m.c.r2 *  m.c.b0 - m.r * m.c.b1 - m.c.b2)
                 );
+                //RLC9
                 chunks_constraints.push_back(
                     diff * (diff - 1) * (diff - 3) * (diff - 4) *
                     (m.c.rlc - m.c.r2 * m.c.rlc_before - m.r *  m.c.b0 - m.c.b1)
                 );
+                //RLC10
                 chunks_constraints.push_back(
                     diff * (diff - 2) * (diff - 3) * (diff - 4) *
                     (m.c.rlc - m.r * m.c.rlc_before - m.c.b0)
                 );
+                //RLC11
                 chunks_constraints.push_back(
                     (diff - 1) * (diff - 2) * (diff - 3) * (diff - 4) *
                     (m.c.rlc - m.c.rlc_before)
                 );
 
-                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b0}});
-                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b1}});
-                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b2}});
-                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b3}});
-                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended"), {m.c.b1 * 256 + m.c.b0, m.c.sp0}});
-                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended"), {m.c.b3 * 256 + m.c.b2, m.c.sp1}});
+                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b0}});  // CH1
+                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b1}});  // CH2
+                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b2}});  // CH3
+                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/range_check"),{m.c.b3}});  // CH4
+                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended"), {m.c.b1 * 256 + m.c.b0, m.c.sp0}});  // CH5
+                chunks_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended"), {m.c.b3 * 256 + m.c.b2, m.c.sp1}});  // CH6
 
                 selector_indices.push_back(bp.add_gate(chunks_constraints));
                 bp.add_lookup_gate(selector_indices.back(), chunks_lookup_constraints);
@@ -638,7 +644,9 @@ namespace nil {
                 std::vector<lookup_constraint_type> unsparser_lookup_constraints;
                 integral_type sparsed_factor( integral_type(1) << 48 );
                 integral_type ufactor( integral_type(1) << 16);
+                //UN2
                 unsparser_constraints.push_back(m.u.SP - m.u.sp0 * (sparsed_factor << 96) - m.u.sp1 * (sparsed_factor << 48) - m.u.sp2 * sparsed_factor - m.u.sp3);
+                //UN7
                 unsparser_constraints.push_back( m.u.hash_chunk -
                     m.u.ch3_prev * (ufactor  << (16 * 6)) -
                     m.u.ch2_prev * (ufactor  << (16 * 5)) -
@@ -649,10 +657,10 @@ namespace nil {
                     m.u.ch1 * ufactor -
                     m.u.ch0);
                 selector_indices.push_back(bp.add_gate(unsparser_constraints));
-                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch0, m.u.sp0}});
-                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch1, m.u.sp1}});
-                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch2, m.u.sp2}});
-                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch3, m.u.sp3}});
+                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch0, m.u.sp0}}); //UN3
+                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch1, m.u.sp1}}); //UN4
+                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch2, m.u.sp2}}); //UN5
+                unsparser_lookup_constraints.push_back({lookup_tables_indices.at("keccak_pack_table/extended_swap"),{m.u.ch3, m.u.sp3}}); //UN6
                 bp.add_lookup_gate(selector_indices.back(), unsparser_lookup_constraints);
 
                 return selector_indices;
@@ -679,119 +687,51 @@ namespace nil {
                     std::size_t chunks_row = state_row + component.state_rows_amount;
                     std::size_t unsparser_row = footer_row - component.unsparser_rows_amount;
 
-                    bp.add_copy_constraint( {  instance_input.rlc_challenge, var(m.r.index, header_row, false)  } );
+                    bp.add_copy_constraint( { instance_input.rlc_challenge, var(m.r.index, header_row, false)  } ); // HF9
+
+                    // BT3
                     bp.add_copy_constraint( { var(m.r.index, header_row, false), var(m.r.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.hash_hi.index, header_row, false), var(m.h.hash_hi.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.hash_lo.index, header_row, false), var(m.h.hash_lo.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.L.index, header_row, false), var(m.h.L.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.l.index, header_row, false), var(m.h.l.index, footer_row, false) } );
-                    bp.add_copy_constraint( { var(m.h.lmod.index, header_row, false), var(m.h.lmod.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.RLC.index, header_row, false), var(m.h.RLC.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.is_first.index, header_row, false), var(m.h.is_first.index, footer_row, false) } );
                     bp.add_copy_constraint( { var(m.h.is_last.index, header_row, false), var(m.h.is_last.index, footer_row, false) } );
-                    bp.add_copy_constraint( { var(m.h.rlc_after.index, header_row, false), var(m.h.rlc_before.index, footer_row, false) } );
 
-                    bp.add_copy_constraint( {var(m.s.S1.index, state_row + 3, false), var(m.s.out.index, state_row + 4, false)} );
-                    bp.add_copy_constraint( {var(m.h.is_last.index, header_row, false), var(m.s.ch.index, state_row, false)} );
-                    bp.add_copy_constraint( {var(m.s.rng.index, state_row + 1, false), var(m.s.XOR.index, state_row + 3, false)} );
+                    bp.add_copy_constraint( {var(m.s.S1.index, state_row + 3, false), var(m.s.out.index, state_row + 4, false)} );  //ST11
+                    bp.add_copy_constraint( {var(m.h.is_last.index, header_row, false), var(m.s.ch.index, state_row, false)} );     //ST8
+
+                    // ST12
                     bp.add_copy_constraint( {var(m.s.rng.index, state_row + 2, false), var(m.s.ch.index, state_row + 1, false)} );
-                    bp.add_copy_constraint( {var(m.s.rng.index, state_row + 2, false), var(m.s.ch.index, state_row + 3, false)} );
                     bp.add_copy_constraint( {var(m.s.rng.index, state_row + 3, false), var(m.s.XOR.index, state_row + 2, false)} );
-                    bp.add_copy_constraint( {var(m.s.rng.index, state_row + 3, false), var(m.s.XOR.index, state_row + 4, false)} );
                     bp.add_copy_constraint( {var(m.s.rng.index, state_row + 4, false), var(m.s.ch.index, state_row + 2, false)} );
+
+                    // ST10
+                    bp.add_copy_constraint( {var(m.s.rng.index, state_row + 1, false), var(m.s.XOR.index, state_row + 3, false)} );
+                    bp.add_copy_constraint( {var(m.s.rng.index, state_row + 2, false), var(m.s.ch.index, state_row + 3, false)} );
+                    bp.add_copy_constraint( {var(m.s.rng.index, state_row + 3, false), var(m.s.XOR.index, state_row + 4, false)} );
                     bp.add_copy_constraint( {var(m.s.rng.index, state_row + 4, false), var(m.s.ch.index, state_row + 4, false)} );
 
                     for( std::size_t j = 0; j < component.chunks_rows_amount; j++ ){
-                        bp.add_copy_constraint({  instance_input.rlc_challenge, var(m.r.index, chunks_row + j, false)  } );
+                        // LC1
+                        if(j == 0)
+                            bp.add_copy_constraint({var(m.c.first_in_block.index,  chunks_row + j, false), var(component.C(0), start_row_index + 1, false, var::column_type::constant)});
+                        else
+                            bp.add_copy_constraint({var(m.c.first_in_block.index,  chunks_row + j, false), var(component.C(0), start_row_index, false, var::column_type::constant)});
+                        bp.add_copy_constraint({  instance_input.rlc_challenge, var(m.r.index, chunks_row + j, false)  } ); // RLC3
                     }
-                    bp.add_copy_constraint( {var(m.h.rlc_after.index, header_row, false), var(m.c.rlc.index, chunks_row + component.chunks_rows_amount - 1, false)} );
+                    bp.add_copy_constraint( {var(m.h.l.index, header_row, false), var(m.c.l_before.index, chunks_row, false)} ); // LC2
 
-                    bp.add_copy_constraint( {var(m.h.hash_cur_hi.index, header_row, false), var(m.u.hash_chunk.index, unsparser_row + 1, false)});
-                    bp.add_copy_constraint( {var(m.h.hash_cur_lo.index, header_row, false), var(m.u.hash_chunk.index, unsparser_row + 3, false)});
+                    bp.add_copy_constraint( {var(m.h.rlc_before.index, header_row, false), var(m.c.rlc_before.index, chunks_row, false)} ); // RLC1
+                    bp.add_copy_constraint( {var(m.h.rlc_after.index, header_row, false), var(m.c.rlc.index, chunks_row + component.chunks_rows_amount - 1, false)} ); // RLC2
+
+                    bp.add_copy_constraint( {var(m.h.hash_cur_hi.index, header_row, false), var(m.u.hash_chunk.index, unsparser_row + 1, false)}); //UN8
+                    bp.add_copy_constraint( {var(m.h.hash_cur_lo.index, header_row, false), var(m.u.hash_chunk.index, unsparser_row + 3, false)}); //UN8
 
                     header_row += component.block_rows_amount;
                     footer_row += component.block_rows_amount;
                 }
-/*
-                std::uint32_t cur_row = start_row_index;
-
-                std::size_t config_index = 0;
-                auto config = component.full_configuration;
-
-                auto padded_message =
-                    typename padding_type::result_type(component.padding, start_row_index).padded_message;
-                cur_row += component.padding.rows_amount;
-
-                for (std::size_t i = 0; i < padded_message.size(); i++) {
-                    bp.add_copy_constraint(
-                        {padded_message[i],
-                         var(component.W(config[config_index].copy_to[0].column),
-                             static_cast<int>(config[config_index].copy_to[0].row + cur_row), false)});
-                    config_index++;
-                }
-                cur_row += config[config_index - 1].last_coordinate.row +
-                           (config[config_index - 1].last_coordinate.column > 0);
-
-                std::array<var, 25> inner_state;
-
-                // auto gate_map_tf = component.round_tf.gates_configuration_map;
-                // std::vector<std::size_t> rotate_rows_tf;
-                // for (auto g : gate_map_tf) {
-                //     if (g.first.first == 7) {
-                //         rotate_rows_tf.insert(rotate_rows_tf.end(), g.second.begin(), g.second.end());
-                //     }
-                // }
-                // std::sort(rotate_rows_tf.begin(), rotate_rows_tf.end());
-
-                // auto gate_map_ff = component.round_ff.gates_configuration_map;
-                // std::vector<std::size_t> rotate_rows_ff;
-                // for (auto g : gate_map_ff) {
-                //     if (g.first.first == 7) {
-                //         rotate_rows_ff.insert(rotate_rows_ff.end(), g.second.begin(), g.second.end());
-                //     }
-                // }
-                // std::sort(rotate_rows_ff.begin(), rotate_rows_ff.end());
-
-                for (int i = 0; i < component.num_round_calls; i++) {
-                    for (int j = 0; j < 24; j++) {
-                        // if (i + j != 0) {
-                        //     std::cout << "prev: " << prev_row << " vs curr" << cur_row << std::endl;
-                        //     for (int k = 0; k < 5; k++) {
-                        //         auto ind1 = (j == 1) ? rotate_rows_tf[k] : rotate_rows_ff[k];
-                        //         auto ind2 = rotate_rows_ff[k];
-                        //         std::cout << ind1 << " , " << ind2 << std::endl;
-                        //         std::cout
-                        //             << var_value(assignment, var(component.C(0), prev_row + ind1, false)).data <<
-                        //             "  vs  "
-                        //             << var_value(assignment, var(component.C(0), cur_row + ind2, false)).data <<
-                        //             std::endl;
-                        //         bp.add_copy_constraint({var(component.C(0), prev_row + ind1, false),
-                        //                                 var(component.C(0), cur_row + ind2, false)});
-                        //     }
-                        //     prev_row = cur_row;
-                        // }
-                        if (i == component.num_round_calls - 1 && j == 0) {
-                            cur_row += component.round_tt.rows_amount;
-                        } else if (j == 0) {
-                            cur_row += component.round_tf.rows_amount;
-                        } else {
-                            inner_state = typename round_type::result_type(component.round_ff, cur_row).inner_state;
-                            cur_row += component.round_ff.rows_amount;
-                        }
-                    }
-                }
-
-                for (std::size_t i = 0; i < 4; i++) {
-                    bp.add_copy_constraint(
-                        {inner_state[i], var(component.W(config[config_index].copy_to[0].column),
-                                             static_cast<int>(config[config_index].copy_to[0].row + cur_row), false)});
-                    config_index++;
-                }
-
-                cur_row += config[config_index - 1].last_coordinate.row +
-                           (config[config_index - 1].last_coordinate.column > 0);
-
-                BOOST_ASSERT(cur_row == start_row_index + component.rows_amount);*/
             }
 
             template<typename BlueprintFieldType>
@@ -818,22 +758,36 @@ namespace nil {
                 auto selector_indices =
                     generate_gates(component, bp, assignment, instance_input, bp.get_reserved_indices());
                 std::size_t header_selector = selector_indices[0];
-                std::size_t non_first_header_selector = selector_indices[1];
-                std::size_t state_selector = selector_indices[2];
-                std::size_t xor_selector = selector_indices[3];
-                std::size_t chunks_selector = selector_indices[4];
-                std::size_t unsparser_selector = selector_indices[5];
+                std::size_t first_header_selector = selector_indices[1];
+                std::size_t non_first_header_selector = selector_indices[2];
+                std::size_t state_selector = selector_indices[3];
+                std::size_t xor_selector = selector_indices[4];
+                std::size_t chunks_selector = selector_indices[5];
+                std::size_t unsparser_selector = selector_indices[6];
 
                 typename component_type::keccak_map m(component);
 
+                typename round_type::result_type round_result;
                 for( std::size_t block = 0; block < component.max_blocks; block++ ){
                     std::size_t header_row = start_row_index + block * component.block_rows_amount;
                     assignment.enable_selector(header_selector, header_row);
-                    if( block != 0 )  assignment.enable_selector(non_first_header_selector, start_row_index + header_row);
+                    if( block != 0 )
+                        assignment.enable_selector(non_first_header_selector, start_row_index + header_row);
+                    else
+                        assignment.enable_selector(first_header_selector, start_row_index + header_row);
 
                     std::size_t state_row = header_row + component.header_rows_amount;
-                    for( std::size_t j = 0; j < component.state_rows_amount; j++ )
+                    for( std::size_t j = 0; j < component.state_rows_amount; j++ ){
                         assignment.enable_selector(state_selector, state_row + j);
+                        if( block != 0){
+                            // ST2
+                            bp.add_copy_constraint( { round_result.inner_state[j * 5], var(m.s.s0.index, state_row + j, false) } );
+                            bp.add_copy_constraint( { round_result.inner_state[j * 5 + 1], var(m.s.s1.index, state_row + j, false) } );
+                            bp.add_copy_constraint( { round_result.inner_state[j * 5 + 2], var(m.s.s2.index, state_row + j, false) } );
+                            bp.add_copy_constraint( { round_result.inner_state[j * 5 + 3], var(m.s.s3.index, state_row + j, false) } );
+                            bp.add_copy_constraint( { round_result.inner_state[j * 5 + 4], var(m.s.s4.index, state_row + j, false) } );
+                        }
+                    }
                     assignment.enable_selector(xor_selector, state_row);
 
                     std::size_t chunks_row = state_row + component.state_rows_amount;
@@ -868,121 +822,22 @@ namespace nil {
                             var(component.C(0), start_row_index + j + 2, false, var::column_type::constant)
                         };
 
-                        if (/*is_last && */j == 0) {
-                            typename round_type::result_type round_result =
-                                generate_circuit(component.round_tf, bp, assignment, round_input, rounds_row);
+                        if (j == 0) {
+                            round_result = generate_circuit(component.round_tf, bp, assignment, round_input, rounds_row);
                             inner_state = round_result.inner_state;
                             rounds_row += component.round_tf.rows_amount;
-/*                      } else if (j == 0) {
-                            std::cout << "Not implemented" << std::endl;
-//                                exit(2);
-                            typename round_type::result_type round_result =
-                                generate_circuit(component.round_tf, bp, assignment, round_input, rounds_row);
-                            inner_state = round_result.inner_state;
-                            rounds_row += component.round_tf.rows_amount;*/
                         } else {
-                            typename round_type::result_type round_result =
-                                generate_circuit(component.round_ff, bp, assignment, round_input, rounds_row);
+                            round_result = generate_circuit(component.round_ff, bp, assignment, round_input, rounds_row);
                             inner_state = round_result.inner_state;
                             rounds_row += component.round_ff.rows_amount;
                         }
                     }
+                    //UN1
+                    bp.add_copy_constraint( {round_result.inner_state[0], var(m.u.SP.index, unsparser_row, false)});
+                    bp.add_copy_constraint( {round_result.inner_state[1], var(m.u.SP.index, unsparser_row + 1, false)});
+                    bp.add_copy_constraint( {round_result.inner_state[2], var(m.u.SP.index, unsparser_row + 2, false)});
+                    bp.add_copy_constraint( {round_result.inner_state[3], var(m.u.SP.index, unsparser_row + 3, false)});
                 }
-
-/*              auto config_map = component.gates_configuration_map;
-                std::size_t sel_ind = 0;
-                for (auto config : config_map) {
-                    if (config.first < component.witnesses) {
-                        for (auto gate_row : config.second) {
-                            // std::cout << "enabling: " << selector_indices[sel_ind] << " "
-                            //           << selector_indices[sel_ind + 1] << " at " << gate_row + row << std::endl;
-                            assignment.enable_selector(selector_indices[sel_ind], gate_row + row);
-                            assignment.enable_selector(selector_indices[sel_ind + 2], gate_row + row);
-                        }
-                        //std::cout << std::endl;
-                        sel_ind += 1;
-                    }
-                }
-
-                std::size_t config_index = 0;
-                std::vector<var> sparse_padded_message_coords(padding_result.padded_message.size());
-                for (std::size_t index = 0; index < padding_result.padded_message.size(); index++) {
-                    auto cur_config = component.full_configuration[config_index];
-                    sparse_padded_message_coords[index] = var(component.W(cur_config.constraints[1][0].column),
-                                                              cur_config.constraints[1][0].row + row, false);
-                    config_index++;
-                }
-
-                row += component.full_configuration[config_index - 1].last_coordinate.row +
-                       (component.full_configuration[config_index - 1].last_coordinate.column > 0);
-
-                // round circuits
-                std::array<var, 25> inner_state;
-                for (std::uint32_t i = 0; i < 25; i++) {
-                    inner_state[i] = var(component.C(0), start_row_index, false, var::column_type::constant);
-                }
-                std::array<var, 17> pmc;
-                std::size_t offset = 0;
-                for (std::size_t i = 0; i < component.num_round_calls; ++i) {
-                    std::copy(sparse_padded_message_coords.begin() + offset,
-
-                              sparse_padded_message_coords.begin() + offset + 17,
-                              pmc.begin());
-
-                    for (std::size_t j = 0; j < 24; ++j) {
-                        std::cout << i<< ". " << j << ". " << std::endl;
-                        typename round_type::input_type round_input = {
-                            inner_state, pmc,
-                            var(component.C(0), start_row_index + j + 2, false, var::column_type::constant)};
-                        std::cout << "Inner state: ";
-                        for (std::size_t i = 0; i < inner_state.size(); i ++ ) std::cout  << inner_state[i] << " ";
-                        std::cout << std::endl;
-                        std::cout << "Padded message coords:";
-                        for (std::size_t i = 0; i < pmc.size(); i ++ ) std::cout  << pmc[i] << " ";
-                        std::cout << std::endl << "\t";
-                        if (i == component.num_round_calls - 1 && j == 0) {
-                            std::cout << "tt ";
-                            typename round_type::result_type round_result =
-                                generate_circuit(component.round_tt, bp, assignment, round_input, row);
-                            inner_state = round_result.inner_state;
-                            row += component.round_tt.rows_amount;
-                            std::cout << component.round_tt.rows_amount << " : ";
-                        } else if (j == 0) {
-                            std::cout << "tf ";
-                            typename round_type::result_type round_result =
-                                generate_circuit(component.round_tf, bp, assignment, round_input, row);
-                            inner_state = round_result.inner_state;
-                            row += component.round_tf.rows_amount;
-                            std::cout << component.round_tf.rows_amount << " : ";
-                        } else {
-                            std::cout << "ff ";
-                            typename round_type::result_type round_result =
-                                generate_circuit(component.round_ff, bp, assignment, round_input, row);
-                            inner_state = round_result.inner_state;
-                            row += component.round_ff.rows_amount;
-                            std::cout << component.round_ff.rows_amount << " : ";
-                        }
-//                        std::cout << "Result state: ";
-//                        for (std::size_t i = 0; i < inner_state.size(); i ++ ) std::cout  << inner_state[i] << " ";
-//                        std::cout << std::endl;
-                    }
-                    offset += 17;
-                }
-
-                // sel_ind = 0;
-                for (auto config : config_map) {
-                    if (config.first >= 10 * component.witnesses) {
-                        for (auto gate_row : config.second) {
-                            // std::cout << "enabling2: " << selector_indices[sel_ind] << " "
-                            //           << selector_indices[sel_ind + 2] << " at " << gate_row + row << std::endl;
-                            assignment.enable_selector(selector_indices[sel_ind], gate_row + row);
-                            assignment.enable_selector(selector_indices[sel_ind + 2], gate_row + row);
-                        }
-                        //std::cout << std::endl;
-                        sel_ind += 1;
-                    }
-                }
-*/
                 generate_copy_constraints(component, bp, assignment, instance_input, start_row_index);
 
                 return typename component_type::result_type();
@@ -1056,7 +911,6 @@ namespace nil {
                         assignment.witness(m.h.is_last.index, header_row) = is_last;
                         assignment.witness(m.h.L.index, header_row) = msg.size();
                         assignment.witness(m.h.l.index, header_row) = msg.size() - block * 136;
-                        assignment.witness(m.h.lmod.index, header_row) = msg.size() % 136;
                         assignment.witness(m.h.hash_hi.index, header_row) = hash.first;
                         assignment.witness(m.h.hash_lo.index, header_row) = hash.second;
                         assignment.witness(m.h.RLC.index, header_row) = RLC;
@@ -1067,7 +921,6 @@ namespace nil {
                         assignment.witness(m.h.is_last.index, footer_row) = ((block == padded_msg.size()/136 - 1 )? 1: 0);
                         assignment.witness(m.h.L.index, footer_row) = msg.size();
                         assignment.witness(m.h.l.index, footer_row) = msg.size() - block * 136;
-                        assignment.witness(m.h.lmod.index, footer_row) = msg.size() % 136;
                         assignment.witness(m.h.hash_hi.index, footer_row) = hash.first;
                         assignment.witness(m.h.hash_lo.index, footer_row) = hash.second;
                         assignment.witness(m.h.RLC.index, footer_row) = RLC;
@@ -1314,6 +1167,8 @@ namespace nil {
                 const typename keccak_dynamic_component<BlueprintFieldType>::input_type &instance_input,
                 const std::uint32_t start_row_index) {
 
+                assignment.constant(component.C(0), start_row_index) = 0;
+                assignment.constant(component.C(0), start_row_index + 1) = 1;
                 std::size_t row = start_row_index + 2;
                 for (std::size_t i = 0; i < 24; ++i) {
                     assignment.constant(component.C(0), row + i) = pack<BlueprintFieldType>(
