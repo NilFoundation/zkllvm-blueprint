@@ -123,6 +123,7 @@ set(PLONK_TESTS_FILES
     "hashes/plonk/keccak_padding"
     "hashes/plonk/keccak_static"
     "hashes/plonk/keccak_dynamic"
+    "hashes/plonk/keccak_component"
     "hashes/plonk/decomposition"
     "hashes/plonk/detail/sha_table_generators_base4"
     "hashes/plonk/detail/sha_table_generators_base7"

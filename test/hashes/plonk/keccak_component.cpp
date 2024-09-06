@@ -22,7 +22,7 @@
 // SOFTWARE.
 //---------------------------------------------------------------------------//
 
-#define BOOST_TEST_MODULE plonk_keccak_dynamic_test
+#define BOOST_TEST_MODULE plonk_keccak_component_test
 
 #include <array>
 #include <iostream>
@@ -48,7 +48,6 @@
 #include <nil/blueprint/blueprint/plonk/circuit.hpp>
 #include <nil/blueprint/blueprint/plonk/assignment.hpp>
 #include <nil/blueprint/components/hashes/keccak/keccak_table.hpp>
-#include <nil/blueprint/components/hashes/keccak/keccak_dynamic.hpp>
 #include <nil/blueprint/components/hashes/keccak/keccak_component.hpp>
 
 #include "../../test_plonk_component.hpp"
@@ -75,7 +74,7 @@ void test_keccaks(
     using hash_type = nil::crypto3::hashes::keccak_1600<256>;
     constexpr std::size_t Lambda = 1;
 
-    using component_type = nil::blueprint::components::keccak_dynamic<ArithmetizationType>;
+    using component_type = nil::blueprint::components::keccak_component<ArithmetizationType>;
     using var = nil::crypto3::zk::snark::plonk_variable<typename BlueprintFieldType::value_type>;
 
     var rlc_challenge(0, 0, false, var::column_type::public_input);

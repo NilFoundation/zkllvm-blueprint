@@ -180,6 +180,13 @@ namespace nil {
                                                 std::cout << lookup_input << std::endl;
                                             }
                                         }
+                                        std::cout << "Possible values: " << std::endl;
+                                        for( auto &value : used_dynamic_tables[table_name]){
+                                            for (std::size_t k = 0; k < value.size(); k++) {
+                                                std::cout << std::hex << value[k] << std::dec << " ";
+                                            }
+                                            std::cout << std::endl;
+                                        }
                                         return false;
                                     }
                                     continue;

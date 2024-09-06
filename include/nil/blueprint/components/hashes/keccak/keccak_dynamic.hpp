@@ -46,12 +46,10 @@ namespace nil {
             template<typename BlueprintFieldType>
             class keccak_dynamic<crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType>>
                 : public plonk_component<BlueprintFieldType> {
-
+            public:
                 using component_type = plonk_component<BlueprintFieldType>;
                 using value_type = typename BlueprintFieldType::value_type;
                 using integral_type = typename BlueprintFieldType::integral_type;
-
-            public:
                 using var = typename component_type::var;
 
                 using round_component_type =
@@ -109,17 +107,7 @@ namespace nil {
                 const std::size_t max_blocks;
                 const std::size_t limit_permutation_column;
                 const std::size_t bytes_per_block = 136;    // 17*8
-/*
-                const std::size_t num_round_calls = calculate_num_round_calls(num_blocks, num_bits);
-                const std::size_t num_configs = 4 + calculate_padded_length(num_blocks, num_bits);
 
-                const std::size_t pack_chunk_size = 8;
-                const std::size_t pack_num_chunks = 8;
-                const std::size_t unpack_chunk_size = 24;
-                const std::size_t unpack_num_chunks = 8;
-                const std::size_t pack_cells = 2 * (pack_num_chunks + 1);
-                const std::size_t pack_buff = (this->witness_amount() == 15) * 2;
-*/
                 round_component_type round_tt;
                 round_component_type round_tf;
                 round_component_type round_ff;
@@ -130,14 +118,7 @@ namespace nil {
                 const std::size_t rounds_rows_amount = get_rounds_rows_amount(this->witness_amount(), this->limit_permutation_column);
                 const std::size_t unsparser_rows_amount = get_unsparser_rows_amount(this->witness_amount());
                 const std::size_t block_rows_amount = get_block_rows_amount(this->witness_amount(), this->limit_permutation_column);
-/*
-                std::vector<configuration> full_configuration =
-                    configure_all(this->witness_amount(), num_configs, num_round_calls, limit_permutation_column);
-                const std::map<std::size_t, std::vector<std::size_t>> gates_configuration_map = configure_map(
-                    this->witness_amount(), num_blocks, num_bits, range_check_input, limit_permutation_column);
-                const std::vector<std::vector<configuration>> gates_configuration = configure_gates(
-                    this->witness_amount(), num_blocks, num_bits, range_check_input, limit_permutation_column);
-*/
+
                 const std::size_t rows_amount = get_rows_amount(this->witness_amount(), max_blocks, limit_permutation_column);
                 const std::size_t gates_amount = get_gates_amount(this->witness_amount(), max_blocks, limit_permutation_column);
 
@@ -772,9 +753,9 @@ namespace nil {
                     std::size_t header_row = start_row_index + block * component.block_rows_amount;
                     assignment.enable_selector(header_selector, header_row);
                     if( block != 0 )
-                        assignment.enable_selector(non_first_header_selector, start_row_index + header_row);
+                        assignment.enable_selector(non_first_header_selector, header_row);
                     else
-                        assignment.enable_selector(first_header_selector, start_row_index + header_row);
+                        assignment.enable_selector(first_header_selector, header_row);
 
                     std::size_t state_row = header_row + component.header_rows_amount;
                     for( std::size_t j = 0; j < component.state_rows_amount; j++ ){
@@ -905,6 +886,7 @@ namespace nil {
                         l = msg.size() - block * 136;
                         bool is_first = (block == 0? 1: 0);
                         bool is_last = ((block == padded_msg.size()/136 - 1 )? 1: 0);
+                        std::cout  << "Is_last = " << is_last << std::endl;
                         if (is_first) rlc = msg.size();
 
                         assignment.witness(m.h.is_first.index, header_row) = is_first;
@@ -1176,7 +1158,6 @@ namespace nil {
                     );
                 }
             }
-
         }    // namespace components
     }        // namespace blueprint
 }    // namespace nil
