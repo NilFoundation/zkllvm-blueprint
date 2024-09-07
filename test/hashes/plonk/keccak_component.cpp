@@ -96,7 +96,6 @@ void test_keccaks(
 
     std::vector<typename BlueprintFieldType::value_type> public_input = {rnd.alg_random_engines.template get_alg_engine<BlueprintFieldType>()()};
 
-    // Last parameter is LPC
     component_type component_instance =
         component_type(witnesses, std::array<std::uint32_t, 1> {0}, std::array<std::uint32_t, 1> {0}, max_blocks, limit_permutation_columns);
 
